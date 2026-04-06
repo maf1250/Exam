@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
 
-// Toast component
+// ===== Toast =====
 function Toast({ message }) {
   if (!message) return null;
   return (
@@ -9,64 +9,152 @@ function Toast({ message }) {
       position: "fixed",
       top: "20px",
       left: "20px",
-      background: "#333",
+      background: "#16a34a",
       color: "#fff",
-      padding: "10px 20px",
-      borderRadius: "8px"
+      padding: "12px 20px",
+      borderRadius: "10px",
+      boxShadow: "0 5px 20px rgba(0,0,0,0.2)"
     }}>
       {message}
     </div>
   );
 }
 
+// ===== Hijri Date =====
+function getHijri(date) {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 export default function App() {
+
   const [data, setData] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [toast, setToast] = useState("");
+  const [useInvigilators, setUseInvigilators] = useState(true);
 
-  // Upload CSV
-  const handleFile = (file) => {
-    Papa.parse(file, {
-      header: true,
-      complete: (results) => {
-        setData(results.data);
-        showToast("تم رفع الملف بنجاح");
-      }
-    });
-  };
-
+  // ===== Toast helper =====
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
 
-  // Generate schedule (simple version)
+  // ===== Upload CSV =====
+  const handleFile = (file) => {
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        setData(results.data);
+        showToast("✅ تم رفع الملف");
+      }
+    });
+  };
+
+  // ===== Generate Smart Schedule =====
   const generateSchedule = () => {
-    if (data.length === 0) {
-      showToast("ارفع ملف أولاً");
+    if (!data.length) {
+      showToast("❌ ارفع الملف أولاً");
       return;
     }
 
-    let result = [];
+    // Group courses
+    const courses = {};
+    const invigilators = new Set();
 
-    data.forEach((row, index) => {
-      result.push({
-        course: row["اسم المقرر"],
-        trainer: row["المدرب"],
-        date: `2026-05-${(index % 10) + 1}`,
-        hijri: "1447 هـ",
-        period: (index % 2) + 1
-      });
+    data.forEach(row => {
+      const course = row["اسم المقرر"];
+      const trainer = row["المدرب"];
+      const student = row["رقم المتدرب"];
+
+      if (!course) return;
+
+      if (!courses[course]) {
+        courses[course] = {
+          name: course,
+          trainer,
+          students: new Set()
+        };
+      }
+
+      courses[course].students.add(student);
+      if (trainer) invigilators.add(trainer);
+    });
+
+    let courseList = Object.values(courses);
+
+    // Sort (smart priority)
+    courseList.sort((a, b) =>
+      b.students.size - a.students.size
+    );
+
+    let result = [];
+    let studentMap = {};
+
+    let date = new Date();
+    let dayOffset = 0;
+
+    courseList.forEach((course, index) => {
+      let assigned = false;
+
+      while (!assigned) {
+        let examDate = new Date();
+        examDate.setDate(date.getDate() + dayOffset);
+
+        let period = (index % 2) + 1;
+
+        // check conflicts
+        let conflict = false;
+
+        course.students.forEach(st => {
+          if (!studentMap[st]) studentMap[st] = [];
+
+          let sameDay = studentMap[st].filter(e =>
+            e.date === examDate.toDateString()
+          );
+
+          if (sameDay.length >= 2) conflict = true;
+        });
+
+        if (!conflict) {
+          // assign
+          course.students.forEach(st => {
+            if (!studentMap[st]) studentMap[st] = [];
+            studentMap[st].push({
+              date: examDate.toDateString()
+            });
+          });
+
+          result.push({
+            course: course.name,
+            trainer: course.trainer,
+            date: examDate.toLocaleDateString("ar-SA"),
+            hijri: getHijri(examDate),
+            period,
+            invigilators: useInvigilators
+              ? Array.from(invigilators).slice(0, 2)
+              : []
+          });
+
+          assigned = true;
+        } else {
+          dayOffset++;
+        }
+      }
     });
 
     setSchedule(result);
-    showToast("تم إنشاء الجدول");
+    showToast("🚀 تم إنشاء الجدول بدون تعارض");
   };
 
   return (
-    <div style={{ padding: "20px", direction: "rtl" }}>
-      <h1>📊 جدول الاختبارات - الكلية التقنية</h1>
+    <div style={{ padding: "20px", direction: "rtl", fontFamily: "Cairo" }}>
 
+      <h1>📊 نظام جدول الاختبارات - الكلية التقنية</h1>
+
+      {/* Upload */}
       <input
         type="file"
         accept=".csv"
@@ -75,27 +163,44 @@ export default function App() {
 
       <br /><br />
 
+      {/* Invigilators toggle */}
+      <label>
+        <input
+          type="checkbox"
+          checked={useInvigilators}
+          onChange={() => setUseInvigilators(!useInvigilators)}
+        />
+        إضافة المراقبين تلقائياً
+      </label>
+
+      <br /><br />
+
+      {/* Generate */}
       <button onClick={generateSchedule}>
-        إنشاء الجدول
+        إنشاء الجدول الذكي
       </button>
 
       <Toast message={toast} />
 
+      {/* Result */}
       <div style={{ marginTop: "20px" }}>
         {schedule.map((item, i) => (
           <div key={i} style={{
             border: "1px solid #ddd",
-            padding: "10px",
+            padding: "15px",
             marginBottom: "10px",
-            borderRadius: "10px"
+            borderRadius: "12px"
           }}>
-            <b>{item.course}</b><br />
-            المدرب: {item.trainer}<br />
-            التاريخ: {item.date} | {item.hijri}<br />
-            الفترة: {item.period}
+            <h3>{item.course}</h3>
+            <p>👨‍🏫 المدرب: {item.trainer}</p>
+            <p>📅 التاريخ: {item.date}</p>
+            <p>🕌 هجري: {item.hijri}</p>
+            <p>⏰ الفترة: {item.period}</p>
+            <p>👀 المراقبين: {item.invigilators.join(" , ")}</p>
           </div>
         ))}
       </div>
+
     </div>
   );
 }
