@@ -591,10 +591,13 @@ export default function App() {
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
 
-  const availableInvigilators = useMemo(() => {
-    const baseInvigilators = manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+const availableInvigilators = useMemo(() => {
+  const baseInvigilators = manualInvigilators
+    ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+    : parsed.invigilators;
 
-      : parsed.invigilators;
+  return Array.from(new Set(baseInvigilators));
+}, [manualInvigilators, parsed.invigilators]);
 
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
   }, [manualInvigilators, parsed.invigilators]);
