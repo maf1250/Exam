@@ -596,19 +596,20 @@ export default function App() {
     const invigilatorSet = new Set();
     const sectionSet = new Set();
 
-    filteredRows.forEach((row) => {
-      const courseCode = String(row["المقرر"] ?? "").trim();
-      const courseName = String(row["اسم المقرر"] ?? "").trim();
-      const trainer = String(row["المدرب"] ?? "").trim();
-      const studentId = String(row["رقم المتدرب"] ?? "").trim();
-      const department = String(row["القسم"] ?? "").trim();
-      const major = String(row["التخصص"] ?? "").trim();
-      const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
-      const sectionName = `${department || "-"} / ${major || "-"}`;
+const courseCode = String(row["المقرر"] ?? "").trim();
+const courseName = String(row["اسم المقرر"] ?? "").trim();
+const trainer = String(row["المدرب"] ?? "").trim();
+const studentId = String(row["رقم المتدرب"] ?? "").trim();
+const department = String(row["القسم"] ?? "").trim();
+const major = String(row["التخصص"] ?? "").trim();
+const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
+const sectionName = `${department || "-"} / ${major || "-"}`;
 
-      if (!courseCode && !courseName) return;
+if (!courseCode && !courseName) return;
 
-      const key = [courseCode, courseName].join("|");
+const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
+const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
+const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
       if (studentId) studentSet.add(studentId);
@@ -717,18 +718,12 @@ export default function App() {
     [startDate, numberOfDays, selectedDays, parsedPeriods]
   );
 
-  const allCourseOptions = useMemo(() => {
-    return Array.from(
-      new Map(
-        (rows || []).map((row) => {
-          const courseCode = String(row["المقرر"] ?? "").trim();
-          const courseName = String(row["اسم المقرر"] ?? "").trim();
-          const key = [courseCode, courseName].join("|");
-          return [key, { key, label: `${courseName} - ${courseCode}` }];
-        })
-      ).values()
-    );
-  }, [rows]);
+const allCourseOptions = useMemo(() => {
+  return parsed.courses.map((course) => ({
+    key: course.key,
+    label: `${course.courseName} - ${course.courseCode}`,
+  }));
+}, [parsed.courses]);
 
   const generateSchedule = () => {
     if (!rows.length) {
