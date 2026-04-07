@@ -322,7 +322,7 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
                       <td>${item.courseName}</td>
                       <td>${item.courseCode}</td>
                       <td>${item.sectionName}</td>
-                      <td>${item.trainer}</td>
+                      <td>${item.trainerText}</td>
                       <td>${item.studentCount}</td>
                       <td>${item.invigilators.join("، ") || "-"}</td>
                     </tr>
@@ -362,7 +362,7 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
                       <td>${item.timeText}</td>
                       <td>${item.courseName}</td>
                       <td>${item.courseCode}</td>
-                      <td>${item.reference}</td>
+                      <td>${item.referenceText}</td>
                     </tr>
                   `).join("")}
                 </tbody>
@@ -511,15 +511,28 @@ export default function App() {
       const major = String(row["التخصص"] ?? "").trim();
       const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
       const sectionName = `${department || "-"} / ${major || "-"}`;
-      const key = [reference, courseCode, courseName, trainer].join("|");
+      const key = [courseCode, courseName, department, major].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
       if (studentId) studentSet.add(studentId);
       if (sectionName !== "- / -") sectionSet.add(sectionName);
 
-      if (!courseMap.has(key)) {
-        courseMap.set(key, { key, reference, courseCode, courseName, trainer, department, major, scheduleType, students: new Set() });
-      }
+if (!courseMap.has(key)) {
+  courseMap.set(key, {
+    key,
+    references: new Set(),
+    trainers: new Set(),
+    courseCode,
+    courseName,
+    department,
+    major,
+    scheduleType,
+    students: new Set(),
+  });
+}
+
+if (reference) courseMap.get(key).references.add(reference);
+if (trainer) courseMap.get(key).trainers.add(trainer);
 
       if (studentId) {
         courseMap.get(key).students.add(studentId);
@@ -551,7 +564,15 @@ export default function App() {
         const trainerWeight = prioritizeTrainer && normalizeArabic(course.trainer).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
         const priorityScore = practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
-        return { ...course, studentCount, conflictDegree, priorityScore, sectionName: `${course.department || "-"} / ${course.major || "-"}` };
+      return {
+  ...course,
+  referenceText: Array.from(course.references).join(" / "),
+  trainerText: Array.from(course.trainers).join(" / "),
+  studentCount,
+  conflictDegree,
+  priorityScore,
+  sectionName: `${course.department || "-"} / ${course.major || "-"}`,
+};
       })
       .filter((course) => !excludedCourses.some((item) => item === course.key))
       .sort((a, b) => b.priorityScore - a.priorityScore || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
@@ -720,8 +741,8 @@ export default function App() {
       الوقت: item.timeText,
       المقرر: item.courseCode,
       اسم_المقرر: item.courseName,
-      الرقم_المرجعي: item.reference,
-      المدرب: item.trainer,
+الارقام_المرجعية: item.referenceText,
+المدربون: item.trainerText,
       عدد_المتدربين: item.studentCount,
       المراقبون: item.invigilators.join(" | "),
     }));
@@ -973,7 +994,7 @@ export default function App() {
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.sectionName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.trainer}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.trainerText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.studentCount}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.invigilators.join("، ") || "-"}</td>
                             </tr>
@@ -1026,7 +1047,7 @@ export default function App() {
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.reference}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.referenceText}</td>
                             </tr>
                           ))}
                         </tbody>
