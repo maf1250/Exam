@@ -397,7 +397,7 @@ export default function App() {
     }
 
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("
+      ? manualInvigilators.split("\n")
 ").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
@@ -592,14 +592,13 @@ export default function App() {
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
 
-  const availableInvigilators = useMemo(() => {
-    const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("
-").map((name) => name.trim()).filter(Boolean)
-      : parsed.invigilators;
+const availableInvigilators = useMemo(() => {
+  const baseInvigilators = manualInvigilators
+    ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+    : parsed.invigilators;
 
-    return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [manualInvigilators, parsed.invigilators]);
+  return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
+}, [manualInvigilators, parsed.invigilators]);
 
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
