@@ -361,7 +361,6 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
                       <td>${item.timeText}</td>
                       <td>${item.courseName}</td>
                       <td>${item.courseCode}</td>
-                      <td>${item.referenceText}</td>
                     </tr>
                   `).join("")}
                 </tbody>
@@ -516,13 +515,13 @@ export default function App() {
       if (studentId) studentSet.add(studentId);
       if (sectionName !== "- / -") sectionSet.add(sectionName);
 
-if (!courseMap.has(key)) {
+
+      if (!courseMap.has(key)) {
   courseMap.set(key, {
     key,
-    references: new Set(),
-    trainers: new Set(),
     courseCode,
     courseName,
+    trainer,
     department,
     major,
     scheduleType,
@@ -530,7 +529,6 @@ if (!courseMap.has(key)) {
   });
 }
 
-if (reference) courseMap.get(key).references.add(reference);
 if (trainer) courseMap.get(key).trainers.add(trainer);
 
       if (studentId) {
@@ -565,7 +563,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
 
       return {
   ...course,
-  referenceText: Array.from(course.references).join(" / "),
   trainerText: Array.from(course.trainers).join(" / "),
   studentCount,
   conflictDegree,
@@ -701,7 +698,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
     schedule.forEach((item) => {
       item.invigilators.forEach((name) => {
         if (!table.has(name)) table.set(name, []);
-        table.get(name).push({ dateISO: item.dateISO, dayName: item.dayName, period: item.period, timeText: item.timeText, courseName: item.courseName, courseCode: item.courseCode, reference: item.reference, gregorian: item.gregorian });
+        table.get(name).push({ dateISO: item.dateISO, dayName: item.dayName, period: item.period, timeText: item.timeText, courseName: item.courseName, courseCode: item.courseCode,  gregorian: item.gregorian });
       });
     });
 
@@ -868,8 +865,8 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                     const courseCode = String(row["المقرر"] ?? "").trim();
                     const courseName = String(row["اسم المقرر"] ?? "").trim();
                     const trainer = String(row["المدرب"] ?? "").trim();
-                    const key = [reference, courseCode, courseName, trainer].join("|");
-                    return [key, { key, label: `${courseName} - ${reference}` }];
+                   const key = [courseCode, courseName].join("|");
+                    return [key, { key, label: `${courseName} - ${courseCode}` }];
                   })).values()).map((course) => {
                     const excluded = excludedCourses.includes(course.key);
                     return <button key={course.key} onClick={() => toggleExcludedCourse(course.key)} style={{ border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`, background: excluded ? "#fef2f2" : "#fff", color: excluded ? "#991b1b" : "#334155", borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{excluded ? `مستبعد: ${course.label}` : course.label}</button>;
@@ -947,7 +944,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                     <tr key={course.key}>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseName}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseCode}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.reference}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.sectionName}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.trainer}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.studentCount}</td>
@@ -1007,7 +1003,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
               <div style={{ marginTop: 18, borderRadius: 18, background: "#fff7ed", border: "1px solid #fdba74", color: "#9a3412", padding: 14 }}>
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {unscheduled.map((course) => <span key={course.key} style={{ background: "#fff", border: "1px solid #fed7aa", borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>{course.courseName} - {course.reference}</span>)}
+                  {unscheduled.map((course) => <span key={course.key} style={{ background: "#fff", border: "1px solid #fed7aa", borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>{course.courseName} - {course.courseCode}</span>)}
                 </div>
               </div>
             ) : null}
@@ -1043,7 +1039,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.referenceText}</td>
                             </tr>
                           ))}
                         </tbody>
