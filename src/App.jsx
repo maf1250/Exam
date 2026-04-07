@@ -397,8 +397,7 @@ export default function App() {
     }
 
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("\n")
-").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
