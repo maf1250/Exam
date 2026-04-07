@@ -502,7 +502,6 @@ export default function App() {
     filteredRows.forEach((row) => {
       const courseCode = String(row["المقرر"] ?? "").trim();
       const courseName = String(row["اسم المقرر"] ?? "").trim();
- 
       const trainer = String(row["المدرب"] ?? "").trim();
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
@@ -558,12 +557,13 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
         const practicalWeight = normalizeArabic(course.scheduleType).includes("عملي") ? 3 : 2;
         const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
         const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
-        const trainerWeight = prioritizeTrainer && normalizeArabic(course.trainerText).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
+        const trainerText = Array.from(course.trainers).join(" / ");
+        const trainerWeight =  prioritizeTrainer &&  normalizeArabic(trainerText).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
         const priorityScore = practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
       return {
   ...course,
-  trainerText: Array.from(course.trainerTexts).join(" / "),
+  trainerText,
   studentCount,
   conflictDegree,
   priorityScore,
@@ -864,6 +864,8 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                   {rows.length ? parsed.filteredRows.length || parsed.courses.length ? Array.from(new Map((rows || []).map((row) => {
                     const courseCode = String(row["المقرر"] ?? "").trim();
                     const courseName = String(row["اسم المقرر"] ?? "").trim();
+                    const department = String(row["القسم"] ?? "").trim();
+                    const major = String(row["التخصص"] ?? "").trim();
                     const trainer = String(row["المدرب"] ?? "").trim();
 const key = [courseCode, courseName, department, major].join("|");
               return [key, { key, label: `${courseName} - ${courseCode}` }];
