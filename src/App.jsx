@@ -396,9 +396,9 @@ export default function App() {
       return;
     }
 
-    const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
-      : parsed.invigilators;
+  const baseInvigilators = manualInvigilators
+  ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+  : parsed.invigilators;
 
     const invigilatorPool = [
       ...new Set(
@@ -591,13 +591,14 @@ export default function App() {
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
 
-const availableInvigilators = useMemo(() => {
-  const baseInvigilators = manualInvigilators
-    ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
-    : parsed.invigilators;
+  const availableInvigilators = useMemo(() => {
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split("
+").map((name) => name.trim()).filter(Boolean)
+      : parsed.invigilators;
 
-  return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
-}, [manualInvigilators, parsed.invigilators]);
+    return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [manualInvigilators, parsed.invigilators]);
 
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
@@ -650,7 +651,7 @@ const availableInvigilators = useMemo(() => {
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(320px, 0.9fr)", gap: 20, marginTop: 20 }}>
           <Card>
-            <SectionHeader title="رفع الملف والإعدادات" description="ارفع ملف CSV ثم اضبط إعدادات بناء الجدول قبل الإنشاء." />
+            <SectionHeader title="القسم الأول: بيانات الكلية والجدول" description="أدخل بيانات الكلية والتخصص وحدد تاريخ البداية وإعدادات الفترات، ثم ارفع ملف CSV." />
 
             <div
               onClick={() => fileRef.current?.click()}
@@ -831,8 +832,15 @@ const availableInvigilators = useMemo(() => {
           </Card>
 
           <Card>
-            <SectionHeader title="ملخص البيانات" description="استعراض سريع قبل إنشاء الجدول." />
+            <SectionHeader title="القسم الثاني: المراقبون" description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب." />
             <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
+                <div style={{ color: "#64748b", marginBottom: 6 }}>اسم الكلية</div>
+                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
+              </div>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
+                <div style={{ color: "#64748b", marginBottom: 6 }}>التخصصات / الأقسام من الملف</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
                 <div style={{ color: "#64748b", marginBottom: 6 }}>الكلية</div>
                 <div style={{ fontWeight: 900 }}>{parsed.collegeName || "-"}</div>
