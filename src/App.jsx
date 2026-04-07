@@ -17,7 +17,7 @@ const REQUIRED_COLUMNS = [
 
 const DAY_OPTIONS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 const EXCLUDED_REGISTRATION = ["انسحاب فصلي", "مطوي قيده", "معتذر", "منسحب"];
-const EXCLUDED_TRAINEE = ["مطوي قيده"];
+const EXCLUDED_TRAINEE = ["مطوي قيده", "انسحاب فصلي", "مطوي قيده لإنقطاع أسبوعين"];
 
 function normalizeArabic(value) {
   return String(value ?? "")
@@ -516,12 +516,12 @@ export default function App() {
       if (sectionName !== "- / -") sectionSet.add(sectionName);
 
 
-      if (!courseMap.has(key)) {
+if (!courseMap.has(key)) {
   courseMap.set(key, {
     key,
     courseCode,
     courseName,
-    trainer,
+    trainers: new Set(),
     department,
     major,
     scheduleType,
@@ -558,12 +558,12 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
         const practicalWeight = normalizeArabic(course.scheduleType).includes("عملي") ? 3 : 2;
         const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
         const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
-        const trainerWeight = prioritizeTrainer && normalizeArabic(course.trainer).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
+        const trainerWeight = prioritizeTrainer && normalizeArabic(course.trainerText).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
         const priorityScore = practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
       return {
   ...course,
-  trainerText: Array.from(course.trainers).join(" / "),
+  trainerText: Array.from(course.trainerTexts).join(" / "),
   studentCount,
   conflictDegree,
   priorityScore,
@@ -610,7 +610,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
     const pickInvigilators = (course, slot) => {
       if (!includeInvigilators) return [];
       const eligible = invigilatorPool
-        .filter((name) => normalizeArabic(name) !== normalizeArabic(course.trainer))
+        .filter((name) => normalizeArabic(name) !== normalizeArabic(course.trainerText))
         .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
         .sort((a, b) => ((invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0)) || a.localeCompare(b, "ar"));
 
@@ -865,8 +865,8 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                     const courseCode = String(row["المقرر"] ?? "").trim();
                     const courseName = String(row["اسم المقرر"] ?? "").trim();
                     const trainer = String(row["المدرب"] ?? "").trim();
-                   const key = [courseCode, courseName].join("|");
-                    return [key, { key, label: `${courseName} - ${courseCode}` }];
+const key = [courseCode, courseName, department, major].join("|");
+              return [key, { key, label: `${courseName} - ${courseCode}` }];
                   })).values()).map((course) => {
                     const excluded = excludedCourses.includes(course.key);
                     return <button key={course.key} onClick={() => toggleExcludedCourse(course.key)} style={{ border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`, background: excluded ? "#fef2f2" : "#fff", color: excluded ? "#991b1b" : "#334155", borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{excluded ? `مستبعد: ${course.label}` : course.label}</button>;
@@ -945,7 +945,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseName}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseCode}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.sectionName}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.trainer}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.trainerText}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.studentCount}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.conflictDegree}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>{course.priorityScore}</td>
