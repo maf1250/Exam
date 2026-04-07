@@ -592,9 +592,8 @@ export default function App() {
   };
 
   const availableInvigilators = useMemo(() => {
-    const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("
-").map((name) => name.trim()).filter(Boolean)
+    const baseInvigilators = manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+
       : parsed.invigilators;
 
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
