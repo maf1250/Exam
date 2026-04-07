@@ -4,7 +4,6 @@ import Papa from "papaparse";
 const REQUIRED_COLUMNS = [
   "المقرر",
   "اسم المقرر",
-  "الرقم المرجعي",
   "المدرب",
   "رقم المتدرب",
   "إسم المتدرب",
@@ -350,7 +349,7 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
                     <th style="width:14%">الوقت</th>
                     <th style="width:24%">المقرر</th>
                     <th style="width:10%">الرمز</th>
-                    <th style="width:13%">الرقم المرجعي</th>
+                    
                   </tr>
                 </thead>
                 <tbody>
@@ -504,7 +503,7 @@ export default function App() {
     filteredRows.forEach((row) => {
       const courseCode = String(row["المقرر"] ?? "").trim();
       const courseName = String(row["اسم المقرر"] ?? "").trim();
-      const reference = String(row["الرقم المرجعي"] ?? "").trim();
+ 
       const trainer = String(row["المدرب"] ?? "").trim();
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
@@ -741,7 +740,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
       الوقت: item.timeText,
       المقرر: item.courseCode,
       اسم_المقرر: item.courseName,
-الارقام_المرجعية: item.referenceText,
 المدربون: item.trainerText,
       عدد_المتدربين: item.studentCount,
       المراقبون: item.invigilators.join(" | "),
@@ -761,7 +759,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
       الوقت: item.timeText,
       المقرر: item.courseName,
       رمز_المقرر: item.courseCode,
-      الرقم_المرجعي: item.reference,
     })));
 
     downloadFile("invigilators-periods.csv", rowsToCsv(rowsToExport), "text/csv;charset=utf-8");
@@ -870,7 +867,6 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                   {rows.length ? parsed.filteredRows.length || parsed.courses.length ? Array.from(new Map((rows || []).map((row) => {
                     const courseCode = String(row["المقرر"] ?? "").trim();
                     const courseName = String(row["اسم المقرر"] ?? "").trim();
-                    const reference = String(row["الرقم المرجعي"] ?? "").trim();
                     const trainer = String(row["المدرب"] ?? "").trim();
                     const key = [reference, courseCode, courseName, trainer].join("|");
                     return [key, { key, label: `${courseName} - ${reference}` }];
@@ -943,7 +939,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
-                    {["المقرر", "الرمز", "الرقم المرجعي", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", "الأولوية"].map((label) => <th key={label} style={{ padding: 12, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{label}</th>)}
+                    {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", "الأولوية"].map((label) => <th key={label} style={{ padding: 12, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -1035,7 +1031,7 @@ if (trainer) courseMap.get(key).trainers.add(trainer);
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr>
-                            {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز", "الرقم المرجعي"].map((head) => <th key={head} style={{ padding: 12, textAlign: "right", borderBottom: "1px solid #e5e7eb", background: "#ffffff", whiteSpace: "nowrap" }}>{head}</th>)}
+                            {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => <th key={head} style={{ padding: 12, textAlign: "right", borderBottom: "1px solid #e5e7eb", background: "#ffffff", whiteSpace: "nowrap" }}>{head}</th>)}
                           </tr>
                         </thead>
                         <tbody>
