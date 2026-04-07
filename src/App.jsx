@@ -596,20 +596,21 @@ export default function App() {
     const invigilatorSet = new Set();
     const sectionSet = new Set();
 
-const courseCode = String(row["المقرر"] ?? "").trim();
-const courseName = String(row["اسم المقرر"] ?? "").trim();
-const trainer = String(row["المدرب"] ?? "").trim();
-const studentId = String(row["رقم المتدرب"] ?? "").trim();
-const department = String(row["القسم"] ?? "").trim();
-const major = String(row["التخصص"] ?? "").trim();
-const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
-const sectionName = `${department || "-"} / ${major || "-"}`;
+    filteredRows.forEach((row) => {
+      const courseCode = String(row["المقرر"] ?? "").trim();
+      const courseName = String(row["اسم المقرر"] ?? "").trim();
+      const trainer = String(row["المدرب"] ?? "").trim();
+      const studentId = String(row["رقم المتدرب"] ?? "").trim();
+      const department = String(row["القسم"] ?? "").trim();
+      const major = String(row["التخصص"] ?? "").trim();
+      const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
+      const sectionName = `${department || "-"} / ${major || "-"}`;
 
-if (!courseCode && !courseName) return;
+      if (!courseCode && !courseName) return;
 
-const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
-const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
-const key = [normalizedCourseCode, normalizedCourseName].join("|");
+      const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
+      const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
+      const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
       if (studentId) studentSet.add(studentId);
@@ -636,9 +637,12 @@ const key = [normalizedCourseCode, normalizedCourseName].join("|");
       if (major) course.majors.add(major);
       if (sectionName !== "- / -") course.sectionNames.add(sectionName);
       if (scheduleType) course.scheduleTypes.add(scheduleType);
+
       if (studentId) {
         course.students.add(studentId);
-        if (!studentCourseMap.has(studentId)) studentCourseMap.set(studentId, new Set());
+        if (!studentCourseMap.has(studentId)) {
+          studentCourseMap.set(studentId, new Set());
+        }
         studentCourseMap.get(studentId).add(key);
       }
     });
@@ -718,12 +722,12 @@ const key = [normalizedCourseCode, normalizedCourseName].join("|");
     [startDate, numberOfDays, selectedDays, parsedPeriods]
   );
 
-const allCourseOptions = useMemo(() => {
-  return parsed.courses.map((course) => ({
-    key: course.key,
-    label: `${course.courseName} - ${course.courseCode}`,
-  }));
-}, [parsed.courses]);
+  const allCourseOptions = useMemo(() => {
+    return parsed.courses.map((course) => ({
+      key: course.key,
+      label: `${course.courseName} - ${course.courseCode}`,
+    }));
+  }, [parsed.courses]);
 
   const generateSchedule = () => {
     if (!rows.length) {
