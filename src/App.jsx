@@ -179,48 +179,139 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
   const printWindow = window.open("", "_blank", "width=1200,height=900");
   if (!printWindow) return;
 
+  const todayText = new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+
   const html = `
     <html dir="rtl" lang="ar">
       <head>
         <title>طباعة جدول الاختبارات</title>
         <style>
-          body { font-family: Tahoma, Arial, sans-serif; margin: 24px; color: #111827; direction: rtl; }
-          h1,h2,h3 { margin: 0 0 10px; }
-          .header { margin-bottom: 24px; }
-          .section { margin-bottom: 28px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #d1d5db; padding: 8px; text-align: right; font-size: 12px; }
-          th { background: #f3f4f6; }
-          .day-card { margin-bottom: 18px; page-break-inside: avoid; }
-          .muted { color: #6b7280; font-size: 12px; }
-          @media print {
-            body { margin: 10mm; }
-            .page-break { page-break-before: always; }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          body {
+            font-family: Tahoma, Arial, sans-serif;
+            margin: 0;
+            color: #111827;
+            direction: rtl;
+            background: #fff;
+          }
+          h1,h2,h3,p { margin: 0; }
+          .sheet-header {
+            border: 2px solid #111827;
+            padding: 14px;
+            margin-bottom: 18px;
+          }
+          .sheet-title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+          }
+          .sheet-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            flex-wrap: wrap;
+          }
+          .meta-box {
+            border: 1px solid #9ca3af;
+            padding: 8px 10px;
+            min-width: 180px;
+          }
+          .section {
+            margin-bottom: 20px;
+          }
+          .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            background: #f3f4f6;
+            border-right: 5px solid #111827;
+          }
+          .day-card {
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+          }
+          .day-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-bottom: 0;
+            background: #fafafa;
+            font-size: 12px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+          th, td {
+            border: 1px solid #d1d5db;
+            padding: 6px;
+            text-align: right;
+            font-size: 11px;
+            vertical-align: top;
+            word-wrap: break-word;
+          }
+          th {
+            background: #e5e7eb;
+            font-weight: 700;
+          }
+          .muted {
+            color: #6b7280;
+            font-size: 11px;
+          }
+          .page-break {
+            page-break-before: always;
+          }
+          .footer-note {
+            margin-top: 10px;
+            font-size: 10px;
+            color: #6b7280;
+            text-align: left;
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>جدول الاختبارات النهائية</h1>
-          <div class="muted">${collegeName || "الكلية التقنية"}</div>
+        <div class="sheet-header">
+          <div class="sheet-title">جدول الاختبارات النهائية</div>
+          <div class="sheet-meta">
+            <div class="meta-box"><strong>الكلية:</strong> ${collegeName || "الكلية التقنية"}</div>
+            <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+            <div class="meta-box"><strong>عدد أيام الجدول:</strong> ${Object.keys(grouped).length}</div>
+          </div>
         </div>
 
         <div class="section">
+          <div class="section-title">جدول الاختبارات</div>
           ${Object.entries(grouped).map(([_, items]) => `
             <div class="day-card">
-              <h3>${items[0].gregorian}</h3>
-              <div class="muted">${items[0].hijri}</div>
+              <div class="day-head">
+                <div><strong>${items[0].gregorian}</strong></div>
+                <div class="muted">${items[0].hijri}</div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>الفترة</th>
-                    <th>الوقت</th>
-                    <th>اسم المقرر</th>
-                    <th>الرمز</th>
-                    <th>القسم / الشعبة</th>
-                    <th>المدرب</th>
-                    <th>عدد المتدربين</th>
-                    <th>المراقبون</th>
+                    <th style="width:6%">الفترة</th>
+                    <th style="width:12%">الوقت</th>
+                    <th style="width:22%">اسم المقرر</th>
+                    <th style="width:10%">الرمز</th>
+                    <th style="width:16%">القسم / الشعبة</th>
+                    <th style="width:12%">المدرب</th>
+                    <th style="width:8%">العدد</th>
+                    <th style="width:14%">المراقبون</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,21 +334,23 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
         </div>
 
         <div class="section page-break">
-          <h2>جدول المراقبين وفترات المراقبة</h2>
+          <div class="section-title">جدول المراقبين وفترات المراقبة</div>
           ${invigilatorTable.map((inv) => `
             <div class="day-card">
-              <h3>${inv.name}</h3>
-              <div class="muted">عدد الفترات: ${inv.periodsCount}</div>
+              <div class="day-head">
+                <div><strong>${inv.name}</strong></div>
+                <div class="muted">عدد الفترات: ${inv.periodsCount}</div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>التاريخ</th>
-                    <th>اليوم</th>
-                    <th>الفترة</th>
-                    <th>الوقت</th>
-                    <th>المقرر</th>
-                    <th>الرمز</th>
-                    <th>الرقم المرجعي</th>
+                    <th style="width:22%">التاريخ</th>
+                    <th style="width:10%">اليوم</th>
+                    <th style="width:7%">الفترة</th>
+                    <th style="width:14%">الوقت</th>
+                    <th style="width:24%">المقرر</th>
+                    <th style="width:10%">الرمز</th>
+                    <th style="width:13%">الرقم المرجعي</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,6 +369,7 @@ function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
               </table>
             </div>
           `).join("")}
+          <div class="footer-note">تم إنشاء هذا المستند من نظام بناء جدول الاختبارات.</div>
         </div>
       </body>
     </html>
@@ -661,21 +755,6 @@ export default function App() {
     sections: parsed.sections.length,
   };
 
-  const allCourseOptions = useMemo(() => {
-    return Array.from(
-      new Map(
-        (rows || []).map((row) => {
-          const courseCode = String(row["المقرر"] ?? "").trim();
-          const courseName = String(row["اسم المقرر"] ?? "").trim();
-          const reference = String(row["الرقم المرجعي"] ?? "").trim();
-          const trainer = String(row["المدرب"] ?? "").trim();
-          const key = [reference, courseCode, courseName, trainer].join("|");
-          return [key, { key, label: `${courseName} - ${reference}` }];
-        })
-      ).values()
-    );
-  }, [rows]);
-
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)", padding: 20, direction: "rtl", fontFamily: "Cairo, Tahoma, Arial, sans-serif", color: "#0f172a" }}>
       <Toast item={toast} onClose={() => setToast(null)} />
@@ -767,10 +846,17 @@ export default function App() {
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
                 <div style={{ color: "#64748b", fontSize: 14, marginBottom: 10 }}>اختر أي مقرر لا تريد إدخاله في الجدولة.</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 220, overflow: "auto" }}>
-                  {rows.length ? allCourseOptions.map((course) => {
+                  {rows.length ? parsed.filteredRows.length || parsed.courses.length ? Array.from(new Map((rows || []).map((row) => {
+                    const courseCode = String(row["المقرر"] ?? "").trim();
+                    const courseName = String(row["اسم المقرر"] ?? "").trim();
+                    const reference = String(row["الرقم المرجعي"] ?? "").trim();
+                    const trainer = String(row["المدرب"] ?? "").trim();
+                    const key = [reference, courseCode, courseName, trainer].join("|");
+                    return [key, { key, label: `${courseName} - ${reference}` }];
+                  })).values()).map((course) => {
                     const excluded = excludedCourses.includes(course.key);
                     return <button key={course.key} onClick={() => toggleExcludedCourse(course.key)} style={{ border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`, background: excluded ? "#fef2f2" : "#fff", color: excluded ? "#991b1b" : "#334155", borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{excluded ? `مستبعد: ${course.label}` : course.label}</button>;
-                  }) : <span style={{ color: "#94a3b8" }}>ارفع الملف أولًا</span>}
+                  }) : null : <span style={{ color: "#94a3b8" }}>ارفع الملف أولًا</span>}
                 </div>
               </div>
 
