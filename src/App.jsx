@@ -494,7 +494,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
-
+const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -722,12 +722,31 @@ export default function App() {
     [startDate, numberOfDays, selectedDays, parsedPeriods]
   );
 
-  const allCourseOptions = useMemo(() => {
-    return parsed.courses.map((course) => ({
-      key: course.key,
-      label: `${course.courseName} - ${course.courseCode}`,
-    }));
-  }, [parsed.courses]);
+const allCourseOptions = useMemo(() => {
+  if (!rows.length) return [];
+
+  const map = new Map();
+
+  rows.forEach((row) => {
+    const courseCode = String(row["المقرر"] ?? "").trim();
+    const courseName = String(row["اسم المقرر"] ?? "").trim();
+
+    if (!courseCode && !courseName) return;
+
+    const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
+    const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
+    const key = [normalizedCourseCode, normalizedCourseName].join("|");
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        label: `${courseName} - ${courseCode}`,
+      });
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}, [rows]);
 
   const generateSchedule = () => {
     if (!rows.length) {
@@ -767,32 +786,55 @@ export default function App() {
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
 
-    const pickInvigilators = (course, slot) => {
-      if (!includeInvigilators) return [];
+const pickInvigilators = (course, slot) => {
+  if (!includeInvigilators) return [];
 
-      const courseTrainerNames = course.trainerText
-        .split("/")
-        .map((name) => normalizeArabic(name))
-        .filter(Boolean);
+  const courseTrainerNames = course.trainerText
+    .split("/")
+    .map((name) => normalizeArabic(name.trim()))
+    .filter(Boolean);
 
-      const eligible = invigilatorPool
-        .filter((name) => !courseTrainerNames.includes(normalizeArabic(name)))
-        .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-        .sort(
-          (a, b) =>
-            (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-            a.localeCompare(b, "ar")
-        );
+  const chosen = [];
 
-      const chosen = eligible.slice(0, Math.min(invigilatorsPerPeriod, eligible.length));
+  // 1) ترشيح مدرب المقرر أولًا إذا كان الخيار مفعّلًا
+  if (preferCourseTrainerInvigilation) {
+    const trainerCandidates = invigilatorPool
+      .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
+      .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+      .sort(
+        (a, b) =>
+          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+          a.localeCompare(b, "ar")
+      );
 
-      chosen.forEach((name) => {
-        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-        invigilatorBusySlots.get(name).add(slot.id);
-      });
+    for (const trainerName of trainerCandidates) {
+      if (chosen.length >= invigilatorsPerPeriod) break;
+      chosen.push(trainerName);
+    }
+  }
 
-      return chosen;
-    };
+  // 2) إكمال العدد من بقية المراقبين
+  const remaining = invigilatorPool
+    .filter((name) => !chosen.includes(name))
+    .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+    .sort(
+      (a, b) =>
+        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+        a.localeCompare(b, "ar")
+    );
+
+  for (const name of remaining) {
+    if (chosen.length >= invigilatorsPerPeriod) break;
+    chosen.push(name);
+  }
+
+  chosen.forEach((name) => {
+    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+    invigilatorBusySlots.get(name).add(slot.id);
+  });
+
+  return chosen;
+};
 
     const scoreSlot = (course, slot) => {
       let hardConflict = false;
@@ -1413,6 +1455,24 @@ export default function App() {
                   />
                   إضافة المراقبين تلقائيًا
                 </label>
+                <label
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 12,
+  }}
+>
+  <input
+    type="checkbox"
+    checked={preferCourseTrainerInvigilation}
+    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+  />
+  جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+</label>
               </div>
 
               {includeInvigilators ? (
