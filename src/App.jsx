@@ -121,22 +121,34 @@ function Toast({ item, onClose }) {
   const color = item.type === "error" ? "#991b1b" : item.type === "warning" ? "#9a3412" : "#065f46";
 
   return (
-    <div style={{
-      position: "fixed",
-      top: 20,
-      left: 20,
-      zIndex: 9999,
-      width: "min(380px, calc(100vw - 32px))",
-      background: bg,
-      border: `1px solid ${border}`,
-      color,
-      borderRadius: 18,
-      padding: 16,
-      boxShadow: "0 16px 35px rgba(15,23,42,0.12)",
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 20,
+        left: 20,
+        zIndex: 9999,
+        width: "min(380px, calc(100vw - 32px))",
+        background: bg,
+        border: `1px solid ${border}`,
+        color,
+        borderRadius: 18,
+        padding: 16,
+        boxShadow: "0 16px 35px rgba(15,23,42,0.12)",
+      }}
+    >
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
       <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
-      <button onClick={onClose} style={{ marginTop: 10, background: "transparent", border: "none", color, fontWeight: 700, cursor: "pointer" }}>
+      <button
+        onClick={onClose}
+        style={{
+          marginTop: 10,
+          background: "transparent",
+          border: "none",
+          color,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
         إغلاق
       </button>
     </div>
@@ -145,14 +157,16 @@ function Toast({ item, onClose }) {
 
 function Card({ children, style }) {
   return (
-    <div style={{
-      background: "#fff",
-      border: "1px solid #e5e7eb",
-      borderRadius: 28,
-      padding: 20,
-      boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
-      ...style,
-    }}>
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 28,
+        padding: 20,
+        boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+        ...style,
+      }}
+    >
       {children}
     </div>
   );
@@ -162,14 +176,24 @@ function SectionHeader({ title, description }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 24, fontWeight: 900, color: "#0f172a" }}>{title}</div>
-      {description ? <div style={{ color: "#64748b", marginTop: 6, lineHeight: 1.8 }}>{description}</div> : null}
+      {description ? (
+        <div style={{ color: "#64748b", marginTop: 6, lineHeight: 1.8 }}>{description}</div>
+      ) : null}
     </div>
   );
 }
 
 function StatBox({ label, value }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 22, padding: 18, border: "1px solid #e5e7eb", boxShadow: "0 8px 24px rgba(15,23,42,0.05)" }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 22,
+        padding: 18,
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+      }}
+    >
       <div style={{ fontSize: 14, color: "#64748b", marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>{value}</div>
     </div>
@@ -196,27 +220,32 @@ function toggleDay(list, day) {
 
 export default function App() {
   const fileRef = useRef(null);
+
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
+
   const [weeks, setWeeks] = useState(3);
   const [periodsPerDay, setPeriodsPerDay] = useState(2);
   const [periodHours, setPeriodHours] = useState(2);
   const [startHour, setStartHour] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
   const [excludedInvigilators, setExcludedInvigilators] = useState([]);
   const [excludeInactive, setExcludeInactive] = useState(true);
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
+
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
 
@@ -235,7 +264,9 @@ export default function App() {
       skipEmptyLines: true,
       encoding: "UTF-8",
       complete: (result) => {
-        const cleanRows = (result.data || []).filter((row) => Object.values(row).some((v) => String(v ?? "").trim() !== ""));
+        const cleanRows = (result.data || []).filter((row) =>
+          Object.values(row).some((v) => String(v ?? "").trim() !== "")
+        );
         setRows(cleanRows);
         setSchedule([]);
         setUnscheduled([]);
@@ -277,8 +308,12 @@ export default function App() {
       if (!excludeInactive) return true;
       const regStatus = normalizeArabic(row["حالة تسجيل"]);
       const traineeStatus = normalizeArabic(row["حالة المتدرب"]);
-      const badReg = EXCLUDED_REGISTRATION.some((item) => regStatus.includes(normalizeArabic(item)));
-      const badTrainee = EXCLUDED_TRAINEE.some((item) => traineeStatus.includes(normalizeArabic(item)));
+      const badReg = EXCLUDED_REGISTRATION.some((item) =>
+        regStatus.includes(normalizeArabic(item))
+      );
+      const badTrainee = EXCLUDED_TRAINEE.some((item) =>
+        traineeStatus.includes(normalizeArabic(item))
+      );
       return !badReg && !badTrainee;
     });
 
@@ -296,15 +331,13 @@ export default function App() {
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
       const major = String(row["التخصص"] ?? "").trim();
-      const collegeName = String(row["الوحدة"] ?? "").trim();
       const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
       const sectionName = `${department || "-"} / ${major || "-"}`;
+      const key = [reference, courseCode, courseName, trainer].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
       if (studentId) studentSet.add(studentId);
       if (sectionName !== "- / -") sectionSet.add(sectionName);
-
-      const key = [reference, courseCode, courseName, trainer].join("|");
 
       if (!courseMap.has(key)) {
         courseMap.set(key, {
@@ -315,7 +348,6 @@ export default function App() {
           trainer,
           department,
           major,
-          collegeName,
           scheduleType,
           students: new Set(),
         });
@@ -346,21 +378,33 @@ export default function App() {
         const studentCount = course.students.size;
         const conflictDegree = conflictMap.get(course.key)?.size || 0;
         const practicalWeight = normalizeArabic(course.scheduleType).includes("عملي") ? 3 : 2;
-        const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
-        const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
-        const trainerWeight = prioritizeTrainer && normalizeArabic(course.trainer).includes(normalizeArabic(prioritizeTrainer)) ? 5 : 0;
-        const priorityScore = practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
+        const studentWeight =
+          studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
+        const lowOpportunityWeight =
+          conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
+        const trainerWeight =
+          prioritizeTrainer &&
+          normalizeArabic(course.trainer).includes(normalizeArabic(prioritizeTrainer))
+            ? 5
+            : 0;
+
+        const priorityScore =
+          practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
         return {
           ...course,
           studentCount,
           conflictDegree,
           priorityScore,
-          conflictsWith: conflictMap.get(course.key) || new Set(),
           sectionName: `${course.department || "-"} / ${course.major || "-"}`,
         };
       })
-      .sort((a, b) => b.priorityScore - a.priorityScore || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
+      .sort(
+        (a, b) =>
+          b.priorityScore - a.priorityScore ||
+          b.studentCount - a.studentCount ||
+          b.conflictDegree - a.conflictDegree
+      );
 
     return {
       missingColumns,
@@ -373,37 +417,46 @@ export default function App() {
     };
   }, [rows, excludeInactive, prioritizeTrainer]);
 
-  const slots = useMemo(() => buildSlots({
-    startDate,
-    weeks,
-    periodsPerDay,
-    periodHours,
-    startHour,
-    selectedDays,
-  }), [startDate, weeks, periodsPerDay, periodHours, startHour, selectedDays]);
+  const slots = useMemo(
+    () =>
+      buildSlots({
+        startDate,
+        weeks,
+        periodsPerDay,
+        periodHours,
+        startHour,
+        selectedDays,
+      }),
+    [startDate, weeks, periodsPerDay, periodHours, startHour, selectedDays]
+  );
 
   const generateSchedule = () => {
     if (!rows.length) {
       showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
       return;
     }
+
     if (parsed.missingColumns.length) {
       showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
       return;
     }
+
     if (!slots.length) {
       showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وفترات مناسبة.", "error");
       return;
     }
 
-  const baseInvigilators = manualInvigilators
-  ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
-  : parsed.invigilators;
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+      : parsed.invigilators;
 
     const invigilatorPool = [
       ...new Set(
         baseInvigilators.filter(
-          (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
+          (name) =>
+            !excludedInvigilators.some(
+              (excluded) => normalizeArabic(excluded) === normalizeArabic(name)
+            )
         )
       ),
     ];
@@ -426,10 +479,12 @@ export default function App() {
         });
 
       const chosen = eligible.slice(0, Math.min(invigilatorsPerPeriod, eligible.length));
+
       chosen.forEach((name) => {
         invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
         invigilatorBusySlots.get(name).add(slot.id);
       });
+
       return chosen;
     };
 
@@ -444,6 +499,7 @@ export default function App() {
 
         const dayMap = studentDayMap.get(studentId) || new Map();
         const sameDayCount = dayMap.get(slot.dateISO) || 0;
+
         if (sameDayCount >= 2) hardConflict = true;
         if (sameDayCount === 1) sameDayPenalty += 4;
       });
@@ -451,8 +507,11 @@ export default function App() {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
-      if (normalizeArabic(course.scheduleType).includes("عملي") && slot.period === periodsPerDay) score += 2;
+      if (normalizeArabic(course.scheduleType).includes("عملي") && slot.period === periodsPerDay) {
+        score += 2;
+      }
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
+
       return score;
     };
 
@@ -486,6 +545,7 @@ export default function App() {
       });
 
       slotCoursesMap.get(bestSlot.id).push(course.key);
+
       placed.push({
         ...course,
         ...bestSlot,
@@ -493,12 +553,19 @@ export default function App() {
       });
     });
 
-    placed.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
+    placed.sort(
+      (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+    );
+
     setSchedule(placed);
     setUnscheduled(notPlaced);
 
     if (notPlaced.length) {
-      showToast("تم إنشاء الجدول جزئيًا", `تمت جدولة ${placed.length} مقرر وتعذر جدولة ${notPlaced.length} مقرر. زد عدد الأسابيع أو الفترات.`, "warning");
+      showToast(
+        "تم إنشاء الجدول جزئيًا",
+        `تمت جدولة ${placed.length} مقرر وتعذر جدولة ${notPlaced.length} مقرر. زد عدد الأسابيع أو الفترات.`,
+        "warning"
+      );
     } else {
       showToast("تم إنشاء الجدول", `تمت جدولة ${placed.length} مقرر بنجاح.`, "success");
     }
@@ -540,6 +607,22 @@ export default function App() {
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
   }, [schedule]);
 
+  const availableInvigilators = useMemo(() => {
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+      : parsed.invigilators;
+
+    return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [manualInvigilators, parsed.invigilators]);
+
+  const toggleExcludedInvigilator = (name) => {
+    setExcludedInvigilators((prev) =>
+      prev.some((item) => normalizeArabic(item) === normalizeArabic(name))
+        ? prev.filter((item) => normalizeArabic(item) !== normalizeArabic(name))
+        : [...prev, name]
+    );
+  };
+
   const exportMainSchedule = () => {
     if (!schedule.length) {
       showToast("لا يوجد جدول", "أنشئ الجدول أولًا ثم صدّر الملف.", "error");
@@ -564,7 +647,12 @@ export default function App() {
       المراقبون: item.invigilators.join(" | "),
     }));
 
-    downloadFile(`final-exam-schedule-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`, rowsToCsv(exportRows), "text/csv;charset=utf-8");
+    downloadFile(
+      `final-exam-schedule-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
+      rowsToCsv(exportRows),
+      "text/csv;charset=utf-8"
+    );
+
     showToast("تم التصدير", "تم تنزيل جدول الاختبارات CSV.", "success");
   };
 
@@ -591,25 +679,6 @@ export default function App() {
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
 
-const availableInvigilators = useMemo(() => {
-  const baseInvigilators = manualInvigilators
-    ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
-    : parsed.invigilators;
-
-  return Array.from(new Set(baseInvigilators));
-}, [manualInvigilators, parsed.invigilators]);
-
-    return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [manualInvigilators, parsed.invigilators]);
-
-  const toggleExcludedInvigilator = (name) => {
-    setExcludedInvigilators((prev) =>
-      prev.some((item) => normalizeArabic(item) === normalizeArabic(name))
-        ? prev.filter((item) => normalizeArabic(item) !== normalizeArabic(name))
-        : [...prev, name]
-    );
-  };
-
   const stats = {
     rows: rows.length,
     students: parsed.studentsCount,
@@ -619,31 +688,43 @@ const availableInvigilators = useMemo(() => {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)",
-      padding: 20,
-      direction: "rtl",
-      fontFamily: "Cairo, Tahoma, Arial, sans-serif",
-      color: "#0f172a",
-    }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)",
+        padding: 20,
+        direction: "rtl",
+        fontFamily: "Cairo, Tahoma, Arial, sans-serif",
+        color: "#0f172a",
+      }}
+    >
       <Toast item={toast} onClose={() => setToast(null)} />
 
       <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-        <div style={{
-          background: "#0f172a",
-          color: "#fff",
-          borderRadius: 30,
-          padding: 28,
-          boxShadow: "0 18px 40px rgba(15,23,42,0.18)",
-        }}>
+        <div
+          style={{
+            background: "#0f172a",
+            color: "#fff",
+            borderRadius: 30,
+            padding: 28,
+            boxShadow: "0 18px 40px rgba(15,23,42,0.18)",
+          }}
+        >
           <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
           <div style={{ color: "#cbd5e1", marginTop: 10, lineHeight: 1.9 }}>
-            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، تشمل الأقسام، تحديد تاريخ البداية، التقويم الهجري، وتوزيع المراقبين على الفترات.
+            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، تشمل الأقسام،
+            تحديد تاريخ البداية، التقويم الهجري، وتوزيع المراقبين على الفترات.
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginTop: 20 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 16,
+            marginTop: 20,
+          }}
+        >
           <StatBox label="السجلات" value={stats.rows} />
           <StatBox label="المتدربون" value={stats.students} />
           <StatBox label="المقررات" value={stats.courses} />
@@ -651,233 +732,471 @@ const availableInvigilators = useMemo(() => {
           <StatBox label="الأقسام / الشعب" value={stats.sections} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(320px, 0.9fr)", gap: 20, marginTop: 20 }}>
-          <Card>
-            <SectionHeader title="القسم الأول: بيانات الكلية والجدول" description="أدخل بيانات الكلية والتخصص وحدد تاريخ البداية وإعدادات الفترات، ثم ارفع ملف CSV." />
-
-            <div
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragActive(false);
-                handleUpload(e.dataTransfer.files?.[0]);
-              }}
+        <div style={{ marginTop: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 20,
+            }}
+          >
+            <button
+              onClick={() => setActiveTab("general")}
               style={{
-                minHeight: 170,
-                borderRadius: 24,
-                border: `2px dashed ${dragActive ? "#0f172a" : "#cbd5e1"}`,
-                background: dragActive ? "#e2e8f0" : "#f8fafc",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                textAlign: "center",
+                border: `1px solid ${activeTab === "general" ? "#0f172a" : "#cbd5e1"}`,
+                background: activeTab === "general" ? "#0f172a" : "#fff",
+                color: activeTab === "general" ? "#fff" : "#334155",
+                borderRadius: 14,
+                padding: "12px 18px",
+                fontWeight: 800,
                 cursor: "pointer",
-                transition: "0.2s",
               }}
             >
-              <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => handleUpload(e.target.files?.[0])} />
-              <div style={{ fontSize: 22, fontWeight: 900 }}>اسحب الملف هنا أو اضغط للاختيار</div>
-              <div style={{ marginTop: 8, color: "#64748b" }}>CSV فقط</div>
-              {fileName ? <div style={{ marginTop: 12, background: "#0f172a", color: "#fff", padding: "8px 14px", borderRadius: 999 }}>{fileName}</div> : null}
-            </div>
+              القسم 1: بيانات الكلية والجدول
+            </button>
 
-            {parsed.missingColumns.length ? (
-              <div style={{ marginTop: 14, borderRadius: 18, padding: 14, background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
-                الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
-              </div>
-            ) : null}
+            <button
+              onClick={() => setActiveTab("invigilators")}
+              style={{
+                border: `1px solid ${activeTab === "invigilators" ? "#0f172a" : "#cbd5e1"}`,
+                background: activeTab === "invigilators" ? "#0f172a" : "#fff",
+                color: activeTab === "invigilators" ? "#fff" : "#334155",
+                borderRadius: 14,
+                padding: "12px 18px",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              القسم 2: المراقبون
+            </button>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginTop: 18 }}>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>تاريخ البداية</div>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={fieldStyle()} />
-              </div>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الأسابيع</div>
-                <input type="number" min="1" max="12" value={weeks} onChange={(e) => setWeeks(safeNum(e.target.value, 3))} style={fieldStyle()} />
-              </div>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الفترات اليومية</div>
-                <select value={periodsPerDay} onChange={(e) => setPeriodsPerDay(safeNum(e.target.value, 2))} style={fieldStyle()}>
-                  <option value={1}>فترة واحدة</option>
-                  <option value={2}>فترتان</option>
-                  <option value={3}>3 فترات</option>
-                </select>
-              </div>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدة الفترة</div>
-                <select value={periodHours} onChange={(e) => setPeriodHours(safeNum(e.target.value, 2))} style={fieldStyle()}>
-                  <option value={2}>ساعتان</option>
-                  <option value={3}>3 ساعات</option>
-                  <option value={4}>4 ساعات</option>
-                </select>
-              </div>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>بداية أول فترة</div>
-                <select value={startHour} onChange={(e) => setStartHour(safeNum(e.target.value, 8))} style={fieldStyle()}>
-                  {[7, 8, 9, 10].map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
-                <input value={prioritizeTrainer} onChange={(e) => setPrioritizeTrainer(e.target.value)} style={fieldStyle()} placeholder="اسم المدرب أو جزء منه" />
-              </div>
-            </div>
+          {activeTab === "general" && (
+            <Card>
+              <SectionHeader
+                title="القسم الأول: بيانات الكلية والجدول"
+                description="أدخل بيانات الكلية والتخصص وحدد تاريخ البداية وإعدادات الفترات، ثم ارفع ملف CSV."
+              />
 
-            <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {DAY_OPTIONS.map((day) => {
-                  const active = selectedDays.includes(day);
-                  return (
+              <div
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  handleUpload(e.dataTransfer.files?.[0]);
+                }}
+                style={{
+                  minHeight: 170,
+                  borderRadius: 24,
+                  border: `2px dashed ${dragActive ? "#0f172a" : "#cbd5e1"}`,
+                  background: dragActive ? "#e2e8f0" : "#f8fafc",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "column",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "0.2s",
+                }}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleUpload(e.target.files?.[0])}
+                />
+                <div style={{ fontSize: 22, fontWeight: 900 }}>اسحب الملف هنا أو اضغط للاختيار</div>
+                <div style={{ marginTop: 8, color: "#64748b" }}>CSV فقط</div>
+                {fileName ? (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      background: "#0f172a",
+                      color: "#fff",
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    {fileName}
+                  </div>
+                ) : null}
+              </div>
+
+              {parsed.missingColumns.length ? (
+                <div
+                  style={{
+                    marginTop: 14,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#991b1b",
+                  }}
+                >
+                  الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
+                </div>
+              ) : null}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 14,
+                  marginTop: 18,
+                }}
+              >
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
+                  <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>تاريخ البداية</div>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={fieldStyle()}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الأسابيع</div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={weeks}
+                    onChange={(e) => setWeeks(safeNum(e.target.value, 3))}
+                    style={fieldStyle()}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الفترات اليومية</div>
+                  <select
+                    value={periodsPerDay}
+                    onChange={(e) => setPeriodsPerDay(safeNum(e.target.value, 2))}
+                    style={fieldStyle()}
+                  >
+                    <option value={1}>فترة واحدة</option>
+                    <option value={2}>فترتان</option>
+                    <option value={3}>3 فترات</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>مدة الفترة</div>
+                  <select
+                    value={periodHours}
+                    onChange={(e) => setPeriodHours(safeNum(e.target.value, 2))}
+                    style={fieldStyle()}
+                  >
+                    <option value={2}>ساعتان</option>
+                    <option value={3}>3 ساعات</option>
+                    <option value={4}>4 ساعات</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>بداية أول فترة</div>
+                  <select
+                    value={startHour}
+                    onChange={(e) => setStartHour(safeNum(e.target.value, 8))}
+                    style={fieldStyle()}
+                  >
+                    {[7, 8, 9, 10].map((h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
+                  <input
+                    value={prioritizeTrainer}
+                    onChange={(e) => setPrioritizeTrainer(e.target.value)}
+                    style={fieldStyle()}
+                    placeholder="اسم المدرب أو جزء منه"
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div style={{ marginBottom: 10, fontWeight: 800 }}>الأقسام / الشعب</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {parsed.sections.length ? (
+                    parsed.sections.map((section) => (
+                      <span
+                        key={section}
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 999,
+                          padding: "6px 12px",
+                          fontSize: 13,
+                        }}
+                      >
+                        {section}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ color: "#94a3b8" }}>لا توجد بيانات بعد</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {DAY_OPTIONS.map((day) => {
+                    const active = selectedDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDays((prev) => toggleDay(prev, day))}
+                        style={{
+                          border: `1px solid ${active ? "#0f172a" : "#cbd5e1"}`,
+                          background: active ? "#0f172a" : "#fff",
+                          color: active ? "#fff" : "#334155",
+                          borderRadius: 999,
+                          padding: "10px 16px",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 12,
+                  marginTop: 18,
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    padding: 14,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={excludeInactive}
+                    onChange={(e) => setExcludeInactive(e.target.checked)}
+                  />
+                  استبعاد المنسحبين والمطوي قيدهم
+                </label>
+              </div>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                <button
+                  onClick={generateSchedule}
+                  style={{
+                    background: "#0f172a",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 18,
+                    padding: "12px 20px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  إنشاء الجدول
+                </button>
+
+                <button
+                  onClick={exportMainSchedule}
+                  style={{
+                    background: "#fff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 18,
+                    padding: "12px 20px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  تصدير جدول الاختبارات
+                </button>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === "invigilators" && (
+            <Card>
+              <SectionHeader
+                title="القسم الثاني: المراقبون"
+                description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب."
+              />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 12,
+                  marginTop: 18,
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    padding: 14,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={includeInvigilators}
+                    onChange={(e) => setIncludeInvigilators(e.target.checked)}
+                  />
+                  إضافة المراقبين تلقائيًا
+                </label>
+              </div>
+
+              {includeInvigilators ? (
+                <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 180px",
+                      gap: 14,
+                    }}
+                  >
+                    <div>
+                      <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+                      <textarea
+                        value={manualInvigilators}
+                        onChange={(e) => setManualInvigilators(e.target.value)}
+                        placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
+                        style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
+                      <input
+                        type="number"
+                        min="1"
+                        max="6"
+                        value={invigilatorsPerPeriod}
+                        onChange={(e) =>
+                          setInvigilatorsPerPeriod(safeNum(e.target.value, 2))
+                        }
+                        style={fieldStyle()}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 18,
+                      padding: 14,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, marginBottom: 10 }}>
+                      استبعاد مراقبين من التوزيع
+                    </div>
+                    <div style={{ color: "#64748b", fontSize: 14, marginBottom: 10 }}>
+                      يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
+                    </div>
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                      {availableInvigilators.length ? (
+                        availableInvigilators.map((name) => {
+                          const excluded = excludedInvigilators.some(
+                            (item) => normalizeArabic(item) === normalizeArabic(name)
+                          );
+
+                          return (
+                            <button
+                              key={name}
+                              onClick={() => toggleExcludedInvigilator(name)}
+                              style={{
+                                border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`,
+                                background: excluded ? "#fef2f2" : "#fff",
+                                color: excluded ? "#991b1b" : "#334155",
+                                borderRadius: 999,
+                                padding: "8px 14px",
+                                cursor: "pointer",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {excluded ? `مستبعد: ${name}` : name}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <span style={{ color: "#94a3b8" }}>لا توجد أسماء مراقبين بعد</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <button
-                      key={day}
-                      onClick={() => setSelectedDays((prev) => toggleDay(prev, day))}
+                      onClick={exportInvigilatorsTable}
                       style={{
-                        border: `1px solid ${active ? "#0f172a" : "#cbd5e1"}`,
-                        background: active ? "#0f172a" : "#fff",
-                        color: active ? "#fff" : "#334155",
-                        borderRadius: 999,
-                        padding: "10px 16px",
+                        background: "#fff",
+                        color: "#0f172a",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 18,
+                        padding: "12px 20px",
                         fontWeight: 800,
                         cursor: "pointer",
                       }}
                     >
-                      {day}
+                      تصدير جدول المراقبين
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginTop: 18 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <input type="checkbox" checked={excludeInactive} onChange={(e) => setExcludeInactive(e.target.checked)} />
-                استبعاد المنسحبين والمطوي قيدهم
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <input type="checkbox" checked={includeInvigilators} onChange={(e) => setIncludeInvigilators(e.target.checked)} />
-                إضافة المراقبين تلقائيًا
-              </label>
-            </div>
-
-            {includeInvigilators ? (
-              <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 14 }}>
-                  <div>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
-                    <textarea
-                      value={manualInvigilators}
-                      onChange={(e) => setManualInvigilators(e.target.value)}
-                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="6"
-                      value={invigilatorsPerPeriod}
-                      onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
-                      style={fieldStyle()}
-                    />
                   </div>
                 </div>
-
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
-                  <div style={{ color: "#64748b", fontSize: 14, marginBottom: 10 }}>
-                    يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                    {availableInvigilators.length ? availableInvigilators.map((name) => {
-                      const excluded = excludedInvigilators.some((item) => normalizeArabic(item) === normalizeArabic(name));
-                      return (
-                        <button
-                          key={name}
-                          onClick={() => toggleExcludedInvigilator(name)}
-                          style={{
-                            border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`,
-                            background: excluded ? "#fef2f2" : "#fff",
-                            color: excluded ? "#991b1b" : "#334155",
-                            borderRadius: 999,
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {excluded ? `مستبعد: ${name}` : name}
-                        </button>
-                      );
-                    }) : <span style={{ color: "#94a3b8" }}>لا توجد أسماء مراقبين بعد</span>}
-                  </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 18,
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 18,
+                    padding: 18,
+                    color: "#64748b",
+                    background: "#f8fafc",
+                  }}
+                >
+                  تم إيقاف إضافة المراقبين تلقائيًا.
                 </div>
-              </div>
-            ) : null}
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={generateSchedule} style={{ background: "#0f172a", color: "#fff", border: "none", borderRadius: 18, padding: "12px 20px", fontWeight: 800, cursor: "pointer" }}>
-                إنشاء الجدول
-              </button>
-              <button onClick={exportMainSchedule} style={{ background: "#fff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 18, padding: "12px 20px", fontWeight: 800, cursor: "pointer" }}>
-                تصدير جدول الاختبارات
-              </button>
-              <button onClick={exportInvigilatorsTable} style={{ background: "#fff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 18, padding: "12px 20px", fontWeight: 800, cursor: "pointer" }}>
-                تصدير جدول المراقبين
-              </button>
-            </div>
-          </Card>
-
-          <Card>
-            <SectionHeader title="القسم الثاني: المراقبون" description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب." />
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>اسم الكلية</div>
-                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>التخصصات / الأقسام من الملف</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>الكلية</div>
-                <div style={{ fontWeight: 900 }}>{parsed.collegeName || "-"}</div>
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>الأقسام / الشعب</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {parsed.sections.length ? parsed.sections.slice(0, 12).map((section) => (
-                    <span key={section} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>
-                      {section}
-                    </span>
-                  )) : <span style={{ color: "#94a3b8" }}>لا توجد بيانات بعد</span>}
-                </div>
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>عدد الفترات المتاحة</div>
-                <div style={{ fontWeight: 900 }}>{slots.length}</div>
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ color: "#64748b", marginBottom: 6 }}>المراقبون المكتشفون من الملف</div>
-                <div style={{ maxHeight: 180, overflow: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {parsed.invigilators.length ? parsed.invigilators.map((name) => (
-                    <span key={name} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>
-                      {name}
-                    </span>
-                  )) : <span style={{ color: "#94a3b8" }}>لا توجد أسماء</span>}
-                </div>
-              </div>
-            </div>
-          </Card>
+              )}
+            </Card>
+          )}
         </div>
 
         <div style={{ marginTop: 20 }}>
           <Card>
-            <SectionHeader title="المقررات مرتبة بالأولوية" description="يعتمد الترتيب على عدد المتدربين، شدة التعارض، ونوع الجدولة." />
+            <SectionHeader
+              title="المقررات مرتبة بالأولوية"
+              description="يعتمد الترتيب على عدد المتدربين، شدة التعارض، ونوع الجدولة."
+            />
+
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -892,10 +1211,21 @@ const availableInvigilators = useMemo(() => {
                       "التعارضات",
                       "الأولوية",
                     ].map((label) => (
-                      <th key={label} style={{ padding: 12, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{label}</th>
+                      <th
+                        key={label}
+                        style={{
+                          padding: 12,
+                          borderBottom: "1px solid #e5e7eb",
+                          textAlign: "right",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
+
                 <tbody>
                   {parsed.courses.slice(0, 30).map((course) => (
                     <tr key={course.key}>
@@ -906,12 +1236,17 @@ const availableInvigilators = useMemo(() => {
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.trainer}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.studentCount}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.conflictDegree}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>{course.priorityScore}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>
+                        {course.priorityScore}
+                      </td>
                     </tr>
                   ))}
+
                   {!parsed.courses.length ? (
                     <tr>
-                      <td colSpan={8} style={{ padding: 20, textAlign: "center", color: "#94a3b8" }}>لا توجد بيانات بعد</td>
+                      <td colSpan={8} style={{ padding: 20, textAlign: "center", color: "#94a3b8" }}>
+                        لا توجد بيانات بعد
+                      </td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -922,19 +1257,46 @@ const availableInvigilators = useMemo(() => {
 
         <div style={{ marginTop: 20 }}>
           <Card>
-            <SectionHeader title="جدول الاختبارات النهائي" description="يتضمن التاريخ الميلادي والهجري والأقسام والمراقبين لكل فترة." />
+            <SectionHeader
+              title="جدول الاختبارات النهائي"
+              description="يتضمن التاريخ الميلادي والهجري والأقسام والمراقبين لكل فترة."
+            />
+
             {!schedule.length ? (
-              <div style={{ border: "2px dashed #cbd5e1", borderRadius: 22, padding: 30, textAlign: "center", color: "#64748b", background: "#f8fafc" }}>
+              <div
+                style={{
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: 22,
+                  padding: 30,
+                  textAlign: "center",
+                  color: "#64748b",
+                  background: "#f8fafc",
+                }}
+              >
                 ارفع الملف ثم اضغط إنشاء الجدول ليظهر هنا.
               </div>
             ) : (
               <div style={{ display: "grid", gap: 18 }}>
                 {Object.entries(groupedSchedule).map(([dateISO, items]) => (
-                  <div key={dateISO} style={{ border: "1px solid #e5e7eb", borderRadius: 22, overflow: "hidden" }}>
-                    <div style={{ background: "#f8fafc", padding: 16, borderBottom: "1px solid #e5e7eb" }}>
+                  <div
+                    key={dateISO}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 22,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        padding: 16,
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
                       <div style={{ fontWeight: 900, fontSize: 18 }}>{items[0].gregorian}</div>
                       <div style={{ marginTop: 4, color: "#64748b" }}>{items[0].hijri}</div>
                     </div>
+
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
@@ -949,21 +1311,36 @@ const availableInvigilators = useMemo(() => {
                               "عدد المتدربين",
                               "المراقبون",
                             ].map((head) => (
-                              <th key={head} style={{ padding: 12, textAlign: "right", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{head}</th>
+                              <th
+                                key={head}
+                                style={{
+                                  padding: 12,
+                                  textAlign: "right",
+                                  borderBottom: "1px solid #e5e7eb",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {head}
+                              </th>
                             ))}
                           </tr>
                         </thead>
+
                         <tbody>
                           {items.map((item) => (
                             <tr key={`${item.key}-${item.id}`}>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>{item.period}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>
+                                {item.period}
+                              </td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.sectionName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.trainer}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.studentCount}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.invigilators.join("، ") || "-"}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                                {item.invigilators.join("، ") || "-"}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -975,11 +1352,29 @@ const availableInvigilators = useMemo(() => {
             )}
 
             {unscheduled.length ? (
-              <div style={{ marginTop: 18, borderRadius: 18, background: "#fff7ed", border: "1px solid #fdba74", color: "#9a3412", padding: 14 }}>
+              <div
+                style={{
+                  marginTop: 18,
+                  borderRadius: 18,
+                  background: "#fff7ed",
+                  border: "1px solid #fdba74",
+                  color: "#9a3412",
+                  padding: 14,
+                }}
+              >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {unscheduled.map((course) => (
-                    <span key={course.key} style={{ background: "#fff", border: "1px solid #fed7aa", borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>
+                    <span
+                      key={course.key}
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #fed7aa",
+                        borderRadius: 999,
+                        padding: "6px 12px",
+                        fontSize: 13,
+                      }}
+                    >
                       {course.courseName} - {course.reference}
                     </span>
                   ))}
@@ -991,19 +1386,51 @@ const availableInvigilators = useMemo(() => {
 
         <div style={{ marginTop: 20 }}>
           <Card>
-            <SectionHeader title="جدول المراقبين وفترات المراقبة" description="يعرض كل مراقب والفترات المسندة له بشكل منفصل." />
+            <SectionHeader
+              title="جدول المراقبين وفترات المراقبة"
+              description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
+            />
+
             {!invigilatorTable.length ? (
-              <div style={{ border: "2px dashed #cbd5e1", borderRadius: 22, padding: 26, textAlign: "center", color: "#64748b", background: "#f8fafc" }}>
+              <div
+                style={{
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: 22,
+                  padding: 26,
+                  textAlign: "center",
+                  color: "#64748b",
+                  background: "#f8fafc",
+                }}
+              >
                 أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
               </div>
             ) : (
               <div style={{ display: "grid", gap: 16 }}>
                 {invigilatorTable.map((inv) => (
-                  <div key={inv.name} style={{ border: "1px solid #e5e7eb", borderRadius: 22, overflow: "hidden" }}>
-                    <div style={{ background: "#f8fafc", padding: 16, borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <div
+                    key={inv.name}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 22,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        padding: 16,
+                        borderBottom: "1px solid #e5e7eb",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <div style={{ fontWeight: 900, fontSize: 18 }}>{inv.name}</div>
                       <div style={{ color: "#64748b" }}>عدد الفترات: {inv.periodsCount}</div>
                     </div>
+
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
@@ -1017,16 +1444,30 @@ const availableInvigilators = useMemo(() => {
                               "الرمز",
                               "الرقم المرجعي",
                             ].map((head) => (
-                              <th key={head} style={{ padding: 12, textAlign: "right", borderBottom: "1px solid #e5e7eb", background: "#ffffff", whiteSpace: "nowrap" }}>{head}</th>
+                              <th
+                                key={head}
+                                style={{
+                                  padding: 12,
+                                  textAlign: "right",
+                                  borderBottom: "1px solid #e5e7eb",
+                                  background: "#ffffff",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {head}
+                              </th>
                             ))}
                           </tr>
                         </thead>
+
                         <tbody>
                           {inv.items.map((item, index) => (
                             <tr key={`${inv.name}-${index}`}>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.gregorian}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.dayName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>{item.period}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>
+                                {item.period}
+                              </td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
