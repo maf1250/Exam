@@ -179,226 +179,128 @@ function downloadFile(filename, content, mime) {
   URL.revokeObjectURL(url);
 }
 
-function printSchedulePdf({ collegeName, schedule, invigilatorTable }) {
+function printSchedulePdf({ collegeName, schedule }) {
   const grouped = schedule.reduce((acc, item) => {
     if (!acc[item.dateISO]) acc[item.dateISO] = [];
     acc[item.dateISO].push(item);
     return acc;
   }, {});
 
-  const printWindow = window.open("", "_blank", "width=1200,height=900");
+  const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
-  const todayText = new Intl.DateTimeFormat("ar-SA", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date());
-
   const html = `
-    <html dir="rtl" lang="ar">
-      <head>
-        <title>طباعة جدول الاختبارات</title>
-        <style>
-          @page { size: A4 portrait; margin: 12mm; }
-          body {
-            font-family: Tahoma, Arial, sans-serif;
-            margin: 0;
-            color: #111827;
-            direction: rtl;
-            background: #fff;
-          }
-          h1,h2,h3,p { margin: 0; }
-          .sheet-header {
-            border: 2px solid #111827;
-            padding: 14px;
-            margin-bottom: 18px;
-          }
-          .sheet-title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 10px;
-          }
-          .sheet-meta {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            font-size: 12px;
-            flex-wrap: wrap;
-          }
-          .meta-box {
-            border: 1px solid #9ca3af;
-            padding: 8px 10px;
-            min-width: 180px;
-          }
-          .section { margin-bottom: 20px; }
-          .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            padding: 8px 10px;
-            background: #f3f4f6;
-            border-right: 5px solid #111827;
-          }
-          .day-card {
-            margin-bottom: 14px;
-            page-break-inside: avoid;
-          }
-          .day-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            border: 1px solid #d1d5db;
-            border-bottom: 0;
-            background: #fafafa;
-            font-size: 12px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-          }
-          th, td {
-            border: 1px solid #d1d5db;
-            padding: 6px;
-            text-align: right;
-            font-size: 11px;
-            vertical-align: top;
-            word-wrap: break-word;
-          }
-          th {
-            background: #e5e7eb;
-            font-weight: 700;
-          }
-          .muted {
-            color: #6b7280;
-            font-size: 11px;
-          }
-          .page-break {
-            page-break-before: always;
-          }
-          .footer-note {
-            margin-top: 10px;
-            font-size: 10px;
-            color: #6b7280;
-            text-align: left;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="sheet-header">
-          <div class="sheet-title">جدول الاختبارات النهائية</div>
-          <div class="sheet-meta">
-            <div class="meta-box"><strong>الكلية:</strong> ${collegeName || "الكلية التقنية"}</div>
-            <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
-            <div class="meta-box"><strong>عدد أيام الجدول:</strong> ${Object.keys(grouped).length}</div>
+  <html dir="rtl">
+  <head>
+    <style>
+      body {
+        font-family: Tahoma;
+        padding: 20px;
+        direction: rtl;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .title {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .sub {
+        margin-top: 6px;
+        font-size: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      th, td {
+        border: 1px solid #000;
+        padding: 6px;
+        text-align: center;
+        font-size: 12px;
+        vertical-align: top;
+      }
+
+      th {
+        background: #eee;
+      }
+
+      .course {
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+
+      .footer {
+        margin-top: 20px;
+        font-size: 12px;
+        line-height: 1.8;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="title">${collegeName || "الكلية التقنية"}</div>
+      <div class="sub">جدول الاختبارات النهائية</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>اليوم</th>
+          <th>التاريخ</th>
+          <th>الفترة الأولى</th>
+          <th>الفترة الثانية</th>
+        </tr>
+      </thead>
+      <tbody>
+
+      ${Object.values(grouped).map((dayItems) => {
+        const period1 = dayItems.filter(i => i.period === 1);
+        const period2 = dayItems.filter(i => i.period === 2);
+
+        const renderCourses = (list) => list.map(c => `
+          <div class="course">
+            ${c.courseName} (${c.courseCode})
           </div>
-        </div>
+        `).join("");
 
-        <div class="section">
-          <div class="section-title">جدول الاختبارات</div>
-          ${Object.entries(grouped)
-            .map(
-              ([_, items]) => `
-            <div class="day-card">
-              <div class="day-head">
-                <div><strong>${items[0].gregorian}</strong></div>
-                <div class="muted">${items[0].hijri}</div>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:6%">الفترة</th>
-                    <th style="width:12%">الوقت</th>
-                    <th style="width:22%">اسم المقرر</th>
-                    <th style="width:10%">الرمز</th>
-                    <th style="width:16%">القسم / الشعبة</th>
-                    <th style="width:12%">المدرب</th>
-                    <th style="width:8%">العدد</th>
-                    <th style="width:14%">المراقبون</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${items
-                    .map(
-                      (item) => `
-                    <tr>
-                      <td>${item.period}</td>
-                      <td>${item.timeText}</td>
-                      <td>${item.courseName}</td>
-                      <td>${item.courseCode}</td>
-                      <td>${item.sectionName}</td>
-                      <td>${item.trainerText}</td>
-                      <td>${item.studentCount}</td>
-                      <td>${item.invigilators.join("، ") || "-"}</td>
-                    </tr>
-                  `
-                    )
-                    .join("")}
-                </tbody>
-              </table>
-            </div>
-          `
-            )
-            .join("")}
-        </div>
+        return `
+          <tr>
+            <td>${dayItems[0].dayName}</td>
+            <td>${dayItems[0].hijri}</td>
 
-        <div class="section page-break">
-          <div class="section-title">جدول المراقبين وفترات المراقبة</div>
-          ${invigilatorTable
-            .map(
-              (inv) => `
-            <div class="day-card">
-              <div class="day-head">
-                <div><strong>${inv.name}</strong></div>
-                <div class="muted">عدد الفترات: ${inv.periodsCount}</div>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:22%">التاريخ</th>
-                    <th style="width:10%">اليوم</th>
-                    <th style="width:7%">الفترة</th>
-                    <th style="width:14%">الوقت</th>
-                    <th style="width:24%">المقرر</th>
-                    <th style="width:10%">الرمز</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${inv.items
-                    .map(
-                      (item) => `
-                    <tr>
-                      <td>${item.gregorian}</td>
-                      <td>${item.dayName}</td>
-                      <td>${item.period}</td>
-                      <td>${item.timeText}</td>
-                      <td>${item.courseName}</td>
-                      <td>${item.courseCode}</td>
-                    </tr>
-                  `
-                    )
-                    .join("")}
-                </tbody>
-              </table>
-            </div>
-          `
-            )
-            .join("")}
-          <div class="footer-note">تم إنشاء هذا المستند من نظام بناء جدول الاختبارات.</div>
-        </div>
-      </body>
-    </html>
+            <td>${renderCourses(period1)}</td>
+            <td>${renderCourses(period2)}</td>
+          </tr>
+        `;
+      }).join("")}
+
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <b>تعليمات:</b><br/>
+      - الحضور قبل الاختبار بـ 15 دقيقة<br/>
+      - يمنع الدخول بعد نصف ساعة<br/>
+      - يمنع الغش ويعاقب بدرجة صفر<br/>
+    </div>
+
+  </body>
+  </html>
   `;
 
-  printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => printWindow.print(), 400);
+  printWindow.print();
 }
 
 function Toast({ item, onClose }) {
