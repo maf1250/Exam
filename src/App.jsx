@@ -41,7 +41,7 @@ const COLORS = {
   warning: "#B54708",
   warningBg: "#FFF7ED",
 };
-
+const LOGO_SRC = "/tvtc-logo.png";
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
@@ -317,6 +317,16 @@ function printSchedulePdf({
             direction: rtl;
             background: #fff;
           }
+          .print-logo-wrap {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.print-logo {
+  width: 78px;
+  height: auto;
+  object-fit: contain;
+}
           .page { width: 100%; }
           .top-head { margin-bottom: 8px; }
           .college-line {
@@ -413,8 +423,11 @@ function printSchedulePdf({
       </head>
       <body>
         <div class="page">
-          <div class="top-head">
-            <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+<div class="top-head">
+  <div class="print-logo-wrap">
+    <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+  </div>
+  <div class="college-line">${collegeName || "الكلية التقنية"}</div>
             <div class="meta-line">
               <div class="meta-box"><strong>قسم:</strong> جميع الأقسام</div>
               <div class="meta-box"><strong>تخصص:</strong> جميع التخصصات</div>
@@ -490,8 +503,11 @@ function printSchedulePdf({
 
         <div class="page-break"></div>
 
-        <div class="page">
-          <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+<div class="page">
+  <div class="print-logo-wrap">
+    <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+  </div>
+  <div class="college-line">${collegeName || "الكلية التقنية"}</div>
           <div class="inv-table-title">جدول المراقبين وفترات المراقبة</div>
 
           <table>
@@ -1306,22 +1322,57 @@ export default function App() {
     >
       <Toast item={toast} onClose={() => setToast(null)} />
 
-      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
-        <div
-          style={{
-            background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
-            color: "#fff",
-            borderRadius: 34,
-            padding: 30,
-            boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
-          }}
-        >
-          <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
-          <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
-            مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
-          </div>
-        </div>
+      <div
+  style={{
+    background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
+    color: "#fff",
+    borderRadius: 34,
+    padding: 30,
+    boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 20,
+      flexWrap: "wrap",
+    }}
+  >
+    <div style={{ flex: 1, minWidth: 260 }}>
+      <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
+      <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
+        نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
+        مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+      </div>
+    </div>
+
+    <div
+      style={{
+        background: "rgba(255,255,255,0.12)",
+        border: "1px solid rgba(255,255,255,0.22)",
+        borderRadius: 24,
+        padding: 14,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 140,
+      }}
+    >
+      <img
+        src={LOGO_SRC}
+        alt="شعار المؤسسة العامة للتدريب التقني والمهني"
+        style={{
+          width: 95,
+          height: "auto",
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+    </div>
+  </div>
+</div>
 
         <div
           style={{
