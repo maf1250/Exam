@@ -720,24 +720,43 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     const normalizedScheduleType = normalizeArabic(scheduleType);
     const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
 
-    const shouldExclude =
-      normalizedScheduleType.includes("عملي") ||
-      normalizedScheduleType.includes("تعاوني");
-
     if (!map.has(key)) {
       map.set(key, {
         key,
-        isPractical: shouldExclude,
+        hasPractical: false,
+        hasTheoretical: false,
+        hasCoop: false,
       });
-    } else if (shouldExclude) {
-      map.get(key).isPractical = true;
+    }
+
+    const item = map.get(key);
+
+    if (normalizedScheduleType.includes("عملي")) {
+      item.hasPractical = true;
+    }
+
+    if (
+      normalizedScheduleType.includes("نظري") ||
+      normalizedScheduleType.includes("محاضره") ||
+      normalizedScheduleType.includes("محاضرة")
+    ) {
+      item.hasTheoretical = true;
+    }
+
+    if (normalizedScheduleType.includes("تعاوني")) {
+      item.hasCoop = true;
     }
   });
 
   return Array.from(map.values())
-    .filter((item) => item.isPractical)
+    .filter((item) => {
+      if (item.hasCoop) return true;
+      if (item.hasPractical && !item.hasTheoretical) return true;
+      return false;
+    })
     .map((item) => item.key);
 }
+ماذا تفعل هذه الدالة
 export default function App() {
   const fileRef = useRef(null);
 
