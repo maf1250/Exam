@@ -756,7 +756,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     })
     .map((item) => item.key);
 }
-ماذا تفعل هذه الدالة
+
 export default function App() {
   const fileRef = useRef(null);
 
