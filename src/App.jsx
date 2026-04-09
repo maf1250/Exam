@@ -2459,6 +2459,6 @@ const pickInvigilators = (course, slot) => {
           </>
         )}
       </div>
-    </div>
+   
   );
 }
