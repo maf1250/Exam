@@ -16,39 +16,42 @@ const REQUIRED_COLUMNS = [
 ];
 
 const DAY_OPTIONS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+
 const EXCLUDED_REGISTRATION = ["انسحاب فصلي", "مطوي قيده", "معتذر", "منسحب"];
 const EXCLUDED_TRAINEE = ["مطوي قيده", "انسحاب فصلي", "مطوي قيده لإنقطاع أسبوعين"];
 
 const COLORS = {
   primary: "#1FA7A8",
   primaryDark: "#147B83",
-  primarySoft: "#DDF5F3",
-  primaryBorder: "#9ED9D6",
+  primaryLight: "#E7F8F7",
+  primaryBorder: "#A8DDDA",
   charcoal: "#2C3135",
-  charcoalSoft: "#596066",
-  ink: "#1F2529",
+  charcoalSoft: "#616971",
+  text: "#1F2529",
   muted: "#6B7280",
-  bgTop: "#EAF7F6",
-  bgMid: "#F7FBFB",
-  bgBottom: "#FFFFFF",
+  bg1: "#EAF7F6",
+  bg2: "#F7FBFB",
+  bg3: "#FFFFFF",
   card: "#FFFFFF",
   border: "#D7E7E6",
-  borderStrong: "#B8D6D3",
-  danger: "#B42318",
-  dangerBg: "#FEF3F2",
   success: "#067647",
   successBg: "#ECFDF3",
   warning: "#B54708",
   warningBg: "#FFF7ED",
+  danger: "#B42318",
+  dangerBg: "#FEF3F2",
 };
+
 const LOGO_SRC = "/tvtc-logo.png";
+
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
     .replace(/[\u064B-\u065F\u0670]/g, "")
     .replace(/أ|إ|آ/g, "ا")
     .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي");
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ");
 }
 
 function formatGregorian(date) {
@@ -88,34 +91,13 @@ function safeNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function fieldStyle() {
-  return {
-    width: "100%",
-    boxSizing: "border-box",
-    border: `1px solid ${COLORS.borderStrong}`,
-    borderRadius: 16,
-    padding: "12px 14px",
-    background: "#fff",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: 15,
-    color: COLORS.ink,
-  };
-}
-
-function toggleDay(list, day) {
-  return list.includes(day) ? list.filter((d) => d !== day) : [...list, day];
-}
-
 function parseTimeToMinutes(time) {
-  const match = String(time || "")
-    .trim()
-    .match(/^(\d{1,2}):(\d{2})$/);
+  const match = String(time || "").trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return hours * 60 + minutes;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
 }
 
 function minutesToTimeText(minutes) {
@@ -126,12 +108,12 @@ function minutesToTimeText(minutes) {
 
 function parsePeriodsText(periodsText) {
   return String(periodsText || "")
-    .split(/\r?\n/)
+    .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const normalized = line.replace(/\s+/g, "");
-      const match = normalized.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+      const clean = line.replace(/\s+/g, "");
+      const match = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
       if (!match) return { index, raw: line, valid: false };
 
       const startMinutes = parseTimeToMinutes(match[1]);
@@ -157,10 +139,10 @@ function buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }) {
     return [];
   }
 
-  const allowed = new Set(selectedDays);
   const validPeriods = parsedPeriods.filter((p) => p.valid);
   if (!validPeriods.length) return [];
 
+  const allowed = new Set(selectedDays);
   const slots = [];
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
@@ -199,11 +181,8 @@ function buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }) {
 function rowsToCsv(rows) {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const escapeCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-  return [
-    headers.join(","),
-    ...rows.map((row) => headers.map((header) => escapeCell(row[header])).join(",")),
-  ].join("\n");
+  const esc = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  return [headers.join(","), ...rows.map((row) => headers.map((h) => esc(row[h])).join(","))].join("\n");
 }
 
 function downloadFile(filename, content, mime) {
@@ -218,7 +197,6 @@ function downloadFile(filename, content, mime) {
 
 function groupScheduleForOfficialPrint(schedule) {
   const byDate = {};
-
   schedule.forEach((item) => {
     if (!byDate[item.dateISO]) {
       byDate[item.dateISO] = {
@@ -228,15 +206,202 @@ function groupScheduleForOfficialPrint(schedule) {
         periods: {},
       };
     }
-
     if (!byDate[item.dateISO].periods[item.period]) {
       byDate[item.dateISO].periods[item.period] = [];
     }
-
     byDate[item.dateISO].periods[item.period].push(item);
   });
-
   return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+}
+
+function fieldStyle() {
+  return {
+    width: "100%",
+    boxSizing: "border-box",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 16,
+    padding: "12px 14px",
+    background: "#fff",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: 15,
+    color: COLORS.text,
+  };
+}
+
+function toggleDay(list, day) {
+  return list.includes(day) ? list.filter((d) => d !== day) : [...list, day];
+}
+
+function cardButtonStyle({ active = false, disabled = false, danger = false } = {}) {
+  let background = "#fff";
+  let color = COLORS.charcoal;
+  let border = `1px solid ${COLORS.border}`;
+  let cursor = disabled ? "not-allowed" : "pointer";
+
+  if (active) {
+    background = COLORS.primaryDark;
+    color = "#fff";
+    border = `1px solid ${COLORS.primaryDark}`;
+  }
+
+  if (danger) {
+    background = COLORS.dangerBg;
+    color = COLORS.danger;
+    border = `1px solid #FECACA`;
+  }
+
+  if (disabled) {
+    background = "#E5E7EB";
+    color = COLORS.muted;
+    border = "1px solid #E5E7EB";
+  }
+
+  return {
+    background,
+    color,
+    border,
+    borderRadius: 18,
+    padding: "12px 20px",
+    fontWeight: 800,
+    cursor,
+  };
+}
+
+function StepButton({ active, done, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: `1px solid ${active ? COLORS.primaryDark : done ? COLORS.primaryBorder : COLORS.border}`,
+        background: active ? COLORS.primaryDark : done ? COLORS.primaryLight : "#fff",
+        color: active ? "#fff" : done ? COLORS.primaryDark : COLORS.charcoalSoft,
+        borderRadius: 999,
+        padding: "12px 18px",
+        fontWeight: 800,
+        cursor: "pointer",
+        boxShadow: active ? "0 8px 18px rgba(20,123,131,0.18)" : "none",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({ children, style }) {
+  return (
+    <div
+      style={{
+        background: COLORS.card,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 30,
+        padding: 22,
+        boxShadow: "0 16px 36px rgba(20, 123, 131, 0.08)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ title, description }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.charcoal }}>{title}</div>
+      {description ? (
+        <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>{description}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function StatBox({ label, value }) {
+  return (
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 22,
+        padding: 18,
+        border: `1px solid ${COLORS.border}`,
+        boxShadow: "0 8px 24px rgba(20, 123, 131, 0.06)",
+      }}
+    >
+      <div style={{ fontSize: 14, color: COLORS.charcoalSoft, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>{value}</div>
+    </div>
+  );
+}
+
+function Toast({ item, onClose }) {
+  if (!item) return null;
+
+  const bg =
+    item.type === "error" ? COLORS.dangerBg : item.type === "warning" ? COLORS.warningBg : COLORS.successBg;
+  const color =
+    item.type === "error" ? COLORS.danger : item.type === "warning" ? COLORS.warning : COLORS.success;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 20,
+        left: 20,
+        zIndex: 9999,
+        width: "min(380px, calc(100vw - 32px))",
+        background: bg,
+        border: "1px solid rgba(0,0,0,0.08)",
+        color,
+        borderRadius: 18,
+        padding: 16,
+        boxShadow: "0 16px 35px rgba(20, 123, 131, 0.16)",
+      }}
+    >
+      <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
+      <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
+      <button
+        onClick={onClose}
+        style={{
+          marginTop: 10,
+          background: "transparent",
+          border: "none",
+          color,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
+  );
+}
+
+function isGeneralStudiesCourse(course) {
+  const text = normalizeArabic(
+    `${course.courseName} ${course.courseCode} ${course.department} ${course.major}`
+  );
+
+  const keywords = [
+    "انجليزي",
+    "لغة انجليزية",
+    "الرياضيات",
+    "رياضيات",
+    "فيزياء",
+    "كيمياء",
+    "عربي",
+    "لغة عربية",
+    "السلوك الوظيفي",
+    "ريادة الاعمال",
+    "السلامة والصحة المهنية",
+    "مهارات الاتصال",
+    "الحاسب الالي",
+    "حاسب",
+    "ثقافة اسلامية",
+    "توحيد",
+    "فقه",
+  ];
+
+  return keywords.some((k) => text.includes(normalizeArabic(k)));
 }
 
 function printSchedulePdf({
@@ -255,7 +420,6 @@ function printSchedulePdf({
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
     if (fromArg) return fromArg;
-
     const firstItem = schedule.find((s) => s.period === periodId);
     return {
       period: periodId,
@@ -300,7 +464,7 @@ function printSchedulePdf({
     "قيام المتدرب بالغش أو محاولة الغش يعد مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
     "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب يعد شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
     "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
-    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي.",
     "يجب على المتدرب التقيد بالزي التدريبي والالتزام بالهدوء داخل قاعة الاختبار.",
   ];
 
@@ -317,18 +481,10 @@ function printSchedulePdf({
             direction: rtl;
             background: #fff;
           }
-          .print-logo-wrap {
-  text-align: center;
-  margin-bottom: 6px;
-}
-
-.print-logo {
-  width: 78px;
-  height: auto;
-  object-fit: contain;
-}
           .page { width: 100%; }
           .top-head { margin-bottom: 8px; }
+          .print-logo-wrap { text-align:center; margin-bottom:6px; }
+          .print-logo { width:78px; height:auto; object-fit:contain; }
           .college-line {
             text-align: center;
             font-weight: 700;
@@ -423,11 +579,11 @@ function printSchedulePdf({
       </head>
       <body>
         <div class="page">
-<div class="top-head">
-  <div class="print-logo-wrap">
-    <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-  </div>
-  <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+          <div class="top-head">
+            <div class="print-logo-wrap">
+              <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+            </div>
+            <div class="college-line">${collegeName || "الكلية التقنية"}</div>
             <div class="meta-line">
               <div class="meta-box"><strong>قسم:</strong> جميع الأقسام</div>
               <div class="meta-box"><strong>تخصص:</strong> جميع التخصصات</div>
@@ -470,7 +626,6 @@ function printSchedulePdf({
               ${groupedDays
                 .map((day) => {
                   const rowsCount = maxRowsPerDay(day);
-
                   return Array.from({ length: rowsCount })
                     .map(
                       (_, rowIndex) => `
@@ -503,11 +658,11 @@ function printSchedulePdf({
 
         <div class="page-break"></div>
 
-<div class="page">
-  <div class="print-logo-wrap">
-    <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-  </div>
-  <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+        <div class="page">
+          <div class="print-logo-wrap">
+            <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+          </div>
+          <div class="college-line">${collegeName || "الكلية التقنية"}</div>
           <div class="inv-table-title">جدول المراقبين وفترات المراقبة</div>
 
           <table>
@@ -556,132 +711,6 @@ function printSchedulePdf({
   setTimeout(() => printWindow.print(), 400);
 }
 
-function Toast({ item, onClose }) {
-  if (!item) return null;
-
-  const bg =
-    item.type === "error"
-      ? COLORS.dangerBg
-      : item.type === "warning"
-      ? COLORS.warningBg
-      : COLORS.successBg;
-
-  const border =
-    item.type === "error"
-      ? "#FECACA"
-      : item.type === "warning"
-      ? "#FED7AA"
-      : "#A7F3D0";
-
-  const color =
-    item.type === "error"
-      ? COLORS.danger
-      : item.type === "warning"
-      ? COLORS.warning
-      : COLORS.success;
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 20,
-        left: 20,
-        zIndex: 9999,
-        width: "min(380px, calc(100vw - 32px))",
-        background: bg,
-        border: `1px solid ${border}`,
-        color,
-        borderRadius: 18,
-        padding: 16,
-        boxShadow: "0 16px 35px rgba(20, 123, 131, 0.16)",
-      }}
-    >
-      <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
-      <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
-      <button
-        onClick={onClose}
-        style={{
-          marginTop: 10,
-          background: "transparent",
-          border: "none",
-          color,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        إغلاق
-      </button>
-    </div>
-  );
-}
-
-function Card({ children, style }) {
-  return (
-    <div
-      style={{
-        background: COLORS.card,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 30,
-        padding: 22,
-        boxShadow: "0 16px 36px rgba(20, 123, 131, 0.08)",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SectionHeader({ title, description }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.charcoal }}>{title}</div>
-      {description ? (
-        <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>{description}</div>
-      ) : null}
-    </div>
-  );
-}
-
-function StatBox({ label, value }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 22,
-        padding: 18,
-        border: `1px solid ${COLORS.border}`,
-        boxShadow: "0 8px 24px rgba(20, 123, 131, 0.06)",
-      }}
-    >
-      <div style={{ fontSize: 14, color: COLORS.charcoalSoft, marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>{value}</div>
-    </div>
-  );
-}
-
-function StepButton({ active, done, children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: `1px solid ${
-          active ? COLORS.primaryDark : done ? COLORS.primaryBorder : COLORS.borderStrong
-        }`,
-        background: active ? COLORS.primaryDark : done ? COLORS.primarySoft : "#fff",
-        color: active ? "#fff" : done ? COLORS.primaryDark : COLORS.charcoalSoft,
-        borderRadius: 999,
-        padding: "12px 18px",
-        fontWeight: 800,
-        cursor: "pointer",
-        boxShadow: active ? "0 8px 18px rgba(20,123,131,0.18)" : "none",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function App() {
   const fileRef = useRef(null);
 
@@ -699,13 +728,7 @@ export default function App() {
   });
 
   const [numberOfDays, setNumberOfDays] = useState(10);
-  const [selectedDays, setSelectedDays] = useState([
-    "الأحد",
-    "الاثنين",
-    "الثلاثاء",
-    "الأربعاء",
-    "الخميس",
-  ]);
+  const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
   const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
   const [previewPage, setPreviewPage] = useState(0);
@@ -719,6 +742,8 @@ export default function App() {
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
+  const [generalSchedule, setGeneralSchedule] = useState([]);
+  const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
 
@@ -743,6 +768,8 @@ export default function App() {
         );
         setRows(cleanRows);
         setSchedule([]);
+        setGeneralSchedule([]);
+        setSpecializedSchedule([]);
         setUnscheduled([]);
         setExcludedCourses([]);
         setPreviewPage(0);
@@ -816,8 +843,8 @@ export default function App() {
 
       if (!courseCode && !courseName) return;
 
-      const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
-      const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
+      const normalizedCourseCode = normalizeArabic(courseCode);
+      const normalizedCourseName = normalizeArabic(courseName);
       const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
@@ -848,7 +875,9 @@ export default function App() {
 
       if (studentId) {
         course.students.add(studentId);
-        if (!studentCourseMap.has(studentId)) studentCourseMap.set(studentId, new Set());
+        if (!studentCourseMap.has(studentId)) {
+          studentCourseMap.set(studentId, new Set());
+        }
         studentCourseMap.get(studentId).add(key);
       }
     });
@@ -920,18 +949,27 @@ export default function App() {
     };
   }, [rows, excludeInactive, prioritizeTrainer, excludedCourses]);
 
+  const generalCourses = useMemo(
+    () => parsed.courses.filter((course) => isGeneralStudiesCourse(course)),
+    [parsed.courses]
+  );
+
+  const specializedCourses = useMemo(() => {
+    const keys = new Set(generalCourses.map((c) => c.key));
+    return parsed.courses.filter((course) => !keys.has(course.key));
+  }, [parsed.courses, generalCourses]);
+
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
   const examHalls = useMemo(() => {
     return String(examHallsText || "")
-      .split(/\r?\n/)
+      .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
         const [namePart, capacityPart] = line.split("|").map((x) => x.trim());
         const capacity = Number(capacityPart);
-
         return {
           name: namePart || line,
           capacity: Number.isFinite(capacity) ? capacity : null,
@@ -958,45 +996,43 @@ export default function App() {
     rows.forEach((row) => {
       const courseCode = String(row["المقرر"] ?? "").trim();
       const courseName = String(row["اسم المقرر"] ?? "").trim();
-
       if (!courseCode && !courseName) return;
 
-      const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
-      const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
-      const key = [normalizedCourseCode, normalizedCourseName].join("|");
+      const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
 
       if (!map.has(key)) {
-        map.set(key, {
-          key,
-          label: `${courseName} - ${courseCode}`,
-        });
+        map.set(key, { key, label: `${courseName} - ${courseCode}` });
       }
     });
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
 
-  const generateSchedule = () => {
+  const generateScheduleForCourses = (coursesList) => {
     if (!rows.length) {
-      return showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
+      showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
+      return [];
     }
 
     if (parsed.missingColumns.length) {
-      return showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
+      showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
+      return [];
     }
 
     if (invalidPeriods.length) {
-      return showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
+      showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
+      return [];
     }
 
     if (!slots.length) {
-      return showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
+      showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
+      return [];
     }
 
     const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
 
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
@@ -1083,12 +1119,14 @@ export default function App() {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
+
       if (
         normalizeArabic(course.scheduleType).includes("عملي") &&
         slot.period === parsedPeriods.filter((p) => p.valid).length
       ) {
         score += 2;
       }
+
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
       return score;
     };
@@ -1096,7 +1134,7 @@ export default function App() {
     const placed = [];
     const notPlaced = [];
 
-    parsed.courses.forEach((course) => {
+    coursesList.forEach((course) => {
       let bestSlot = null;
       let bestScore = Number.POSITIVE_INFINITY;
 
@@ -1163,20 +1201,32 @@ export default function App() {
         b.studentCount - a.studentCount
     );
 
-    setSchedule(placed);
     setUnscheduled(notPlaced);
     setPreviewPage(0);
-    setCurrentStep(4);
+    return placed;
+  };
 
-    if (notPlaced.length) {
-      showToast(
-        "تم إنشاء الجدول جزئيًا",
-        `تمت جدولة ${placed.length} مقرر وتعذر جدولة ${notPlaced.length} مقرر. زد عدد الأيام أو عدّل الفترات الزمنية.`,
-        "warning"
-      );
-    } else {
-      showToast("تم إنشاء الجدول", `تمت جدولة ${placed.length} مقرر بنجاح.`, "success");
-    }
+  const generateGeneralSchedule = () => {
+    const placed = generateScheduleForCourses(generalCourses);
+    setGeneralSchedule(placed);
+    showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+    setCurrentStep(4);
+  };
+
+  const generateSpecializedSchedule = () => {
+    const placed = generateScheduleForCourses(specializedCourses);
+    setSpecializedSchedule(placed);
+
+    const merged = [...generalSchedule, ...placed].sort(
+      (a, b) =>
+        a.dateISO.localeCompare(b.dateISO) ||
+        a.period - b.period ||
+        b.studentCount - a.studentCount
+    );
+
+    setSchedule(merged);
+    showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+    setCurrentStep(5);
   };
 
   const groupedSchedule = useMemo(() => {
@@ -1226,9 +1276,8 @@ export default function App() {
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
-
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
   }, [manualInvigilators, parsed.invigilators]);
 
@@ -1305,74 +1354,76 @@ export default function App() {
     rows: rows.length,
     students: parsed.studentsCount,
     courses: parsed.courses.length,
+    generalCourses: generalCourses.length,
+    specializedCourses: specializedCourses.length,
     invigilators: parsed.invigilators.length,
-    sections: parsed.sections.length,
   };
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 35%, ${COLORS.bgBottom} 100%)`,
+        background: `linear-gradient(135deg, ${COLORS.bg1} 0%, ${COLORS.bg2} 35%, ${COLORS.bg3} 100%)`,
         padding: "24px 16px 60px",
         direction: "rtl",
         fontFamily: "Cairo, Tahoma, Arial, sans-serif",
-        color: COLORS.ink,
+        color: COLORS.text,
       }}
     >
       <Toast item={toast} onClose={() => setToast(null)} />
 
-      <div
-  style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
-    color: "#fff",
-    borderRadius: 34,
-    padding: 30,
-    boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
-      flexWrap: "wrap",
-    }}
-  >
-    <div style={{ flex: 1, minWidth: 260 }}>
-      <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
-      <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-        نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
-        مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
-      </div>
-    </div>
+      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
+            color: "#fff",
+            borderRadius: 34,
+            padding: 30,
+            boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 20,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
+              <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
+                مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+              </div>
+            </div>
 
-    <div
-      style={{
-        background: "rgba(255,255,255,0.12)",
-        border: "1px solid rgba(255,255,255,0.22)",
-        borderRadius: 24,
-        padding: 14,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 140,
-      }}
-    >
-      <img
-        src={LOGO_SRC}
-        alt="شعار المؤسسة العامة للتدريب التقني والمهني"
-        style={{
-          width: 95,
-          height: "auto",
-          objectFit: "contain",
-          display: "block",
-        }}
-      />
-    </div>
-  </div>
-</div>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.22)",
+                borderRadius: 24,
+                padding: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 140,
+              }}
+            >
+              <img
+                src={LOGO_SRC}
+                alt="شعار المؤسسة العامة للتدريب التقني والمهني"
+                style={{
+                  width: 95,
+                  height: "auto",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
         <div
           style={{
@@ -1385,8 +1436,9 @@ export default function App() {
           <StatBox label="السجلات" value={stats.rows} />
           <StatBox label="المتدربون" value={stats.students} />
           <StatBox label="المقررات" value={stats.courses} />
+          <StatBox label="الدراسات العامة" value={stats.generalCourses} />
+          <StatBox label="التخصص" value={stats.specializedCourses} />
           <StatBox label="المراقبون" value={stats.invigilators} />
-          <StatBox label="الأقسام / الشعب" value={stats.sections} />
         </div>
 
         <div
@@ -1401,8 +1453,10 @@ export default function App() {
           {[
             { id: 1, label: "1. رفع الملف" },
             { id: 2, label: "2. المقررات" },
-            { id: 3, label: "3. المراقبون" },
-            { id: 4, label: "4. المعاينة والطباعة" },
+            { id: 3, label: "3. الدراسات العامة" },
+            { id: 4, label: "4. التخصص" },
+            { id: 5, label: "5. المراقبون" },
+            { id: 6, label: "6. المعاينة والطباعة" },
           ].map((step) => (
             <StepButton
               key={step.id}
@@ -1419,7 +1473,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الأولى: رفع الملف والإعدادات العامة"
-              description="ارفع تقرير SF01 وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
+              description="ارفع ملف CSV وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
             />
 
             <div
@@ -1438,14 +1492,13 @@ export default function App() {
                 minHeight: 180,
                 borderRadius: 26,
                 border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
-                background: dragActive ? COLORS.primarySoft : "#FCFFFF",
+                background: dragActive ? COLORS.primaryLight : "#FCFFFF",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "column",
                 textAlign: "center",
                 cursor: "pointer",
-                transition: "0.2s",
               }}
             >
               <input
@@ -1456,7 +1509,7 @@ export default function App() {
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
               <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                اسحب تقرير SF01 هنا أو اضغط للاختيار
+                اسحب الملف هنا أو اضغط للاختيار
               </div>
               <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
@@ -1486,21 +1539,6 @@ export default function App() {
                 }}
               >
                 الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
-              </div>
-            ) : null}
-
-            {invalidPeriods.length ? (
-              <div
-                style={{
-                  marginTop: 14,
-                  borderRadius: 18,
-                  padding: 14,
-                  background: COLORS.warningBg,
-                  border: "1px solid #FED7AA",
-                  color: COLORS.warning,
-                }}
-              >
-                يوجد سطر أو أكثر في أوقات الفترات غير صحيح. مثال صحيح: 07:45-09:00
               </div>
             ) : null}
 
@@ -1577,31 +1615,6 @@ export default function App() {
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>الأقسام / الشعب</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {parsed.sections.length ? (
-                  parsed.sections.map((section) => (
-                    <span
-                      key={section}
-                      style={{
-                        background: COLORS.primarySoft,
-                        border: `1px solid ${COLORS.primaryBorder}`,
-                        borderRadius: 999,
-                        padding: "6px 12px",
-                        fontSize: 13,
-                        color: COLORS.primaryDark,
-                      }}
-                    >
-                      {section}
-                    </span>
-                  ))
-                ) : (
-                  <span style={{ color: "#94A3B8" }}>لا توجد بيانات بعد</span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {DAY_OPTIONS.map((day) => {
@@ -1611,7 +1624,7 @@ export default function App() {
                       key={day}
                       onClick={() => setSelectedDays((prev) => toggleDay(prev, day))}
                       style={{
-                        border: `1px solid ${active ? COLORS.primaryDark : COLORS.borderStrong}`,
+                        border: `1px solid ${active ? COLORS.primaryDark : COLORS.border}`,
                         background: active ? COLORS.primaryDark : "#fff",
                         color: active ? "#fff" : COLORS.charcoalSoft,
                         borderRadius: 999,
@@ -1627,14 +1640,7 @@ export default function App() {
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 12,
-                marginTop: 18,
-              }}
-            >
+            <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <label
                 style={{
                   display: "flex",
@@ -1658,15 +1664,7 @@ export default function App() {
               <button
                 onClick={() => setCurrentStep(2)}
                 disabled={!rows.length}
-                style={{
-                  background: !rows.length ? "#E5E7EB" : COLORS.primaryDark,
-                  color: !rows.length ? COLORS.muted : "#fff",
-                  border: "none",
-                  borderRadius: 18,
-                  padding: "12px 20px",
-                  fontWeight: 800,
-                  cursor: !rows.length ? "not-allowed" : "pointer",
-                }}
+                style={cardButtonStyle({ active: true, disabled: !rows.length })}
               >
                 التالي: تعديل المقررات
               </button>
@@ -1678,7 +1676,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الثانية: تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة المراقبين."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة الدراسات العامة."
             />
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
@@ -1696,7 +1694,7 @@ export default function App() {
                         key={course.key}
                         onClick={() => toggleExcludedCourse(course.key)}
                         style={{
-                          border: `1px solid ${excluded ? COLORS.danger : COLORS.borderStrong}`,
+                          border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
                           background: excluded ? COLORS.dangerBg : "#fff",
                           color: excluded ? COLORS.danger : COLORS.charcoalSoft,
                           borderRadius: 999,
@@ -1716,34 +1714,11 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button
-                onClick={() => setCurrentStep(1)}
-                style={{
-                  background: "#fff",
-                  color: COLORS.charcoal,
-                  border: `1px solid ${COLORS.borderStrong}`,
-                  borderRadius: 18,
-                  padding: "12px 20px",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
                 السابق
               </button>
-
-              <button
-                onClick={() => setCurrentStep(3)}
-                style={{
-                  background: COLORS.primaryDark,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 18,
-                  padding: "12px 20px",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                التالي: المراقبون
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle({ active: true })}>
+                التالي: الدراسات العامة
               </button>
             </div>
           </Card>
@@ -1752,8 +1727,128 @@ export default function App() {
         {currentStep === 3 && (
           <Card>
             <SectionHeader
-              title="الصفحة الثالثة: المراقبون"
-              description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب."
+              title="الصفحة الثالثة: توزيع مقررات الدراسات العامة"
+              description="سيتم توزيع مقررات الدراسات العامة أولًا."
+            />
+
+            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
+              عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: 18 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: COLORS.primaryLight }}>
+                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: 12,
+                          textAlign: "right",
+                          borderBottom: `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {generalCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!generalCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع الدراسات العامة
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 4 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الرابعة: توزيع مقررات التخصص"
+              description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص."
+            />
+
+            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
+              عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: 18 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: COLORS.primaryLight }}>
+                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: 12,
+                          textAlign: "right",
+                          borderBottom: `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {specializedCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!specializedCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات تخصص حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع مقررات التخصص
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 5 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الخامسة: المراقبون"
+              description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا."
             />
 
             <div
@@ -1845,9 +1940,7 @@ export default function App() {
                             key={name}
                             onClick={() => toggleExcludedInvigilator(name)}
                             style={{
-                              border: `1px solid ${
-                                excluded ? COLORS.danger : COLORS.borderStrong
-                              }`,
+                              border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
                               background: excluded ? COLORS.dangerBg : "#fff",
                               color: excluded ? COLORS.danger : COLORS.charcoalSoft,
                               borderRadius: 999,
@@ -1867,34 +1960,12 @@ export default function App() {
                 </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button
-                    onClick={() => setCurrentStep(2)}
-                    style={{
-                      background: "#fff",
-                      color: COLORS.charcoal,
-                      border: `1px solid ${COLORS.borderStrong}`,
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                     السابق
                   </button>
 
-                  <button
-                    onClick={generateSchedule}
-                    style={{
-                      background: COLORS.primaryDark,
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
-                    إنشاء الجدول والانتقال للمعاينة
+                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle({ active: true })}>
+                    التالي: المعاينة والطباعة
                   </button>
                 </div>
               </div>
@@ -1902,7 +1973,7 @@ export default function App() {
               <div
                 style={{
                   marginTop: 18,
-                  border: `1px dashed ${COLORS.borderStrong}`,
+                  border: `1px dashed ${COLORS.border}`,
                   borderRadius: 18,
                   padding: 18,
                   color: COLORS.muted,
@@ -1915,7 +1986,7 @@ export default function App() {
           </Card>
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 6 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
@@ -1927,7 +1998,7 @@ export default function App() {
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
-                      <tr style={{ background: COLORS.primarySoft }}>
+                      <tr style={{ background: COLORS.primaryLight }}>
                         {[
                           "المقرر",
                           "الرمز",
@@ -1951,7 +2022,6 @@ export default function App() {
                         ))}
                       </tr>
                     </thead>
-
                     <tbody>
                       {parsed.courses.slice(0, 30).map((course) => (
                         <tr key={course.key}>
@@ -1973,14 +2043,6 @@ export default function App() {
                           </td>
                         </tr>
                       ))}
-
-                      {!parsed.courses.length ? (
-                        <tr>
-                          <td colSpan={7} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
-                            لا توجد بيانات بعد
-                          </td>
-                        </tr>
-                      ) : null}
                     </tbody>
                   </table>
                 </div>
@@ -2008,15 +2070,7 @@ export default function App() {
                     <button
                       onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
                       disabled={previewPage === 0}
-                      style={{
-                        background: previewPage === 0 ? "#E5E7EB" : "#fff",
-                        color: COLORS.charcoal,
-                        border: `1px solid ${COLORS.borderStrong}`,
-                        borderRadius: 14,
-                        padding: "10px 18px",
-                        fontWeight: 800,
-                        cursor: previewPage === 0 ? "not-allowed" : "pointer",
-                      }}
+                      style={cardButtonStyle({ disabled: previewPage === 0 })}
                     >
                       السابق
                     </button>
@@ -2026,21 +2080,9 @@ export default function App() {
                     </div>
 
                     <button
-                      onClick={() =>
-                        setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))
-                      }
+                      onClick={() => setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))}
                       disabled={previewPage >= totalPreviewPages - 1}
-                      style={{
-                        background:
-                          previewPage >= totalPreviewPages - 1 ? "#E5E7EB" : "#fff",
-                        color: COLORS.charcoal,
-                        border: `1px solid ${COLORS.borderStrong}`,
-                        borderRadius: 14,
-                        padding: "10px 18px",
-                        fontWeight: 800,
-                        cursor:
-                          previewPage >= totalPreviewPages - 1 ? "not-allowed" : "pointer",
-                      }}
+                      style={cardButtonStyle({ disabled: previewPage >= totalPreviewPages - 1 })}
                     >
                       التالي
                     </button>
@@ -2050,7 +2092,7 @@ export default function App() {
                 {!schedule.length ? (
                   <div
                     style={{
-                      border: `2px dashed ${COLORS.borderStrong}`,
+                      border: `2px dashed ${COLORS.border}`,
                       borderRadius: 22,
                       padding: 30,
                       textAlign: "center",
@@ -2058,7 +2100,7 @@ export default function App() {
                       background: "#F8FEFE",
                     }}
                   >
-                    ارفع الملف ثم اضغط إنشاء الجدول ليظهر هنا.
+                    أنشئ الجدول أولًا ليظهر هنا.
                   </div>
                 ) : (
                   <div style={{ display: "grid", gap: 18 }}>
@@ -2073,7 +2115,7 @@ export default function App() {
                       >
                         <div
                           style={{
-                            background: COLORS.primarySoft,
+                            background: COLORS.primaryLight,
                             padding: 16,
                             borderBottom: `1px solid ${COLORS.border}`,
                           }}
@@ -2151,9 +2193,7 @@ export default function App() {
                       padding: 14,
                     }}
                   >
-                    <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                      مقررات لم يتم جدولة اختبارها
-                    </div>
+                    <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {unscheduled.map((course) => (
                         <span
@@ -2174,33 +2214,11 @@ export default function App() {
                 ) : null}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button
-                    onClick={() => setCurrentStep(3)}
-                    style={{
-                      background: "#fff",
-                      color: COLORS.charcoal,
-                      border: `1px solid ${COLORS.borderStrong}`,
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
                     السابق
                   </button>
 
-                  <button
-                    onClick={exportMainSchedule}
-                    style={{
-                      background: "#fff",
-                      color: COLORS.primaryDark,
-                      border: `1px solid ${COLORS.primaryBorder}`,
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button onClick={exportMainSchedule} style={cardButtonStyle()}>
                     تصدير جدول الاختبارات
                   </button>
 
@@ -2225,15 +2243,7 @@ export default function App() {
                         defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
                       })
                     }
-                    style={{
-                      background: COLORS.primaryDark,
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
+                    style={cardButtonStyle({ active: true })}
                   >
                     طباعة / PDF
                   </button>
@@ -2251,7 +2261,7 @@ export default function App() {
                 {!invigilatorTable.length ? (
                   <div
                     style={{
-                      border: `2px dashed ${COLORS.borderStrong}`,
+                      border: `2px dashed ${COLORS.border}`,
                       borderRadius: 22,
                       padding: 26,
                       textAlign: "center",
@@ -2274,7 +2284,7 @@ export default function App() {
                       >
                         <div
                           style={{
-                            background: COLORS.primarySoft,
+                            background: COLORS.primaryLight,
                             padding: 16,
                             borderBottom: `1px solid ${COLORS.border}`,
                             display: "flex",
@@ -2284,9 +2294,7 @@ export default function App() {
                             flexWrap: "wrap",
                           }}
                         >
-                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>
-                            {inv.name}
-                          </div>
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{inv.name}</div>
                           <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
                         </div>
 
@@ -2333,28 +2341,15 @@ export default function App() {
                 )}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button
-                    onClick={exportInvigilatorsTable}
-                    style={{
-                      background: "#fff",
-                      color: COLORS.primaryDark,
-                      border: `1px solid ${COLORS.primaryBorder}`,
-                      borderRadius: 18,
-                      padding: "12px 20px",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
                     تصدير جدول المراقبين
                   </button>
                 </div>
               </Card>
-             
             </div>
           </>
         )}
       </div>
-
-  
+    </div>
   );
 }
