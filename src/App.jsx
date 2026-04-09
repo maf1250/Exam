@@ -387,19 +387,16 @@ function isGeneralStudiesCourse(course) {
     "الرياضيات",
     "رياضيات",
     "فيزياء",
-    "كيمياء",
     "عربي",
     "لغة عربية",
     "السلوك الوظيفي",
     "ريادة الاعمال",
-    "السلامة والصحة المهنية",
     "مهارات الاتصال",
-    "الحاسب الالي",
-    "حاسب",
+    "مقدمة تطبيقات الحاسب",
+    "اسلم",
     "ثقافة اسلامية",
-    "توحيد",
-    "فقه",
-  ];
+    "كتابة فنية",
+    ];
 
   return keywords.some((k) => text.includes(normalizeArabic(k)));
 }
@@ -710,7 +707,37 @@ function printSchedulePdf({
   printWindow.focus();
   setTimeout(() => printWindow.print(), 400);
 }
+function getDefaultExcludedPracticalCourseKeys(rows) {
+  const map = new Map();
 
+  rows.forEach((row) => {
+    const courseCode = String(row["المقرر"] ?? "").trim();
+    const courseName = String(row["اسم المقرر"] ?? "").trim();
+    const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
+
+    if (!courseCode && !courseName) return;
+
+    const normalizedScheduleType = normalizeArabic(scheduleType);
+    const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+
+    const shouldExclude =
+      normalizedScheduleType.includes("عملي") ||
+      normalizedScheduleType.includes("تعاوني");
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        isPractical: shouldExclude,
+      });
+    } else if (shouldExclude) {
+      map.get(key).isPractical = true;
+    }
+  });
+
+  return Array.from(map.values())
+    .filter((item) => item.isPractical)
+    .map((item) => item.key);
+}
 export default function App() {
   const fileRef = useRef(null);
 
@@ -766,14 +793,16 @@ export default function App() {
         const cleanRows = (result.data || []).filter((row) =>
           Object.values(row).some((v) => String(v ?? "").trim() !== "")
         );
-        setRows(cleanRows);
-        setSchedule([]);
-        setGeneralSchedule([]);
-        setSpecializedSchedule([]);
-        setUnscheduled([]);
-        setExcludedCourses([]);
-        setPreviewPage(0);
-        setCurrentStep(2);
+        const defaultExcludedPractical = getDefaultExcludedPracticalCourseKeys(cleanRows);
+
+setRows(cleanRows);
+setSchedule([]);
+setGeneralSchedule([]);
+setSpecializedSchedule([]);
+setUnscheduled([]);
+setExcludedCourses(defaultExcludedPractical);
+setPreviewPage(0);
+setCurrentStep(2);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
