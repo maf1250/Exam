@@ -46,6 +46,20 @@ function formatHijri(date) {
   }).format(date);
 }
 
+function formatHijriNumeric(date) {
+  const parts = new Intl.DateTimeFormat("en-GB-u-ca-islamic", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(date);
+
+  const day = parts.find((p) => p.type === "day")?.value || "";
+  const month = parts.find((p) => p.type === "month")?.value || "";
+  const year = parts.find((p) => p.type === "year")?.value || "";
+
+  return `${year}/${month}/${day}`;
+}
+
 function safeNum(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -94,9 +108,7 @@ function parsePeriodsText(periodsText) {
     .map((line, index) => {
       const normalized = line.replace(/\s+/g, "");
       const match = normalized.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-      if (!match) {
-        return { index, raw: line, valid: false };
-      }
+      if (!match) return { index, raw: line, valid: false };
 
       const startMinutes = parseTimeToMinutes(match[1]);
       const endMinutes = parseTimeToMinutes(match[2]);
@@ -144,6 +156,7 @@ function buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }) {
           period: idx + 1,
           gregorian: formatGregorian(cursor),
           hijri: formatHijri(cursor),
+          hijriNumeric: formatHijriNumeric(cursor),
           timeText: period.timeText,
           startMinutes: period.startMinutes,
           endMinutes: period.endMinutes,
@@ -179,128 +192,326 @@ function downloadFile(filename, content, mime) {
   URL.revokeObjectURL(url);
 }
 
-function printSchedulePdf({ collegeName, schedule }) {
-  const grouped = schedule.reduce((acc, item) => {
-    if (!acc[item.dateISO]) acc[item.dateISO] = [];
-    acc[item.dateISO].push(item);
-    return acc;
-  }, {});
+function groupScheduleForOfficialPrint(schedule) {
+  const byDate = {};
 
-  const printWindow = window.open("", "_blank");
+  schedule.forEach((item) => {
+    if (!byDate[item.dateISO]) {
+      byDate[item.dateISO] = {
+        dateISO: item.dateISO,
+        dayName: item.dayName,
+        hijriNumeric: item.hijriNumeric,
+        periods: {},
+      };
+    }
+
+    if (!byDate[item.dateISO].periods[item.period]) {
+      byDate[item.dateISO].periods[item.period] = [];
+    }
+
+    byDate[item.dateISO].periods[item.period].push(item);
+  });
+
+  return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+}
+
+function printSchedulePdf({
+  collegeName,
+  schedule,
+  invigilatorTable,
+  periodLabels = [],
+  defaultExamHall = "قاعة النشاط",
+}) {
+  const printWindow = window.open("", "_blank", "width=1400,height=900");
   if (!printWindow) return;
 
+  const groupedDays = groupScheduleForOfficialPrint(schedule);
+
+  const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
+
+  const resolvedPeriodLabels = periodIds.map((periodId) => {
+    const fromArg = periodLabels.find((p) => p.period === periodId);
+    if (fromArg) return fromArg;
+
+    const firstItem = schedule.find((s) => s.period === periodId);
+    return {
+      period: periodId,
+      label: `الفترة ${periodId}`,
+      timeText: firstItem?.timeText || "",
+    };
+  });
+
+  const maxRowsPerDay = (day) =>
+    Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
+
+  const renderPeriodColumns = (day, periodId, rowIndex) => {
+    const list = day.periods[periodId] || [];
+    const item = list[rowIndex];
+
+    if (!item) {
+      return `
+        <td class="num-cell">${rowIndex + 1}</td>
+        <td class="course-cell"></td>
+        <td class="code-cell"></td>
+        <td class="hall-cell"></td>
+      `;
+    }
+
+    return `
+      <td class="num-cell">${rowIndex + 1}</td>
+      <td class="course-cell">${item.courseName || ""}</td>
+      <td class="code-cell">${item.courseCode || ""}</td>
+      <td class="hall-cell">${item.examHall || defaultExamHall}</td>
+    `;
+  };
+
+  const todayText = new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+
+  const instructions = [
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
+    "قيام المتدرب بالغش أو محاولة الغش يعد مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب يعد شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+    "يجب على المتدرب التقيد بالزي التدريبي والالتزام بالهدوء داخل قاعة الاختبار.",
+  ];
+
   const html = `
-  <html dir="rtl">
-  <head>
-    <style>
-      body {
-        font-family: Tahoma;
-        padding: 20px;
-        direction: rtl;
-      }
-
-      .header {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-
-      .title {
-        font-size: 22px;
-        font-weight: bold;
-      }
-
-      .sub {
-        margin-top: 6px;
-        font-size: 14px;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-
-      th, td {
-        border: 1px solid #000;
-        padding: 6px;
-        text-align: center;
-        font-size: 12px;
-        vertical-align: top;
-      }
-
-      th {
-        background: #eee;
-      }
-
-      .course {
-        font-size: 11px;
-        margin-bottom: 4px;
-      }
-
-      .footer {
-        margin-top: 20px;
-        font-size: 12px;
-        line-height: 1.8;
-      }
-    </style>
-  </head>
-
-  <body>
-
-    <div class="header">
-      <div class="title">${collegeName || "الكلية التقنية"}</div>
-      <div class="sub">جدول الاختبارات النهائية</div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>اليوم</th>
-          <th>التاريخ</th>
-          <th>الفترة الأولى</th>
-          <th>الفترة الثانية</th>
-        </tr>
-      </thead>
-      <tbody>
-
-      ${Object.values(grouped).map((dayItems) => {
-        const period1 = dayItems.filter(i => i.period === 1);
-        const period2 = dayItems.filter(i => i.period === 2);
-
-        const renderCourses = (list) => list.map(c => `
-          <div class="course">
-            ${c.courseName} (${c.courseCode})
+    <html dir="rtl" lang="ar">
+      <head>
+        <title>جدول الاختبارات النهائية</title>
+        <style>
+          @page { size: A4 portrait; margin: 8mm; }
+          body {
+            font-family: Tahoma, Arial, sans-serif;
+            margin: 0;
+            color: #111;
+            direction: rtl;
+            background: #fff;
+          }
+          .page { width: 100%; }
+          .top-head { margin-bottom: 8px; }
+          .college-line {
+            text-align: center;
+            font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 4px;
+          }
+          .meta-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            margin-bottom: 6px;
+          }
+          .meta-box { flex: 1; min-width: 180px; }
+          .schedule-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 6px 0 8px;
+          }
+          .period-head {
+            display: grid;
+            grid-template-columns: 160px repeat(${periodIds.length}, 1fr);
+            border: 1px solid #000;
+            border-bottom: 0;
+          }
+          .period-head .empty-head {
+            border-left: 1px solid #000;
+            min-height: 58px;
+          }
+          .period-box {
+            border-left: 1px solid #000;
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.6;
+          }
+          .period-box:last-child, .empty-head:last-child { border-left: 0; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+          th, td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 12px;
+            text-align: center;
+            vertical-align: middle;
+            word-wrap: break-word;
+          }
+          thead th {
+            background: #fff;
+            font-weight: 700;
+          }
+          .day-col { width: 160px; font-weight: 700; }
+          .num-cell { width: 32px; }
+          .course-cell { width: 160px; }
+          .code-cell { width: 78px; }
+          .hall-cell { width: 90px; }
+          .instructions {
+            margin-top: 10px;
+            font-size: 11px;
+            line-height: 1.9;
+          }
+          .instructions-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .instructions ol {
+            margin: 0;
+            padding-right: 18px;
+          }
+          .page-break { page-break-before: always; }
+          .inv-table-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 10px 0;
+          }
+          .footer-date {
+            text-align: left;
+            font-size: 11px;
+            margin-top: 6px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="top-head">
+            <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+            <div class="meta-line">
+              <div class="meta-box"><strong>قسم:</strong> جميع الأقسام</div>
+              <div class="meta-box"><strong>تخصص:</strong> جميع التخصصات</div>
+              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+            </div>
+            <div class="schedule-title">جدول الاختبارات النهائية</div>
           </div>
-        `).join("");
 
-        return `
-          <tr>
-            <td>${dayItems[0].dayName}</td>
-            <td>${dayItems[0].hijri}</td>
+          <div class="period-head">
+            <div class="empty-head"></div>
+            ${resolvedPeriodLabels
+              .map(
+                (p) => `
+                  <div class="period-box">
+                    <div>${p.label}</div>
+                    <div>${p.timeText ? `من ${p.timeText}` : ""}</div>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
 
-            <td>${renderCourses(period1)}</td>
-            <td>${renderCourses(period2)}</td>
-          </tr>
-        `;
-      }).join("")}
+          <table>
+            <thead>
+              <tr>
+                <th class="day-col">اليوم / التاريخ</th>
+                ${periodIds
+                  .map(
+                    () => `
+                      <th>م</th>
+                      <th>المقرر</th>
+                      <th>الرمز</th>
+                      <th>مقر الاختبار</th>
+                    `
+                  )
+                  .join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${groupedDays
+                .map((day) => {
+                  const rowsCount = maxRowsPerDay(day);
 
-      </tbody>
-    </table>
+                  return Array.from({ length: rowsCount })
+                    .map(
+                      (_, rowIndex) => `
+                        <tr>
+                          ${
+                            rowIndex === 0
+                              ? `<td class="day-col" rowspan="${rowsCount}">
+                                  <div>${day.dayName}</div>
+                                  <div>${day.hijriNumeric}</div>
+                                </td>`
+                              : ""
+                          }
+                          ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
+                        </tr>
+                      `
+                    )
+                    .join("");
+                })
+                .join("")}
+            </tbody>
+          </table>
 
-    <div class="footer">
-      <b>تعليمات:</b><br/>
-      - الحضور قبل الاختبار بـ 15 دقيقة<br/>
-      - يمنع الدخول بعد نصف ساعة<br/>
-      - يمنع الغش ويعاقب بدرجة صفر<br/>
-    </div>
+          <div class="instructions">
+            <div class="instructions-title">تعليمات وإرشادات</div>
+            <ol>
+              ${instructions.map((item) => `<li>${item}</li>`).join("")}
+            </ol>
+          </div>
+        </div>
 
-  </body>
-  </html>
+        <div class="page-break"></div>
+
+        <div class="page">
+          <div class="college-line">${collegeName || "الكلية التقنية"}</div>
+          <div class="inv-table-title">جدول المراقبين وفترات المراقبة</div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>المراقب</th>
+                <th>التاريخ</th>
+                <th>اليوم</th>
+                <th>الفترة</th>
+                <th>الوقت</th>
+                <th>المقرر</th>
+                <th>الرمز</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invigilatorTable
+                .flatMap((inv) =>
+                  inv.items.map(
+                    (item, idx) => `
+                      <tr>
+                        ${idx === 0 ? `<td rowspan="${inv.items.length}">${inv.name}</td>` : ""}
+                        <td>${item.gregorian}</td>
+                        <td>${item.dayName}</td>
+                        <td>${item.period}</td>
+                        <td>${item.timeText}</td>
+                        <td>${item.courseName}</td>
+                        <td>${item.courseCode}</td>
+                      </tr>
+                    `
+                  )
+                )
+                .join("")}
+            </tbody>
+          </table>
+
+          <div class="footer-date">${todayText}</div>
+        </div>
+      </body>
+    </html>
   `;
 
+  printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
-  printWindow.print();
+  printWindow.focus();
+  setTimeout(() => printWindow.print(), 400);
 }
 
 function Toast({ item, onClose }) {
@@ -396,7 +607,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
-const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
+
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -405,7 +616,9 @@ const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = us
 
   const [numberOfDays, setNumberOfDays] = useState(10);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
-  const [periodsText, setPeriodsText] = useState("08:00-10:00\n10:30-12:30");
+  const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
+  const [examHallsText, setExamHallsText] = useState("قاعة النشاط");
+  const [previewPage, setPreviewPage] = useState(0);
 
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
   const [excludedInvigilators, setExcludedInvigilators] = useState([]);
@@ -414,6 +627,7 @@ const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = us
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
   const [excludedCourses, setExcludedCourses] = useState([]);
+  const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
@@ -441,6 +655,7 @@ const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = us
         setSchedule([]);
         setUnscheduled([]);
         setExcludedCourses([]);
+        setPreviewPage(0);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
@@ -619,36 +834,43 @@ const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = us
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
+  const examHalls = useMemo(() => {
+    return String(examHallsText || "")
+      .split(/\r?\n/)
+      .map((hall) => hall.trim())
+      .filter(Boolean);
+  }, [examHallsText]);
+
   const slots = useMemo(
     () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
     [startDate, numberOfDays, selectedDays, parsedPeriods]
   );
 
-const allCourseOptions = useMemo(() => {
-  if (!rows.length) return [];
+  const allCourseOptions = useMemo(() => {
+    if (!rows.length) return [];
 
-  const map = new Map();
+    const map = new Map();
 
-  rows.forEach((row) => {
-    const courseCode = String(row["المقرر"] ?? "").trim();
-    const courseName = String(row["اسم المقرر"] ?? "").trim();
+    rows.forEach((row) => {
+      const courseCode = String(row["المقرر"] ?? "").trim();
+      const courseName = String(row["اسم المقرر"] ?? "").trim();
 
-    if (!courseCode && !courseName) return;
+      if (!courseCode && !courseName) return;
 
-    const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
-    const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
-    const key = [normalizedCourseCode, normalizedCourseName].join("|");
+      const normalizedCourseCode = normalizeArabic(courseCode).replace(/\s+/g, " ");
+      const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, " ");
+      const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        label: `${courseName} - ${courseCode}`,
-      });
-    }
-  });
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: `${courseName} - ${courseCode}`,
+        });
+      }
+    });
 
-  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
-}, [rows]);
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+  }, [rows]);
 
   const generateSchedule = () => {
     if (!rows.length) {
@@ -666,6 +888,8 @@ const allCourseOptions = useMemo(() => {
     if (!slots.length) {
       return showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
     }
+
+    const hallsPool = examHalls.length ? examHalls : ["قاعة النشاط"];
 
     const baseInvigilators = manualInvigilators
       ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
@@ -688,55 +912,53 @@ const allCourseOptions = useMemo(() => {
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
 
-const pickInvigilators = (course, slot) => {
-  if (!includeInvigilators) return [];
+    const pickInvigilators = (course, slot) => {
+      if (!includeInvigilators) return [];
 
-  const courseTrainerNames = course.trainerText
-    .split("/")
-    .map((name) => normalizeArabic(name.trim()))
-    .filter(Boolean);
+      const courseTrainerNames = course.trainerText
+        .split("/")
+        .map((name) => normalizeArabic(name.trim()))
+        .filter(Boolean);
 
-  const chosen = [];
+      const chosen = [];
 
-  // 1) ترشيح مدرب المقرر أولًا إذا كان الخيار مفعّلًا
-  if (preferCourseTrainerInvigilation) {
-    const trainerCandidates = invigilatorPool
-      .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
-      .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-      .sort(
-        (a, b) =>
-          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-          a.localeCompare(b, "ar")
-      );
+      if (preferCourseTrainerInvigilation) {
+        const trainerCandidates = invigilatorPool
+          .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
+          .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+          .sort(
+            (a, b) =>
+              (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+              a.localeCompare(b, "ar")
+          );
 
-    for (const trainerName of trainerCandidates) {
-      if (chosen.length >= invigilatorsPerPeriod) break;
-      chosen.push(trainerName);
-    }
-  }
+        for (const trainerName of trainerCandidates) {
+          if (chosen.length >= invigilatorsPerPeriod) break;
+          chosen.push(trainerName);
+        }
+      }
 
-  // 2) إكمال العدد من بقية المراقبين
-  const remaining = invigilatorPool
-    .filter((name) => !chosen.includes(name))
-    .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-    .sort(
-      (a, b) =>
-        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-        a.localeCompare(b, "ar")
-    );
+      const remaining = invigilatorPool
+        .filter((name) => !chosen.includes(name))
+        .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+        .sort(
+          (a, b) =>
+            (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+            a.localeCompare(b, "ar")
+        );
 
-  for (const name of remaining) {
-    if (chosen.length >= invigilatorsPerPeriod) break;
-    chosen.push(name);
-  }
+      for (const name of remaining) {
+        if (chosen.length >= invigilatorsPerPeriod) break;
+        chosen.push(name);
+      }
 
-  chosen.forEach((name) => {
-    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-    invigilatorBusySlots.get(name).add(slot.id);
-  });
+      chosen.forEach((name) => {
+        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+        invigilatorBusySlots.get(name).add(slot.id);
+      });
 
-  return chosen;
-};
+      return chosen;
+    };
 
     const scoreSlot = (course, slot) => {
       let hardConflict = false;
@@ -757,7 +979,10 @@ const pickInvigilators = (course, slot) => {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
-      if (normalizeArabic(course.scheduleType).includes("عملي") && slot.period === parsedPeriods.filter((p) => p.valid).length) {
+      if (
+        normalizeArabic(course.scheduleType).includes("عملي") &&
+        slot.period === parsedPeriods.filter((p) => p.valid).length
+      ) {
         score += 2;
       }
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
@@ -793,11 +1018,14 @@ const pickInvigilators = (course, slot) => {
         dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
       });
 
+      const sameSlotCount = slotCoursesMap.get(bestSlot.id)?.length || 0;
+      const assignedHall = hallsPool[sameSlotCount % hallsPool.length];
       slotCoursesMap.get(bestSlot.id).push(course.key);
 
       placed.push({
         ...course,
         ...bestSlot,
+        examHall: assignedHall,
         invigilators: pickInvigilators(course, bestSlot),
       });
     });
@@ -811,6 +1039,7 @@ const pickInvigilators = (course, slot) => {
 
     setSchedule(placed);
     setUnscheduled(notPlaced);
+    setPreviewPage(0);
 
     if (notPlaced.length) {
       showToast(
@@ -830,6 +1059,16 @@ const pickInvigilators = (course, slot) => {
       return acc;
     }, {});
   }, [schedule]);
+
+  const groupedScheduleEntries = useMemo(() => Object.entries(groupedSchedule), [groupedSchedule]);
+
+  const daysPerPage = 5;
+  const totalPreviewPages = Math.max(1, Math.ceil(groupedScheduleEntries.length / daysPerPage));
+
+  const paginatedGroupedSchedule = useMemo(() => {
+    const start = previewPage * daysPerPage;
+    return groupedScheduleEntries.slice(start, start + daysPerPage);
+  }, [groupedScheduleEntries, previewPage]);
 
   const invigilatorTable = useMemo(() => {
     const table = new Map();
@@ -899,6 +1138,7 @@ const pickInvigilators = (course, slot) => {
       الوقت: item.timeText,
       المقرر: item.courseCode,
       اسم_المقرر: item.courseName,
+      مقر_الاختبار: item.examHall,
       المدربون: item.trainerText,
       عدد_المتدربين: item.studentCount,
       المراقبون: item.invigilators.join(" | "),
@@ -967,7 +1207,7 @@ const pickInvigilators = (course, slot) => {
         >
           <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
           <div style={{ color: "#cbd5e1", marginTop: 10, lineHeight: 1.9 }}>
-            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، تشمل الأيام الفعلية بدل الأسابيع، أوقاتًا مرنة، استبعاد مقررات، وتوزيع المراقبين مع خيار الطباعة PDF.
+            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، تشمل القاعات، أوقاتًا مرنة، استبعاد مقررات، وتوزيع المراقبين مع خيار الطباعة والتنقل بين الصفحات.
           </div>
         </div>
 
@@ -1023,7 +1263,7 @@ const pickInvigilators = (course, slot) => {
             <Card>
               <SectionHeader
                 title="القسم الأول: بيانات الكلية والجدول"
-                description="أدخل بيانات الكلية وحدد تاريخ البداية وعدد الأيام وأوقات الفترات، ثم ارفع ملف CSV واستبعد أي مقرر لا تريد جدولته."
+                description="أدخل بيانات الكلية وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع ملف CSV واستبعد أي مقرر لا تريد جدولته."
               />
 
               <div
@@ -1102,7 +1342,7 @@ const pickInvigilators = (course, slot) => {
                     color: "#9a3412",
                   }}
                 >
-                  يوجد سطر أو أكثر في أوقات الفترات غير صحيح. مثال صحيح: 08:00-10:00
+                  يوجد سطر أو أكثر في أوقات الفترات غير صحيح. مثال صحيح: 07:45-09:00
                 </div>
               ) : null}
 
@@ -1158,10 +1398,23 @@ const pickInvigilators = (course, slot) => {
                   value={periodsText}
                   onChange={(e) => setPeriodsText(e.target.value)}
                   style={{ ...fieldStyle(), minHeight: 110, resize: "vertical" }}
-                  placeholder={"08:00-10:00\n10:30-12:30\n13:00-15:00"}
+                  placeholder={"07:45-09:00\n09:15-11:00\n11:15-13:00"}
                 />
                 <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
-                  اكتب كل فترة في سطر مستقل بهذه الصيغة: 08:00-10:00
+                  اكتب كل فترة في سطر مستقل بهذه الصيغة: 07:45-09:00
+                </div>
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>قاعات الاختبار</div>
+                <textarea
+                  value={examHallsText}
+                  onChange={(e) => setExamHallsText(e.target.value)}
+                  style={{ ...fieldStyle(), minHeight: 100, resize: "vertical" }}
+                  placeholder={"قاعة النشاط\nالمعمل 1\nالمعمل 2"}
+                />
+                <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
+                  اكتب كل قاعة في سطر مستقل
                 </div>
               </div>
 
@@ -1308,7 +1561,26 @@ const pickInvigilators = (course, slot) => {
                 </button>
 
                 <button
-                  onClick={() => printSchedulePdf({ collegeName: parsed.collegeName, schedule, invigilatorTable })}
+                  onClick={() =>
+                    printSchedulePdf({
+                      collegeName: parsed.collegeName,
+                      schedule,
+                      invigilatorTable,
+                      periodLabels: parsedPeriods
+                        .filter((p) => p.valid)
+                        .map((p, index) => ({
+                          period: index + 1,
+                          label:
+                            index === 0
+                              ? "الفتـرة الأولـــى"
+                              : index === 1
+                              ? "الفتـرة الثـــانية"
+                              : `الفترة ${index + 1}`,
+                          timeText: p.timeText,
+                        })),
+                      defaultExamHall: examHalls[0] || "قاعة النشاط",
+                    })
+                  }
                   style={{
                     background: "#fff",
                     color: "#0f172a",
@@ -1357,24 +1629,24 @@ const pickInvigilators = (course, slot) => {
                   />
                   إضافة المراقبين تلقائيًا
                 </label>
+
                 <label
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    padding: 14,
-    marginTop: 12,
-  }}
->
-  <input
-    type="checkbox"
-    checked={preferCourseTrainerInvigilation}
-    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-  />
-  جعل مدرب المقرر يراقب في مقرره بشكل أساسي
-</label>
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    padding: 14,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={preferCourseTrainerInvigilation}
+                    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+                  />
+                  جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+                </label>
               </div>
 
               {includeInvigilators ? (
@@ -1457,7 +1729,26 @@ const pickInvigilators = (course, slot) => {
                     </button>
 
                     <button
-                      onClick={() => printSchedulePdf({ collegeName: parsed.collegeName, schedule, invigilatorTable })}
+                      onClick={() =>
+                        printSchedulePdf({
+                          collegeName: parsed.collegeName,
+                          schedule,
+                          invigilatorTable,
+                          periodLabels: parsedPeriods
+                            .filter((p) => p.valid)
+                            .map((p, index) => ({
+                              period: index + 1,
+                              label:
+                                index === 0
+                                  ? "الفتـرة الأولـــى"
+                                  : index === 1
+                                  ? "الفتـرة الثـــانية"
+                                  : `الفترة ${index + 1}`,
+                              timeText: p.timeText,
+                            })),
+                          defaultExamHall: examHalls[0] || "قاعة النشاط",
+                        })
+                      }
                       style={{
                         background: "#fff",
                         color: "#0f172a",
@@ -1549,8 +1840,59 @@ const pickInvigilators = (course, slot) => {
           <Card>
             <SectionHeader
               title="جدول الاختبارات النهائي"
-              description="يتضمن التاريخ الميلادي والهجري والأقسام والمراقبين لكل فترة."
+              description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
             />
+
+            {schedule.length ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginBottom: 16,
+                }}
+              >
+                <button
+                  onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
+                  disabled={previewPage === 0}
+                  style={{
+                    background: previewPage === 0 ? "#e5e7eb" : "#fff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: "10px 18px",
+                    fontWeight: 800,
+                    cursor: previewPage === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  السابق
+                </button>
+
+                <div style={{ fontWeight: 800 }}>
+                  الصفحة {previewPage + 1} من {totalPreviewPages}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))
+                  }
+                  disabled={previewPage >= totalPreviewPages - 1}
+                  style={{
+                    background: previewPage >= totalPreviewPages - 1 ? "#e5e7eb" : "#fff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: "10px 18px",
+                    fontWeight: 800,
+                    cursor: previewPage >= totalPreviewPages - 1 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  التالي
+                </button>
+              </div>
+            ) : null}
 
             {!schedule.length ? (
               <div
@@ -1567,7 +1909,7 @@ const pickInvigilators = (course, slot) => {
               </div>
             ) : (
               <div style={{ display: "grid", gap: 18 }}>
-                {Object.entries(groupedSchedule).map(([dateISO, items]) => (
+                {paginatedGroupedSchedule.map(([dateISO, items]) => (
                   <div
                     key={dateISO}
                     style={{
@@ -1591,21 +1933,29 @@ const pickInvigilators = (course, slot) => {
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "#ffffff" }}>
-                            {["الفترة", "الوقت", "اسم المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map(
-                              (head) => (
-                                <th
-                                  key={head}
-                                  style={{
-                                    padding: 12,
-                                    textAlign: "right",
-                                    borderBottom: "1px solid #e5e7eb",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {head}
-                                </th>
-                              )
-                            )}
+                            {[
+                              "الفترة",
+                              "الوقت",
+                              "اسم المقرر",
+                              "الرمز",
+                              "قاعة الاختبار",
+                              "القسم / الشعبة",
+                              "المدرب",
+                              "عدد المتدربين",
+                              "المراقبون",
+                            ].map((head) => (
+                              <th
+                                key={head}
+                                style={{
+                                  padding: 12,
+                                  textAlign: "right",
+                                  borderBottom: "1px solid #e5e7eb",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {head}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
 
@@ -1618,6 +1968,7 @@ const pickInvigilators = (course, slot) => {
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.examHall || "-"}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.sectionName}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.trainerText}</td>
                               <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.studentCount}</td>
