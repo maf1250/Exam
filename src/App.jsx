@@ -19,6 +19,29 @@ const DAY_OPTIONS = ["الأحد", "الاثنين", "الثلاثاء", "الأ
 const EXCLUDED_REGISTRATION = ["انسحاب فصلي", "مطوي قيده", "معتذر", "منسحب"];
 const EXCLUDED_TRAINEE = ["مطوي قيده", "انسحاب فصلي", "مطوي قيده لإنقطاع أسبوعين"];
 
+const COLORS = {
+  primary: "#1FA7A8",
+  primaryDark: "#147B83",
+  primarySoft: "#DDF5F3",
+  primaryBorder: "#9ED9D6",
+  charcoal: "#2C3135",
+  charcoalSoft: "#596066",
+  ink: "#1F2529",
+  muted: "#6B7280",
+  bgTop: "#EAF7F6",
+  bgMid: "#F7FBFB",
+  bgBottom: "#FFFFFF",
+  card: "#FFFFFF",
+  border: "#D7E7E6",
+  borderStrong: "#B8D6D3",
+  danger: "#B42318",
+  dangerBg: "#FEF3F2",
+  success: "#067647",
+  successBg: "#ECFDF3",
+  warning: "#B54708",
+  warningBg: "#FFF7ED",
+};
+
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
@@ -69,13 +92,14 @@ function fieldStyle() {
   return {
     width: "100%",
     boxSizing: "border-box",
-    border: "1px solid #d1d5db",
+    border: `1px solid ${COLORS.borderStrong}`,
     borderRadius: 16,
     padding: "12px 14px",
     background: "#fff",
     outline: "none",
     fontFamily: "inherit",
     fontSize: 15,
+    color: COLORS.ink,
   };
 }
 
@@ -226,7 +250,6 @@ function printSchedulePdf({
   if (!printWindow) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
-
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
 
   const resolvedPeriodLabels = periodIds.map((periodId) => {
@@ -301,6 +324,7 @@ function printSchedulePdf({
             font-weight: 700;
             font-size: 20px;
             margin-bottom: 4px;
+            color: #147B83;
           }
           .meta-line {
             display: flex;
@@ -316,6 +340,7 @@ function printSchedulePdf({
             font-size: 18px;
             font-weight: 700;
             margin: 6px 0 8px;
+            color: #2C3135;
           }
           .period-head {
             display: grid;
@@ -377,6 +402,7 @@ function printSchedulePdf({
             font-size: 18px;
             font-weight: 700;
             margin: 10px 0;
+            color: #2C3135;
           }
           .footer-date {
             text-align: left;
@@ -517,9 +543,26 @@ function printSchedulePdf({
 function Toast({ item, onClose }) {
   if (!item) return null;
 
-  const bg = item.type === "error" ? "#fef2f2" : item.type === "warning" ? "#fff7ed" : "#ecfdf5";
-  const border = item.type === "error" ? "#fecaca" : item.type === "warning" ? "#fdba74" : "#a7f3d0";
-  const color = item.type === "error" ? "#991b1b" : item.type === "warning" ? "#9a3412" : "#065f46";
+  const bg =
+    item.type === "error"
+      ? COLORS.dangerBg
+      : item.type === "warning"
+      ? COLORS.warningBg
+      : COLORS.successBg;
+
+  const border =
+    item.type === "error"
+      ? "#FECACA"
+      : item.type === "warning"
+      ? "#FED7AA"
+      : "#A7F3D0";
+
+  const color =
+    item.type === "error"
+      ? COLORS.danger
+      : item.type === "warning"
+      ? COLORS.warning
+      : COLORS.success;
 
   return (
     <div
@@ -534,7 +577,7 @@ function Toast({ item, onClose }) {
         color,
         borderRadius: 18,
         padding: 16,
-        boxShadow: "0 16px 35px rgba(15,23,42,0.12)",
+        boxShadow: "0 16px 35px rgba(20, 123, 131, 0.16)",
       }}
     >
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
@@ -560,11 +603,11 @@ function Card({ children, style }) {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 28,
-        padding: 20,
-        boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+        background: COLORS.card,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 30,
+        padding: 22,
+        boxShadow: "0 16px 36px rgba(20, 123, 131, 0.08)",
         ...style,
       }}
     >
@@ -576,8 +619,10 @@ function Card({ children, style }) {
 function SectionHeader({ title, description }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 24, fontWeight: 900, color: "#0f172a" }}>{title}</div>
-      {description ? <div style={{ color: "#64748b", marginTop: 6, lineHeight: 1.8 }}>{description}</div> : null}
+      <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.charcoal }}>{title}</div>
+      {description ? (
+        <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>{description}</div>
+      ) : null}
     </div>
   );
 }
@@ -589,13 +634,35 @@ function StatBox({ label, value }) {
         background: "#fff",
         borderRadius: 22,
         padding: 18,
-        border: "1px solid #e5e7eb",
-        boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+        border: `1px solid ${COLORS.border}`,
+        boxShadow: "0 8px 24px rgba(20, 123, 131, 0.06)",
       }}
     >
-      <div style={{ fontSize: 14, color: "#64748b", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>{value}</div>
+      <div style={{ fontSize: 14, color: COLORS.charcoalSoft, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>{value}</div>
     </div>
+  );
+}
+
+function StepButton({ active, done, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: `1px solid ${
+          active ? COLORS.primaryDark : done ? COLORS.primaryBorder : COLORS.borderStrong
+        }`,
+        background: active ? COLORS.primaryDark : done ? COLORS.primarySoft : "#fff",
+        color: active ? "#fff" : done ? COLORS.primaryDark : COLORS.charcoalSoft,
+        borderRadius: 999,
+        padding: "12px 18px",
+        fontWeight: 800,
+        cursor: "pointer",
+        boxShadow: active ? "0 8px 18px rgba(20,123,131,0.18)" : "none",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -606,7 +673,8 @@ export default function App() {
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-  const [activeTab, setActiveTab] = useState("general");
+
+  const [currentStep, setCurrentStep] = useState(1);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -615,9 +683,15 @@ export default function App() {
   });
 
   const [numberOfDays, setNumberOfDays] = useState(10);
-  const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+  const [selectedDays, setSelectedDays] = useState([
+    "الأحد",
+    "الاثنين",
+    "الثلاثاء",
+    "الأربعاء",
+    "الخميس",
+  ]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
-  const [examHallsText, setExamHallsText] = useState("قاعة النشاط");
+  const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
   const [previewPage, setPreviewPage] = useState(0);
 
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
@@ -656,6 +730,7 @@ export default function App() {
         setUnscheduled([]);
         setExcludedCourses([]);
         setPreviewPage(0);
+        setCurrentStep(2);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
@@ -757,9 +832,7 @@ export default function App() {
 
       if (studentId) {
         course.students.add(studentId);
-        if (!studentCourseMap.has(studentId)) {
-          studentCourseMap.set(studentId, new Set());
-        }
+        if (!studentCourseMap.has(studentId)) studentCourseMap.set(studentId, new Set());
         studentCourseMap.get(studentId).add(key);
       }
     });
@@ -837,8 +910,23 @@ export default function App() {
   const examHalls = useMemo(() => {
     return String(examHallsText || "")
       .split(/\r?\n/)
-      .map((hall) => hall.trim())
-      .filter(Boolean);
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [namePart, capacityPart] = line.split("|").map((x) => x.trim());
+        const capacity = Number(capacityPart);
+
+        return {
+          name: namePart || line,
+          capacity: Number.isFinite(capacity) ? capacity : null,
+        };
+      })
+      .filter((hall) => hall.name)
+      .sort((a, b) => {
+        const aCap = a.capacity ?? Number.MAX_SAFE_INTEGER;
+        const bCap = b.capacity ?? Number.MAX_SAFE_INTEGER;
+        return aCap - bCap;
+      });
   }, [examHallsText]);
 
   const slots = useMemo(
@@ -882,14 +970,14 @@ export default function App() {
     }
 
     if (invalidPeriods.length) {
-      return showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 08:00-10:00", "error");
+      return showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
     }
 
     if (!slots.length) {
       return showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
     }
 
-    const hallsPool = examHalls.length ? examHalls : ["قاعة النشاط"];
+    const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
 
     const baseInvigilators = manualInvigilators
       ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
@@ -1018,8 +1106,30 @@ export default function App() {
         dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
       });
 
-      const sameSlotCount = slotCoursesMap.get(bestSlot.id)?.length || 0;
-      const assignedHall = hallsPool[sameSlotCount % hallsPool.length];
+      const usedHallNamesInSlot = placed
+        .filter((item) => item.id === bestSlot.id)
+        .map((item) => item.examHall);
+
+      const fittingHalls = hallsPool.filter(
+        (hall) =>
+          !usedHallNamesInSlot.includes(hall.name) &&
+          (hall.capacity === null || hall.capacity >= course.studentCount)
+      );
+
+      const remainingHalls = hallsPool.filter(
+        (hall) => !usedHallNamesInSlot.includes(hall.name)
+      );
+
+      let assignedHall = null;
+
+      if (fittingHalls.length) {
+        assignedHall = fittingHalls[0].name;
+      } else if (remainingHalls.length) {
+        assignedHall = remainingHalls[remainingHalls.length - 1].name;
+      } else {
+        assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
+      }
+
       slotCoursesMap.get(bestSlot.id).push(course.key);
 
       placed.push({
@@ -1040,6 +1150,7 @@ export default function App() {
     setSchedule(placed);
     setUnscheduled(notPlaced);
     setPreviewPage(0);
+    setCurrentStep(4);
 
     if (notPlaced.length) {
       showToast(
@@ -1186,28 +1297,29 @@ export default function App() {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%)",
-        padding: 20,
+        background: `linear-gradient(135deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 35%, ${COLORS.bgBottom} 100%)`,
+        padding: "24px 16px 60px",
         direction: "rtl",
         fontFamily: "Cairo, Tahoma, Arial, sans-serif",
-        color: "#0f172a",
+        color: COLORS.ink,
       }}
     >
       <Toast item={toast} onClose={() => setToast(null)} />
 
-      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
           style={{
-            background: "#0f172a",
+            background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
             color: "#fff",
-            borderRadius: 30,
-            padding: 28,
-            boxShadow: "0 18px 40px rgba(15,23,42,0.18)",
+            borderRadius: 34,
+            padding: 30,
+            boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
           }}
         >
           <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
-          <div style={{ color: "#cbd5e1", marginTop: 10, lineHeight: 1.9 }}>
-            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، تشمل القاعات، أوقاتًا مرنة، استبعاد مقررات، وتوزيع المراقبين مع خيار الطباعة والتنقل بين الصفحات.
+          <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
+            نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
+            مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
           </div>
         </div>
 
@@ -1226,888 +1338,969 @@ export default function App() {
           <StatBox label="الأقسام / الشعب" value={stats.sections} />
         </div>
 
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-            <button
-              onClick={() => setActiveTab("general")}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            marginTop: 20,
+            marginBottom: 20,
+          }}
+        >
+          {[
+            { id: 1, label: "1. رفع الملف" },
+            { id: 2, label: "2. المقررات" },
+            { id: 3, label: "3. المراقبون" },
+            { id: 4, label: "4. المعاينة والطباعة" },
+          ].map((step) => (
+            <StepButton
+              key={step.id}
+              active={currentStep === step.id}
+              done={currentStep > step.id}
+              onClick={() => setCurrentStep(step.id)}
+            >
+              {step.label}
+            </StepButton>
+          ))}
+        </div>
+
+        {currentStep === 1 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الأولى: رفع الملف والإعدادات العامة"
+              description="ارفع ملف CSV وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
+            />
+
+            <div
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+                handleUpload(e.dataTransfer.files?.[0]);
+              }}
               style={{
-                border: `1px solid ${activeTab === "general" ? "#0f172a" : "#cbd5e1"}`,
-                background: activeTab === "general" ? "#0f172a" : "#fff",
-                color: activeTab === "general" ? "#fff" : "#334155",
-                borderRadius: 14,
-                padding: "12px 18px",
-                fontWeight: 800,
+                minHeight: 180,
+                borderRadius: 26,
+                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
+                background: dragActive ? COLORS.primarySoft : "#FCFFFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                textAlign: "center",
                 cursor: "pointer",
+                transition: "0.2s",
               }}
             >
-              القسم 1: بيانات الكلية والجدول
-            </button>
-
-            <button
-              onClick={() => setActiveTab("invigilators")}
-              style={{
-                border: `1px solid ${activeTab === "invigilators" ? "#0f172a" : "#cbd5e1"}`,
-                background: activeTab === "invigilators" ? "#0f172a" : "#fff",
-                color: activeTab === "invigilators" ? "#fff" : "#334155",
-                borderRadius: 14,
-                padding: "12px 18px",
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              القسم 2: المراقبون
-            </button>
-          </div>
-
-          {activeTab === "general" && (
-            <Card>
-              <SectionHeader
-                title="القسم الأول: بيانات الكلية والجدول"
-                description="أدخل بيانات الكلية وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع ملف CSV واستبعد أي مقرر لا تريد جدولته."
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-
-              <div
-                onClick={() => fileRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragActive(false);
-                  handleUpload(e.dataTransfer.files?.[0]);
-                }}
-                style={{
-                  minHeight: 170,
-                  borderRadius: 24,
-                  border: `2px dashed ${dragActive ? "#0f172a" : "#cbd5e1"}`,
-                  background: dragActive ? "#e2e8f0" : "#f8fafc",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexDirection: "column",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  transition: "0.2s",
-                }}
-              >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  style={{ display: "none" }}
-                  onChange={(e) => handleUpload(e.target.files?.[0])}
-                />
-                <div style={{ fontSize: 22, fontWeight: 900 }}>اسحب الملف هنا أو اضغط للاختيار</div>
-                <div style={{ marginTop: 8, color: "#64748b" }}>CSV فقط</div>
-                {fileName ? (
-                  <div
-                    style={{
-                      marginTop: 12,
-                      background: "#0f172a",
-                      color: "#fff",
-                      padding: "8px 14px",
-                      borderRadius: 999,
-                    }}
-                  >
-                    {fileName}
-                  </div>
-                ) : null}
+              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
+                اسحب الملف هنا أو اضغط للاختيار
               </div>
-
-              {parsed.missingColumns.length ? (
+              <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
+              {fileName ? (
                 <div
                   style={{
-                    marginTop: 14,
-                    borderRadius: 18,
-                    padding: 14,
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    color: "#991b1b",
-                  }}
-                >
-                  الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
-                </div>
-              ) : null}
-
-              {invalidPeriods.length ? (
-                <div
-                  style={{
-                    marginTop: 14,
-                    borderRadius: 18,
-                    padding: 14,
-                    background: "#fff7ed",
-                    border: "1px solid #fdba74",
-                    color: "#9a3412",
-                  }}
-                >
-                  يوجد سطر أو أكثر في أوقات الفترات غير صحيح. مثال صحيح: 07:45-09:00
-                </div>
-              ) : null}
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 14,
-                  marginTop: 18,
-                }}
-              >
-                <div>
-                  <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
-                  <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
-                </div>
-
-                <div>
-                  <div style={{ marginBottom: 8, fontWeight: 800 }}>تاريخ البداية</div>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    style={fieldStyle()}
-                  />
-                </div>
-
-                <div>
-                  <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد أيام الاختبارات</div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="60"
-                    value={numberOfDays}
-                    onChange={(e) => setNumberOfDays(safeNum(e.target.value, 10))}
-                    style={fieldStyle()}
-                  />
-                </div>
-
-                <div>
-                  <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
-                  <input
-                    value={prioritizeTrainer}
-                    onChange={(e) => setPrioritizeTrainer(e.target.value)}
-                    style={fieldStyle()}
-                    placeholder="اسم المدرب أو جزء منه"
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 18 }}>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات المرنة</div>
-                <textarea
-                  value={periodsText}
-                  onChange={(e) => setPeriodsText(e.target.value)}
-                  style={{ ...fieldStyle(), minHeight: 110, resize: "vertical" }}
-                  placeholder={"07:45-09:00\n09:15-11:00\n11:15-13:00"}
-                />
-                <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
-                  اكتب كل فترة في سطر مستقل بهذه الصيغة: 07:45-09:00
-                </div>
-              </div>
-
-              <div style={{ marginTop: 18 }}>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>قاعات الاختبار</div>
-                <textarea
-                  value={examHallsText}
-                  onChange={(e) => setExamHallsText(e.target.value)}
-                  style={{ ...fieldStyle(), minHeight: 100, resize: "vertical" }}
-                  placeholder={"قاعة النشاط\nالمعمل 1\nالمعمل 2"}
-                />
-                <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
-                  اكتب كل قاعة في سطر مستقل
-                </div>
-              </div>
-
-              <div style={{ marginTop: 18 }}>
-                <div style={{ marginBottom: 10, fontWeight: 800 }}>الأقسام / الشعب</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {parsed.sections.length ? (
-                    parsed.sections.map((section) => (
-                      <span
-                        key={section}
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 999,
-                          padding: "6px 12px",
-                          fontSize: 13,
-                        }}
-                      >
-                        {section}
-                      </span>
-                    ))
-                  ) : (
-                    <span style={{ color: "#94a3b8" }}>لا توجد بيانات بعد</span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ marginTop: 18 }}>
-                <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                  {DAY_OPTIONS.map((day) => {
-                    const active = selectedDays.includes(day);
-                    return (
-                      <button
-                        key={day}
-                        onClick={() => setSelectedDays((prev) => toggleDay(prev, day))}
-                        style={{
-                          border: `1px solid ${active ? "#0f172a" : "#cbd5e1"}`,
-                          background: active ? "#0f172a" : "#fff",
-                          color: active ? "#fff" : "#334155",
-                          borderRadius: 999,
-                          padding: "10px 16px",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: 12,
-                  marginTop: 18,
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 18,
-                    padding: 14,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={excludeInactive}
-                    onChange={(e) => setExcludeInactive(e.target.checked)}
-                  />
-                  استبعاد المنسحبين والمطوي قيدهم
-                </label>
-              </div>
-
-              <div style={{ marginTop: 18, border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
-                <div style={{ color: "#64748b", fontSize: 14, marginBottom: 10 }}>
-                  اختر أي مقرر لا تريد إدخاله في الجدولة.
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 220, overflow: "auto" }}>
-                  {rows.length ? (
-                    allCourseOptions.map((course) => {
-                      const excluded = excludedCourses.includes(course.key);
-                      return (
-                        <button
-                          key={course.key}
-                          onClick={() => toggleExcludedCourse(course.key)}
-                          style={{
-                            border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`,
-                            background: excluded ? "#fef2f2" : "#fff",
-                            color: excluded ? "#991b1b" : "#334155",
-                            borderRadius: 999,
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {excluded ? `مستبعد: ${course.label}` : course.label}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span style={{ color: "#94a3b8" }}>ارفع الملف أولًا</span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button
-                  onClick={generateSchedule}
-                  style={{
-                    background: "#0f172a",
+                    marginTop: 12,
+                    background: COLORS.primaryDark,
                     color: "#fff",
-                    border: "none",
-                    borderRadius: 18,
-                    padding: "12px 20px",
-                    fontWeight: 800,
-                    cursor: "pointer",
+                    padding: "8px 14px",
+                    borderRadius: 999,
                   }}
                 >
-                  إنشاء الجدول
-                </button>
-
-                <button
-                  onClick={exportMainSchedule}
-                  style={{
-                    background: "#fff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 18,
-                    padding: "12px 20px",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
-                >
-                  تصدير جدول الاختبارات
-                </button>
-
-                <button
-                  onClick={() =>
-                    printSchedulePdf({
-                      collegeName: parsed.collegeName,
-                      schedule,
-                      invigilatorTable,
-                      periodLabels: parsedPeriods
-                        .filter((p) => p.valid)
-                        .map((p, index) => ({
-                          period: index + 1,
-                          label:
-                            index === 0
-                              ? "الفتـرة الأولـــى"
-                              : index === 1
-                              ? "الفتـرة الثـــانية"
-                              : `الفترة ${index + 1}`,
-                          timeText: p.timeText,
-                        })),
-                      defaultExamHall: examHalls[0] || "قاعة النشاط",
-                    })
-                  }
-                  style={{
-                    background: "#fff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 18,
-                    padding: "12px 20px",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
-                >
-                  طباعة / PDF
-                </button>
-              </div>
-            </Card>
-          )}
-
-          {activeTab === "invigilators" && (
-            <Card>
-              <SectionHeader
-                title="القسم الثاني: المراقبون"
-                description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب."
-              />
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: 12,
-                  marginTop: 18,
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 18,
-                    padding: 14,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={includeInvigilators}
-                    onChange={(e) => setIncludeInvigilators(e.target.checked)}
-                  />
-                  إضافة المراقبين تلقائيًا
-                </label>
-
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 18,
-                    padding: 14,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={preferCourseTrainerInvigilation}
-                    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-                  />
-                  جعل مدرب المقرر يراقب في مقرره بشكل أساسي
-                </label>
-              </div>
-
-              {includeInvigilators ? (
-                <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 14 }}>
-                    <div>
-                      <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
-                      <textarea
-                        value={manualInvigilators}
-                        onChange={(e) => setManualInvigilators(e.target.value)}
-                        placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
-                        style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
-                      />
-                    </div>
-
-                    <div>
-                      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
-                      <input
-                        type="number"
-                        min="1"
-                        max="6"
-                        value={invigilatorsPerPeriod}
-                        onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
-                        style={fieldStyle()}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14 }}>
-                    <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
-                    <div style={{ color: "#64748b", fontSize: 14, marginBottom: 10 }}>
-                      يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
-                    </div>
-
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                      {availableInvigilators.length ? (
-                        availableInvigilators.map((name) => {
-                          const excluded = excludedInvigilators.some(
-                            (item) => normalizeArabic(item) === normalizeArabic(name)
-                          );
-
-                          return (
-                            <button
-                              key={name}
-                              onClick={() => toggleExcludedInvigilator(name)}
-                              style={{
-                                border: `1px solid ${excluded ? "#991b1b" : "#cbd5e1"}`,
-                                background: excluded ? "#fef2f2" : "#fff",
-                                color: excluded ? "#991b1b" : "#334155",
-                                borderRadius: 999,
-                                padding: "8px 14px",
-                                cursor: "pointer",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {excluded ? `مستبعد: ${name}` : name}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>لا توجد أسماء مراقبين بعد</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <button
-                      onClick={exportInvigilatorsTable}
-                      style={{
-                        background: "#fff",
-                        color: "#0f172a",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: 18,
-                        padding: "12px 20px",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                      }}
-                    >
-                      تصدير جدول المراقبين
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        printSchedulePdf({
-                          collegeName: parsed.collegeName,
-                          schedule,
-                          invigilatorTable,
-                          periodLabels: parsedPeriods
-                            .filter((p) => p.valid)
-                            .map((p, index) => ({
-                              period: index + 1,
-                              label:
-                                index === 0
-                                  ? "الفتـرة الأولـــى"
-                                  : index === 1
-                                  ? "الفتـرة الثـــانية"
-                                  : `الفترة ${index + 1}`,
-                              timeText: p.timeText,
-                            })),
-                          defaultExamHall: examHalls[0] || "قاعة النشاط",
-                        })
-                      }
-                      style={{
-                        background: "#fff",
-                        color: "#0f172a",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: 18,
-                        padding: "12px 20px",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                      }}
-                    >
-                      طباعة / PDF
-                    </button>
-                  </div>
+                  {fileName}
                 </div>
-              ) : (
-                <div
-                  style={{
-                    marginTop: 18,
-                    border: "1px dashed #cbd5e1",
-                    borderRadius: 18,
-                    padding: 18,
-                    color: "#64748b",
-                    background: "#f8fafc",
-                  }}
-                >
-                  تم إيقاف إضافة المراقبين تلقائيًا.
-                </div>
-              )}
-            </Card>
-          )}
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <Card>
-            <SectionHeader
-              title="المقررات مرتبة بالأولوية"
-              description="يعتمد الترتيب على عدد المتدربين، شدة التعارض، ونوع الجدولة."
-            />
-
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#f8fafc" }}>
-                    {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", "الأولوية"].map(
-                      (label) => (
-                        <th
-                          key={label}
-                          style={{
-                            padding: 12,
-                            borderBottom: "1px solid #e5e7eb",
-                            textAlign: "right",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {label}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {parsed.courses.slice(0, 30).map((course) => (
-                    <tr key={course.key}>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseName}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.courseCode}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.sectionName}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.trainerText}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.studentCount}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{course.conflictDegree}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>{course.priorityScore}</td>
-                    </tr>
-                  ))}
-
-                  {!parsed.courses.length ? (
-                    <tr>
-                      <td colSpan={7} style={{ padding: 20, textAlign: "center", color: "#94a3b8" }}>
-                        لا توجد بيانات بعد
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              ) : null}
             </div>
-          </Card>
-        </div>
 
-        <div style={{ marginTop: 20 }}>
-          <Card>
-            <SectionHeader
-              title="جدول الاختبارات النهائي"
-              description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
-            />
-
-            {schedule.length ? (
+            {parsed.missingColumns.length ? (
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  marginBottom: 16,
+                  marginTop: 14,
+                  borderRadius: 18,
+                  padding: 14,
+                  background: COLORS.dangerBg,
+                  border: "1px solid #FECACA",
+                  color: COLORS.danger,
                 }}
               >
-                <button
-                  onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
-                  disabled={previewPage === 0}
-                  style={{
-                    background: previewPage === 0 ? "#e5e7eb" : "#fff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 14,
-                    padding: "10px 18px",
-                    fontWeight: 800,
-                    cursor: previewPage === 0 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  السابق
-                </button>
-
-                <div style={{ fontWeight: 800 }}>
-                  الصفحة {previewPage + 1} من {totalPreviewPages}
-                </div>
-
-                <button
-                  onClick={() =>
-                    setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))
-                  }
-                  disabled={previewPage >= totalPreviewPages - 1}
-                  style={{
-                    background: previewPage >= totalPreviewPages - 1 ? "#e5e7eb" : "#fff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 14,
-                    padding: "10px 18px",
-                    fontWeight: 800,
-                    cursor: previewPage >= totalPreviewPages - 1 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  التالي
-                </button>
+                الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
               </div>
             ) : null}
 
-            {!schedule.length ? (
+            {invalidPeriods.length ? (
               <div
                 style={{
-                  border: "2px dashed #cbd5e1",
-                  borderRadius: 22,
-                  padding: 30,
-                  textAlign: "center",
-                  color: "#64748b",
-                  background: "#f8fafc",
-                }}
-              >
-                ارفع الملف ثم اضغط إنشاء الجدول ليظهر هنا.
-              </div>
-            ) : (
-              <div style={{ display: "grid", gap: 18 }}>
-                {paginatedGroupedSchedule.map(([dateISO, items]) => (
-                  <div
-                    key={dateISO}
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 22,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: "#f8fafc",
-                        padding: 16,
-                        borderBottom: "1px solid #e5e7eb",
-                      }}
-                    >
-                      <div style={{ fontWeight: 900, fontSize: 18 }}>{items[0].gregorian}</div>
-                      <div style={{ marginTop: 4, color: "#64748b" }}>{items[0].hijri}</div>
-                    </div>
-
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr style={{ background: "#ffffff" }}>
-                            {[
-                              "الفترة",
-                              "الوقت",
-                              "اسم المقرر",
-                              "الرمز",
-                              "قاعة الاختبار",
-                              "القسم / الشعبة",
-                              "المدرب",
-                              "عدد المتدربين",
-                              "المراقبون",
-                            ].map((head) => (
-                              <th
-                                key={head}
-                                style={{
-                                  padding: 12,
-                                  textAlign: "right",
-                                  borderBottom: "1px solid #e5e7eb",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {head}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {items.map((item) => (
-                            <tr key={`${item.key}-${item.id}`}>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>
-                                {item.period}
-                              </td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.examHall || "-"}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.sectionName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.trainerText}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.studentCount}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
-                                {item.invigilators.join("، ") || "-"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {unscheduled.length ? (
-              <div
-                style={{
-                  marginTop: 18,
+                  marginTop: 14,
                   borderRadius: 18,
-                  background: "#fff7ed",
-                  border: "1px solid #fdba74",
-                  color: "#9a3412",
                   padding: 14,
+                  background: COLORS.warningBg,
+                  border: "1px solid #FED7AA",
+                  color: COLORS.warning,
                 }}
               >
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {unscheduled.map((course) => (
+                يوجد سطر أو أكثر في أوقات الفترات غير صحيح. مثال صحيح: 07:45-09:00
+              </div>
+            ) : null}
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 14,
+                marginTop: 18,
+              }}
+            >
+              <div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
+                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
+              </div>
+
+              <div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>تاريخ البداية</div>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={fieldStyle()}
+                />
+              </div>
+
+              <div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد أيام الاختبارات</div>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={numberOfDays}
+                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 10))}
+                  style={fieldStyle()}
+                />
+              </div>
+
+              <div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
+                <input
+                  value={prioritizeTrainer}
+                  onChange={(e) => setPrioritizeTrainer(e.target.value)}
+                  style={fieldStyle()}
+                  placeholder="اسم المدرب أو جزء منه"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات المرنة</div>
+              <textarea
+                value={periodsText}
+                onChange={(e) => setPeriodsText(e.target.value)}
+                style={{ ...fieldStyle(), minHeight: 110, resize: "vertical" }}
+                placeholder={"07:45-09:00\n09:15-11:00\n11:15-13:00"}
+              />
+              <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
+                اكتب كل فترة في سطر مستقل بهذه الصيغة: 07:45-09:00
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>قاعات الاختبار</div>
+              <textarea
+                value={examHallsText}
+                onChange={(e) => setExamHallsText(e.target.value)}
+                style={{ ...fieldStyle(), minHeight: 100, resize: "vertical" }}
+                placeholder={"قاعة النشاط|120\nالمعمل 1|40\nالمعمل 2|25"}
+              />
+              <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
+                اكتب كل قاعة في سطر مستقل بهذه الصيغة: اسم القاعة|السعة
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <div style={{ marginBottom: 10, fontWeight: 800 }}>الأقسام / الشعب</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {parsed.sections.length ? (
+                  parsed.sections.map((section) => (
                     <span
-                      key={course.key}
+                      key={section}
                       style={{
-                        background: "#fff",
-                        border: "1px solid #fed7aa",
+                        background: COLORS.primarySoft,
+                        border: `1px solid ${COLORS.primaryBorder}`,
                         borderRadius: 999,
                         padding: "6px 12px",
                         fontSize: 13,
+                        color: COLORS.primaryDark,
                       }}
                     >
-                      {course.courseName} - {course.courseCode}
+                      {section}
                     </span>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <span style={{ color: "#94A3B8" }}>لا توجد بيانات بعد</span>
+                )}
               </div>
-            ) : null}
-          </Card>
-        </div>
+            </div>
 
-        <div style={{ marginTop: 20 }}>
-          <Card>
-            <SectionHeader
-              title="جدول المراقبين وفترات المراقبة"
-              description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
-            />
+            <div style={{ marginTop: 18 }}>
+              <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {DAY_OPTIONS.map((day) => {
+                  const active = selectedDays.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDays((prev) => toggleDay(prev, day))}
+                      style={{
+                        border: `1px solid ${active ? COLORS.primaryDark : COLORS.borderStrong}`,
+                        background: active ? COLORS.primaryDark : "#fff",
+                        color: active ? "#fff" : COLORS.charcoalSoft,
+                        borderRadius: 999,
+                        padding: "10px 16px",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            {!invigilatorTable.length ? (
-              <div
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 12,
+                marginTop: 18,
+              }}
+            >
+              <label
                 style={{
-                  border: "2px dashed #cbd5e1",
-                  borderRadius: 22,
-                  padding: 26,
-                  textAlign: "center",
-                  color: "#64748b",
-                  background: "#f8fafc",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
                 }}
               >
-                أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
+                <input
+                  type="checkbox"
+                  checked={excludeInactive}
+                  onChange={(e) => setExcludeInactive(e.target.checked)}
+                />
+                استبعاد المنسحبين والمطوي قيدهم
+              </label>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+              <button
+                onClick={() => setCurrentStep(2)}
+                disabled={!rows.length}
+                style={{
+                  background: !rows.length ? "#E5E7EB" : COLORS.primaryDark,
+                  color: !rows.length ? COLORS.muted : "#fff",
+                  border: "none",
+                  borderRadius: 18,
+                  padding: "12px 20px",
+                  fontWeight: 800,
+                  cursor: !rows.length ? "not-allowed" : "pointer",
+                }}
+              >
+                التالي: تعديل المقررات
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 2 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الثانية: تعديل المقررات"
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة المراقبين."
+            />
+
+            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
+              <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+                اختر أي مقرر لا تريد إدخاله في الجدولة.
               </div>
-            ) : (
-              <div style={{ display: "grid", gap: 16 }}>
-                {invigilatorTable.map((inv) => (
-                  <div
-                    key={inv.name}
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 320, overflow: "auto" }}>
+                {rows.length ? (
+                  allCourseOptions.map((course) => {
+                    const excluded = excludedCourses.includes(course.key);
+                    return (
+                      <button
+                        key={course.key}
+                        onClick={() => toggleExcludedCourse(course.key)}
+                        style={{
+                          border: `1px solid ${excluded ? COLORS.danger : COLORS.borderStrong}`,
+                          background: excluded ? COLORS.dangerBg : "#fff",
+                          color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                          borderRadius: 999,
+                          padding: "8px 14px",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {excluded ? `مستبعد: ${course.label}` : course.label}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+              <button
+                onClick={() => setCurrentStep(1)}
+                style={{
+                  background: "#fff",
+                  color: COLORS.charcoal,
+                  border: `1px solid ${COLORS.borderStrong}`,
+                  borderRadius: 18,
+                  padding: "12px 20px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                السابق
+              </button>
+
+              <button
+                onClick={() => setCurrentStep(3)}
+                style={{
+                  background: COLORS.primaryDark,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 18,
+                  padding: "12px 20px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                التالي: المراقبون
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 3 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الثالثة: المراقبون"
+              description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا، مع إمكانية استبعاد من لا يراقب."
+            />
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 12,
+                marginTop: 18,
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={includeInvigilators}
+                  onChange={(e) => setIncludeInvigilators(e.target.checked)}
+                />
+                إضافة المراقبين تلقائيًا
+              </label>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={preferCourseTrainerInvigilation}
+                  onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+                />
+                جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+              </label>
+            </div>
+
+            {includeInvigilators ? (
+              <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 14 }}>
+                  <div>
+                    <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+                    <textarea
+                      value={manualInvigilators}
+                      onChange={(e) => setManualInvigilators(e.target.value)}
+                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
+                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={invigilatorsPerPeriod}
+                      onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
+                      style={fieldStyle()}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
+                  <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+                    يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
+                  </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    {availableInvigilators.length ? (
+                      availableInvigilators.map((name) => {
+                        const excluded = excludedInvigilators.some(
+                          (item) => normalizeArabic(item) === normalizeArabic(name)
+                        );
+
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => toggleExcludedInvigilator(name)}
+                            style={{
+                              border: `1px solid ${
+                                excluded ? COLORS.danger : COLORS.borderStrong
+                              }`,
+                              background: excluded ? COLORS.dangerBg : "#fff",
+                              color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                              borderRadius: 999,
+                              padding: "8px 14px",
+                              cursor: "pointer",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {excluded ? `مستبعد: ${name}` : name}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button
+                    onClick={() => setCurrentStep(2)}
                     style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 22,
-                      overflow: "hidden",
+                      background: "#fff",
+                      color: COLORS.charcoal,
+                      border: `1px solid ${COLORS.borderStrong}`,
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
                     }}
                   >
-                    <div
-                      style={{
-                        background: "#f8fafc",
-                        padding: 16,
-                        borderBottom: "1px solid #e5e7eb",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ fontWeight: 900, fontSize: 18 }}>{inv.name}</div>
-                      <div style={{ color: "#64748b" }}>عدد الفترات: {inv.periodsCount}</div>
-                    </div>
+                    السابق
+                  </button>
 
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr>
-                            {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
-                              <th
-                                key={head}
-                                style={{
-                                  padding: 12,
-                                  textAlign: "right",
-                                  borderBottom: "1px solid #e5e7eb",
-                                  background: "#ffffff",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {head}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {inv.items.map((item, index) => (
-                            <tr key={`${inv.name}-${index}`}>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.gregorian}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.dayName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", fontWeight: 800 }}>
-                                {item.period}
-                              </td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.timeText}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseName}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{item.courseCode}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
+                  <button
+                    onClick={generateSchedule}
+                    style={{
+                      background: COLORS.primaryDark,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    إنشاء الجدول والانتقال للمعاينة
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: 18,
+                  border: `1px dashed ${COLORS.borderStrong}`,
+                  borderRadius: 18,
+                  padding: 18,
+                  color: COLORS.muted,
+                  background: "#F8FEFE",
+                }}
+              >
+                تم إيقاف إضافة المراقبين تلقائيًا.
               </div>
             )}
           </Card>
-        </div>
+        )}
+
+        {currentStep === 4 && (
+          <>
+            <div style={{ marginTop: 20 }}>
+              <Card>
+                <SectionHeader
+                  title="المقررات مرتبة بالأولوية"
+                  description="يعتمد الترتيب على عدد المتدربين، شدة التعارض، ونوع الجدولة."
+                />
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: COLORS.primarySoft }}>
+                        {[
+                          "المقرر",
+                          "الرمز",
+                          "القسم / الشعبة",
+                          "المدرب",
+                          "عدد المتدربين",
+                          "التعارضات",
+                          "الأولوية",
+                        ].map((label) => (
+                          <th
+                            key={label}
+                            style={{
+                              padding: 12,
+                              borderBottom: `1px solid ${COLORS.border}`,
+                              textAlign: "right",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {parsed.courses.slice(0, 30).map((course) => (
+                        <tr key={course.key}>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
+                          <td
+                            style={{
+                              padding: 12,
+                              borderBottom: "1px solid #F1F5F9",
+                              fontWeight: 800,
+                              color: COLORS.primaryDark,
+                            }}
+                          >
+                            {course.priorityScore}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {!parsed.courses.length ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                            لا توجد بيانات بعد
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <Card>
+                <SectionHeader
+                  title="جدول الاختبارات النهائي"
+                  description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
+                />
+
+                {schedule.length ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <button
+                      onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
+                      disabled={previewPage === 0}
+                      style={{
+                        background: previewPage === 0 ? "#E5E7EB" : "#fff",
+                        color: COLORS.charcoal,
+                        border: `1px solid ${COLORS.borderStrong}`,
+                        borderRadius: 14,
+                        padding: "10px 18px",
+                        fontWeight: 800,
+                        cursor: previewPage === 0 ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      السابق
+                    </button>
+
+                    <div style={{ fontWeight: 800, color: COLORS.primaryDark }}>
+                      الصفحة {previewPage + 1} من {totalPreviewPages}
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))
+                      }
+                      disabled={previewPage >= totalPreviewPages - 1}
+                      style={{
+                        background:
+                          previewPage >= totalPreviewPages - 1 ? "#E5E7EB" : "#fff",
+                        color: COLORS.charcoal,
+                        border: `1px solid ${COLORS.borderStrong}`,
+                        borderRadius: 14,
+                        padding: "10px 18px",
+                        fontWeight: 800,
+                        cursor:
+                          previewPage >= totalPreviewPages - 1 ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      التالي
+                    </button>
+                  </div>
+                ) : null}
+
+                {!schedule.length ? (
+                  <div
+                    style={{
+                      border: `2px dashed ${COLORS.borderStrong}`,
+                      borderRadius: 22,
+                      padding: 30,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                      background: "#F8FEFE",
+                    }}
+                  >
+                    ارفع الملف ثم اضغط إنشاء الجدول ليظهر هنا.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 18 }}>
+                    {paginatedGroupedSchedule.map(([dateISO, items]) => (
+                      <div
+                        key={dateISO}
+                        style={{
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 22,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: COLORS.primarySoft,
+                            padding: 16,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                          }}
+                        >
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>
+                            {items[0].gregorian}
+                          </div>
+                          <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
+                        </div>
+
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr style={{ background: "#fff" }}>
+                                {[
+                                  "الفترة",
+                                  "الوقت",
+                                  "اسم المقرر",
+                                  "الرمز",
+                                  "قاعة الاختبار",
+                                  "القسم / الشعبة",
+                                  "المدرب",
+                                  "عدد المتدربين",
+                                  "المراقبون",
+                                ].map((head) => (
+                                  <th
+                                    key={head}
+                                    style={{
+                                      padding: 12,
+                                      textAlign: "right",
+                                      borderBottom: `1px solid ${COLORS.border}`,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {items.map((item) => (
+                                <tr key={`${item.key}-${item.id}`}>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>
+                                    {item.period}
+                                  </td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>
+                                    {item.invigilators.join("، ") || "-"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {unscheduled.length ? (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      borderRadius: 18,
+                      background: COLORS.warningBg,
+                      border: "1px solid #FED7AA",
+                      color: COLORS.warning,
+                      padding: 14,
+                    }}
+                  >
+                    <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                      مقررات لم يتم جدولة اختبارها
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {unscheduled.map((course) => (
+                        <span
+                          key={course.key}
+                          style={{
+                            background: "#fff",
+                            border: "1px solid #FED7AA",
+                            borderRadius: 999,
+                            padding: "6px 12px",
+                            fontSize: 13,
+                          }}
+                        >
+                          {course.courseName} - {course.courseCode}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    style={{
+                      background: "#fff",
+                      color: COLORS.charcoal,
+                      border: `1px solid ${COLORS.borderStrong}`,
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    السابق
+                  </button>
+
+                  <button
+                    onClick={exportMainSchedule}
+                    style={{
+                      background: "#fff",
+                      color: COLORS.primaryDark,
+                      border: `1px solid ${COLORS.primaryBorder}`,
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    تصدير جدول الاختبارات
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      printSchedulePdf({
+                        collegeName: parsed.collegeName,
+                        schedule,
+                        invigilatorTable,
+                        periodLabels: parsedPeriods
+                          .filter((p) => p.valid)
+                          .map((p, index) => ({
+                            period: index + 1,
+                            label:
+                              index === 0
+                                ? "الفتـرة الأولـــى"
+                                : index === 1
+                                ? "الفتـرة الثـــانية"
+                                : `الفترة ${index + 1}`,
+                            timeText: p.timeText,
+                          })),
+                        defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                      })
+                    }
+                    style={{
+                      background: COLORS.primaryDark,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    طباعة / PDF
+                  </button>
+                </div>
+              </Card>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <Card>
+                <SectionHeader
+                  title="جدول المراقبين وفترات المراقبة"
+                  description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
+                />
+
+                {!invigilatorTable.length ? (
+                  <div
+                    style={{
+                      border: `2px dashed ${COLORS.borderStrong}`,
+                      borderRadius: 22,
+                      padding: 26,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                      background: "#F8FEFE",
+                    }}
+                  >
+                    أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 16 }}>
+                    {invigilatorTable.map((inv) => (
+                      <div
+                        key={inv.name}
+                        style={{
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 22,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: COLORS.primarySoft,
+                            padding: 16,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>
+                            {inv.name}
+                          </div>
+                          <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
+                        </div>
+
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
+                                  <th
+                                    key={head}
+                                    style={{
+                                      padding: 12,
+                                      textAlign: "right",
+                                      borderBottom: `1px solid ${COLORS.border}`,
+                                      background: "#fff",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {inv.items.map((item, index) => (
+                                <tr key={`${inv.name}-${index}`}>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>
+                                    {item.period}
+                                  </td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button
+                    onClick={exportInvigilatorsTable}
+                    style={{
+                      background: "#fff",
+                      color: COLORS.primaryDark,
+                      border: `1px solid ${COLORS.primaryBorder}`,
+                      borderRadius: 18,
+                      padding: "12px 20px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    تصدير جدول المراقبين
+                  </button>
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
