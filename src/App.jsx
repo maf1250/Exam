@@ -1419,7 +1419,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الأولى: رفع الملف والإعدادات العامة"
-              description="ارفع ملف CSV وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
+              description="ارفع تقرير SF01 وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
             />
 
             <div
@@ -1456,7 +1456,7 @@ export default function App() {
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
               <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                اسحب الملف هنا أو اضغط للاختيار
+                اسحب تقرير SF01 هنا أو اضغط للاختيار
               </div>
               <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
