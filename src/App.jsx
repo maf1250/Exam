@@ -764,7 +764,8 @@ export default function App() {
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-
+const [invigilationMode, setInvigilationMode] = useState("fixed"); // fixed | ratio
+const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
 
   const [startDate, setStartDate] = useState(() => {
@@ -1055,7 +1056,14 @@ setCurrentStep(2);
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
+const getRequiredInvigilatorsCount = (course) => {
+  if (invigilationMode === "ratio") {
+    const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
+    return Math.max(1, Math.ceil((course.studentCount || 0) / ratio));
+  }
 
+  return Math.max(1, Number(invigilatorsPerPeriod) || 1);
+};
   const generateScheduleForCourses = (coursesList) => {
     if (!rows.length) {
       showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
@@ -1100,53 +1108,55 @@ setCurrentStep(2);
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
 
-    const pickInvigilators = (course, slot) => {
-      if (!includeInvigilators) return [];
+const pickInvigilators = (course, slot) => {
+  if (!includeInvigilators) return [];
 
-      const courseTrainerNames = course.trainerText
-        .split("/")
-        .map((name) => normalizeArabic(name.trim()))
-        .filter(Boolean);
+  const requiredCount = getRequiredInvigilatorsCount(course);
 
-      const chosen = [];
+  const courseTrainerNames = course.trainerText
+    .split("/")
+    .map((name) => normalizeArabic(name.trim()))
+    .filter(Boolean);
 
-      if (preferCourseTrainerInvigilation) {
-        const trainerCandidates = invigilatorPool
-          .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
-          .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-          .sort(
-            (a, b) =>
-              (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-              a.localeCompare(b, "ar")
-          );
+  const chosen = [];
 
-        for (const trainerName of trainerCandidates) {
-          if (chosen.length >= invigilatorsPerPeriod) break;
-          chosen.push(trainerName);
-        }
-      }
+  if (preferCourseTrainerInvigilation) {
+    const trainerCandidates = invigilatorPool
+      .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
+      .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+      .sort(
+        (a, b) =>
+          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+          a.localeCompare(b, "ar")
+      );
 
-      const remaining = invigilatorPool
-        .filter((name) => !chosen.includes(name))
-        .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-        .sort(
-          (a, b) =>
-            (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-            a.localeCompare(b, "ar")
-        );
+    for (const trainerName of trainerCandidates) {
+      if (chosen.length >= requiredCount) break;
+      chosen.push(trainerName);
+    }
+  }
 
-      for (const name of remaining) {
-        if (chosen.length >= invigilatorsPerPeriod) break;
-        chosen.push(name);
-      }
+  const remaining = invigilatorPool
+    .filter((name) => !chosen.includes(name))
+    .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+    .sort(
+      (a, b) =>
+        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+        a.localeCompare(b, "ar")
+    );
 
-      chosen.forEach((name) => {
-        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-        invigilatorBusySlots.get(name).add(slot.id);
-      });
+  for (const name of remaining) {
+    if (chosen.length >= requiredCount) break;
+    chosen.push(name);
+  }
 
-      return chosen;
-    };
+  chosen.forEach((name) => {
+    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+    invigilatorBusySlots.get(name).add(slot.id);
+  });
+
+  return chosen;
+};
 
     const scoreSlot = (course, slot) => {
       let hardConflict = false;
@@ -1958,16 +1968,68 @@ setCurrentStep(2);
                   </div>
 
                   <div>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="6"
-                      value={invigilatorsPerPeriod}
-                      onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
-                      style={fieldStyle()}
-                    />
-                  </div>
+                 <div style={{ display: "grid", gap: 12 }}>
+  <div>
+    <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <button
+        onClick={() => setInvigilationMode("fixed")}
+        style={{
+          border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
+          background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
+          color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
+          borderRadius: 999,
+          padding: "10px 14px",
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        عدد ثابت
+      </button>
+
+      <button
+        onClick={() => setInvigilationMode("ratio")}
+        style={{
+          border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
+          background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
+          color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
+          borderRadius: 999,
+          padding: "10px 14px",
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        حسب عدد المتدربين
+      </button>
+    </div>
+  </div>
+
+  {invigilationMode === "fixed" ? (
+    <div>
+      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
+      <input
+        type="number"
+        min="1"
+        max="10"
+        value={invigilatorsPerPeriod}
+        onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
+        style={fieldStyle()}
+      />
+    </div>
+  ) : (
+    <div>
+      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
+      <input
+        type="number"
+        min="1"
+        max="200"
+        value={studentsPerInvigilator}
+        onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 25))}
+        style={fieldStyle()}
+      />
+    </div>
+  )}
+</div>
                 </div>
 
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
