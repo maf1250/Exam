@@ -1159,7 +1159,7 @@ export default function App() {
         };
       })
       .filter((course) => !excludedCourses.includes(course.key))
-      .sort((a, b) => b. - a. || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
+      .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
     return {
       missingColumns,
