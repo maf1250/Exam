@@ -2093,7 +2093,8 @@ const pickInvigilators = (course, slot) => {
                 تم إيقاف إضافة المراقبين تلقائيًا.
               </div>
             )}
-   
+          </Card>
+        )}
 
         {currentStep === 6 && (
           <>
@@ -2448,7 +2449,7 @@ const pickInvigilators = (course, slot) => {
                     ))}
                   </div>
                 )}
-
+                
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                   <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
                     تصدير جدول المراقبين
