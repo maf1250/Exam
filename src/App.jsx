@@ -932,7 +932,7 @@ export default function App() {
   const [excludeInactive, setExcludeInactive] = useState(true);
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
-  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(3);
+  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
@@ -1105,12 +1105,9 @@ export default function App() {
             ? 5
             : 0;
 
-        const priorityScore = studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
+        const  = studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
-        let priorityLabel = "منخفضة";
-        if (priorityScore >= 24) priorityLabel = "عالية جدًا";
-        else if (priorityScore >= 18) priorityLabel = "عالية";
-        else if (priorityScore >= 12) priorityLabel = "متوسطة";
+        
 
         return {
           ...course,
@@ -1120,13 +1117,12 @@ export default function App() {
           trainerText,
           studentCount,
           conflictDegree,
-          priorityScore,
-          priorityLabel,
+          
           sectionName,
         };
       })
       .filter((course) => !excludedCourses.includes(course.key))
-      .sort((a, b) => b.priorityScore - a.priorityScore || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
+      .sort((a, b) => b. - a. || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
     return {
       missingColumns,
@@ -1948,13 +1944,13 @@ export default function App() {
 
                     {invigilationMode === "fixed" ? (
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
+                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
                         <input
                           type="number"
                           min="1"
                           max="10"
                           value={invigilatorsPerPeriod}
-                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 3))}
+                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
                           style={fieldStyle()}
                         />
                       </div>
@@ -2140,13 +2136,13 @@ export default function App() {
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader title="المقررات مرتبة بالأولوية" description="يعتمد الترتيب على عدد المتدربين وشدة التعارض." />
+                <SectionHeader title="المقررات مرتبة ب" description="يعتمد الترتيب على عدد المتدربين وشدة التعارض." />
 
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ background: COLORS.primaryLight }}>
-                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", "الأولوية"].map((label) => (
+                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", ""].map((label) => (
                           <th
                             key={label}
                             style={{
@@ -2171,7 +2167,7 @@ export default function App() {
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800, color: COLORS.primaryDark }}>
-                            {course.priorityLabel}
+                            
                           </td>
                         </tr>
                       ))}
