@@ -481,7 +481,7 @@ function printSchedulePdf({
           .page { width: 100%; }
           .top-head { margin-bottom: 8px; }
           .print-logo-wrap { text-align:center; margin-bottom:6px; }
-          .print-logo { width:220px; height:auto; object-fit:contain; }
+          .print-logo { width:150px; height:150px; object-fit:contain; }
           .college-line {
             text-align: center;
             font-weight: 700;
