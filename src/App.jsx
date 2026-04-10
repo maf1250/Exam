@@ -971,9 +971,6 @@ export default function App() {
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
-  const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
-  const [courseLevels, setCourseLevels] = useState({});
-  const [draggingCourseKey, setDraggingCourseKey] = useState("");
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
   const [generalSchedule, setGeneralSchedule] = useState([]);
@@ -1007,7 +1004,6 @@ export default function App() {
         setSpecializedSchedule([]);
         setUnscheduled([]);
         setExcludedCourses(defaultExcludedPractical);
-        setCourseLevels({});
         setPreviewPage(0);
         // يبقى المستخدم في صفحة الرفع بعد رفع الملف
         setCurrentStep(1);
@@ -1226,18 +1222,6 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
 
-  const levelOptions = [
-    { value: "1", label: "المستوى الأول" },
-    { value: "2", label: "المستوى الثاني" },
-    { value: "3", label: "المستوى الثالث" },
-    { value: "4", label: "المستوى الرابع" },
-  ];
-
-  const unassignedLevelCourses = useMemo(
-    () => allCourseOptions.filter((course) => !courseLevels[course.key]),
-    [allCourseOptions, courseLevels]
-  );
-
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
       const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
@@ -1340,7 +1324,6 @@ export default function App() {
 
     const scoreSlot = (course, slot) => {
       let hardConflict = false;
-      const courseLevel = courseLevels[course.key] || "";
       let sameDayPenalty = 0;
       const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
 
@@ -1354,13 +1337,6 @@ export default function App() {
         if (sameDayCount >= 2) hardConflict = true;
         if (sameDayCount === 1) sameDayPenalty += 4;
       });
-
-      if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
-        const sameDateSameLevelExists = placed.some(
-          (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
-        );
-        if (sameDateSameLevelExists) hardConflict = true;
-      }
 
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
@@ -1523,18 +1499,6 @@ export default function App() {
     setExcludedCourses((prev) =>
       prev.includes(courseKey) ? prev.filter((item) => item !== courseKey) : [...prev, courseKey]
     );
-  };
-
-  const setCourseLevel = (courseKey, level) => {
-    setCourseLevels((prev) => ({ ...prev, [courseKey]: level }));
-  };
-
-  const clearCourseLevel = (courseKey) => {
-    setCourseLevels((prev) => {
-      const next = { ...prev };
-      delete next[courseKey];
-      return next;
-    });
   };
 
   const exportMainSchedule = () => {
@@ -1884,7 +1848,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الثانية: تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الوقوع في نفس اليوم."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة المراقبين."
             />
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
@@ -1920,138 +1884,6 @@ export default function App() {
                 )}
               </div>
             </div>
-
-            <div style={{ marginTop: 18 }}>
-              <label
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 14,
-                  background: "#fff",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={avoidSameLevelSameDay}
-                  onChange={(e) => setAvoidSameLevelSameDay(e.target.checked)}
-                />
-                جعل المقررات ذات المستوى الواحد لا تكون في نفس اليوم
-              </label>
-            </div>
-
-            {avoidSameLevelSameDay ? (
-              <div
-                style={{
-                  marginTop: 18,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 22,
-                  padding: 16,
-                  background: "#F8FEFE",
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>تحديد مستويات المقررات</div>
-                <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
-                  اسحب المقرر إلى مربع المستوى المناسب. ويمكنك أيضًا إعادة المقرر إلى قائمة المقررات غير المصنفة.
-                </div>
-
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (draggingCourseKey) clearCourseLevel(draggingCourseKey);
-                    setDraggingCourseKey("");
-                  }}
-                  style={{
-                    border: `1px dashed ${COLORS.primaryBorder}`,
-                    borderRadius: 18,
-                    padding: 14,
-                    background: "#fff",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>مقررات غير مصنفة</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                    {unassignedLevelCourses.length ? (
-                      unassignedLevelCourses.map((course) => (
-                        <div
-                          key={course.key}
-                          draggable
-                          onDragStart={() => setDraggingCourseKey(course.key)}
-                          onDragEnd={() => setDraggingCourseKey("")}
-                          style={{
-                            border: `1px solid ${COLORS.border}`,
-                            background: "#fff",
-                            color: COLORS.charcoal,
-                            borderRadius: 999,
-                            padding: "8px 14px",
-                            cursor: "grab",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {course.label}
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مصنفة.</span>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-                  {levelOptions.map((level) => {
-                    const levelCourses = allCourseOptions.filter((course) => courseLevels[course.key] === level.value);
-                    return (
-                      <div
-                        key={level.value}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (draggingCourseKey) setCourseLevel(draggingCourseKey, level.value);
-                          setDraggingCourseKey("");
-                        }}
-                        style={{
-                          border: `1px dashed ${COLORS.primaryDark}`,
-                          borderRadius: 18,
-                          padding: 14,
-                          minHeight: 150,
-                          background: "#fff",
-                        }}
-                      >
-                        <div style={{ fontWeight: 900, color: COLORS.primaryDark, marginBottom: 10 }}>{level.label}</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {levelCourses.length ? (
-                            levelCourses.map((course) => (
-                              <div
-                                key={course.key}
-                                draggable
-                                onDragStart={() => setDraggingCourseKey(course.key)}
-                                onDragEnd={() => setDraggingCourseKey("")}
-                                style={{
-                                  border: `1px solid ${COLORS.primaryBorder}`,
-                                  background: COLORS.primaryLight,
-                                  color: COLORS.primaryDark,
-                                  borderRadius: 999,
-                                  padding: "8px 12px",
-                                  cursor: "grab",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {course.label}
-                              </div>
-                            ))
-                          ) : (
-                            <span style={{ color: COLORS.muted }}>اسحب المقررات إلى هنا</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
