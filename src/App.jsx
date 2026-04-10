@@ -776,7 +776,7 @@ export default function App() {
     return d.toISOString().slice(0, 10);
   });
 
-  const [numberOfDays, setNumberOfDays] = useState(10);
+  const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
   const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
@@ -1383,7 +1383,7 @@ export default function App() {
       "text/csv;charset=utf-8"
     );
 
-    showToast("تم التصدير", "تم تنزيل جدول الاختبارات CSV.", "success");
+    showToast("تم التصدير", "تم تنزيل جدول الاختبارات.", "success");
   };
 
   const exportInvigilatorsTable = () => {
@@ -1530,7 +1530,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الأولى: رفع الملف والإعدادات العامة"
-              description="ارفع ملف CSV وحدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات."
+              description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات/n ثم ارفع تقرير SF01."
             />
 
             <div
@@ -1629,7 +1629,7 @@ export default function App() {
                   min="1"
                   max="60"
                   value={numberOfDays}
-                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 10))}
+                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 8))}
                   style={fieldStyle()}
                 />
               </div>
