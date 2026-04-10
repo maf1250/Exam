@@ -377,9 +377,7 @@ function Toast({ item, onClose }) {
 }
 
 function isGeneralStudiesCourse(course) {
-  const text = normalizeArabic(
-    `${course.courseName} ${course.courseCode} ${course.department} ${course.major}`
-  );
+  const text = normalizeArabic(`${course.courseName} ${course.courseCode} ${course.department} ${course.major}`);
 
   const keywords = [
     "انجليزي",
@@ -425,9 +423,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
 
     const item = map.get(key);
 
-    if (normalizedScheduleType.includes("عملي")) {
-      item.hasPractical = true;
-    }
+    if (normalizedScheduleType.includes("عملي")) item.hasPractical = true;
 
     if (
       normalizedScheduleType.includes("نظري") ||
@@ -437,9 +433,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
       item.hasTheoretical = true;
     }
 
-    if (normalizedScheduleType.includes("تعاوني")) {
-      item.hasCoop = true;
-    }
+    if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
   });
 
   return Array.from(map.values())
@@ -451,15 +445,232 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     .map((item) => item.key);
 }
 
-function printSchedulePdf({
+function openPrintWindow(title, html) {
+  const printWindow = window.open("", "_blank", "width=1400,height=900");
+  if (!printWindow) return null;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.document.title = title;
+
+  const triggerPrint = () => {
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  if (printWindow.document.readyState === "complete") {
+    setTimeout(triggerPrint, 300);
+  } else {
+    printWindow.onload = () => setTimeout(triggerPrint, 300);
+  }
+
+  return printWindow;
+}
+
+function getPrintBaseStyles() {
+  return `
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #111827;
+      direction: rtl;
+      font-family: "Tahoma", "Arial", sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      padding: 0;
+    }
+
+    .page {
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #0f766e;
+      padding-bottom: 10px;
+    }
+
+    .logo-wrap {
+      margin-bottom: 8px;
+    }
+
+    .logo {
+      width: 72px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .college-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f766e;
+      margin-bottom: 4px;
+    }
+
+    .doc-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .meta-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: #f8fafc;
+      text-align: center;
+    }
+
+    .period-strip {
+      display: grid;
+      grid-template-columns: 170px repeat(var(--period-count), 1fr);
+      border: 1px solid #0f172a;
+      border-bottom: 0;
+      margin-top: 10px;
+    }
+
+    .period-strip > div {
+      border-left: 1px solid #0f172a;
+      padding: 8px 6px;
+      text-align: center;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .period-strip > div:first-child {
+      background: #f8fafc;
+    }
+
+    .period-strip > div:last-child {
+      border-left: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tfoot {
+      display: table-footer-group;
+    }
+
+    tr, td, th {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    th, td {
+      border: 1px solid #0f172a;
+      padding: 6px 5px;
+      font-size: 11px;
+      text-align: center;
+      vertical-align: middle;
+      word-break: break-word;
+    }
+
+    th {
+      background: #ecfeff;
+      font-weight: 800;
+    }
+
+    .day-col {
+      width: 170px;
+      font-weight: 800;
+      background: #f8fafc;
+    }
+
+    .num-cell {
+      width: 34px;
+    }
+
+    .course-cell {
+      width: 150px;
+    }
+
+    .code-cell {
+      width: 78px;
+    }
+
+    .hall-cell {
+      width: 90px;
+    }
+
+    .section-note {
+      margin-top: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fcfcfc;
+      font-size: 11px;
+      line-height: 1.9;
+    }
+
+    .section-note-title {
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+
+    .footer {
+      margin-top: 10px;
+      text-align: left;
+      font-size: 11px;
+      color: #475569;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .inv-name {
+      background: #f8fafc;
+      font-weight: 800;
+    }
+  `;
+}
+
+function printScheduleOnlyPdf({
   collegeName,
   schedule,
-  invigilatorTable,
   periodLabels = [],
   defaultExamHall = "قاعة النشاط",
 }) {
-  const printWindow = window.open("", "_blank", "width=1400,height=900");
-  if (!printWindow) return;
+  if (!schedule?.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
@@ -467,6 +678,7 @@ function printSchedulePdf({
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
     if (fromArg) return fromArg;
+
     const firstItem = schedule.find((s) => s.period === periodId);
     return {
       period: periodId,
@@ -475,8 +687,7 @@ function printSchedulePdf({
     };
   });
 
-  const maxRowsPerDay = (day) =>
-    Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
+  const maxRowsPerDay = (day) => Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
 
   const renderPeriodColumns = (day, periodId, rowIndex) => {
     const list = day.periods[periodId] || [];
@@ -506,147 +717,45 @@ function printSchedulePdf({
   }).format(new Date());
 
   const instructions = [
-    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
-    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
-    "قيام المتدرب بالغش أو محاولة الغش يعد مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
-    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب يعد شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
-    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
-    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي.",
-    "يجب على المتدرب التقيد بالزي التدريبي والالتزام بالهدوء داخل قاعة الاختبار.",
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بمدة كافية.",
+    "لا يسمح بالدخول بعد مضي نصف ساعة من بداية الاختبار، ولا بالخروج قبل مضي نصف ساعة.",
+    "الغش أو الشروع فيه يعد مخالفة صريحة لتعليمات الاختبارات.",
+    "وجود الجوال أو أي أوراق تخص المقرر داخل القاعة يعد مخالفة.",
+    "يلتزم المتدرب بالهدوء والزي التدريبي والتعليمات المنظمة داخل القاعة.",
   ];
 
   const html = `
     <html dir="rtl" lang="ar">
       <head>
-        <title>جدول الاختبارات النهائية</title>
+        <title>طباعة جدول الاختبارات</title>
         <style>
-          @page { size: A4 portrait; margin: 8mm; }
-          body {
-            font-family: Tahoma, Arial, sans-serif;
-            margin: 0;
-            color: #111;
-            direction: rtl;
-            background: #fff;
-          }
-          .page { width: 100%; }
-          .top-head { margin-bottom: 8px; }
-          .print-logo-wrap { text-align:center; margin-bottom:6px; }
-          .print-logo { width:78px; height:auto; object-fit:contain; }
-          .college-line {
-            text-align: center;
-            font-weight: 700;
-            font-size: 20px;
-            margin-bottom: 4px;
-            color: #147B83;
-          }
-          .meta-line {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: wrap;
-            font-size: 13px;
-            margin-bottom: 6px;
-          }
-          .meta-box { flex: 1; min-width: 180px; }
-          .schedule-title {
-            text-align: center;
-            font-size: 18px;
-            font-weight: 700;
-            margin: 6px 0 8px;
-            color: #2C3135;
-          }
-          .period-head {
-            display: grid;
-            grid-template-columns: 160px repeat(${periodIds.length}, 1fr);
-            border: 1px solid #000;
-            border-bottom: 0;
-          }
-          .period-head .empty-head {
-            border-left: 1px solid #000;
-            min-height: 58px;
-          }
-          .period-box {
-            border-left: 1px solid #000;
-            padding: 6px 8px;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.6;
-          }
-          .period-box:last-child, .empty-head:last-child { border-left: 0; }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-          }
-          th, td {
-            border: 1px solid #000;
-            padding: 4px 6px;
-            font-size: 12px;
-            text-align: center;
-            vertical-align: middle;
-            word-wrap: break-word;
-          }
-          thead th {
-            background: #fff;
-            font-weight: 700;
-          }
-          .day-col { width: 160px; font-weight: 700; }
-          .num-cell { width: 32px; }
-          .course-cell { width: 160px; }
-          .code-cell { width: 78px; }
-          .hall-cell { width: 90px; }
-          .instructions {
-            margin-top: 10px;
-            font-size: 11px;
-            line-height: 1.9;
-          }
-          .instructions-title {
-            font-weight: 700;
-            margin-bottom: 4px;
-          }
-          .instructions ol {
-            margin: 0;
-            padding-right: 18px;
-          }
-          .page-break { page-break-before: always; }
-          .inv-table-title {
-            text-align: center;
-            font-size: 18px;
-            font-weight: 700;
-            margin: 10px 0;
-            color: #2C3135;
-          }
-          .footer-date {
-            text-align: left;
-            font-size: 11px;
-            margin-top: 6px;
-          }
+          ${getPrintBaseStyles()}
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="top-head">
-            <div class="print-logo-wrap">
-              <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+          <div class="header">
+            <div class="logo-wrap">
+              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
             </div>
-            <div class="college-line">${collegeName || "الكلية التقنية"}</div>
-            <div class="meta-line">
-              <div class="meta-box"><strong>قسم:</strong> جميع الأقسام</div>
-              <div class="meta-box"><strong>تخصص:</strong> جميع التخصصات</div>
+            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
+            <div class="doc-title">جدول الاختبارات النهائية</div>
+
+            <div class="meta-grid">
+              <div class="meta-box"><strong>القسم:</strong> جميع الأقسام</div>
+              <div class="meta-box"><strong>التخصص:</strong> جميع التخصصات</div>
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
-            <div class="schedule-title">جدول الاختبارات النهائية</div>
           </div>
 
-          <div class="period-head">
-            <div class="empty-head"></div>
+          <div class="period-strip" style="--period-count:${periodIds.length}">
+            <div>اليوم / التاريخ</div>
             ${resolvedPeriodLabels
               .map(
                 (p) => `
-                  <div class="period-box">
+                  <div>
                     <div>${p.label}</div>
-                    <div>${p.timeText ? `من ${p.timeText}` : ""}</div>
+                    <div>${p.timeText || ""}</div>
                   </div>
                 `
               )
@@ -663,7 +772,7 @@ function printSchedulePdf({
                       <th>م</th>
                       <th>المقرر</th>
                       <th>الرمز</th>
-                      <th>مقر الاختبار</th>
+                      <th>المقر</th>
                     `
                   )
                   .join("")}
@@ -673,16 +782,19 @@ function printSchedulePdf({
               ${groupedDays
                 .map((day) => {
                   const rowsCount = maxRowsPerDay(day);
+
                   return Array.from({ length: rowsCount })
                     .map(
                       (_, rowIndex) => `
                         <tr>
                           ${
                             rowIndex === 0
-                              ? `<td class="day-col" rowspan="${rowsCount}">
-                                  <div>${day.dayName}</div>
-                                  <div>${day.hijriNumeric}</div>
-                                </td>`
+                              ? `
+                                <td class="day-col" rowspan="${rowsCount}">
+                                  <div style="font-weight:800">${day.dayName}</div>
+                                  <div style="margin-top:4px">${day.hijriNumeric}</div>
+                                </td>
+                              `
                               : ""
                           }
                           ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
@@ -695,33 +807,70 @@ function printSchedulePdf({
             </tbody>
           </table>
 
-          <div class="instructions">
-            <div class="instructions-title">تعليمات وإرشادات</div>
-            <ol>
+          <div class="section-note">
+            <div class="section-note-title">تعليمات مهمة</div>
+            <ol style="margin:0; padding-right:18px;">
               ${instructions.map((item) => `<li>${item}</li>`).join("")}
             </ol>
           </div>
+
+          <div class="footer">${todayText}</div>
         </div>
+      </body>
+    </html>
+  `;
 
-        <div class="page-break"></div>
+  openPrintWindow("طباعة جدول الاختبارات", html);
+}
 
+function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
+  if (!invigilatorTable?.length) return;
+
+  const todayText = new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+
+  const html = `
+    <html dir="rtl" lang="ar">
+      <head>
+        <title>طباعة جدول المراقبين</title>
+        <style>
+          ${getPrintBaseStyles()}
+
+          th, td {
+            font-size: 12px;
+            padding: 7px 6px;
+          }
+        </style>
+      </head>
+      <body>
         <div class="page">
-          <div class="print-logo-wrap">
-            <img class="print-logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+          <div class="header">
+            <div class="logo-wrap">
+              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+            </div>
+            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
+            <div class="doc-title">جدول المراقبين وفترات المراقبة</div>
+
+            <div class="meta-grid">
+              <div class="meta-box"><strong>عدد المراقبين:</strong> ${invigilatorTable.length}</div>
+              <div class="meta-box"><strong>نوع التقرير:</strong> توزيع المراقبة</div>
+              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+            </div>
           </div>
-          <div class="college-line">${collegeName || "الكلية التقنية"}</div>
-          <div class="inv-table-title">جدول المراقبين وفترات المراقبة</div>
 
           <table>
             <thead>
               <tr>
-                <th>المراقب</th>
+                <th style="width:170px">المراقب</th>
                 <th>التاريخ</th>
-                <th>اليوم</th>
-                <th>الفترة</th>
-                <th>الوقت</th>
+                <th style="width:90px">اليوم</th>
+                <th style="width:70px">الفترة</th>
+                <th style="width:110px">الوقت</th>
                 <th>المقرر</th>
-                <th>الرمز</th>
+                <th style="width:90px">الرمز</th>
               </tr>
             </thead>
             <tbody>
@@ -730,7 +879,7 @@ function printSchedulePdf({
                   inv.items.map(
                     (item, idx) => `
                       <tr>
-                        ${idx === 0 ? `<td rowspan="${inv.items.length}">${inv.name}</td>` : ""}
+                        ${idx === 0 ? `<td class="inv-name" rowspan="${inv.items.length}">${inv.name}</td>` : ""}
                         <td>${item.gregorian}</td>
                         <td>${item.dayName}</td>
                         <td>${item.period}</td>
@@ -745,17 +894,13 @@ function printSchedulePdf({
             </tbody>
           </table>
 
-          <div class="footer-date">${todayText}</div>
+          <div class="footer">${todayText}</div>
         </div>
       </body>
     </html>
   `;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => printWindow.print(), 400);
+  openPrintWindow("طباعة جدول المراقبين", html);
 }
 
 export default function App() {
@@ -812,9 +957,7 @@ export default function App() {
       skipEmptyLines: true,
       encoding: "UTF-8",
       complete: (result) => {
-        const cleanRows = (result.data || []).filter((row) =>
-          Object.values(row).some((v) => String(v ?? "").trim() !== "")
-        );
+        const cleanRows = (result.data || []).filter((row) => Object.values(row).some((v) => String(v ?? "").trim() !== ""));
 
         const defaultExcludedPractical = getDefaultExcludedPracticalCourseKeys(cleanRows);
 
@@ -868,12 +1011,8 @@ export default function App() {
       const regStatus = normalizeArabic(row["حالة تسجيل"]);
       const traineeStatus = normalizeArabic(row["حالة المتدرب"]);
 
-      const badReg = EXCLUDED_REGISTRATION.some((item) =>
-        regStatus.includes(normalizeArabic(item))
-      );
-      const badTrainee = EXCLUDED_TRAINEE.some((item) =>
-        traineeStatus.includes(normalizeArabic(item))
-      );
+      const badReg = EXCLUDED_REGISTRATION.some((item) => regStatus.includes(normalizeArabic(item)));
+      const badTrainee = EXCLUDED_TRAINEE.some((item) => traineeStatus.includes(normalizeArabic(item)));
 
       return !badReg && !badTrainee;
     });
@@ -928,9 +1067,7 @@ export default function App() {
 
       if (studentId) {
         course.students.add(studentId);
-        if (!studentCourseMap.has(studentId)) {
-          studentCourseMap.set(studentId, new Set());
-        }
+        if (!studentCourseMap.has(studentId)) studentCourseMap.set(studentId, new Set());
         studentCourseMap.get(studentId).add(key);
       }
     });
@@ -958,7 +1095,6 @@ export default function App() {
         const department = Array.from(course.departments).join(" / ");
         const major = Array.from(course.majors).join(" / ");
 
-        
         const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
         const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
         const trainerWeight =
@@ -968,8 +1104,7 @@ export default function App() {
             ? 5
             : 0;
 
-        const priorityScore =
-         studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
+        const priorityScore = studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
         return {
           ...course,
@@ -984,12 +1119,7 @@ export default function App() {
         };
       })
       .filter((course) => !excludedCourses.includes(course.key))
-      .sort(
-        (a, b) =>
-          b.priorityScore - a.priorityScore ||
-          b.studentCount - a.studentCount ||
-          b.conflictDegree - a.conflictDegree
-      );
+      .sort((a, b) => b.priorityScore - a.priorityScore || b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
     return {
       missingColumns,
@@ -1002,10 +1132,7 @@ export default function App() {
     };
   }, [rows, excludeInactive, prioritizeTrainer, excludedCourses]);
 
-  const generalCourses = useMemo(
-    () => parsed.courses.filter((course) => isGeneralStudiesCourse(course)),
-    [parsed.courses]
-  );
+  const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
   const specializedCourses = useMemo(() => {
     const keys = new Set(generalCourses.map((c) => c.key));
@@ -1036,10 +1163,7 @@ export default function App() {
       });
   }, [examHallsText]);
 
-  const slots = useMemo(
-    () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
-    [startDate, numberOfDays, selectedDays, parsedPeriods]
-  );
+  const slots = useMemo(() => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }), [startDate, numberOfDays, selectedDays, parsedPeriods]);
 
   const allCourseOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -1052,10 +1176,7 @@ export default function App() {
       if (!courseCode && !courseName) return;
 
       const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
-
-      if (!map.has(key)) {
-        map.set(key, { key, label: `${courseName} - ${courseCode}` });
-      }
+      if (!map.has(key)) map.set(key, { key, label: `${courseName} - ${courseCode}` });
     });
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
@@ -1100,10 +1221,7 @@ export default function App() {
     const invigilatorPool = [
       ...new Set(
         baseInvigilators.filter(
-          (name) =>
-            !excludedInvigilators.some(
-              (excluded) => normalizeArabic(excluded) === normalizeArabic(name)
-            )
+          (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
         )
       ),
     ];
@@ -1183,7 +1301,6 @@ export default function App() {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
-
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
       return score;
     };
@@ -1217,29 +1334,18 @@ export default function App() {
         dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
       });
 
-      const usedHallNamesInSlot = placed
-        .filter((item) => item.id === bestSlot.id)
-        .map((item) => item.examHall);
+      const usedHallNamesInSlot = placed.filter((item) => item.id === bestSlot.id).map((item) => item.examHall);
 
       const fittingHalls = hallsPool.filter(
-        (hall) =>
-          !usedHallNamesInSlot.includes(hall.name) &&
-          (hall.capacity === null || hall.capacity >= course.studentCount)
+        (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
       );
 
-      const remainingHalls = hallsPool.filter(
-        (hall) => !usedHallNamesInSlot.includes(hall.name)
-      );
+      const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
 
       let assignedHall = null;
-
-      if (fittingHalls.length) {
-        assignedHall = fittingHalls[0].name;
-      } else if (remainingHalls.length) {
-        assignedHall = remainingHalls[remainingHalls.length - 1].name;
-      } else {
-        assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
-      }
+      if (fittingHalls.length) assignedHall = fittingHalls[0].name;
+      else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
+      else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
 
       slotCoursesMap.get(bestSlot.id).push(course.key);
 
@@ -1251,12 +1357,7 @@ export default function App() {
       });
     });
 
-    placed.sort(
-      (a, b) =>
-        a.dateISO.localeCompare(b.dateISO) ||
-        a.period - b.period ||
-        b.studentCount - a.studentCount
-    );
+    placed.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
 
     setUnscheduled(notPlaced);
     setPreviewPage(0);
@@ -1275,10 +1376,7 @@ export default function App() {
     setSpecializedSchedule(placed);
 
     const merged = [...generalSchedule, ...placed].sort(
-      (a, b) =>
-        a.dateISO.localeCompare(b.dateISO) ||
-        a.period - b.period ||
-        b.studentCount - a.studentCount
+      (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
     );
 
     setSchedule(merged);
@@ -1348,16 +1446,12 @@ export default function App() {
 
   const toggleExcludedCourse = (courseKey) => {
     setExcludedCourses((prev) =>
-      prev.includes(courseKey)
-        ? prev.filter((item) => item !== courseKey)
-        : [...prev, courseKey]
+      prev.includes(courseKey) ? prev.filter((item) => item !== courseKey) : [...prev, courseKey]
     );
   };
 
   const exportMainSchedule = () => {
-    if (!schedule.length) {
-      return showToast("لا يوجد جدول", "أنشئ الجدول أولًا ثم صدّر الملف.", "error");
-    }
+    if (!schedule.length) return showToast("لا يوجد جدول", "أنشئ الجدول أولًا ثم صدّر الملف.", "error");
 
     const exportRows = schedule.map((item) => ({
       الكلية: parsed.collegeName,
@@ -1387,9 +1481,7 @@ export default function App() {
   };
 
   const exportInvigilatorsTable = () => {
-    if (!invigilatorTable.length) {
-      return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا ثم صدّر جدول المراقبين.", "error");
-    }
+    if (!invigilatorTable.length) return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا ثم صدّر جدول المراقبين.", "error");
 
     const rowsToExport = invigilatorTable.flatMap((inv) =>
       inv.items.map((item) => ({
@@ -1498,15 +1590,7 @@ export default function App() {
           <StatBox label="المراقبون" value={stats.invigilators} />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            marginTop: 20,
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
             { id: 1, label: "1. رفع الملف" },
             { id: 2, label: "2. المقررات" },
@@ -1515,12 +1599,7 @@ export default function App() {
             { id: 5, label: "5. التخصص" },
             { id: 6, label: "6. المعاينة والطباعة" },
           ].map((step) => (
-            <StepButton
-              key={step.id}
-              active={currentStep === step.id}
-              done={currentStep > step.id}
-              onClick={() => setCurrentStep(step.id)}
-            >
+            <StepButton key={step.id} active={currentStep === step.id} done={currentStep > step.id} onClick={() => setCurrentStep(step.id)}>
               {step.label}
             </StepButton>
           ))}
@@ -1530,7 +1609,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الأولى: رفع الملف والإعدادات العامة"
-              description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات/n ثم ارفع تقرير SF01."
+              description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع تقرير SF01."
             />
 
             <div
@@ -1565,9 +1644,7 @@ export default function App() {
                 style={{ display: "none" }}
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                اسحب الملف هنا أو اضغط للاختيار
-              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>اسحب الملف هنا أو اضغط للاختيار</div>
               <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
                 <div
@@ -1614,12 +1691,7 @@ export default function App() {
 
               <div>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>تاريخ البداية</div>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={fieldStyle()}
-                />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={fieldStyle()} />
               </div>
 
               <div>
@@ -1708,21 +1780,13 @@ export default function App() {
                   padding: 14,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={excludeInactive}
-                  onChange={(e) => setExcludeInactive(e.target.checked)}
-                />
+                <input type="checkbox" checked={excludeInactive} onChange={(e) => setExcludeInactive(e.target.checked)} />
                 استبعاد المنسحبين والمطوي قيدهم
               </label>
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button
-                onClick={() => setCurrentStep(2)}
-                disabled={!rows.length}
-                style={cardButtonStyle({ active: true, disabled: !rows.length })}
-              >
+              <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
                 التالي: تعديل المقررات
               </button>
             </div>
@@ -1783,10 +1847,7 @@ export default function App() {
 
         {currentStep === 3 && (
           <Card>
-            <SectionHeader
-              title="الصفحة الثالثة: المراقبون"
-              description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
-            />
+            <SectionHeader title="الصفحة الثالثة: المراقبون" description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول." />
 
             <div
               style={{
@@ -1806,11 +1867,7 @@ export default function App() {
                   padding: 14,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={includeInvigilators}
-                  onChange={(e) => setIncludeInvigilators(e.target.checked)}
-                />
+                <input type="checkbox" checked={includeInvigilators} onChange={(e) => setIncludeInvigilators(e.target.checked)} />
                 إضافة المراقبين تلقائيًا
               </label>
 
@@ -1919,9 +1976,7 @@ export default function App() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                     {availableInvigilators.length ? (
                       availableInvigilators.map((name) => {
-                        const excluded = excludedInvigilators.some(
-                          (item) => normalizeArabic(item) === normalizeArabic(name)
-                        );
+                        const excluded = excludedInvigilators.some((item) => normalizeArabic(item) === normalizeArabic(name));
 
                         return (
                           <button
@@ -1976,10 +2031,7 @@ export default function App() {
 
         {currentStep === 4 && (
           <Card>
-            <SectionHeader
-              title="الصفحة الرابعة: توزيع مقررات الدراسات العامة"
-              description="سيتم توزيع مقررات الدراسات العامة أولًا."
-            />
+            <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
@@ -1990,14 +2042,7 @@ export default function App() {
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
                     {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: 12,
-                          textAlign: "right",
-                          borderBottom: `1px solid ${COLORS.border}`,
-                        }}
-                      >
+                      <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
                     ))}
@@ -2036,10 +2081,7 @@ export default function App() {
 
         {currentStep === 5 && (
           <Card>
-            <SectionHeader
-              title="الصفحة الخامسة: توزيع مقررات التخصص"
-              description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص."
-            />
+            <SectionHeader title="الصفحة الخامسة: توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص." />
 
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
@@ -2050,14 +2092,7 @@ export default function App() {
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
                     {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: 12,
-                          textAlign: "right",
-                          borderBottom: `1px solid ${COLORS.border}`,
-                        }}
-                      >
+                      <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
                     ))}
@@ -2098,24 +2133,13 @@ export default function App() {
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader
-                  title="المقررات مرتبة بالأولوية"
-                  description="يعتمد الترتيب على عدد المتدربين، شدة التعارض، ونوع الجدولة."
-                />
+                <SectionHeader title="المقررات مرتبة بالأولوية" description="يعتمد الترتيب على عدد المتدربين وشدة التعارض." />
 
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ background: COLORS.primaryLight }}>
-                        {[
-                          "المقرر",
-                          "الرمز",
-                          "القسم / الشعبة",
-                          "المدرب",
-                          "عدد المتدربين",
-                          "التعارضات",
-                          "الأولوية",
-                        ].map((label) => (
+                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", "الأولوية"].map((label) => (
                           <th
                             key={label}
                             style={{
@@ -2139,14 +2163,7 @@ export default function App() {
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
-                          <td
-                            style={{
-                              padding: 12,
-                              borderBottom: "1px solid #F1F5F9",
-                              fontWeight: 800,
-                              color: COLORS.primaryDark,
-                            }}
-                          >
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800, color: COLORS.primaryDark }}>
                             {course.priorityScore}
                           </td>
                         </tr>
@@ -2159,10 +2176,7 @@ export default function App() {
 
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader
-                  title="جدول الاختبارات النهائي"
-                  description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
-                />
+                <SectionHeader title="جدول الاختبارات النهائي" description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة." />
 
                 {schedule.length ? (
                   <div
@@ -2175,11 +2189,7 @@ export default function App() {
                       marginBottom: 16,
                     }}
                   >
-                    <button
-                      onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
-                      disabled={previewPage === 0}
-                      style={cardButtonStyle({ disabled: previewPage === 0 })}
-                    >
+                    <button onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))} disabled={previewPage === 0} style={cardButtonStyle({ disabled: previewPage === 0 })}>
                       السابق
                     </button>
 
@@ -2213,24 +2223,9 @@ export default function App() {
                 ) : (
                   <div style={{ display: "grid", gap: 18 }}>
                     {paginatedGroupedSchedule.map(([dateISO, items]) => (
-                      <div
-                        key={dateISO}
-                        style={{
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 22,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            background: COLORS.primaryLight,
-                            padding: 16,
-                            borderBottom: `1px solid ${COLORS.border}`,
-                          }}
-                        >
-                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>
-                            {items[0].gregorian}
-                          </div>
+                      <div key={dateISO} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
+                        <div style={{ background: COLORS.primaryLight, padding: 16, borderBottom: `1px solid ${COLORS.border}` }}>
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{items[0].gregorian}</div>
                           <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
                         </div>
 
@@ -2238,17 +2233,7 @@ export default function App() {
                           <table style={{ width: "100%", borderCollapse: "collapse" }}>
                             <thead>
                               <tr style={{ background: "#fff" }}>
-                                {[
-                                  "الفترة",
-                                  "الوقت",
-                                  "اسم المقرر",
-                                  "الرمز",
-                                  "قاعة الاختبار",
-                                  "القسم / الشعبة",
-                                  "المدرب",
-                                  "عدد المتدربين",
-                                  "المراقبون",
-                                ].map((head) => (
+                                {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
                                   <th
                                     key={head}
                                     style={{
@@ -2267,9 +2252,7 @@ export default function App() {
                             <tbody>
                               {items.map((item) => (
                                 <tr key={`${item.key}-${item.id}`}>
-                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>
-                                    {item.period}
-                                  </td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
@@ -2277,9 +2260,7 @@ export default function App() {
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
-                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>
-                                    {item.invigilators.join("، ") || "-"}
-                                  </td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.invigilators.join("، ") || "-"}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2332,20 +2313,14 @@ export default function App() {
 
                   <button
                     onClick={() =>
-                      printSchedulePdf({
+                      printScheduleOnlyPdf({
                         collegeName: parsed.collegeName,
                         schedule,
-                        invigilatorTable,
                         periodLabels: parsedPeriods
                           .filter((p) => p.valid)
                           .map((p, index) => ({
                             period: index + 1,
-                            label:
-                              index === 0
-                                ? "الفتـرة الأولـــى"
-                                : index === 1
-                                ? "الفتـرة الثـــانية"
-                                : `الفترة ${index + 1}`,
+                            label: index === 0 ? "الفترة الأولى" : index === 1 ? "الفترة الثانية" : `الفترة ${index + 1}`,
                             timeText: p.timeText,
                           })),
                         defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
@@ -2353,7 +2328,19 @@ export default function App() {
                     }
                     style={cardButtonStyle({ active: true })}
                   >
-                    طباعة / PDF
+                    طباعة جدول الاختبارات
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      printInvigilatorsOnlyPdf({
+                        collegeName: parsed.collegeName,
+                        invigilatorTable,
+                      })
+                    }
+                    style={cardButtonStyle()}
+                  >
+                    طباعة جدول المراقبين
                   </button>
                 </div>
               </Card>
@@ -2361,10 +2348,7 @@ export default function App() {
 
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader
-                  title="جدول المراقبين وفترات المراقبة"
-                  description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
-                />
+                <SectionHeader title="جدول المراقبين وفترات المراقبة" description="يعرض كل مراقب والفترات المسندة له بشكل منفصل." />
 
                 {!invigilatorTable.length ? (
                   <div
@@ -2382,14 +2366,7 @@ export default function App() {
                 ) : (
                   <div style={{ display: "grid", gap: 16 }}>
                     {invigilatorTable.map((inv) => (
-                      <div
-                        key={inv.name}
-                        style={{
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 22,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div key={inv.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
                         <div
                           style={{
                             background: COLORS.primaryLight,
@@ -2432,9 +2409,7 @@ export default function App() {
                                 <tr key={`${inv.name}-${index}`}>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
-                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>
-                                    {item.period}
-                                  </td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
@@ -2451,6 +2426,18 @@ export default function App() {
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                   <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
                     تصدير جدول المراقبين
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      printInvigilatorsOnlyPdf({
+                        collegeName: parsed.collegeName,
+                        invigilatorTable,
+                      })
+                    }
+                    style={cardButtonStyle({ active: true })}
+                  >
+                    طباعة جدول المراقبين
                   </button>
                 </div>
               </Card>
