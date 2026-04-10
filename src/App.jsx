@@ -832,6 +832,29 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
     day: "numeric",
   }).format(new Date());
 
+  const allDays = Array.from(
+    new Set(
+      invigilatorTable.flatMap((inv) => inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`))
+    )
+  )
+    .map((value) => {
+      const [dateISO, dayName, gregorian] = value.split("|");
+      return { dateISO, dayName, gregorian };
+    })
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+  const buildDayCell = (inv, day) => {
+    const matches = inv.items
+      .filter((item) => item.dateISO === day.dateISO)
+      .sort((a, b) => a.period - b.period);
+
+    if (!matches.length) return "-";
+
+    return matches
+      .map((item) => `الفترة ${item.period}`)
+      .join("<br />");
+  };
+
   const html = `
     <html dir="rtl" lang="ar">
       <head>
@@ -841,7 +864,23 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
 
           th, td {
             font-size: 12px;
-            padding: 7px 6px;
+            padding: 8px 6px;
+          }
+
+          .invigilators-table {
+            table-layout: auto;
+          }
+
+          .invigilators-table th:first-child,
+          .invigilators-table td:first-child {
+            width: 180px;
+            min-width: 180px;
+            background: #f8fafc;
+            font-weight: 800;
+          }
+
+          .day-head {
+            line-height: 1.8;
           }
         </style>
       </head>
@@ -856,39 +895,36 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
 
             <div class="meta-grid">
               <div class="meta-box"><strong>عدد المراقبين:</strong> ${invigilatorTable.length}</div>
-              <div class="meta-box"><strong>نوع التقرير:</strong> توزيع المراقبة</div>
+              <div class="meta-box"><strong>عدد الأيام:</strong> ${allDays.length}</div>
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
           </div>
 
-          <table>
+          <table class="invigilators-table">
             <thead>
               <tr>
-                <th style="width:170px">المراقب</th>
-                <th>التاريخ</th>
-                <th style="width:90px">اليوم</th>
-                <th style="width:70px">الفترة</th>
-                <th style="width:110px">الوقت</th>
-                <th>المقرر</th>
-                <th style="width:90px">الرمز</th>
+                <th>المراقب</th>
+                ${allDays
+                  .map(
+                    (day) => `
+                      <th class="day-head">
+                        <div>${day.dayName}</div>
+                        <div>${day.gregorian}</div>
+                      </th>
+                    `
+                  )
+                  .join("")}
               </tr>
             </thead>
             <tbody>
               ${invigilatorTable
-                .flatMap((inv) =>
-                  inv.items.map(
-                    (item, idx) => `
-                      <tr>
-                        ${idx === 0 ? `<td class="inv-name" rowspan="${inv.items.length}">${inv.name}</td>` : ""}
-                        <td>${item.gregorian}</td>
-                        <td>${item.dayName}</td>
-                        <td>${item.period}</td>
-                        <td>${item.timeText}</td>
-                        <td>${item.courseName}</td>
-                        <td>${item.courseCode}</td>
-                      </tr>
-                    `
-                  )
+                .map(
+                  (inv) => `
+                    <tr>
+                      <td>${inv.name}</td>
+                      ${allDays.map((day) => `<td>${buildDayCell(inv, day)}</td>`).join("")}
+                    </tr>
+                  `
                 )
                 .join("")}
             </tbody>
@@ -934,6 +970,7 @@ export default function App() {
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
   const [excludedCourses, setExcludedCourses] = useState([]);
+  const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
   const [generalSchedule, setGeneralSchedule] = useState([]);
@@ -1387,6 +1424,11 @@ export default function App() {
     setCurrentStep(6);
   };
 
+  const filteredScheduleForPrint = useMemo(() => {
+    if (printDepartmentFilter === "__all__") return schedule;
+    return schedule.filter((item) => normalizeArabic(item.department) === normalizeArabic(printDepartmentFilter));
+  }, [schedule, printDepartmentFilter]);
+
   const groupedSchedule = useMemo(() => {
     return schedule.reduce((acc, item) => {
       if (!acc[item.dateISO]) acc[item.dateISO] = [];
@@ -1434,10 +1476,17 @@ export default function App() {
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("
+").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
   }, [manualInvigilators, parsed.invigilators]);
+
+  const availableDepartmentsForPrint = useMemo(() => {
+    return Array.from(
+      new Set(schedule.map((item) => String(item.department || "").trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [schedule]);
 
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
@@ -2305,6 +2354,22 @@ export default function App() {
                   </div>
                 ) : null}
 
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب في طباعة الجدول</div>
+                  <select
+                    value={printDepartmentFilter}
+                    onChange={(e) => setPrintDepartmentFilter(e.target.value)}
+                    style={{ ...fieldStyle(), maxWidth: 360 }}
+                  >
+                    <option value="__all__">جميع الأقسام</option>
+                    {availableDepartmentsForPrint.map((department) => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                   <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
                     السابق
@@ -2318,7 +2383,7 @@ export default function App() {
                     onClick={() =>
                       printScheduleOnlyPdf({
                         collegeName: parsed.collegeName,
-                        schedule,
+                        schedule: filteredScheduleForPrint,
                         periodLabels: parsedPeriods
                           .filter((p) => p.valid)
                           .map((p, index) => ({
@@ -2425,6 +2490,18 @@ export default function App() {
                     ))}
                   </div>
                 )}
+
+                <div style={{
+                  marginTop: 14,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 16,
+                  padding: 12,
+                  background: "#F8FEFE",
+                  color: COLORS.muted,
+                  lineHeight: 1.8,
+                }}>
+                  في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
+                </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                   <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
