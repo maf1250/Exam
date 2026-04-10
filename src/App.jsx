@@ -1479,7 +1479,7 @@ export default function App() {
                 src={LOGO_SRC}
                 alt="شعار المؤسسة العامة للتدريب التقني والمهني"
                 style={{
-                  width: 95,
+                  width: 180,
                   height: "auto",
                   objectFit: "contain",
                   display: "block",
