@@ -1456,11 +1456,9 @@ export default function App() {
             }}
           >
             <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
+              <div style={{ fontSize: 32, fontWeight: 900 }}>بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
-                مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
-              </div>
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية              </div>
             </div>
 
             <div
@@ -2167,7 +2165,7 @@ export default function App() {
             <div style={{ marginTop: 20 }}>
               <Card>
                 <SectionHeader
-                  title="جدول الاختبارات النهائي"
+                  title="جدول الاختبارات النهائية"
                   description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
                 />
 
