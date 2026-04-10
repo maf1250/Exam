@@ -2091,9 +2091,9 @@ const pickInvigilators = (course, slot) => {
                 }}
               >
                 تم إيقاف إضافة المراقبين تلقائيًا.
-              </div>
+              </Card>
             )}
-          </Card>
+          </div>
         )}
 
         {currentStep === 6 && (
