@@ -1476,8 +1476,7 @@ export default function App() {
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("
-").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
   }, [manualInvigilators, parsed.invigilators]);
@@ -2185,13 +2184,13 @@ export default function App() {
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader title="المقررات مرتبة ب" description="يعتمد الترتيب على عدد المتدربين وشدة التعارض." />
+                <SectionHeader title="المقررات مرتبة حسب عدد المتدربين والتعارضات" description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض." />
 
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ background: COLORS.primaryLight }}>
-                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات", ""].map((label) => (
+                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
                           <th
                             key={label}
                             style={{
@@ -2215,9 +2214,7 @@ export default function App() {
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800, color: COLORS.primaryDark }}>
-                            
-                          </td>
+                          
                         </tr>
                       ))}
                     </tbody>
