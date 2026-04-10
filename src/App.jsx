@@ -389,16 +389,66 @@ function isGeneralStudiesCourse(course) {
     "فيزياء",
     "عربي",
     "لغة عربية",
-    "كتابة فنية",
     "السلوك الوظيفي",
     "أساسيات ريادة الأعمال",
+    "مهارات الاتصال",
     "مقدمة تطبيقات الحاسب",
     "اسلم",
     "ثقافة اسلامية",
-   
+    "كتابة فنية",
   ];
 
   return keywords.some((k) => text.includes(normalizeArabic(k)));
+}
+
+function getDefaultExcludedPracticalCourseKeys(rows) {
+  const map = new Map();
+
+  rows.forEach((row) => {
+    const courseCode = String(row["المقرر"] ?? "").trim();
+    const courseName = String(row["اسم المقرر"] ?? "").trim();
+    const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
+
+    if (!courseCode && !courseName) return;
+
+    const normalizedScheduleType = normalizeArabic(scheduleType);
+    const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        hasPractical: false,
+        hasTheoretical: false,
+        hasCoop: false,
+      });
+    }
+
+    const item = map.get(key);
+
+    if (normalizedScheduleType.includes("عملي")) {
+      item.hasPractical = true;
+    }
+
+    if (
+      normalizedScheduleType.includes("نظري") ||
+      normalizedScheduleType.includes("محاضره") ||
+      normalizedScheduleType.includes("محاضرة")
+    ) {
+      item.hasTheoretical = true;
+    }
+
+    if (normalizedScheduleType.includes("تعاوني")) {
+      item.hasCoop = true;
+    }
+  });
+
+  return Array.from(map.values())
+    .filter((item) => {
+      if (item.hasCoop) return true;
+      if (item.hasPractical && !item.hasTheoretical) return true;
+      return false;
+    })
+    .map((item) => item.key);
 }
 
 function printSchedulePdf({
@@ -481,7 +531,7 @@ function printSchedulePdf({
           .page { width: 100%; }
           .top-head { margin-bottom: 8px; }
           .print-logo-wrap { text-align:center; margin-bottom:6px; }
-          .print-logo { width:150px; height:150px; object-fit:contain; }
+          .print-logo { width:78px; height:auto; object-fit:contain; }
           .college-line {
             text-align: center;
             font-weight: 700;
@@ -708,56 +758,6 @@ function printSchedulePdf({
   setTimeout(() => printWindow.print(), 400);
 }
 
-function getDefaultExcludedPracticalCourseKeys(rows) {
-  const map = new Map();
-
-  rows.forEach((row) => {
-    const courseCode = String(row["المقرر"] ?? "").trim();
-    const courseName = String(row["اسم المقرر"] ?? "").trim();
-    const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
-
-    if (!courseCode && !courseName) return;
-
-    const normalizedScheduleType = normalizeArabic(scheduleType);
-    const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
-
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        hasPractical: false,
-        hasTheoretical: false,
-        hasCoop: false,
-      });
-    }
-
-    const item = map.get(key);
-
-    if (normalizedScheduleType.includes("عملي")) {
-      item.hasPractical = true;
-    }
-
-    if (
-      normalizedScheduleType.includes("نظري") ||
-      normalizedScheduleType.includes("محاضره") ||
-      normalizedScheduleType.includes("محاضرة")
-    ) {
-      item.hasTheoretical = true;
-    }
-
-    if (normalizedScheduleType.includes("تعاوني")) {
-      item.hasCoop = true;
-    }
-  });
-
-  return Array.from(map.values())
-    .filter((item) => {
-      if (item.hasCoop) return true;
-      if (item.hasPractical && !item.hasTheoretical) return true;
-      return false;
-    })
-    .map((item) => item.key);
-}
-
 export default function App() {
   const fileRef = useRef(null);
 
@@ -776,7 +776,7 @@ export default function App() {
     return d.toISOString().slice(0, 10);
   });
 
-  const [numberOfDays, setNumberOfDays] = useState(8);
+  const [numberOfDays, setNumberOfDays] = useState(10);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
   const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
@@ -1274,7 +1274,7 @@ export default function App() {
     const placed = generateScheduleForCourses(generalCourses);
     setGeneralSchedule(placed);
     showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
-    setCurrentStep(4);
+    setCurrentStep(5);
   };
 
   const generateSpecializedSchedule = () => {
@@ -1290,7 +1290,7 @@ export default function App() {
 
     setSchedule(merged);
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
-    setCurrentStep(5);
+    setCurrentStep(6);
   };
 
   const groupedSchedule = useMemo(() => {
@@ -1456,9 +1456,11 @@ export default function App() {
             }}
           >
             <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontSize: 32, fontWeight: 900 }}>بناء جدول الاختبارات النهائية</div>
+              <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية              </div>
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
+                مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+              </div>
             </div>
 
             <div
@@ -1477,7 +1479,7 @@ export default function App() {
                 src={LOGO_SRC}
                 alt="شعار المؤسسة العامة للتدريب التقني والمهني"
                 style={{
-                  width: 150,
+                  width: 95,
                   height: "auto",
                   objectFit: "contain",
                   display: "block",
@@ -1515,9 +1517,9 @@ export default function App() {
           {[
             { id: 1, label: "1. رفع الملف" },
             { id: 2, label: "2. المقررات" },
-            { id: 3, label: "3. الدراسات العامة" },
-            { id: 4, label: "4. التخصص" },
-            { id: 5, label: "5. المراقبون" },
+            { id: 3, label: "3. المراقبون" },
+            { id: 4, label: "4. الدراسات العامة" },
+            { id: 5, label: "5. التخصص" },
             { id: 6, label: "6. المعاينة والطباعة" },
           ].map((step) => (
             <StepButton
@@ -1634,7 +1636,7 @@ export default function App() {
                   min="1"
                   max="60"
                   value={numberOfDays}
-                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 8))}
+                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 10))}
                   style={fieldStyle()}
                 />
               </div>
@@ -1738,7 +1740,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الثانية: تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة الدراسات العامة."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة المراقبين."
             />
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
@@ -1780,7 +1782,7 @@ export default function App() {
                 السابق
               </button>
               <button onClick={() => setCurrentStep(3)} style={cardButtonStyle({ active: true })}>
-                التالي: الدراسات العامة
+                التالي: المراقبون
               </button>
             </div>
           </Card>
@@ -1789,128 +1791,8 @@ export default function App() {
         {currentStep === 3 && (
           <Card>
             <SectionHeader
-              title="الصفحة الثالثة: توزيع مقررات الدراسات العامة"
-              description="سيتم توزيع مقررات الدراسات العامة أولًا."
-            />
-
-            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
-              عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
-            </div>
-
-            <div style={{ overflowX: "auto", marginBottom: 18 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: 12,
-                          textAlign: "right",
-                          borderBottom: `1px solid ${COLORS.border}`,
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {generalCourses.map((course) => (
-                    <tr key={course.key}>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-                    </tr>
-                  ))}
-                  {!generalCourses.length ? (
-                    <tr>
-                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
-                        لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
-                السابق
-              </button>
-              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع الدراسات العامة
-              </button>
-            </div>
-          </Card>
-        )}
-
-        {currentStep === 4 && (
-          <Card>
-            <SectionHeader
-              title="الصفحة الرابعة: توزيع مقررات التخصص"
-              description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص."
-            />
-
-            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
-              عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
-            </div>
-
-            <div style={{ overflowX: "auto", marginBottom: 18 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: 12,
-                          textAlign: "right",
-                          borderBottom: `1px solid ${COLORS.border}`,
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {specializedCourses.map((course) => (
-                    <tr key={course.key}>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
-                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-                    </tr>
-                  ))}
-                  {!specializedCourses.length ? (
-                    <tr>
-                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
-                        لا توجد مقررات تخصص حسب التصنيف الحالي.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
-                السابق
-              </button>
-              <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع مقررات التخصص
-              </button>
-            </div>
-          </Card>
-        )}
-
-        {currentStep === 5 && (
-          <Card>
-            <SectionHeader
-              title="الصفحة الخامسة: المراقبون"
-              description="إدارة المراقبين المجلوبين من الملف أو المضافين يدويًا."
+              title="الصفحة الثالثة: المراقبون"
+              description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
             />
 
             <div
@@ -1960,7 +1842,7 @@ export default function App() {
 
             {includeInvigilators ? (
               <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
                   <div>
                     <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
                     <textarea
@@ -2073,12 +1955,12 @@ export default function App() {
                 </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
+                  <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
                     السابق
                   </button>
 
-                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle({ active: true })}>
-                    التالي: المعاينة والطباعة
+                  <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
+                    التالي: الدراسات العامة
                   </button>
                 </div>
               </div>
@@ -2096,6 +1978,126 @@ export default function App() {
                 تم إيقاف إضافة المراقبين تلقائيًا.
               </div>
             )}
+          </Card>
+        )}
+
+        {currentStep === 4 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الرابعة: توزيع مقررات الدراسات العامة"
+              description="سيتم توزيع مقررات الدراسات العامة أولًا."
+            />
+
+            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
+              عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: 18 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: COLORS.primaryLight }}>
+                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: 12,
+                          textAlign: "right",
+                          borderBottom: `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {generalCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!generalCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع الدراسات العامة
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 5 && (
+          <Card>
+            <SectionHeader
+              title="الصفحة الخامسة: توزيع مقررات التخصص"
+              description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص."
+            />
+
+            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
+              عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: 18 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: COLORS.primaryLight }}>
+                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: 12,
+                          textAlign: "right",
+                          borderBottom: `1px solid ${COLORS.border}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {specializedCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!specializedCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات تخصص حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع مقررات التخصص
+              </button>
+            </div>
           </Card>
         )}
 
@@ -2165,7 +2167,7 @@ export default function App() {
             <div style={{ marginTop: 20 }}>
               <Card>
                 <SectionHeader
-                  title="جدول الاختبارات النهائية"
+                  title="جدول الاختبارات النهائي"
                   description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
                 />
 
