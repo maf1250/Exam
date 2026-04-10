@@ -1142,7 +1142,7 @@ export default function App() {
             ? 5
             : 0;
 
-        const  = studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
+        // removed priority calculation
 
         
 
