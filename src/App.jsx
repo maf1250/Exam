@@ -958,7 +958,7 @@ export default function App() {
         const department = Array.from(course.departments).join(" / ");
         const major = Array.from(course.majors).join(" / ");
 
-        const practicalWeight = normalizeArabic(scheduleTypeText).includes("عملي") ? 3 : 2;
+        
         const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
         const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
         const trainerWeight =
@@ -969,7 +969,7 @@ export default function App() {
             : 0;
 
         const priorityScore =
-          practicalWeight * 2 + studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
+         studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
         return {
           ...course,
@@ -1183,13 +1183,6 @@ export default function App() {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
-
-      if (
-        normalizeArabic(course.scheduleType).includes("عملي") &&
-        slot.period === parsedPeriods.filter((p) => p.valid).length
-      ) {
-        score += 2;
-      }
 
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
       return score;
