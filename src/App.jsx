@@ -17,6 +17,13 @@ const REQUIRED_COLUMNS = [
 
 const DAY_OPTIONS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 
+const LEVEL_OPTIONS = [
+  { value: "1", label: "المستوى الأول" },
+  { value: "2", label: "المستوى الثاني" },
+  { value: "3", label: "المستوى الثالث" },
+  { value: "4", label: "المستوى الرابع" },
+];
+
 const EXCLUDED_REGISTRATION = ["انسحاب فصلي", "مطوي قيده", "معتذر", "منسحب"];
 const EXCLUDED_TRAINEE = ["مطوي قيده", "انسحاب فصلي", "مطوي قيده لإنقطاع أسبوعين"];
 
@@ -92,7 +99,9 @@ function safeNum(value, fallback = 0) {
 }
 
 function parseTimeToMinutes(time) {
-  const match = String(time || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+  const match = String(time || "")
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;
   const h = Number(match[1]);
   const m = Number(match[2]);
@@ -437,11 +446,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
   });
 
   return Array.from(map.values())
-    .filter((item) => {
-      if (item.hasCoop) return true;
-      if (item.hasPractical && !item.hasTheoretical) return true;
-      return false;
-    })
+    .filter((item) => item.hasCoop || (item.hasPractical && !item.hasTheoretical))
     .map((item) => item.key);
 }
 
@@ -584,10 +589,6 @@ function getPrintBaseStyles() {
       display: table-header-group;
     }
 
-    tfoot {
-      display: table-footer-group;
-    }
-
     tr, td, th {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
@@ -652,14 +653,20 @@ function getPrintBaseStyles() {
       color: #475569;
     }
 
-    .page-break {
-      page-break-before: always;
-      break-before: page;
+    .invigilators-table {
+      table-layout: auto;
     }
 
-    .inv-name {
+    .invigilators-table th:first-child,
+    .invigilators-table td:first-child {
+      width: 180px;
+      min-width: 180px;
       background: #f8fafc;
       font-weight: 800;
+    }
+
+    .day-head {
+      line-height: 1.8;
     }
   `;
 }
@@ -669,6 +676,7 @@ function printScheduleOnlyPdf({
   schedule,
   periodLabels = [],
   defaultExamHall = "قاعة النشاط",
+  selectedDepartment = "__all__",
 }) {
   if (!schedule?.length) return;
 
@@ -687,7 +695,8 @@ function printScheduleOnlyPdf({
     };
   });
 
-  const maxRowsPerDay = (day) => Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
+  const maxRowsPerDay = (day) =>
+    Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
 
   const renderPeriodColumns = (day, periodId, rowIndex) => {
     const list = day.periods[periodId] || [];
@@ -716,6 +725,8 @@ function printScheduleOnlyPdf({
     day: "numeric",
   }).format(new Date());
 
+  const departmentLabel = selectedDepartment === "__all__" ? "جميع الأقسام" : selectedDepartment;
+
   const instructions = [
     "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بمدة كافية.",
     "لا يسمح بالدخول بعد مضي نصف ساعة من بداية الاختبار، ولا بالخروج قبل مضي نصف ساعة.",
@@ -728,9 +739,7 @@ function printScheduleOnlyPdf({
     <html dir="rtl" lang="ar">
       <head>
         <title>طباعة جدول الاختبارات</title>
-        <style>
-          ${getPrintBaseStyles()}
-        </style>
+        <style>${getPrintBaseStyles()}</style>
       </head>
       <body>
         <div class="page">
@@ -742,7 +751,7 @@ function printScheduleOnlyPdf({
             <div class="doc-title">جدول الاختبارات النهائية</div>
 
             <div class="meta-grid">
-              <div class="meta-box"><strong>القسم:</strong> جميع الأقسام</div>
+              <div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
               <div class="meta-box"><strong>التخصص:</strong> جميع التخصصات</div>
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
@@ -850,9 +859,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
 
     if (!matches.length) return "-";
 
-    return matches
-      .map((item) => `الفترة ${item.period}`)
-      .join("<br />");
+    return matches.map((item) => `الفترة ${item.period}`).join("<br />");
   };
 
   const html = `
@@ -969,8 +976,12 @@ export default function App() {
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
+
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
+  const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
+  const [courseLevels, setCourseLevels] = useState({});
+  const [draggingCourseKey, setDraggingCourseKey] = useState("");
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
   const [generalSchedule, setGeneralSchedule] = useState([]);
@@ -994,18 +1005,18 @@ export default function App() {
       skipEmptyLines: true,
       encoding: "UTF-8",
       complete: (result) => {
-        const cleanRows = (result.data || []).filter((row) => Object.values(row).some((v) => String(v ?? "").trim() !== ""));
-
-        const defaultExcludedPractical = getDefaultExcludedPracticalCourseKeys(cleanRows);
+        const cleanRows = (result.data || []).filter((row) =>
+          Object.values(row).some((v) => String(v ?? "").trim() !== "")
+        );
 
         setRows(cleanRows);
         setSchedule([]);
         setGeneralSchedule([]);
         setSpecializedSchedule([]);
         setUnscheduled([]);
-        setExcludedCourses(defaultExcludedPractical);
+        setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
+        setCourseLevels({});
         setPreviewPage(0);
-        // يبقى المستخدم في صفحة الرفع بعد رفع الملف
         setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
@@ -1073,9 +1084,7 @@ export default function App() {
 
       if (!courseCode && !courseName) return;
 
-      const normalizedCourseCode = normalizeArabic(courseCode);
-      const normalizedCourseName = normalizeArabic(courseName);
-      const key = [normalizedCourseCode, normalizedCourseName].join("|");
+      const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
 
       if (trainer) invigilatorSet.add(trainer);
       if (studentId) studentSet.add(studentId);
@@ -1124,40 +1133,16 @@ export default function App() {
     });
 
     const courses = Array.from(courseMap.values())
-      .map((course) => {
-        const studentCount = course.students.size;
-        const conflictDegree = conflictMap.get(course.key)?.size || 0;
-        const scheduleTypeText = Array.from(course.scheduleTypes).join(" / ");
-        const trainerText = Array.from(course.trainers).join(" / ");
-        const sectionName = Array.from(course.sectionNames).join(" / ") || "-";
-        const department = Array.from(course.departments).join(" / ");
-        const major = Array.from(course.majors).join(" / ");
-
-        const studentWeight = studentCount >= 80 ? 5 : studentCount >= 40 ? 4 : studentCount >= 20 ? 3 : 2;
-        const lowOpportunityWeight = conflictDegree >= 15 ? 5 : conflictDegree >= 8 ? 4 : conflictDegree >= 4 ? 3 : 2;
-        const trainerWeight =
-          prioritizeTrainer &&
-          prioritizeTrainer.trim() !== "" &&
-          normalizeArabic(trainerText).includes(normalizeArabic(prioritizeTrainer))
-            ? 5
-            : 0;
-
-        // removed priority calculation
-
-        
-
-        return {
-          ...course,
-          department,
-          major,
-          scheduleType: scheduleTypeText,
-          trainerText,
-          studentCount,
-          conflictDegree,
-          
-          sectionName,
-        };
-      })
+      .map((course) => ({
+        ...course,
+        department: Array.from(course.departments).join(" / "),
+        major: Array.from(course.majors).join(" / "),
+        scheduleType: Array.from(course.scheduleTypes).join(" / "),
+        trainerText: Array.from(course.trainers).join(" / "),
+        studentCount: course.students.size,
+        conflictDegree: conflictMap.get(course.key)?.size || 0,
+        sectionName: Array.from(course.sectionNames).join(" / ") || "-",
+      }))
       .filter((course) => !excludedCourses.includes(course.key))
       .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
@@ -1170,7 +1155,7 @@ export default function App() {
       invigilators: Array.from(invigilatorSet).sort((a, b) => a.localeCompare(b, "ar")),
       sections: Array.from(sectionSet).sort((a, b) => a.localeCompare(b, "ar")),
     };
-  }, [rows, excludeInactive, prioritizeTrainer, excludedCourses]);
+  }, [rows, excludeInactive, excludedCourses]);
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
@@ -1222,6 +1207,14 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
 
+  const unassignedLevelCourses = useMemo(
+    () =>
+      allCourseOptions.filter(
+        (course) => !excludedCourses.includes(course.key) && !courseLevels[course.key]
+      ),
+    [allCourseOptions, courseLevels, excludedCourses]
+  );
+
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
       const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
@@ -1271,6 +1264,9 @@ export default function App() {
     const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
+
+    const placed = [];
+    const notPlaced = [];
 
     const pickInvigilators = (course, slot) => {
       if (!includeInvigilators) return [];
@@ -1325,6 +1321,7 @@ export default function App() {
     const scoreSlot = (course, slot) => {
       let hardConflict = false;
       let sameDayPenalty = 0;
+      const courseLevel = courseLevels[course.key] || "";
       const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
 
       course.students.forEach((studentId) => {
@@ -1338,15 +1335,19 @@ export default function App() {
         if (sameDayCount === 1) sameDayPenalty += 4;
       });
 
+      if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
+        const sameDateSameLevelExists = placed.some(
+          (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
+        );
+        if (sameDateSameLevelExists) hardConflict = true;
+      }
+
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
       return score;
     };
-
-    const placed = [];
-    const notPlaced = [];
 
     coursesList.forEach((course) => {
       let bestSlot = null;
@@ -1451,7 +1452,7 @@ export default function App() {
     const table = new Map();
 
     schedule.forEach((item) => {
-      item.invigilators.forEach((name) => {
+      (item.invigilators || []).forEach((name) => {
         if (!table.has(name)) table.set(name, []);
         table.get(name).push({
           dateISO: item.dateISO,
@@ -1482,9 +1483,9 @@ export default function App() {
   }, [manualInvigilators, parsed.invigilators]);
 
   const availableDepartmentsForPrint = useMemo(() => {
-    return Array.from(
-      new Set(schedule.map((item) => String(item.department || "").trim()).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, "ar"));
+    return Array.from(new Set(schedule.map((item) => String(item.department || "").trim()).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b, "ar")
+    );
   }, [schedule]);
 
   const toggleExcludedInvigilator = (name) => {
@@ -1496,9 +1497,30 @@ export default function App() {
   };
 
   const toggleExcludedCourse = (courseKey) => {
-    setExcludedCourses((prev) =>
-      prev.includes(courseKey) ? prev.filter((item) => item !== courseKey) : [...prev, courseKey]
-    );
+    setExcludedCourses((prev) => {
+      const nextExcluded = prev.includes(courseKey)
+        ? prev.filter((item) => item !== courseKey)
+        : [...prev, courseKey];
+      return nextExcluded;
+    });
+
+    setCourseLevels((prev) => {
+      const next = { ...prev };
+      delete next[courseKey];
+      return next;
+    });
+  };
+
+  const setCourseLevel = (courseKey, level) => {
+    setCourseLevels((prev) => ({ ...prev, [courseKey]: level }));
+  };
+
+  const clearCourseLevel = (courseKey) => {
+    setCourseLevels((prev) => {
+      const next = { ...prev };
+      delete next[courseKey];
+      return next;
+    });
   };
 
   const exportMainSchedule = () => {
@@ -1519,7 +1541,7 @@ export default function App() {
       مقر_الاختبار: item.examHall,
       المدربون: item.trainerText,
       عدد_المتدربين: item.studentCount,
-      المراقبون: item.invigilators.join(" | "),
+      المراقبون: (item.invigilators || []).join(" | "),
     }));
 
     downloadFile(
@@ -1594,8 +1616,7 @@ export default function App() {
             <div style={{ flex: 1, minWidth: 260 }}>
               <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية
-                مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
               </div>
             </div>
 
@@ -1703,8 +1724,7 @@ export default function App() {
                     marginTop: 12,
                     background: COLORS.primaryDark,
                     color: "#fff",
-                    width: 300px,
-                  padding: "8px 14px",
+                    padding: "8px 14px",
                     borderRadius: 999,
                   }}
                 >
@@ -1849,7 +1869,7 @@ export default function App() {
           <Card>
             <SectionHeader
               title="الصفحة الثانية: تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ثم انتقل إلى صفحة المراقبين."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الوقوع في نفس اليوم."
             />
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
@@ -1885,6 +1905,147 @@ export default function App() {
                 )}
               </div>
             </div>
+
+            <div style={{ marginTop: 18 }}>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                  background: "#fff",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={avoidSameLevelSameDay}
+                  onChange={(e) => setAvoidSameLevelSameDay(e.target.checked)}
+                />
+                جعل المقررات ذات المستوى الواحد لا تكون في نفس اليوم
+              </label>
+            </div>
+
+            {avoidSameLevelSameDay ? (
+              <div
+                style={{
+                  marginTop: 18,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 22,
+                  padding: 16,
+                  background: "#F8FEFE",
+                }}
+              >
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>تحديد مستويات المقررات</div>
+                <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
+                  اسحب المقرر إلى مربع المستوى المناسب. ويمكنك أيضًا إعادة المقرر إلى قائمة المقررات غير المصنفة.
+                </div>
+
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggingCourseKey) clearCourseLevel(draggingCourseKey);
+                    setDraggingCourseKey("");
+                  }}
+                  style={{
+                    border: `1px dashed ${COLORS.primaryBorder}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#fff",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>مقررات غير مصنفة</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    {unassignedLevelCourses.length ? (
+                      unassignedLevelCourses.map((course) => (
+                        <div
+                          key={course.key}
+                          draggable
+                          onDragStart={() => setDraggingCourseKey(course.key)}
+                          onDragEnd={() => setDraggingCourseKey("")}
+                          style={{
+                            border: `1px solid ${COLORS.border}`,
+                            background: "#fff",
+                            color: COLORS.charcoal,
+                            borderRadius: 999,
+                            padding: "8px 14px",
+                            cursor: "grab",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {course.label}
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مصنفة.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  {LEVEL_OPTIONS.map((level) => {
+                    const levelCourses = allCourseOptions.filter(
+                      (course) => !excludedCourses.includes(course.key) && courseLevels[course.key] === level.value
+                    );
+
+                    return (
+                      <div
+                        key={level.value}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggingCourseKey) setCourseLevel(draggingCourseKey, level.value);
+                          setDraggingCourseKey("");
+                        }}
+                        style={{
+                          border: `1px dashed ${COLORS.primaryDark}`,
+                          borderRadius: 18,
+                          padding: 14,
+                          minHeight: 150,
+                          background: "#fff",
+                        }}
+                      >
+                        <div style={{ fontWeight: 900, color: COLORS.primaryDark, marginBottom: 10 }}>{level.label}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {levelCourses.length ? (
+                            levelCourses.map((course) => (
+                              <div
+                                key={course.key}
+                                draggable
+                                onDragStart={() => setDraggingCourseKey(course.key)}
+                                onDragEnd={() => setDraggingCourseKey("")}
+                                style={{
+                                  border: `1px solid ${COLORS.primaryBorder}`,
+                                  background: COLORS.primaryLight,
+                                  color: COLORS.primaryDark,
+                                  borderRadius: 999,
+                                  padding: "8px 12px",
+                                  cursor: "grab",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {course.label}
+                              </div>
+                            ))
+                          ) : (
+                            <span style={{ color: COLORS.muted }}>اسحب المقررات إلى هنا</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
@@ -2215,7 +2376,6 @@ export default function App() {
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
-                          
                         </tr>
                       ))}
                     </tbody>
@@ -2310,7 +2470,7 @@ export default function App() {
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
                                   <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
-                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.invigilators.join("، ") || "-"}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2390,6 +2550,7 @@ export default function App() {
                             timeText: p.timeText,
                           })),
                         defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                        selectedDepartment: printDepartmentFilter,
                       })
                     }
                     style={cardButtonStyle({ active: true })}
@@ -2489,15 +2650,17 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={{
-                  marginTop: 14,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 16,
-                  padding: 12,
-                  background: "#F8FEFE",
-                  color: COLORS.muted,
-                  lineHeight: 1.8,
-                }}>
+                <div
+                  style={{
+                    marginTop: 14,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 16,
+                    padding: 12,
+                    background: "#F8FEFE",
+                    color: COLORS.muted,
+                    lineHeight: 1.8,
+                  }}
+                >
                   في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
                 </div>
 
