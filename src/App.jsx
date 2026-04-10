@@ -776,7 +776,7 @@ export default function App() {
     return d.toISOString().slice(0, 10);
   });
 
-  const [numberOfDays, setNumberOfDays] = useState(10);
+  const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
   const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
@@ -1477,7 +1477,7 @@ export default function App() {
                 src={LOGO_SRC}
                 alt="شعار المؤسسة العامة للتدريب التقني والمهني"
                 style={{
-                  width: 180,
+                  width: 150,
                   height: "auto",
                   objectFit: "contain",
                   display: "block",
