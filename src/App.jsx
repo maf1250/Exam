@@ -1703,7 +1703,8 @@ export default function App() {
                     marginTop: 12,
                     background: COLORS.primaryDark,
                     color: "#fff",
-                    padding: "8px 14px",
+                    width: 300px,
+                  padding: "8px 14px",
                     borderRadius: 999,
                   }}
                 >
