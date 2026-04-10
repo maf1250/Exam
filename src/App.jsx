@@ -389,13 +389,13 @@ function isGeneralStudiesCourse(course) {
     "فيزياء",
     "عربي",
     "لغة عربية",
+    "كتابة فنية",
     "السلوك الوظيفي",
     "أساسيات ريادة الأعمال",
-    "مهارات الاتصال",
     "مقدمة تطبيقات الحاسب",
     "اسلم",
     "ثقافة اسلامية",
-    "كتابة فنية",
+   
   ];
 
   return keywords.some((k) => text.includes(normalizeArabic(k)));
@@ -481,7 +481,7 @@ function printSchedulePdf({
           .page { width: 100%; }
           .top-head { margin-bottom: 8px; }
           .print-logo-wrap { text-align:center; margin-bottom:6px; }
-          .print-logo { width:78px; height:auto; object-fit:contain; }
+          .print-logo { width:120px; height:auto; object-fit:contain; }
           .college-line {
             text-align: center;
             font-weight: 700;
