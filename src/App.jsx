@@ -1634,7 +1634,7 @@ export default function App() {
                   min="1"
                   max="60"
                   value={numberOfDays}
-                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 10))}
+                  onChange={(e) => setNumberOfDays(safeNum(e.target.value, 8))}
                   style={fieldStyle()}
                 />
               </div>
