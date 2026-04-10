@@ -932,7 +932,7 @@ export default function App() {
   const [excludeInactive, setExcludeInactive] = useState(true);
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
-  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
+  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(3);
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
 
@@ -968,7 +968,8 @@ export default function App() {
         setUnscheduled([]);
         setExcludedCourses(defaultExcludedPractical);
         setPreviewPage(0);
-        setCurrentStep(2);
+        // يبقى المستخدم في صفحة الرفع بعد رفع الملف
+        setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
@@ -1106,6 +1107,11 @@ export default function App() {
 
         const priorityScore = studentWeight * 3 + lowOpportunityWeight * 3 + trainerWeight;
 
+        let priorityLabel = "منخفضة";
+        if (priorityScore >= 24) priorityLabel = "عالية جدًا";
+        else if (priorityScore >= 18) priorityLabel = "عالية";
+        else if (priorityScore >= 12) priorityLabel = "متوسطة";
+
         return {
           ...course,
           department,
@@ -1115,6 +1121,7 @@ export default function App() {
           studentCount,
           conflictDegree,
           priorityScore,
+          priorityLabel,
           sectionName,
         };
       })
@@ -1941,13 +1948,13 @@ export default function App() {
 
                     {invigilationMode === "fixed" ? (
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
+                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
                         <input
                           type="number"
                           min="1"
                           max="10"
                           value={invigilatorsPerPeriod}
-                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
+                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 3))}
                           style={fieldStyle()}
                         />
                       </div>
@@ -2164,7 +2171,7 @@ export default function App() {
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
                           <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800, color: COLORS.primaryDark }}>
-                            {course.priorityScore}
+                            {course.priorityLabel}
                           </td>
                         </tr>
                       ))}
