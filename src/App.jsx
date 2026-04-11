@@ -773,47 +773,53 @@ const extractedMajors = Array.from(
     )
   )
 ).sort((a, b) => a.localeCompare(b, "ar"));
-
 let departmentLabel = "";
+let majorLabel = "";
 
-if (selectedDepartment !== "__all__") {
-  departmentLabel = selectedDepartment;
+if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
+  departmentLabel = "جميع الأقسام";
+  majorLabel = "جميع التخصصات";
 } else {
-  // لو فيه أقسام غير الدراسات العامة
-  if (extractedDepartments.length) {
-    departmentLabel =
-      extractedDepartments.length === 1
-        ? extractedDepartments[0]
-        : extractedDepartments.join(" / ");
+  if (selectedDepartment !== "__all__") {
+    departmentLabel = selectedDepartment;
   } else {
-    // fallback: نأخذ من departmentRoots (التخصص الحقيقي)
-    const roots = Array.from(
-      new Set(
-        schedule.flatMap((item) =>
-          (item.departmentRoots || []).filter(
-            (r) => r !== normalizeArabic("الدراسات العامة")
+    if (extractedDepartments.length) {
+      departmentLabel =
+        extractedDepartments.length === 1
+          ? extractedDepartments[0]
+          : extractedDepartments.join(" / ");
+    } else {
+      const roots = Array.from(
+        new Set(
+          schedule.flatMap((item) =>
+            (item.departmentRoots || []).filter(
+              (r) => r !== normalizeArabic("الدراسات العامة")
+            )
           )
         )
-      )
-    );
+      );
 
-    departmentLabel =
-      roots.length === 1
-        ? roots[0]
-        : roots.length
-        ? roots.join(" / ")
-        : "جميع الأقسام";
+      departmentLabel =
+        roots.length === 1
+          ? roots[0]
+          : roots.length
+          ? roots.join(" / ")
+          : "جميع الأقسام";
+    }
+  }
+
+  if (selectedMajor !== "__all__") {
+    majorLabel = selectedMajor;
+  } else {
+    majorLabel =
+      extractedMajors.length === 1
+        ? extractedMajors[0]
+        : extractedMajors.length
+        ? extractedMajors.join(" / ")
+        : "جميع التخصصات";
   }
 }
 
-const majorLabel =
-  selectedMajor !== "__all__"
-    ? selectedMajor
-    : extractedMajors.length === 1
-    ? extractedMajors[0]
-    : extractedMajors.length
-    ? extractedMajors.join(" / ")
-    : "جميع التخصصات";
   
   const instructions = [
     "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
