@@ -1407,66 +1407,90 @@ invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
 invigilatorBusyPeriods.get(name).add(periodKey);
     });
   });
+const getMinInvigilatorLoad = () => {
+  const values = Array.from(invigilatorLoad.values());
+  return values.length ? Math.min(...values) : 0;
+};
 
+const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+  const load = invigilatorLoad.get(name) || 0;
+  const minLoad = getMinInvigilatorLoad();
+
+  // نعطي أفضلية بسيطة فقط، لكن لا نسمح بتضخم الفارق
+  const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+  const trainerBonus = preferTrainer ? -0.25 : 0;
+
+  return load + overloadPenalty + trainerBonus;
+};
   const pickInvigilators = (course, slot) => {
-    if (!includeInvigilators) return [];
+  if (!includeInvigilators) return [];
 
-const requiredCount = getRequiredInvigilatorsCount(course);
-const slotId = slot.id;
-const periodKey = getSlotPeriodKey(slot);
-const chosen = [];
+  const requiredCount = getRequiredInvigilatorsCount(course);
+  const periodKey = getSlotPeriodKey(slot);
+  const chosen = [];
 
-    const courseTrainerNames = course.trainerText
-      .split("/")
-      .map((name) => name.trim())
-      .filter(Boolean);
+  const courseTrainerNames = course.trainerText
+    .split("/")
+    .map((name) => name.trim())
+    .filter(Boolean);
 
-    // أولوية مدرب المقرر فقط إذا لم يكن مشغولًا أصلًا في نفس الفترة
-    if (preferCourseTrainerInvigilation) {
-      const trainerCandidates = courseTrainerNames
-        .filter((trainerName) =>
-          invigilatorPool.some((poolName) => normalizeArabic(poolName) === normalizeArabic(trainerName))
-        )
-        .map((trainerName) =>
-          invigilatorPool.find((poolName) => normalizeArabic(poolName) === normalizeArabic(trainerName))
-        )
-        .filter(Boolean)
-        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-        .filter((name) => !chosen.includes(name))
-        .sort(
-          (a, b) =>
-            (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-            a.localeCompare(b, "ar")
-        );
+  const normalizedTrainerSet = new Set(
+    courseTrainerNames.map((name) => normalizeArabic(name))
+  );
 
-      for (const trainerName of trainerCandidates) {
-        if (chosen.length >= requiredCount) break;
-        chosen.push(trainerName);
-      }
-    }
+  const availableCandidates = invigilatorPool.filter(
+    (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+  );
 
-    const remaining = invigilatorPool
-      .filter((name) => !chosen.includes(name))
-      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-      .sort(
-        (a, b) =>
-          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-          a.localeCompare(b, "ar")
-      );
+  const sortedCandidates = [...availableCandidates].sort((a, b) => {
+    const aIsTrainer = normalizedTrainerSet.has(normalizeArabic(a));
+    const bIsTrainer = normalizedTrainerSet.has(normalizeArabic(b));
 
-    for (const name of remaining) {
+    const aScore = rankInvigilatorForFairness(
+      a,
+      preferCourseTrainerInvigilation && aIsTrainer
+    );
+    const bScore = rankInvigilatorForFairness(
+      b,
+      preferCourseTrainerInvigilation && bIsTrainer
+    );
+
+    return aScore - bScore || a.localeCompare(b, "ar");
+  });
+
+  for (const name of sortedCandidates) {
+    if (chosen.length >= requiredCount) break;
+    if (chosen.includes(name)) continue;
+
+    const currentLoad = invigilatorLoad.get(name) || 0;
+    const minLoad = getMinInvigilatorLoad();
+
+    // لا نعطي شخصًا فترة جديدة إذا صار الفارق كبيرًا جدًا
+    if (currentLoad > minLoad + 1) continue;
+
+    chosen.push(name);
+  }
+
+  // لو لم يكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا
+  if (chosen.length < requiredCount) {
+    for (const name of sortedCandidates) {
       if (chosen.length >= requiredCount) break;
+      if (chosen.includes(name)) continue;
       chosen.push(name);
     }
+  }
 
-    chosen.forEach((name) => {
-if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
-invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-invigilatorBusyPeriods.get(name).add(periodKey);
-    });
+  chosen.forEach((name) => {
+    if (!invigilatorBusyPeriods.has(name)) {
+      invigilatorBusyPeriods.set(name, new Set());
+    }
 
-    return chosen;
-  };
+    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+    invigilatorBusyPeriods.get(name).add(periodKey);
+  });
+
+  return chosen;
+};
 
   const scoreSlot = (course, slot) => {
     let hardConflict = false;
