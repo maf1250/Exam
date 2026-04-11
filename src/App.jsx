@@ -1111,21 +1111,15 @@ export default function App() {
       const trainer = String(row["المدرب"] ?? "").trim();
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
-     if (studentId && department) {
+   if (studentId && department) {
   const dept = normalizeArabic(department);
+
   if (!studentDepartmentMap.has(studentId)) {
     studentDepartmentMap.set(studentId, new Set());
   }
+
   studentDepartmentMap.get(studentId).add(dept);
-
-  const dept = studentDepartmentMap.get(studentId);
-  if (dept) {
-    course.departmentRoots.add(dept);
-  }
 }
-const depts = studentDepartmentMap.get(studentId) || [];
-depts.forEach((d) => course.departmentRoots.add(d));
-
       const major = String(row["التخصص"] ?? "").trim();
       const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
       const sectionName = `${department || "-"} / ${major || "-"}`;
@@ -1154,7 +1148,8 @@ depts.forEach((d) => course.departmentRoots.add(d));
 }
 
       const course = courseMap.get(key);
-
+      const studentDepts = studentDepartmentMap.get(studentId) || new Set();
+      studentDepts.forEach((d) => course.departmentRoots.add(d));
       if (trainer) course.trainers.add(trainer);
       if (department) course.departments.add(department);
       if (major) course.majors.add(major);
@@ -1553,7 +1548,14 @@ const filteredScheduleForPrint = useMemo(() => {
 
   return schedule.filter((item) => {
     const roots = item.departmentRoots || [];
-    return roots.includes(target);
+   if (roots.includes(target)) return true;
+
+// دعم إضافي للدراسات العامة
+if (isGeneralStudiesCourse(item)) {
+  return roots.includes(target);
+}
+
+return false;
   });
 }, [schedule, printDepartmentFilter]);
 
