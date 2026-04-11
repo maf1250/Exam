@@ -2070,14 +2070,7 @@ const availableMajorsForPrint = useMemo(() => {
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
 
-  const stats = {
-    rows: rows.length,
-    students: parsed.studentsCount,
-    courses: parsed.courses.length,
-    generalCourses: generalCourses.length,
-    specializedCourses: specializedCourses.length,
-    invigilators: parsed.invigilators.length,
-  };
+
 const floatingBtn = ({ danger = false } = {}) => ({
   background: danger ? COLORS.danger : COLORS.primaryDark,
   color: "#fff",
@@ -2088,6 +2081,16 @@ const floatingBtn = ({ danger = false } = {}) => ({
   cursor: "pointer",
   boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
 });
+
+  const stats = {
+    rows: rows.length,
+    students: parsed.studentsCount,
+    courses: parsed.courses.length,
+    generalCourses: generalCourses.length,
+    specializedCourses: specializedCourses.length,
+    invigilators: parsed.invigilators.length,
+  };
+
   return (
     <div
       style={{
@@ -2104,37 +2107,40 @@ const floatingBtn = ({ danger = false } = {}) => ({
         onClose={() => setToast(null)}
         onRestore={restoreSavedSession}
       />
-<div
-  style={{
-    position: "fixed",
-    bottom: 20,
-    left: 20,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    zIndex: 9999,
-  }}
->
-  <button onClick={exportSavedSession} style={floatingBtn()}>
-    تصدير الجدول
-  </button>
 
-  <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
-    استيراد الجدول
-  </button>
 
-  <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
-    حذف البيانات المحلية
-  </button>
+      <div
+        style={{
+          position: "fixed",
+          bottom: 20,
+          left: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          zIndex: 9998,
+        }}
+      >
+        <button onClick={exportSavedSession} style={floatingBtn()}>
+          تصدير الجدول
+        </button>
 
-  <input
-    ref={importSessionRef}
-    type="file"
-    accept=".json,application/json"
-    style={{ display: "none" }}
-    onChange={(e) => importSavedSession(e.target.files?.[0])}
-  />
-</div>
+        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
+          استيراد الجدول
+        </button>
+
+        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
+          حذف البيانات المحلية
+        </button>
+
+        <input
+          ref={importSessionRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={(e) => importSavedSession(e.target.files?.[0])}
+        />
+      </div>
+
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
           style={{
@@ -2217,7 +2223,6 @@ const floatingBtn = ({ danger = false } = {}) => ({
             </StepButton>
           ))}
         </div>
-
         {currentStep === 1 && (
           <Card>
             <SectionHeader
