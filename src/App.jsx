@@ -400,6 +400,7 @@ function Toast({ item, onClose, onRestore }) {
         >
           إغلاق
         </button>
+        </div>
       </div>
     </div>
   );
@@ -1071,6 +1072,7 @@ function matchesSelectedMainDepartment(item, selectedDepartment) {
 
 export default function App() {
   const fileRef = useRef(null);
+  const topRef = useRef(null);
 
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
@@ -1085,7 +1087,7 @@ export default function App() {
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
-  const [pageVisible, setPageVisible] = useState(true);
+
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
@@ -1112,6 +1114,7 @@ export default function App() {
   const [unscheduled, setUnscheduled] = useState([]);
   const [pendingRestore, setPendingRestore] = useState(null);
   const [didRestore, setDidRestore] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
 
   const showToast = (title, description, type = "success") => {
     setToast({ title, description, type });
@@ -1180,19 +1183,7 @@ const restorePersistedState = (saved) => {
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
 };
-useEffect(() => {
-  setPageVisible(false);
 
-  const timer = setTimeout(() => {
-    topRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-    setPageVisible(true);
-  }, 120);
-
-  return () => clearTimeout(timer);
-}, [currentStep, previewTab]);
 useEffect(() => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1215,6 +1206,20 @@ useEffect(() => {
     setDidRestore(true);
   }
 }, []);
+
+useEffect(() => {
+  setPageVisible(false);
+
+  const timer = window.setTimeout(() => {
+    topRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    setPageVisible(true);
+  }, 120);
+
+  return () => window.clearTimeout(timer);
+}, [currentStep, previewTab]);
 
 useEffect(() => {
   if (!didRestore) return;
@@ -1256,12 +1261,7 @@ useEffect(() => {
   previewTab,
   previewPage,
 ]);
-useEffect(() => {
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth", // ممكن تشيلها لو تبي بدون حركة
-  });
-}, [currentStep]);
+
 const restoreSavedSession = () => {
   if (!pendingRestore) return;
 
@@ -2125,12 +2125,14 @@ const floatingBtn = ({ danger = false } = {}) => ({
         onRestore={restoreSavedSession}
       />
 
+      <div ref={topRef} />
+
 
       <div
         style={{
           position: "fixed",
           bottom: 20,
-          right: 20,
+          left: 20,
           display: "flex",
           flexDirection: "column",
           gap: 10,
@@ -2180,7 +2182,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
             <div style={{ flex: 1, minWidth: 260 }}>
               <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية لبناء جدول الاختبارات النهائية مخصصة للكليات التقنية في المملكة العربية السعودية.
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
               </div>
             </div>
 
@@ -2241,19 +2243,12 @@ const floatingBtn = ({ danger = false } = {}) => ({
           ))}
         </div>
         <div
-  style={{
-    opacity: pageVisible ? 1 : 0,
-    transform: pageVisible ? "translateY(0)" : "translateY(10px)",
-    transition: "opacity 220ms ease, transform 220ms ease",
-  }}
->
-  {currentStep === 1 && (...)}
-  {currentStep === 2 && (...)}
-  {currentStep === 3 && (...)}
-  {currentStep === 4 && (...)}
-  {currentStep === 5 && (...)}
-  {currentStep === 6 && (...)}
-</div>
+          style={{
+            opacity: pageVisible ? 1 : 0,
+            transform: pageVisible ? "translateY(0)" : "translateY(10px)",
+            transition: "opacity 220ms ease, transform 220ms ease",
+          }}
+        >
         {currentStep === 1 && (
           <Card>
             <SectionHeader
