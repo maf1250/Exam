@@ -50,7 +50,21 @@ const COLORS = {
 };
 
 const LOGO_SRC = "/tvtc-logo.png";
+function getSlotPeriodKey(itemOrSlot) {
+  return `${itemOrSlot.dateISO}__${itemOrSlot.period}`;
+}
 
+function getCourseDepartmentRoots(course) {
+  const values = [
+    ...splitBySlash(course.department),
+    ...splitBySlash(course.sectionName),
+    ...splitBySlash(course.major),
+  ];
+
+  return Array.from(
+    new Set(values.map((v) => normalizeArabic(v)).filter(Boolean))
+  );
+}
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
@@ -957,23 +971,9 @@ function matchesSelectedMainDepartment(item, selectedDepartment) {
   if (selectedDepartment === "__all__") return true;
 
   const target = normalizeArabic(selectedDepartment);
+  const roots = getCourseDepartmentRoots(item);
 
-  const departmentTokens = splitBySlash(item.department).map(normalizeArabic);
-  const sectionTokens = splitBySlash(item.sectionName).map(normalizeArabic);
-  const majorTokens = splitBySlash(item.major).map(normalizeArabic);
-
-  if (departmentTokens.includes(target) || sectionTokens.includes(target) || majorTokens.includes(target)) {
-    return true;
-  }
-
-  if (isGeneralStudiesCourse(item)) {
-    const fullText = normalizeArabic(
-      `${item.department} ${item.major} ${item.sectionName} ${item.courseName} ${item.courseCode}`
-    );
-    if (fullText.includes(target)) return true;
-  }
-
-  return false;
+  return roots.includes(target);
 }
 
 export default function App() {
@@ -1122,19 +1122,20 @@ export default function App() {
       if (studentId) studentSet.add(studentId);
       if (sectionName !== "- / -") sectionSet.add(sectionName);
 
-      if (!courseMap.has(key)) {
-        courseMap.set(key, {
-          key,
-          courseCode,
-          courseName,
-          trainers: new Set(),
-          departments: new Set(),
-          majors: new Set(),
-          sectionNames: new Set(),
-          scheduleTypes: new Set(),
-          students: new Set(),
-        });
-      }
+   if (!courseMap.has(key)) {
+  courseMap.set(key, {
+    key,
+    courseCode,
+    courseName,
+    trainers: new Set(),
+    departments: new Set(),
+    majors: new Set(),
+    sectionNames: new Set(),
+    scheduleTypes: new Set(),
+    students: new Set(),
+    departmentRoots: new Set(),
+  });
+}
 
       const course = courseMap.get(key);
 
@@ -1142,6 +1143,24 @@ export default function App() {
       if (department) course.departments.add(department);
       if (major) course.majors.add(major);
       if (sectionName !== "- / -") course.sectionNames.add(sectionName);
+      splitBySlash(department).forEach((value) => {
+  const clean = normalizeArabic(value);
+  if (clean && clean !== normalizeArabic("الدراسات العامة")) {
+    course.departmentRoots.add(clean);
+  }
+});
+
+splitBySlash(major).forEach((value) => {
+  const clean = normalizeArabic(value);
+  if (clean) course.departmentRoots.add(clean);
+});
+
+splitBySlash(sectionName).forEach((value) => {
+  const clean = normalizeArabic(value);
+  if (clean && clean !== normalizeArabic("-")) {
+    course.departmentRoots.add(clean);
+  }
+});
       if (scheduleType) course.scheduleTypes.add(scheduleType);
 
       if (studentId) {
@@ -1174,6 +1193,7 @@ export default function App() {
         studentCount: course.students.size,
         conflictDegree: conflictMap.get(course.key)?.size || 0,
         sectionName: Array.from(course.sectionNames).join(" / ") || "-",
+            departmentRoots: Array.from(course.departmentRoots),
       }))
       .filter((course) => !excludedCourses.includes(course.key))
       .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
@@ -1297,16 +1317,15 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   const studentDayMap = new Map();
   const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
-  const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
-
+  const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر الطالب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
   const notPlaced = [];
 
   basePlaced.forEach((item) => {
-    const slotId = item.id || `${item.dateISO}-${item.period}`;
-
+  const slotId = item.id || `${item.dateISO}-${item.period}`;
+const periodKey = getSlotPeriodKey(item);
     (item.students || []).forEach((studentId) => {
       if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
       studentSlotMap.get(studentId).add(slotId);
@@ -1323,19 +1342,20 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
 
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
-      if (!invigilatorBusySlots.has(name)) invigilatorBusySlots.set(name, new Set());
+if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
 
-      invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-      invigilatorBusySlots.get(name).add(slotId);
+invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+invigilatorBusyPeriods.get(name).add(periodKey);
     });
   });
 
   const pickInvigilators = (course, slot) => {
     if (!includeInvigilators) return [];
 
-    const requiredCount = getRequiredInvigilatorsCount(course);
-    const slotId = slot.id;
-    const chosen = [];
+const requiredCount = getRequiredInvigilatorsCount(course);
+const slotId = slot.id;
+const periodKey = getSlotPeriodKey(slot);
+const chosen = [];
 
     const courseTrainerNames = course.trainerText
       .split("/")
@@ -1352,7 +1372,7 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
           invigilatorPool.find((poolName) => normalizeArabic(poolName) === normalizeArabic(trainerName))
         )
         .filter(Boolean)
-        .filter((name) => !invigilatorBusySlots.get(name)?.has(slotId))
+        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
         .filter((name) => !chosen.includes(name))
         .sort(
           (a, b) =>
@@ -1368,7 +1388,7 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
 
     const remaining = invigilatorPool
       .filter((name) => !chosen.includes(name))
-      .filter((name) => !invigilatorBusySlots.get(name)?.has(slotId))
+      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
       .sort(
         (a, b) =>
           (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
@@ -1381,9 +1401,9 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
     }
 
     chosen.forEach((name) => {
-      if (!invigilatorBusySlots.has(name)) invigilatorBusySlots.set(name, new Set());
-      invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-      invigilatorBusySlots.get(name).add(slotId);
+if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
+invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+invigilatorBusyPeriods.get(name).add(periodKey);
     });
 
     return chosen;
@@ -1510,14 +1530,24 @@ const generateSpecializedSchedule = () => {
   setCurrentStep(6);
 };
 
-  const filteredScheduleForPrint = useMemo(() => {
-    return schedule.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
-  }, [schedule, printDepartmentFilter]);
+const filteredScheduleForPrint = useMemo(() => {
+  if (printDepartmentFilter === "__all__") return schedule;
 
-  const filteredSortedCourses = useMemo(() => {
-    if (printDepartmentFilter === "__all__") return parsed.courses;
-    return parsed.courses.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
-  }, [parsed.courses, printDepartmentFilter]);
+  const target = normalizeArabic(printDepartmentFilter);
+
+  return schedule.filter((item) => {
+    const roots = item.departmentRoots || [];
+    return roots.includes(target);
+  });
+}, [schedule, printDepartmentFilter]);
+
+const filteredSortedCourses = useMemo(() => {
+  if (printDepartmentFilter === "__all__") return parsed.courses;
+  return parsed.courses.filter((item) => {
+    const roots = item.departmentRoots || [];
+    return roots.includes(normalizeArabic(printDepartmentFilter));
+  });
+}, [parsed.courses, printDepartmentFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
