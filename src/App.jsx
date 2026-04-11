@@ -2095,7 +2095,29 @@ const availableMajorsForPrint = useMemo(() => {
         onClose={() => setToast(null)}
         onRestore={restoreSavedSession}
       />
+<div
+  style={{
+    position: "fixed",
+    bottom: 20,
+    left: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    zIndex: 9999,
+  }}
+>
+  <button onClick={exportSavedSession} style={floatingBtn()}>
+    تصدير الجدول
+  </button>
 
+  <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
+   استيراد الجدول
+  </button>
+
+  <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
+    حذف البيانات المحلية
+  </button>
+</div>
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
           style={{
@@ -2178,35 +2200,7 @@ const availableMajorsForPrint = useMemo(() => {
             </StepButton>
           ))}
         </div>
-<div
-  style={{
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    alignItems: "center",
-    marginBottom: 20,
-  }}
->
-  <button onClick={exportSavedSession} style={cardButtonStyle()}>
-    تصدير الجدول
-  </button>
 
-  <button onClick={() => importSessionRef.current?.click()} style={cardButtonStyle()}>
-    استيراد الجدول
-  </button>
-
-  <button onClick={clearSavedState} style={cardButtonStyle({ danger: true })}>
-    حذف الحفظ
-  </button>
-
-  <input
-    ref={importSessionRef}
-    type="file"
-    accept=".json,application/json"
-    style={{ display: "none" }}
-    onChange={(e) => importSavedSession(e.target.files?.[0])}
-  />
-</div>
         {currentStep === 1 && (
           <Card>
             <SectionHeader
