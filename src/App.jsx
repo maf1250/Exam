@@ -2078,7 +2078,16 @@ const availableMajorsForPrint = useMemo(() => {
     specializedCourses: specializedCourses.length,
     invigilators: parsed.invigilators.length,
   };
-
+const floatingBtn = ({ danger = false } = {}) => ({
+  background: danger ? COLORS.danger : COLORS.primaryDark,
+  color: "#fff",
+  border: "none",
+  borderRadius: 999,
+  padding: "10px 14px",
+  fontWeight: 800,
+  cursor: "pointer",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+});
   return (
     <div
       style={{
@@ -2111,12 +2120,20 @@ const availableMajorsForPrint = useMemo(() => {
   </button>
 
   <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
-   استيراد الجدول
+    استيراد الجدول
   </button>
 
   <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
     حذف البيانات المحلية
   </button>
+
+  <input
+    ref={importSessionRef}
+    type="file"
+    accept=".json,application/json"
+    style={{ display: "none" }}
+    onChange={(e) => importSavedSession(e.target.files?.[0])}
+  />
 </div>
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
