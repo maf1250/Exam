@@ -1493,13 +1493,13 @@ invigilatorBusyPeriods.get(name).add(periodKey);
     else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
 
     slotCoursesMap.get(bestSlot.id).push(course.key);
-
-    newPlaced.push({
-      ...course,
-      ...bestSlot,
-      examHall: assignedHall,
-      invigilators: pickInvigilators(course, bestSlot),
-    });
+newPlaced.push({
+  ...course,
+  ...bestSlot,
+  departmentRoots: course.departmentRoots || [],
+  examHall: assignedHall,
+  invigilators: pickInvigilators(course, bestSlot),
+});
   });
 
   newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
