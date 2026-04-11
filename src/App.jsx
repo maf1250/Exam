@@ -1,6 +1,169 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
+const STORAGE_KEY = "exam_scheduler_saved_state_v1";
+const fileRef = useRef(null);
+const buildPersistedState = () => ({
+  rows,
+  fileName,
+  currentStep,
+  startDate,
+  numberOfDays,
+  selectedDays,
+  periodsText,
+  examHallsText,
+  includeInvigilators,
+  excludedInvigilators,
+  excludeInactive,
+  prioritizeTrainer,
+  manualInvigilators,
+  invigilatorsPerPeriod,
+  invigilationMode,
+  studentsPerInvigilator,
+  excludedCourses,
+  printDepartmentFilter,
+  printMajorFilter,
+  avoidSameLevelSameDay,
+  courseLevels,
+  preferCourseTrainerInvigilation,
+  generalSchedule,
+  specializedSchedule,
+  schedule,
+  unscheduled,
+  previewTab,
+  previewPage,
+});
+useEffect(() => {
+  const data = buildPersistedState();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}, [
+  rows,
+  fileName,
+  currentStep,
+  startDate,
+  numberOfDays,
+  selectedDays,
+  periodsText,
+  examHallsText,
+  includeInvigilators,
+  excludedInvigilators,
+  excludeInactive,
+  prioritizeTrainer,
+  manualInvigilators,
+  invigilatorsPerPeriod,
+  invigilationMode,
+  studentsPerInvigilator,
+  excludedCourses,
+  printDepartmentFilter,
+  printMajorFilter,
+  avoidSameLevelSameDay,
+  courseLevels,
+  preferCourseTrainerInvigilation,
+  generalSchedule,
+  specializedSchedule,
+  schedule,
+  unscheduled,
+  previewTab,
+  previewPage,
+]);
+useEffect(() => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
 
+    const saved = JSON.parse(raw);
+
+    setRows(saved.rows || []);
+    setFileName(saved.fileName || "");
+    setCurrentStep(saved.currentStep || 1);
+    setStartDate(saved.startDate || "");
+    setNumberOfDays(saved.numberOfDays || 8);
+    setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+    setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
+    setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
+    setIncludeInvigilators(saved.includeInvigilators ?? true);
+    setExcludedInvigilators(saved.excludedInvigilators || []);
+    setExcludeInactive(saved.excludeInactive ?? true);
+    setPrioritizeTrainer(saved.prioritizeTrainer || "");
+    setManualInvigilators(saved.manualInvigilators || "");
+    setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
+    setInvigilationMode(saved.invigilationMode || "ratio");
+    setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
+    setExcludedCourses(saved.excludedCourses || []);
+    setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
+    setPrintMajorFilter(saved.printMajorFilter || "__all__");
+    setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
+    setCourseLevels(saved.courseLevels || {});
+    setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
+    setGeneralSchedule(saved.generalSchedule || []);
+    setSpecializedSchedule(saved.specializedSchedule || []);
+    setSchedule(saved.schedule || []);
+    setUnscheduled(saved.unscheduled || []);
+    setPreviewTab(saved.previewTab || "sortedCourses");
+    setPreviewPage(saved.previewPage || 0);
+  } catch (error) {
+    console.error("Failed to restore saved state:", error);
+  }
+}, []);
+const clearSavedState = () => {
+  localStorage.removeItem(STORAGE_KEY);
+  showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
+};
+const exportSavedSession = () => {
+  const data = buildPersistedState();
+  downloadFile(
+    `exam-session-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.json`,
+    JSON.stringify(data, null, 2),
+    "application/json;charset=utf-8"
+  );
+  showToast("تم التصدير", "تم تنزيل ملف الجلسة بنجاح.", "success");
+};
+const importSessionRef = useRef(null);
+const importSavedSession = (file) => {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const saved = JSON.parse(e.target.result);
+
+      setRows(saved.rows || []);
+      setFileName(saved.fileName || "");
+      setCurrentStep(saved.currentStep || 1);
+      setStartDate(saved.startDate || "");
+      setNumberOfDays(saved.numberOfDays || 8);
+      setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+      setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
+      setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
+      setIncludeInvigilators(saved.includeInvigilators ?? true);
+      setExcludedInvigilators(saved.excludedInvigilators || []);
+      setExcludeInactive(saved.excludeInactive ?? true);
+      setPrioritizeTrainer(saved.prioritizeTrainer || "");
+      setManualInvigilators(saved.manualInvigilators || "");
+      setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
+      setInvigilationMode(saved.invigilationMode || "ratio");
+      setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
+      setExcludedCourses(saved.excludedCourses || []);
+      setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
+      setPrintMajorFilter(saved.printMajorFilter || "__all__");
+      setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
+      setCourseLevels(saved.courseLevels || {});
+      setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
+      setGeneralSchedule(saved.generalSchedule || []);
+      setSpecializedSchedule(saved.specializedSchedule || []);
+      setSchedule(saved.schedule || []);
+      setUnscheduled(saved.unscheduled || []);
+      setPreviewTab(saved.previewTab || "sortedCourses");
+      setPreviewPage(saved.previewPage || 0);
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
+    } catch (error) {
+      showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
+    }
+  };
+
+  reader.readAsText(file, "utf-8");
+};
 const REQUIRED_COLUMNS = [
   "المقرر",
   "اسم المقرر",
@@ -1985,7 +2148,35 @@ const availableMajorsForPrint = useMemo(() => {
             </StepButton>
           ))}
         </div>
+<div
+  style={{
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginBottom: 20,
+  }}
+>
+  <button onClick={exportSavedSession} style={cardButtonStyle()}>
+    تصدير الجدول
+  </button>
 
+  <button onClick={() => importSessionRef.current?.click()} style={cardButtonStyle()}>
+    استيراد الجدول
+  </button>
+
+  <button onClick={clearSavedState} style={cardButtonStyle({ danger: true })}>
+    حذف الحفظ
+  </button>
+
+  <input
+    ref={importSessionRef}
+    type="file"
+    accept=".json,application/json"
+    style={{ display: "none" }}
+    onChange={(e) => importSavedSession(e.target.files?.[0])}
+  />
+</div>
         {currentStep === 1 && (
           <Card>
             <SectionHeader
