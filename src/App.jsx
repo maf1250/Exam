@@ -402,7 +402,7 @@ function Toast({ item, onClose, onRestore }) {
         </button>
         </div>
       </div>
-    </div>
+   
   );
 }
 
