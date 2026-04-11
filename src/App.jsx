@@ -1085,7 +1085,7 @@ export default function App() {
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
-
+  const [pageVisible, setPageVisible] = useState(true);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
@@ -1180,7 +1180,19 @@ const restorePersistedState = (saved) => {
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
 };
+useEffect(() => {
+  setPageVisible(false);
 
+  const timer = setTimeout(() => {
+    topRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    setPageVisible(true);
+  }, 120);
+
+  return () => clearTimeout(timer);
+}, [currentStep, previewTab]);
 useEffect(() => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -2228,6 +2240,20 @@ const floatingBtn = ({ danger = false } = {}) => ({
             </StepButton>
           ))}
         </div>
+        <div
+  style={{
+    opacity: pageVisible ? 1 : 0,
+    transform: pageVisible ? "translateY(0)" : "translateY(10px)",
+    transition: "opacity 220ms ease, transform 220ms ease",
+  }}
+>
+  {currentStep === 1 && (...)}
+  {currentStep === 2 && (...)}
+  {currentStep === 3 && (...)}
+  {currentStep === 4 && (...)}
+  {currentStep === 5 && (...)}
+  {currentStep === 6 && (...)}
+</div>
         {currentStep === 1 && (
           <Card>
             <SectionHeader
