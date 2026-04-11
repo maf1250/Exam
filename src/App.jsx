@@ -1116,11 +1116,15 @@ export default function App() {
   const [didRestore, setDidRestore] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
 
-  const showToast = (title, description, type = "success") => {
-    setToast({ title, description, type });
-    window.clearTimeout(window.__examToastTimer);
-    window.__examToastTimer = window.setTimeout(() => setToast(null), 3500);
-  };
+const showToast = (title, description, type = "success") => {
+  setToast({ title, description, type });
+  const duration =
+    type === "error" ? 7000 :
+    type === "warning" ? 6000 :
+    4000;
+  window.clearTimeout(window.__examToastTimer);
+  window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
+};
 
 const buildPersistedState = () => ({
   rows,
@@ -2132,7 +2136,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
         style={{
           position: "fixed",
           bottom: 20,
-          left: 20,
+          right: 20,
           display: "flex",
           flexDirection: "column",
           gap: 10,
@@ -2182,7 +2186,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
             <div style={{ flex: 1, minWidth: 260 }}>
               <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
               </div>
             </div>
 
@@ -2442,7 +2446,7 @@ style={{
           <Card>
             <SectionHeader
               title="الصفحة الثانية: تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الوقوع في نفس اليوم."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الجدولة في نفس اليوم."
             />
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
@@ -2512,7 +2516,7 @@ style={{
               >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>تحديد مستويات المقررات</div>
                 <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
-                  اسحب المقرر إلى مربع المستوى المناسب. ويمكنك أيضًا إعادة المقرر إلى قائمة المقررات غير المصنفة.
+                  اسحب المقرر إلى مربع المستوى المناسب في الأسفل. ويمكنك أيضًا إعادة المقرر إلى قائمة المقررات غير المصنفة.
                 </div>
 
                 <div
@@ -3001,7 +3005,7 @@ style={{
                   }}
                 >
                   عند اختيار قسم رئيسي محدد، ستتم فلترة المعاينة والطباعة والتصدير وفق هذا القسم،
-                  مع محاولة ضم مقررات الدراسات العامة المرتبطة به.
+                  مع ضم مقررات الدراسات العامة المرتبطة به.
                 </div>
 
                 {previewTab === "print" ? (
