@@ -358,7 +358,7 @@ function Toast({ item, onClose, onRestore }) {
       style={{
         position: "fixed",
         top: 20,
-        left: 20,
+        right: 20,
         zIndex: 9999,
         width: "min(380px, calc(100vw - 32px))",
         background: bg,
