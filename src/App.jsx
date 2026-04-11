@@ -1986,7 +1986,7 @@ const availableMajorsForPrint = useMemo(() => {
                 handleUpload(e.dataTransfer.files?.[0]);
               }}
 style={{
-  height: 70,          
+  height: 75,          
   borderRadius: 20,    
   border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
   background: dragActive ? COLORS.primaryLight : "#FCFFFF",
@@ -2006,8 +2006,8 @@ style={{
                 style={{ display: "none" }}
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-              <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>اسحب الملف هنا أو اضغط للاختيار</div>
-              <div style={{ marginTop: 4, fontSize: 13, color: COLORS.muted }}>CSV فقط</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>اسحب التقرير هنا أو اضغط للاختيار</div>
+              <div style={{ marginTop: 4, fontSize: 11, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
                 <div
                   style={{
@@ -2069,7 +2069,7 @@ style={{
               </div>
 
               <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب لديه ظروف خاصة</div>
                 <input
                   value={prioritizeTrainer}
                   onChange={(e) => setPrioritizeTrainer(e.target.value)}
