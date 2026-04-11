@@ -2113,7 +2113,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
         style={{
           position: "fixed",
           bottom: 20,
-          left: 20,
+          right: 20,
           display: "flex",
           flexDirection: "column",
           gap: 10,
