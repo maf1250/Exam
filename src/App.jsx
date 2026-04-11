@@ -1148,8 +1148,6 @@ export default function App() {
 }
 
       const course = courseMap.get(key);
-      const studentDepts = studentDepartmentMap.get(studentId) || new Set();
-      studentDepts.forEach((d) => course.departmentRoots.add(d));
       if (trainer) course.trainers.add(trainer);
       if (department) course.departments.add(department);
       if (major) course.majors.add(major);
@@ -1193,7 +1191,13 @@ splitBySlash(sectionName).forEach((value) => {
         }
       }
     });
-
+// ربط الأقسام بالمقررات بعد اكتمال البيانات
+courseMap.forEach((course) => {
+  course.students.forEach((studentId) => {
+    const studentDepts = studentDepartmentMap.get(studentId) || new Set();
+    studentDepts.forEach((d) => course.departmentRoots.add(d));
+  });
+});
     const courses = Array.from(courseMap.values())
       .map((course) => ({
         ...course,
@@ -1552,8 +1556,7 @@ const filteredScheduleForPrint = useMemo(() => {
 
 // دعم إضافي للدراسات العامة
 if (isGeneralStudiesCourse(item)) {
-  return roots.includes(target);
-}
+return roots.some((r) => r.includes(target));}
 
 return false;
   });
