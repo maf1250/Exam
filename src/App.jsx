@@ -774,14 +774,37 @@ const extractedMajors = Array.from(
   )
 ).sort((a, b) => a.localeCompare(b, "ar"));
 
-const departmentLabel =
-  selectedDepartment !== "__all__"
-    ? selectedDepartment
-    : extractedDepartments.length === 1
-    ? extractedDepartments[0]
-    : extractedDepartments.length
-    ? extractedDepartments.join(" / ")
-    : "جميع الأقسام";
+let departmentLabel = "";
+
+if (selectedDepartment !== "__all__") {
+  departmentLabel = selectedDepartment;
+} else {
+  // لو فيه أقسام غير الدراسات العامة
+  if (extractedDepartments.length) {
+    departmentLabel =
+      extractedDepartments.length === 1
+        ? extractedDepartments[0]
+        : extractedDepartments.join(" / ");
+  } else {
+    // fallback: نأخذ من departmentRoots (التخصص الحقيقي)
+    const roots = Array.from(
+      new Set(
+        schedule.flatMap((item) =>
+          (item.departmentRoots || []).filter(
+            (r) => r !== normalizeArabic("الدراسات العامة")
+          )
+        )
+      )
+    );
+
+    departmentLabel =
+      roots.length === 1
+        ? roots[0]
+        : roots.length
+        ? roots.join(" / ")
+        : "جميع الأقسام";
+  }
+}
 
 const majorLabel =
   selectedMajor !== "__all__"
