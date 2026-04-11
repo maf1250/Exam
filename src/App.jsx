@@ -1436,10 +1436,6 @@ invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
 invigilatorBusyPeriods.get(name).add(periodKey);
     });
   });
-const getMinInvigilatorLoad = () => {
-  const values = Array.from(invigilatorLoad.values());
-  return values.length ? Math.min(...values) : 0;
-};
 
 const rankInvigilatorForFairness = (name, preferTrainer = false) => {
   const load = invigilatorLoad.get(name) || 0;
@@ -1451,7 +1447,12 @@ const rankInvigilatorForFairness = (name, preferTrainer = false) => {
 
   return load + overloadPenalty + trainerBonus;
 };
-  const pickInvigilators = (course, slot) => {
+ const getMinInvigilatorLoad = () => {
+  const values = Array.from(invigilatorLoad.values());
+  return values.length ? Math.min(...values) : 0;
+};
+
+const pickInvigilators = (course, slot) => {
   if (!includeInvigilators) return [];
 
   const requiredCount = getRequiredInvigilatorsCount(course);
@@ -1467,48 +1468,56 @@ const rankInvigilatorForFairness = (name, preferTrainer = false) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
-  const availableCandidates = invigilatorPool.filter(
-    (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
-  );
+  // 1) نضيف مدرب المقرر أولًا إذا كان متاحًا
+  if (preferCourseTrainerInvigilation) {
+    const trainerCandidates = invigilatorPool
+      .filter((name) => normalizedTrainerSet.has(normalizeArabic(name)))
+      .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
+      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+      .sort(
+        (a, b) =>
+          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+          a.localeCompare(b, "ar")
+      );
 
-  const sortedCandidates = [...availableCandidates].sort((a, b) => {
-    const aIsTrainer = normalizedTrainerSet.has(normalizeArabic(a));
-    const bIsTrainer = normalizedTrainerSet.has(normalizeArabic(b));
+    if (trainerCandidates.length) {
+      const trainerName = trainerCandidates[0];
+      chosen.push(trainerName);
+    }
+  }
 
-    const aScore = rankInvigilatorForFairness(
-      a,
-      preferCourseTrainerInvigilation && aIsTrainer
+  // 2) نكمل بقية العدد من الأقل حملًا
+  const availableOthers = invigilatorPool
+    .filter((name) => !chosen.includes(name))
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .sort(
+      (a, b) =>
+        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+        a.localeCompare(b, "ar")
     );
-    const bScore = rankInvigilatorForFairness(
-      b,
-      preferCourseTrainerInvigilation && bIsTrainer
-    );
 
-    return aScore - bScore || a.localeCompare(b, "ar");
-  });
-
-  for (const name of sortedCandidates) {
+  for (const name of availableOthers) {
     if (chosen.length >= requiredCount) break;
-    if (chosen.includes(name)) continue;
 
     const currentLoad = invigilatorLoad.get(name) || 0;
     const minLoad = getMinInvigilatorLoad();
 
-    // لا نعطي شخصًا فترة جديدة إذا صار الفارق كبيرًا جدًا
-    if (currentLoad > minLoad + 1) continue;
+    // لا نسمح بفارق كبير في العدالة إلا عند الضرورة
+   if (currentLoad > minLoad + 1 && chosen.length > 0) continue;
 
     chosen.push(name);
   }
 
-  // لو لم يكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا
+  // 3) إذا ما اكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا مهما كان
   if (chosen.length < requiredCount) {
-    for (const name of sortedCandidates) {
+    for (const name of availableOthers) {
       if (chosen.length >= requiredCount) break;
       if (chosen.includes(name)) continue;
       chosen.push(name);
     }
   }
 
+  // 4) تحديث الأحمال والانشغال
   chosen.forEach((name) => {
     if (!invigilatorBusyPeriods.has(name)) {
       invigilatorBusyPeriods.set(name, new Set());
@@ -1563,7 +1572,18 @@ const rankInvigilatorForFairness = (name, preferTrainer = false) => {
     return score;
   };
 
-  coursesList.forEach((course) => {
+  const sortedCoursesForInvigilation = [...coursesList].sort((a, b) => {
+  const aNeed = getRequiredInvigilatorsCount(a);
+  const bNeed = getRequiredInvigilatorsCount(b);
+
+  return (
+    bNeed - aNeed ||
+    b.studentCount - a.studentCount ||
+    b.conflictDegree - a.conflictDegree
+  );
+});
+
+sortedCoursesForInvigilation.forEach((course) => {
     let bestSlot = null;
     let bestScore = Number.POSITIVE_INFINITY;
 
