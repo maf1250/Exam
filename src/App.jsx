@@ -402,7 +402,7 @@ function Toast({ item, onClose, onRestore }) {
         </button>
         </div>
       </div>
-    </div>
+   
   );
 }
 
@@ -3367,5 +3367,6 @@ printScheduleOnlyPdf({
         )}
       </div>
     </div>
+       </div>
   );
 }
