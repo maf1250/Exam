@@ -1258,218 +1258,257 @@ export default function App() {
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
   };
 
-  const generateScheduleForCourses = (coursesList) => {
-    if (!rows.length) {
-      showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
-      return [];
+const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
+  if (!rows.length) {
+    showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
+    return [];
+  }
+
+  if (parsed.missingColumns.length) {
+    showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
+    return [];
+  }
+
+  if (invalidPeriods.length) {
+    showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
+    return [];
+  }
+
+  if (!slots.length) {
+    showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
+    return [];
+  }
+
+  const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
+
+  const baseInvigilators = manualInvigilators
+    ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+    : parsed.invigilators;
+
+  const invigilatorPool = [
+    ...new Set(
+      baseInvigilators.filter(
+        (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
+      )
+    ),
+  ];
+
+  const studentSlotMap = new Map();
+  const studentDayMap = new Map();
+  const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
+  const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
+  const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
+
+  // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر الطالب في نفس الفترة
+  const basePlaced = [...existingScheduled];
+  const newPlaced = [];
+  const notPlaced = [];
+
+  basePlaced.forEach((item) => {
+    const slotId = item.id || `${item.dateISO}-${item.period}`;
+
+    (item.students || []).forEach((studentId) => {
+      if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
+      studentSlotMap.get(studentId).add(slotId);
+
+      if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
+      const dayMap = studentDayMap.get(studentId);
+      dayMap.set(item.dateISO, (dayMap.get(item.dateISO) || 0) + 1);
+    });
+
+    if (!slotCoursesMap.has(slotId)) {
+      slotCoursesMap.set(slotId, []);
     }
+    slotCoursesMap.get(slotId).push(item.key);
 
-    if (parsed.missingColumns.length) {
-      showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
-      return [];
-    }
+    (item.invigilators || []).forEach((name) => {
+      if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
+      if (!invigilatorBusySlots.has(name)) invigilatorBusySlots.set(name, new Set());
 
-    if (invalidPeriods.length) {
-      showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
-      return [];
-    }
+      invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+      invigilatorBusySlots.get(name).add(slotId);
+    });
+  });
 
-    if (!slots.length) {
-      showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
-      return [];
-    }
+  const pickInvigilators = (course, slot) => {
+    if (!includeInvigilators) return [];
 
-    const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
+    const requiredCount = getRequiredInvigilatorsCount(course);
+    const slotId = slot.id;
+    const chosen = [];
 
-    const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
-      : parsed.invigilators;
+    const courseTrainerNames = course.trainerText
+      .split("/")
+      .map((name) => name.trim())
+      .filter(Boolean);
 
-    const invigilatorPool = [
-      ...new Set(
-        baseInvigilators.filter(
-          (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
+    // أولوية مدرب المقرر فقط إذا لم يكن مشغولًا أصلًا في نفس الفترة
+    if (preferCourseTrainerInvigilation) {
+      const trainerCandidates = courseTrainerNames
+        .filter((trainerName) =>
+          invigilatorPool.some((poolName) => normalizeArabic(poolName) === normalizeArabic(trainerName))
         )
-      ),
-    ];
-
-    const studentSlotMap = new Map();
-    const studentDayMap = new Map();
-    const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
-    const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
-    const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
-
-    const placed = [];
-    const notPlaced = [];
-
-    const pickInvigilators = (course, slot) => {
-      if (!includeInvigilators) return [];
-
-      const requiredCount = getRequiredInvigilatorsCount(course);
-
-      const courseTrainerNames = course.trainerText
-        .split("/")
-        .map((name) => normalizeArabic(name.trim()))
-        .filter(Boolean);
-
-      const chosen = [];
-
-      if (preferCourseTrainerInvigilation) {
-        const trainerCandidates = invigilatorPool
-          .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
-          .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
-          .sort(
-            (a, b) =>
-              (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-              a.localeCompare(b, "ar")
-          );
-
-        for (const trainerName of trainerCandidates) {
-          if (chosen.length >= requiredCount) break;
-          chosen.push(trainerName);
-        }
-      }
-
-      const remaining = invigilatorPool
+        .map((trainerName) =>
+          invigilatorPool.find((poolName) => normalizeArabic(poolName) === normalizeArabic(trainerName))
+        )
+        .filter(Boolean)
+        .filter((name) => !invigilatorBusySlots.get(name)?.has(slotId))
         .filter((name) => !chosen.includes(name))
-        .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
         .sort(
           (a, b) =>
             (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
             a.localeCompare(b, "ar")
         );
 
-      for (const name of remaining) {
+      for (const trainerName of trainerCandidates) {
         if (chosen.length >= requiredCount) break;
-        chosen.push(name);
+        chosen.push(trainerName);
       }
+    }
 
-      chosen.forEach((name) => {
-        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-        invigilatorBusySlots.get(name).add(slot.id);
-      });
-
-      return chosen;
-    };
-
-    const scoreSlot = (course, slot) => {
-      let hardConflict = false;
-      let sameDayPenalty = 0;
-      const courseLevel = courseLevels[course.key] || "";
-      const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
-
-      course.students.forEach((studentId) => {
-        const usedSlots = studentSlotMap.get(studentId) || new Set();
-        if (usedSlots.has(slot.id)) hardConflict = true;
-
-        const dayMap = studentDayMap.get(studentId) || new Map();
-        const sameDayCount = dayMap.get(slot.dateISO) || 0;
-
-        if (sameDayCount >= 2) hardConflict = true;
-        if (sameDayCount === 1) sameDayPenalty += 4;
-      });
-
-      if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
-        const sameDateSameLevelExists = placed.some(
-          (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
-        );
-        if (sameDateSameLevelExists) hardConflict = true;
-      }
-
-      if (hardConflict) return Number.POSITIVE_INFINITY;
-
-      let score = slotLoadPenalty + sameDayPenalty;
-
-      if (course.conflictDegree > 10 && slot.period > 1) score += 1;
-
-      if (prioritizeTrainer.trim()) {
-        const normalizedTargetTrainer = normalizeArabic(prioritizeTrainer);
-        const hasPriorityTrainer = course.trainerText
-          .split("/")
-          .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
-
-        if (hasPriorityTrainer) score -= 3;
-      }
-
-      return score;
-    };
-
-    coursesList.forEach((course) => {
-      let bestSlot = null;
-      let bestScore = Number.POSITIVE_INFINITY;
-
-      slots.forEach((slot) => {
-        const score = scoreSlot(course, slot);
-        if (score < bestScore) {
-          bestScore = score;
-          bestSlot = slot;
-        }
-      });
-
-      if (!bestSlot || !Number.isFinite(bestScore)) {
-        notPlaced.push(course);
-        return;
-      }
-
-      course.students.forEach((studentId) => {
-        if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
-        studentSlotMap.get(studentId).add(bestSlot.id);
-
-        if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
-        const dayMap = studentDayMap.get(studentId);
-        dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
-      });
-
-      const usedHallNamesInSlot = placed.filter((item) => item.id === bestSlot.id).map((item) => item.examHall);
-
-      const fittingHalls = hallsPool.filter(
-        (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
+    const remaining = invigilatorPool
+      .filter((name) => !chosen.includes(name))
+      .filter((name) => !invigilatorBusySlots.get(name)?.has(slotId))
+      .sort(
+        (a, b) =>
+          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+          a.localeCompare(b, "ar")
       );
 
-      const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
+    for (const name of remaining) {
+      if (chosen.length >= requiredCount) break;
+      chosen.push(name);
+    }
 
-      let assignedHall = null;
-      if (fittingHalls.length) assignedHall = fittingHalls[0].name;
-      else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
-      else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
-
-      slotCoursesMap.get(bestSlot.id).push(course.key);
-
-      placed.push({
-        ...course,
-        ...bestSlot,
-        examHall: assignedHall,
-        invigilators: pickInvigilators(course, bestSlot),
-      });
+    chosen.forEach((name) => {
+      if (!invigilatorBusySlots.has(name)) invigilatorBusySlots.set(name, new Set());
+      invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+      invigilatorBusySlots.get(name).add(slotId);
     });
 
-    placed.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
-
-    setUnscheduled(notPlaced);
-    setPreviewPage(0);
-    return placed;
+    return chosen;
   };
 
-  const generateGeneralSchedule = () => {
-    const placed = generateScheduleForCourses(generalCourses);
-    setGeneralSchedule(placed);
-    showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
-    setCurrentStep(5);
+  const scoreSlot = (course, slot) => {
+    let hardConflict = false;
+    let sameDayPenalty = 0;
+    const courseLevel = courseLevels[course.key] || "";
+    const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
+
+    course.students.forEach((studentId) => {
+      const usedSlots = studentSlotMap.get(studentId) || new Set();
+      if (usedSlots.has(slot.id)) hardConflict = true;
+
+      const dayMap = studentDayMap.get(studentId) || new Map();
+      const sameDayCount = dayMap.get(slot.dateISO) || 0;
+
+      if (sameDayCount >= 2) hardConflict = true;
+      if (sameDayCount === 1) sameDayPenalty += 4;
+    });
+
+    if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
+      const sameDateSameLevelExists = [...basePlaced, ...newPlaced].some(
+        (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
+      );
+      if (sameDateSameLevelExists) hardConflict = true;
+    }
+
+    if (hardConflict) return Number.POSITIVE_INFINITY;
+
+    let score = slotLoadPenalty + sameDayPenalty;
+
+    if (course.conflictDegree > 10 && slot.period > 1) score += 1;
+
+    if (prioritizeTrainer.trim()) {
+      const normalizedTargetTrainer = normalizeArabic(prioritizeTrainer);
+      const hasPriorityTrainer = course.trainerText
+        .split("/")
+        .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
+
+      if (hasPriorityTrainer) score -= 3;
+    }
+
+    return score;
   };
 
-  const generateSpecializedSchedule = () => {
-    const placed = generateScheduleForCourses(specializedCourses);
-    setSpecializedSchedule(placed);
-    setPreviewTab("sortedCourses");
+  coursesList.forEach((course) => {
+    let bestSlot = null;
+    let bestScore = Number.POSITIVE_INFINITY;
 
-    const merged = [...generalSchedule, ...placed].sort(
-      (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+    slots.forEach((slot) => {
+      const score = scoreSlot(course, slot);
+      if (score < bestScore) {
+        bestScore = score;
+        bestSlot = slot;
+      }
+    });
+
+    if (!bestSlot || !Number.isFinite(bestScore)) {
+      notPlaced.push(course);
+      return;
+    }
+
+    course.students.forEach((studentId) => {
+      if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
+      studentSlotMap.get(studentId).add(bestSlot.id);
+
+      if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
+      const dayMap = studentDayMap.get(studentId);
+      dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
+    });
+
+    const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
+      .filter((item) => item.id === bestSlot.id)
+      .map((item) => item.examHall);
+
+    const fittingHalls = hallsPool.filter(
+      (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
     );
 
-    setSchedule(merged);
-    showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
-    setCurrentStep(6);
-  };
+    const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
+
+    let assignedHall = null;
+    if (fittingHalls.length) assignedHall = fittingHalls[0].name;
+    else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
+    else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
+
+    slotCoursesMap.get(bestSlot.id).push(course.key);
+
+    newPlaced.push({
+      ...course,
+      ...bestSlot,
+      examHall: assignedHall,
+      invigilators: pickInvigilators(course, bestSlot),
+    });
+  });
+
+  newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
+
+  setUnscheduled(notPlaced);
+  setPreviewPage(0);
+  return newPlaced;
+};
+
+const generateGeneralSchedule = () => {
+  const placed = generateScheduleForCourses(generalCourses, []);
+  setGeneralSchedule(placed);
+  showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+  setCurrentStep(5);
+};
+
+const generateSpecializedSchedule = () => {
+  const placed = generateScheduleForCourses(specializedCourses, generalSchedule);
+  setSpecializedSchedule(placed);
+  setPreviewTab("sortedCourses");
+
+  const merged = [...generalSchedule, ...placed].sort(
+    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+  );
+
+  setSchedule(merged);
+  showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+  setCurrentStep(6);
+};
 
   const filteredScheduleForPrint = useMemo(() => {
     return schedule.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
