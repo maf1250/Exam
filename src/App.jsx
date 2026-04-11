@@ -748,13 +748,18 @@ function printScheduleOnlyPdf({
   }).format(new Date());
 
 const selectedMajorNormalized = normalizeArabic(selectedMajor);
-
 const extractedDepartments = Array.from(
   new Set(
     schedule.flatMap((item) =>
       splitBySlash(item.department)
         .map((dep) => String(dep || "").trim())
-        .filter(Boolean)
+        .filter((dep) => {
+          const normalized = normalizeArabic(dep);
+          return (
+            dep &&
+            normalized !== normalizeArabic("الدراسات العامة")
+          );
+        })
     )
   )
 ).sort((a, b) => a.localeCompare(b, "ar"));
