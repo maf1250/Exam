@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
-const STORAGE_KEY = "exam_scheduler_saved_state_v1";
 
 const REQUIRED_COLUMNS = [
   "المقرر",
@@ -51,21 +50,7 @@ const COLORS = {
 };
 
 const LOGO_SRC = "/tvtc-logo.png";
-function getSlotPeriodKey(itemOrSlot) {
-  return `${itemOrSlot.dateISO}__${itemOrSlot.period}`;
-}
 
-function getCourseDepartmentRoots(course) {
-  const values = [
-    ...splitBySlash(course.department),
-    ...splitBySlash(course.sectionName),
-    ...splitBySlash(course.major),
-  ];
-
-  return Array.from(
-    new Set(values.map((v) => normalizeArabic(v)).filter(Boolean))
-  );
-}
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
@@ -219,11 +204,23 @@ function downloadFile(filename, content, mime) {
   URL.revokeObjectURL(url);
 }
 
-function splitBySlash(value) {
-  return String(value ?? "")
-    .split("/")
-    .map((x) => x.trim())
-    .filter(Boolean);
+function groupScheduleForOfficialPrint(schedule) {
+  const byDate = {};
+  schedule.forEach((item) => {
+    if (!byDate[item.dateISO]) {
+      byDate[item.dateISO] = {
+        dateISO: item.dateISO,
+        dayName: item.dayName,
+        hijriNumeric: item.hijriNumeric,
+        periods: {},
+      };
+    }
+    if (!byDate[item.dateISO].periods[item.period]) {
+      byDate[item.dateISO].periods[item.period] = [];
+    }
+    byDate[item.dateISO].periods[item.period].push(item);
+  });
+  return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 }
 
 function fieldStyle() {
@@ -345,7 +342,7 @@ function StatBox({ label, value }) {
   );
 }
 
-function Toast({ item, onClose, onRestore }) {
+function Toast({ item, onClose }) {
   if (!item) return null;
 
   const bg =
@@ -371,38 +368,20 @@ function Toast({ item, onClose, onRestore }) {
     >
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
       <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
-
-      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-        {item.type === "warning" && item.action === "restore_session" && onRestore ? (
-          <button
-            onClick={onRestore}
-            style={{
-              background: "transparent",
-              border: "none",
-              color,
-              fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            استرجاع
-          </button>
-        ) : null}
-
-        <button
-          onClick={onClose}
-          style={{
-            background: "transparent",
-            border: "none",
-            color,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          إغلاق
-        </button>
-        </div>
-      </div>
-
+      <button
+        onClick={onClose}
+        style={{
+          marginTop: 10,
+          background: "transparent",
+          border: "none",
+          color,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
   );
 }
 
@@ -469,25 +448,6 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
   return Array.from(map.values())
     .filter((item) => item.hasCoop || (item.hasPractical && !item.hasTheoretical))
     .map((item) => item.key);
-}
-
-function groupScheduleForOfficialPrint(schedule) {
-  const byDate = {};
-  schedule.forEach((item) => {
-    if (!byDate[item.dateISO]) {
-      byDate[item.dateISO] = {
-        dateISO: item.dateISO,
-        dayName: item.dayName,
-        hijriNumeric: item.hijriNumeric,
-        periods: {},
-      };
-    }
-    if (!byDate[item.dateISO].periods[item.period]) {
-      byDate[item.dateISO].periods[item.period] = [];
-    }
-    byDate[item.dateISO].periods[item.period].push(item);
-  });
-  return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 }
 
 function openPrintWindow(title, html) {
@@ -717,7 +677,6 @@ function printScheduleOnlyPdf({
   periodLabels = [],
   defaultExamHall = "قاعة النشاط",
   selectedDepartment = "__all__",
-  selectedMajor = "__all__",
 }) {
   if (!schedule?.length) return;
 
@@ -766,88 +725,14 @@ function printScheduleOnlyPdf({
     day: "numeric",
   }).format(new Date());
 
-const selectedMajorNormalized = normalizeArabic(selectedMajor);
-const extractedDepartments = Array.from(
-  new Set(
-    schedule.flatMap((item) =>
-      splitBySlash(item.department)
-        .map((dep) => String(dep || "").trim())
-        .filter((dep) => {
-          const normalized = normalizeArabic(dep);
-          return (
-            dep &&
-            normalized !== normalizeArabic("الدراسات العامة")
-          );
-        })
-    )
-  )
-).sort((a, b) => a.localeCompare(b, "ar"));
+  const departmentLabel = selectedDepartment === "__all__" ? "جميع الأقسام" : selectedDepartment;
 
-const extractedMajors = Array.from(
-  new Set(
-    schedule.flatMap((item) =>
-      splitBySlash(item.major)
-        .map((major) => String(major || "").trim())
-        .filter(Boolean)
-    )
-  )
-).sort((a, b) => a.localeCompare(b, "ar"));
-let departmentLabel = "";
-let majorLabel = "";
-
-if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
-  departmentLabel = "جميع الأقسام";
-  majorLabel = "جميع التخصصات";
-} else {
-  if (selectedDepartment !== "__all__") {
-    departmentLabel = selectedDepartment;
-  } else {
-    if (extractedDepartments.length) {
-      departmentLabel =
-        extractedDepartments.length === 1
-          ? extractedDepartments[0]
-          : extractedDepartments.join(" / ");
-    } else {
-      const roots = Array.from(
-        new Set(
-          schedule.flatMap((item) =>
-            (item.departmentRoots || []).filter(
-              (r) => r !== normalizeArabic("الدراسات العامة")
-            )
-          )
-        )
-      );
-
-      departmentLabel =
-        roots.length === 1
-          ? roots[0]
-          : roots.length
-          ? roots.join(" / ")
-          : "جميع الأقسام";
-    }
-  }
-
-  if (selectedMajor !== "__all__") {
-    majorLabel = selectedMajor;
-  } else {
-    majorLabel =
-      extractedMajors.length === 1
-        ? extractedMajors[0]
-        : extractedMajors.length
-        ? extractedMajors.join(" / ")
-        : "جميع التخصصات";
-  }
-}
-
-  
   const instructions = [
-    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
-    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولايسمح له بالخروج قبل مضي نصف ساعة.",
-    "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
-    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
-    "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
-    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
-    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بمدة كافية.",
+    "لا يسمح بالدخول بعد مضي نصف ساعة من بداية الاختبار، ولا بالخروج قبل مضي نصف ساعة.",
+    "الغش أو الشروع فيه يعد مخالفة صريحة لتعليمات الاختبارات.",
+    "وجود الجوال أو أي أوراق تخص المقرر داخل القاعة يعد مخالفة.",
+    "يلتزم المتدرب بالهدوء والزي التدريبي والتعليمات المنظمة داخل القاعة.",
   ];
 
   const html = `
@@ -866,8 +751,8 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
             <div class="doc-title">جدول الاختبارات النهائية</div>
 
             <div class="meta-grid">
-<div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
-<div class="meta-box"><strong>التخصص:</strong> ${majorLabel}</div>
+              <div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
+              <div class="meta-box"><strong>التخصص:</strong> جميع التخصصات</div>
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
           </div>
@@ -1061,27 +946,18 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
   openPrintWindow("طباعة جدول المراقبين", html);
 }
 
-function matchesSelectedMainDepartment(item, selectedDepartment) {
-  if (selectedDepartment === "__all__") return true;
-
-  const target = normalizeArabic(selectedDepartment);
-  const roots = getCourseDepartmentRoots(item);
-
-  return roots.includes(target);
-}
-
 export default function App() {
   const fileRef = useRef(null);
-  const topRef = useRef(null);
 
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-  const [previewTab, setPreviewTab] = useState("sortedCourses");
-  const [invigilationMode, setInvigilationMode] = useState("ratio");
+
+  const [invigilationMode, setInvigilationMode] = useState("fixed");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
+
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -1099,7 +975,7 @@ export default function App() {
   const [excludeInactive, setExcludeInactive] = useState(true);
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
-  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
+  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
 
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
@@ -1107,14 +983,11 @@ export default function App() {
   const [courseLevels, setCourseLevels] = useState({});
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
-  const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
+
   const [generalSchedule, setGeneralSchedule] = useState([]);
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
-  const [pendingRestore, setPendingRestore] = useState(null);
-  const [didRestore, setDidRestore] = useState(false);
-  const [pageVisible, setPageVisible] = useState(true);
 
   const showToast = (title, description, type = "success") => {
     setToast({ title, description, type });
@@ -1122,189 +995,6 @@ export default function App() {
     window.__examToastTimer = window.setTimeout(() => setToast(null), 3500);
   };
 
-const buildPersistedState = () => ({
-  rows,
-  fileName,
-  currentStep,
-  startDate,
-  numberOfDays,
-  selectedDays,
-  periodsText,
-  examHallsText,
-  includeInvigilators,
-  excludedInvigilators,
-  excludeInactive,
-  prioritizeTrainer,
-  manualInvigilators,
-  invigilatorsPerPeriod,
-  invigilationMode,
-  studentsPerInvigilator,
-  excludedCourses,
-  printDepartmentFilter,
-  printMajorFilter,
-  avoidSameLevelSameDay,
-  courseLevels,
-  preferCourseTrainerInvigilation,
-  generalSchedule,
-  specializedSchedule,
-  schedule,
-  unscheduled,
-  previewTab,
-  previewPage,
-});
-
-const restorePersistedState = (saved) => {
-  setRows(saved.rows || []);
-  setFileName(saved.fileName || "");
-  setCurrentStep(saved.currentStep || 1);
-  setStartDate(saved.startDate || "");
-  setNumberOfDays(saved.numberOfDays || 8);
-  setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
-  setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
-  setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
-  setIncludeInvigilators(saved.includeInvigilators ?? true);
-  setExcludedInvigilators(saved.excludedInvigilators || []);
-  setExcludeInactive(saved.excludeInactive ?? true);
-  setPrioritizeTrainer(saved.prioritizeTrainer || "");
-  setManualInvigilators(saved.manualInvigilators || "");
-  setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
-  setInvigilationMode(saved.invigilationMode || "ratio");
-  setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
-  setExcludedCourses(saved.excludedCourses || []);
-  setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
-  setPrintMajorFilter(saved.printMajorFilter || "__all__");
-  setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
-  setCourseLevels(saved.courseLevels || {});
-  setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
-  setGeneralSchedule(saved.generalSchedule || []);
-  setSpecializedSchedule(saved.specializedSchedule || []);
-  setSchedule(saved.schedule || []);
-  setUnscheduled(saved.unscheduled || []);
-  setPreviewTab(saved.previewTab || "sortedCourses");
-  setPreviewPage(saved.previewPage || 0);
-};
-
-useEffect(() => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      setDidRestore(true);
-      return;
-    }
-
-    const saved = JSON.parse(raw);
-    setPendingRestore(saved);
-    setToast({
-      title: "جلسة محفوظة",
-      description: "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
-      type: "warning",
-      action: "restore_session",
-    });
-    setDidRestore(true);
-  } catch (error) {
-    console.error("Failed to restore saved state:", error);
-    setDidRestore(true);
-  }
-}, []);
-
-useEffect(() => {
-  setPageVisible(false);
-
-  const timer = window.setTimeout(() => {
-    topRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-    setPageVisible(true);
-  }, 120);
-
-  return () => window.clearTimeout(timer);
-}, [currentStep, previewTab]);
-
-useEffect(() => {
-  if (!didRestore) return;
-
-  try {
-    const data = buildPersistedState();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error("Failed to persist state:", error);
-  }
-}, [
-  didRestore,
-  rows,
-  fileName,
-  currentStep,
-  startDate,
-  numberOfDays,
-  selectedDays,
-  periodsText,
-  examHallsText,
-  includeInvigilators,
-  excludedInvigilators,
-  excludeInactive,
-  prioritizeTrainer,
-  manualInvigilators,
-  invigilatorsPerPeriod,
-  invigilationMode,
-  studentsPerInvigilator,
-  excludedCourses,
-  printDepartmentFilter,
-  printMajorFilter,
-  avoidSameLevelSameDay,
-  courseLevels,
-  preferCourseTrainerInvigilation,
-  generalSchedule,
-  specializedSchedule,
-  schedule,
-  unscheduled,
-  previewTab,
-  previewPage,
-]);
-
-const restoreSavedSession = () => {
-  if (!pendingRestore) return;
-
-  restorePersistedState(pendingRestore);
-  setPendingRestore(null);
-  showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
-};
-
-const clearSavedState = () => {
-  localStorage.removeItem(STORAGE_KEY);
-  setPendingRestore(null);
-  showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
-};
-
-const exportSavedSession = () => {
-  const data = buildPersistedState();
-  downloadFile(
-    `exam-session-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.json`,
-    JSON.stringify(data, null, 2),
-    "application/json;charset=utf-8"
-  );
-  showToast("تم التصدير", "تم تنزيل ملف الجلسة بنجاح.", "success");
-};
-
-const importSessionRef = useRef(null);
-const importSavedSession = (file) => {
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const saved = JSON.parse(e.target.result);
-      restorePersistedState(saved);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-      setPendingRestore(null);
-      showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
-    } catch (error) {
-      showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
-    }
-  };
-
-  reader.readAsText(file, "utf-8");
-};
   const handleUpload = (file) => {
     if (!file) return;
 
@@ -1327,7 +1017,6 @@ const importSavedSession = (file) => {
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
         setCourseLevels({});
         setPreviewPage(0);
-        setPreviewTab("sortedCourses");
         setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
@@ -1380,7 +1069,6 @@ const importSavedSession = (file) => {
     const courseMap = new Map();
     const studentSet = new Set();
     const studentCourseMap = new Map();
-    const studentDepartmentMap = new Map();
     const invigilatorSet = new Set();
     const sectionSet = new Set();
 
@@ -1390,15 +1078,6 @@ const importSavedSession = (file) => {
       const trainer = String(row["المدرب"] ?? "").trim();
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
-   if (studentId && department) {
-  const dept = normalizeArabic(department);
-
-  if (!studentDepartmentMap.has(studentId)) {
-    studentDepartmentMap.set(studentId, new Set());
-  }
-
-  studentDepartmentMap.get(studentId).add(dept);
-}
       const major = String(row["التخصص"] ?? "").trim();
       const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
       const sectionName = `${department || "-"} / ${major || "-"}`;
@@ -1411,44 +1090,26 @@ const importSavedSession = (file) => {
       if (studentId) studentSet.add(studentId);
       if (sectionName !== "- / -") sectionSet.add(sectionName);
 
-   if (!courseMap.has(key)) {
-  courseMap.set(key, {
-    key,
-    courseCode,
-    courseName,
-    trainers: new Set(),
-    departments: new Set(),
-    majors: new Set(),
-    sectionNames: new Set(),
-    scheduleTypes: new Set(),
-    students: new Set(),
-    departmentRoots: new Set(),
-  });
-}
+      if (!courseMap.has(key)) {
+        courseMap.set(key, {
+          key,
+          courseCode,
+          courseName,
+          trainers: new Set(),
+          departments: new Set(),
+          majors: new Set(),
+          sectionNames: new Set(),
+          scheduleTypes: new Set(),
+          students: new Set(),
+        });
+      }
 
       const course = courseMap.get(key);
+
       if (trainer) course.trainers.add(trainer);
       if (department) course.departments.add(department);
       if (major) course.majors.add(major);
       if (sectionName !== "- / -") course.sectionNames.add(sectionName);
-      splitBySlash(department).forEach((value) => {
-  const clean = normalizeArabic(value);
-  if (clean && clean !== normalizeArabic("الدراسات العامة")) {
-    course.departmentRoots.add(clean);
-  }
-});
-
-splitBySlash(major).forEach((value) => {
-  const clean = normalizeArabic(value);
-  if (clean) course.departmentRoots.add(clean);
-});
-
-splitBySlash(sectionName).forEach((value) => {
-  const clean = normalizeArabic(value);
-  if (clean && clean !== normalizeArabic("-")) {
-    course.departmentRoots.add(clean);
-  }
-});
       if (scheduleType) course.scheduleTypes.add(scheduleType);
 
       if (studentId) {
@@ -1470,13 +1131,7 @@ splitBySlash(sectionName).forEach((value) => {
         }
       }
     });
-// ربط الأقسام بالمقررات بعد اكتمال البيانات
-courseMap.forEach((course) => {
-  course.students.forEach((studentId) => {
-    const studentDepts = studentDepartmentMap.get(studentId) || new Set();
-    studentDepts.forEach((d) => course.departmentRoots.add(d));
-  });
-});
+
     const courses = Array.from(courseMap.values())
       .map((course) => ({
         ...course,
@@ -1487,7 +1142,6 @@ courseMap.forEach((course) => {
         studentCount: course.students.size,
         conflictDegree: conflictMap.get(course.key)?.size || 0,
         sectionName: Array.from(course.sectionNames).join(" / ") || "-",
-            departmentRoots: Array.from(course.departmentRoots),
       }))
       .filter((course) => !excludedCourses.includes(course.key))
       .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
@@ -1534,10 +1188,7 @@ courseMap.forEach((course) => {
       });
   }, [examHallsText]);
 
-  const slots = useMemo(
-    () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
-    [startDate, numberOfDays, selectedDays, parsedPeriods]
-  );
+  const slots = useMemo(() => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }), [startDate, numberOfDays, selectedDays, parsedPeriods]);
 
   const allCourseOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -1569,346 +1220,223 @@ courseMap.forEach((course) => {
       const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
       return Math.max(1, Math.ceil((course.studentCount || 0) / ratio));
     }
+
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
   };
 
-const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
-  if (!rows.length) {
-    showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
-    return [];
-  }
-
-  if (parsed.missingColumns.length) {
-    showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
-    return [];
-  }
-
-  if (invalidPeriods.length) {
-    showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
-    return [];
-  }
-
-  if (!slots.length) {
-    showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
-    return [];
-  }
-
-  const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
-
-  const baseInvigilators = manualInvigilators
-    ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
-    : parsed.invigilators;
-
-  const invigilatorPool = [
-    ...new Set(
-      baseInvigilators.filter(
-        (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
-      )
-    ),
-  ];
-
-  const studentSlotMap = new Map();
-  const studentDayMap = new Map();
-  const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
-  const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
-  const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
-  // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر الطالب في نفس الفترة
-  const basePlaced = [...existingScheduled];
-  const newPlaced = [];
-  const notPlaced = [];
-
-  basePlaced.forEach((item) => {
-  const slotId = item.id || `${item.dateISO}-${item.period}`;
-const periodKey = getSlotPeriodKey(item);
-    (item.students || []).forEach((studentId) => {
-      if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
-      studentSlotMap.get(studentId).add(slotId);
-
-      if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
-      const dayMap = studentDayMap.get(studentId);
-      dayMap.set(item.dateISO, (dayMap.get(item.dateISO) || 0) + 1);
-    });
-
-    if (!slotCoursesMap.has(slotId)) {
-      slotCoursesMap.set(slotId, []);
-    }
-    slotCoursesMap.get(slotId).push(item.key);
-
-    (item.invigilators || []).forEach((name) => {
-      if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
-if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
-
-invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-invigilatorBusyPeriods.get(name).add(periodKey);
-    });
-  });
-
-const rankInvigilatorForFairness = (name, preferTrainer = false) => {
-  const load = invigilatorLoad.get(name) || 0;
-  const minLoad = getMinInvigilatorLoad();
-
-  // نعطي أفضلية بسيطة فقط، لكن لا نسمح بتضخم الفارق
-  const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
-  const trainerBonus = preferTrainer ? -0.25 : 0;
-
-  return load + overloadPenalty + trainerBonus;
-};
- const getMinInvigilatorLoad = () => {
-  const values = Array.from(invigilatorLoad.values());
-  return values.length ? Math.min(...values) : 0;
-};
-
-const pickInvigilators = (course, slot) => {
-  if (!includeInvigilators) return [];
-
-  const requiredCount = getRequiredInvigilatorsCount(course);
-  const periodKey = getSlotPeriodKey(slot);
-  const chosen = [];
-
-  const courseTrainerNames = course.trainerText
-    .split("/")
-    .map((name) => name.trim())
-    .filter(Boolean);
-
-  const normalizedTrainerSet = new Set(
-    courseTrainerNames.map((name) => normalizeArabic(name))
-  );
-
-  // 1) نضيف مدرب المقرر أولًا إذا كان متاحًا
-  if (preferCourseTrainerInvigilation) {
-    const trainerCandidates = invigilatorPool
-      .filter((name) => normalizedTrainerSet.has(normalizeArabic(name)))
-      .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-      .sort(
-        (a, b) =>
-          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-          a.localeCompare(b, "ar")
-      );
-
-    if (trainerCandidates.length) {
-      const trainerName = trainerCandidates[0];
-      chosen.push(trainerName);
-    }
-  }
-
-  // 2) نكمل بقية العدد من الأقل حملًا
-  const availableOthers = invigilatorPool
-    .filter((name) => !chosen.includes(name))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .sort(
-      (a, b) =>
-        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-        a.localeCompare(b, "ar")
-    );
-
-  for (const name of availableOthers) {
-    if (chosen.length >= requiredCount) break;
-
-    const currentLoad = invigilatorLoad.get(name) || 0;
-    const minLoad = getMinInvigilatorLoad();
-
-    // لا نسمح بفارق كبير في العدالة إلا عند الضرورة
-   if (currentLoad > minLoad + 1 && chosen.length > 0) continue;
-
-    chosen.push(name);
-  }
-
-  // 3) إذا ما اكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا مهما كان
-  if (chosen.length < requiredCount) {
-    for (const name of availableOthers) {
-      if (chosen.length >= requiredCount) break;
-      if (chosen.includes(name)) continue;
-      chosen.push(name);
-    }
-  }
-
-  // 4) تحديث الأحمال والانشغال
-  chosen.forEach((name) => {
-    if (!invigilatorBusyPeriods.has(name)) {
-      invigilatorBusyPeriods.set(name, new Set());
+  const generateScheduleForCourses = (coursesList) => {
+    if (!rows.length) {
+      showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
+      return [];
     }
 
-    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-    invigilatorBusyPeriods.get(name).add(periodKey);
-  });
-
-  return chosen;
-};
-
-  const scoreSlot = (course, slot) => {
-    let hardConflict = false;
-    let sameDayPenalty = 0;
-    const courseLevel = courseLevels[course.key] || "";
-    const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
-
-    course.students.forEach((studentId) => {
-      const usedSlots = studentSlotMap.get(studentId) || new Set();
-      if (usedSlots.has(slot.id)) hardConflict = true;
-
-      const dayMap = studentDayMap.get(studentId) || new Map();
-      const sameDayCount = dayMap.get(slot.dateISO) || 0;
-
-      if (sameDayCount >= 2) hardConflict = true;
-      if (sameDayCount === 1) sameDayPenalty += 4;
-    });
-
-    if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
-      const sameDateSameLevelExists = [...basePlaced, ...newPlaced].some(
-        (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
-      );
-      if (sameDateSameLevelExists) hardConflict = true;
+    if (parsed.missingColumns.length) {
+      showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
+      return [];
     }
 
-    if (hardConflict) return Number.POSITIVE_INFINITY;
+    if (invalidPeriods.length) {
+      showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
+      return [];
+    }
 
-    let score = slotLoadPenalty + sameDayPenalty;
+    if (!slots.length) {
+      showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
+      return [];
+    }
 
-    if (course.conflictDegree > 10 && slot.period > 1) score += 1;
+    const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
 
-    if (prioritizeTrainer.trim()) {
-      const normalizedTargetTrainer = normalizeArabic(prioritizeTrainer);
-      const hasPriorityTrainer = course.trainerText
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+      : parsed.invigilators;
+
+    const invigilatorPool = [
+      ...new Set(
+        baseInvigilators.filter(
+          (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
+        )
+      ),
+    ];
+
+    const studentSlotMap = new Map();
+    const studentDayMap = new Map();
+    const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
+    const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
+    const invigilatorBusySlots = new Map(invigilatorPool.map((name) => [name, new Set()]));
+
+    const placed = [];
+    const notPlaced = [];
+
+    const pickInvigilators = (course, slot) => {
+      if (!includeInvigilators) return [];
+
+      const requiredCount = getRequiredInvigilatorsCount(course);
+
+      const courseTrainerNames = course.trainerText
         .split("/")
-        .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
+        .map((name) => normalizeArabic(name.trim()))
+        .filter(Boolean);
 
-      if (hasPriorityTrainer) score -= 3;
-    }
+      const chosen = [];
 
-    return score;
+      if (preferCourseTrainerInvigilation) {
+        const trainerCandidates = invigilatorPool
+          .filter((name) => courseTrainerNames.includes(normalizeArabic(name)))
+          .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+          .sort(
+            (a, b) =>
+              (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+              a.localeCompare(b, "ar")
+          );
+
+        for (const trainerName of trainerCandidates) {
+          if (chosen.length >= requiredCount) break;
+          chosen.push(trainerName);
+        }
+      }
+
+      const remaining = invigilatorPool
+        .filter((name) => !chosen.includes(name))
+        .filter((name) => !invigilatorBusySlots.get(name)?.has(slot.id))
+        .sort(
+          (a, b) =>
+            (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+            a.localeCompare(b, "ar")
+        );
+
+      for (const name of remaining) {
+        if (chosen.length >= requiredCount) break;
+        chosen.push(name);
+      }
+
+      chosen.forEach((name) => {
+        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+        invigilatorBusySlots.get(name).add(slot.id);
+      });
+
+      return chosen;
+    };
+
+    const scoreSlot = (course, slot) => {
+      let hardConflict = false;
+      let sameDayPenalty = 0;
+      const courseLevel = courseLevels[course.key] || "";
+      const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
+
+      course.students.forEach((studentId) => {
+        const usedSlots = studentSlotMap.get(studentId) || new Set();
+        if (usedSlots.has(slot.id)) hardConflict = true;
+
+        const dayMap = studentDayMap.get(studentId) || new Map();
+        const sameDayCount = dayMap.get(slot.dateISO) || 0;
+
+        if (sameDayCount >= 2) hardConflict = true;
+        if (sameDayCount === 1) sameDayPenalty += 4;
+      });
+
+      if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
+        const sameDateSameLevelExists = placed.some(
+          (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
+        );
+        if (sameDateSameLevelExists) hardConflict = true;
+      }
+
+      if (hardConflict) return Number.POSITIVE_INFINITY;
+
+      let score = slotLoadPenalty + sameDayPenalty;
+      if (course.conflictDegree > 10 && slot.period > 1) score += 1;
+      return score;
+    };
+
+    coursesList.forEach((course) => {
+      let bestSlot = null;
+      let bestScore = Number.POSITIVE_INFINITY;
+
+      slots.forEach((slot) => {
+        const score = scoreSlot(course, slot);
+        if (score < bestScore) {
+          bestScore = score;
+          bestSlot = slot;
+        }
+      });
+
+      if (!bestSlot || !Number.isFinite(bestScore)) {
+        notPlaced.push(course);
+        return;
+      }
+
+      course.students.forEach((studentId) => {
+        if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
+        studentSlotMap.get(studentId).add(bestSlot.id);
+
+        if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
+        const dayMap = studentDayMap.get(studentId);
+        dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
+      });
+
+      const usedHallNamesInSlot = placed.filter((item) => item.id === bestSlot.id).map((item) => item.examHall);
+
+      const fittingHalls = hallsPool.filter(
+        (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
+      );
+
+      const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
+
+      let assignedHall = null;
+      if (fittingHalls.length) assignedHall = fittingHalls[0].name;
+      else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
+      else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
+
+      slotCoursesMap.get(bestSlot.id).push(course.key);
+
+      placed.push({
+        ...course,
+        ...bestSlot,
+        examHall: assignedHall,
+        invigilators: pickInvigilators(course, bestSlot),
+      });
+    });
+
+    placed.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
+
+    setUnscheduled(notPlaced);
+    setPreviewPage(0);
+    return placed;
   };
 
-  const sortedCoursesForInvigilation = [...coursesList].sort((a, b) => {
-  const aNeed = getRequiredInvigilatorsCount(a);
-  const bNeed = getRequiredInvigilatorsCount(b);
+  const generateGeneralSchedule = () => {
+    const placed = generateScheduleForCourses(generalCourses);
+    setGeneralSchedule(placed);
+    showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+    setCurrentStep(5);
+  };
 
-  return (
-    bNeed - aNeed ||
-    b.studentCount - a.studentCount ||
-    b.conflictDegree - a.conflictDegree
-  );
-});
+  const generateSpecializedSchedule = () => {
+    const placed = generateScheduleForCourses(specializedCourses);
+    setSpecializedSchedule(placed);
 
-sortedCoursesForInvigilation.forEach((course) => {
-    let bestSlot = null;
-    let bestScore = Number.POSITIVE_INFINITY;
-
-    slots.forEach((slot) => {
-      const score = scoreSlot(course, slot);
-      if (score < bestScore) {
-        bestScore = score;
-        bestSlot = slot;
-      }
-    });
-
-    if (!bestSlot || !Number.isFinite(bestScore)) {
-      notPlaced.push(course);
-      return;
-    }
-
-    course.students.forEach((studentId) => {
-      if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
-      studentSlotMap.get(studentId).add(bestSlot.id);
-
-      if (!studentDayMap.has(studentId)) studentDayMap.set(studentId, new Map());
-      const dayMap = studentDayMap.get(studentId);
-      dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
-    });
-
-    const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
-      .filter((item) => item.id === bestSlot.id)
-      .map((item) => item.examHall);
-
-    const fittingHalls = hallsPool.filter(
-      (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
+    const merged = [...generalSchedule, ...placed].sort(
+      (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
     );
 
-    const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
+    setSchedule(merged);
+    showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+    setCurrentStep(6);
+  };
 
-    let assignedHall = null;
-    if (fittingHalls.length) assignedHall = fittingHalls[0].name;
-    else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
-    else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
-
-    slotCoursesMap.get(bestSlot.id).push(course.key);
-newPlaced.push({
-  ...course,
-  ...bestSlot,
-  departmentRoots: course.departmentRoots || [],
-  examHall: assignedHall,
-  invigilators: pickInvigilators(course, bestSlot),
-});
-  });
-
-  newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
-
-  setUnscheduled(notPlaced);
-  setPreviewPage(0);
-  return newPlaced;
-};
-
-const generateGeneralSchedule = () => {
-  const placed = generateScheduleForCourses(generalCourses, []);
-  setGeneralSchedule(placed);
-  showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
-  setCurrentStep(5);
-};
-
-const generateSpecializedSchedule = () => {
-  const placed = generateScheduleForCourses(specializedCourses, generalSchedule);
-  setSpecializedSchedule(placed);
-  setPreviewTab("sortedCourses");
-
-  const merged = [...generalSchedule, ...placed].sort(
-    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
-  );
-
-  setSchedule(merged);
-  showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
-  setCurrentStep(6);
-};
-
-const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (() => {
-        const target = normalizeArabic(printDepartmentFilter);
-        const roots = item.departmentRoots || [];
-
-        if (roots.includes(target)) return true;
-
-        if (isGeneralStudiesCourse(item)) {
-          return roots.some((r) => r.includes(target));
-        }
-
-        return false;
-      })();
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
-}, [schedule, printDepartmentFilter, printMajorFilter]);
-const filteredSortedCourses = useMemo(() => {
-  if (printDepartmentFilter === "__all__") return parsed.courses;
-  return parsed.courses.filter((item) => {
-    const roots = item.departmentRoots || [];
-    return roots.includes(normalizeArabic(printDepartmentFilter));
-  });
-}, [parsed.courses, printDepartmentFilter]);
+  const filteredScheduleForPrint = useMemo(() => {
+    if (printDepartmentFilter === "__all__") return schedule;
+    return schedule.filter((item) => normalizeArabic(item.department) === normalizeArabic(printDepartmentFilter));
+  }, [schedule, printDepartmentFilter]);
 
   const groupedSchedule = useMemo(() => {
-    return filteredScheduleForPrint.reduce((acc, item) => {
+    return schedule.reduce((acc, item) => {
       if (!acc[item.dateISO]) acc[item.dateISO] = [];
       acc[item.dateISO].push(item);
       return acc;
     }, {});
-  }, [filteredScheduleForPrint]);
+  }, [schedule]);
 
   const groupedScheduleEntries = useMemo(() => Object.entries(groupedSchedule), [groupedSchedule]);
 
@@ -1923,7 +1451,7 @@ const filteredSortedCourses = useMemo(() => {
   const invigilatorTable = useMemo(() => {
     const table = new Map();
 
-    filteredScheduleForPrint.forEach((item) => {
+    schedule.forEach((item) => {
       (item.invigilators || []).forEach((name) => {
         if (!table.has(name)) table.set(name, []);
         table.get(name).push({
@@ -1945,7 +1473,7 @@ const filteredSortedCourses = useMemo(() => {
         items: items.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [filteredScheduleForPrint]);
+  }, [schedule]);
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
@@ -1955,45 +1483,11 @@ const filteredSortedCourses = useMemo(() => {
   }, [manualInvigilators, parsed.invigilators]);
 
   const availableDepartmentsForPrint = useMemo(() => {
-    const map = new Map();
-
-    schedule
-      .filter((item) => !isGeneralStudiesCourse(item))
-      .forEach((item) => {
-        splitBySlash(item.department).forEach((department) => {
-          const clean = String(department || "").trim();
-          const normalized = normalizeArabic(clean);
-
-          if (!clean) return;
-          if (normalized === normalizeArabic("الدراسات العامة")) return;
-
-          if (!map.has(normalized)) {
-            map.set(normalized, clean);
-          }
-        });
-      });
-
-    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
+    return Array.from(new Set(schedule.map((item) => String(item.department || "").trim()).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b, "ar")
+    );
   }, [schedule]);
-const availableMajorsForPrint = useMemo(() => {
-  const map = new Map();
 
-  schedule.forEach((item) => {
-    splitBySlash(item.major).forEach((major) => {
-      const clean = String(major || "").trim();
-      const normalized = normalizeArabic(clean);
-
-      if (!clean) return;
-
-      if (!map.has(normalized)) {
-        map.set(normalized, clean);
-      }
-    });
-  });
-
-  return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
-}, [schedule]);
-  
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
       prev.some((item) => normalizeArabic(item) === normalizeArabic(name))
@@ -2030,11 +1524,9 @@ const availableMajorsForPrint = useMemo(() => {
   };
 
   const exportMainSchedule = () => {
-    if (!filteredScheduleForPrint.length) {
-      return showToast("لا يوجد جدول", "أنشئ الجدول أولًا أو غيّر فلتر القسم ثم أعد المحاولة.", "error");
-    }
+    if (!schedule.length) return showToast("لا يوجد جدول", "أنشئ الجدول أولًا ثم صدّر الملف.", "error");
 
-    const exportRows = filteredScheduleForPrint.map((item) => ({
+    const exportRows = schedule.map((item) => ({
       الكلية: parsed.collegeName,
       القسم: item.department,
       التخصص: item.major,
@@ -2052,24 +1544,17 @@ const availableMajorsForPrint = useMemo(() => {
       المراقبون: (item.invigilators || []).join(" | "),
     }));
 
-    const suffix =
-      printDepartmentFilter === "__all__"
-        ? "all-departments"
-        : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
-
     downloadFile(
-      `final-exam-schedule-${suffix}-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
+      `final-exam-schedule-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
 
-    showToast("تم التصدير", "تم تنزيل جدول الاختبارات حسب القسم المختار.", "success");
+    showToast("تم التصدير", "تم تنزيل جدول الاختبارات.", "success");
   };
 
   const exportInvigilatorsTable = () => {
-    if (!invigilatorTable.length) {
-      return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا أو غيّر فلتر القسم ثم أعد المحاولة.", "error");
-    }
+    if (!invigilatorTable.length) return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا ثم صدّر جدول المراقبين.", "error");
 
     const rowsToExport = invigilatorTable.flatMap((inv) =>
       inv.items.map((item) => ({
@@ -2086,18 +1571,6 @@ const availableMajorsForPrint = useMemo(() => {
     downloadFile("invigilators-periods.csv", rowsToCsv(rowsToExport), "text/csv;charset=utf-8");
     showToast("تم التصدير", "تم تنزيل جدول المراقبين والفترات.", "success");
   };
-
-
-const floatingBtn = ({ danger = false } = {}) => ({
-  background: danger ? COLORS.danger : COLORS.primaryDark,
-  color: "#fff",
-  border: "none",
-  borderRadius: 999,
-  padding: "10px 14px",
-  fontWeight: 800,
-  cursor: "pointer",
-  boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-});
 
   const stats = {
     rows: rows.length,
@@ -2119,46 +1592,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
         color: COLORS.text,
       }}
     >
-      <Toast
-        item={toast}
-        onClose={() => setToast(null)}
-        onRestore={restoreSavedSession}
-      />
-
-      <div ref={topRef} />
-
-
-      <div
-        style={{
-          position: "fixed",
-          bottom: 20,
-          left: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          zIndex: 9998,
-        }}
-      >
-        <button onClick={exportSavedSession} style={floatingBtn()}>
-          تصدير الجدول
-        </button>
-
-        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
-          استيراد الجدول
-        </button>
-
-        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
-          حذف البيانات المحلية
-        </button>
-
-        <input
-          ref={importSessionRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: "none" }}
-          onChange={(e) => importSavedSession(e.target.files?.[0])}
-        />
-      </div>
+      <Toast item={toast} onClose={() => setToast(null)} />
 
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
@@ -2242,13 +1676,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
             </StepButton>
           ))}
         </div>
-        <div
-          style={{
-            opacity: pageVisible ? 1 : 0,
-            transform: pageVisible ? "translateY(0)" : "translateY(10px)",
-            transition: "opacity 220ms ease, transform 220ms ease",
-          }}
-        >
+
         {currentStep === 1 && (
           <Card>
             <SectionHeader
@@ -2268,19 +1696,18 @@ const floatingBtn = ({ danger = false } = {}) => ({
                 setDragActive(false);
                 handleUpload(e.dataTransfer.files?.[0]);
               }}
-style={{
-  height: 75,          
-  borderRadius: 20,    
-  border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
-  background: dragActive ? COLORS.primaryLight : "#FCFFFF",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexDirection: "column",
-  textAlign: "center",
-  cursor: "pointer",
-  padding: "10px",     
-}}
+              style={{
+                minHeight: 180,
+                borderRadius: 26,
+                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
+                background: dragActive ? COLORS.primaryLight : "#FCFFFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
             >
               <input
                 ref={fileRef}
@@ -2289,8 +1716,8 @@ style={{
                 style={{ display: "none" }}
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-              <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>اسحب التقرير هنا أو اضغط للاختيار</div>
-              <div style={{ marginTop: 4, fontSize: 11, color: COLORS.muted }}>CSV فقط</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>اسحب الملف هنا أو اضغط للاختيار</div>
+              <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
                 <div
                   style={{
@@ -2352,7 +1779,7 @@ style={{
               </div>
 
               <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب لديه ظروف خاصة</div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب له ظروف خاصة</div>
                 <input
                   value={prioritizeTrainer}
                   onChange={(e) => setPrioritizeTrainer(e.target.value)}
@@ -2727,13 +2154,13 @@ style={{
 
                     {invigilationMode === "fixed" ? (
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
+                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
                         <input
                           type="number"
                           min="1"
                           max="10"
                           value={invigilatorsPerPeriod}
-                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
+                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
                           style={fieldStyle()}
                         />
                       </div>
@@ -2919,20 +2346,178 @@ style={{
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
-                <SectionHeader
-                  title="المعاينة والطباعة"
-                  description="اختر التبويب المناسب، ويمكنك أيضًا تحديد القسم لتطبيقه على المعاينة والطباعة والتصدير."
-                />
+                <SectionHeader title="المقررات مرتبة حسب عدد المتدربين والتعارضات" description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض." />
 
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: COLORS.primaryLight }}>
+                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
+                          <th
+                            key={label}
+                            style={{
+                              padding: 12,
+                              borderBottom: `1px solid ${COLORS.border}`,
+                              textAlign: "right",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsed.courses.slice(0, 30).map((course) => (
+                        <tr key={course.key}>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <Card>
+                <SectionHeader title="جدول الاختبارات النهائي" description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة." />
+
+                {schedule.length ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <button onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))} disabled={previewPage === 0} style={cardButtonStyle({ disabled: previewPage === 0 })}>
+                      السابق
+                    </button>
+
+                    <div style={{ fontWeight: 800, color: COLORS.primaryDark }}>
+                      الصفحة {previewPage + 1} من {totalPreviewPages}
+                    </div>
+
+                    <button
+                      onClick={() => setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))}
+                      disabled={previewPage >= totalPreviewPages - 1}
+                      style={cardButtonStyle({ disabled: previewPage >= totalPreviewPages - 1 })}
+                    >
+                      التالي
+                    </button>
+                  </div>
+                ) : null}
+
+                {!schedule.length ? (
+                  <div
+                    style={{
+                      border: `2px dashed ${COLORS.border}`,
+                      borderRadius: 22,
+                      padding: 30,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                      background: "#F8FEFE",
+                    }}
+                  >
+                    أنشئ الجدول أولًا ليظهر هنا.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 18 }}>
+                    {paginatedGroupedSchedule.map(([dateISO, items]) => (
+                      <div key={dateISO} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
+                        <div style={{ background: COLORS.primaryLight, padding: 16, borderBottom: `1px solid ${COLORS.border}` }}>
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{items[0].gregorian}</div>
+                          <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
+                        </div>
+
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr style={{ background: "#fff" }}>
+                                {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
+                                  <th
+                                    key={head}
+                                    style={{
+                                      padding: 12,
+                                      textAlign: "right",
+                                      borderBottom: `1px solid ${COLORS.border}`,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {items.map((item) => (
+                                <tr key={`${item.key}-${item.id}`}>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {unscheduled.length ? (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      borderRadius: 18,
+                      background: COLORS.warningBg,
+                      border: "1px solid #FED7AA",
+                      color: COLORS.warning,
+                      padding: 14,
+                    }}
+                  >
+                    <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {unscheduled.map((course) => (
+                        <span
+                          key={course.key}
+                          style={{
+                            background: "#fff",
+                            border: "1px solid #FED7AA",
+                            borderRadius: 999,
+                            padding: "6px 12px",
+                            fontSize: 13,
+                          }}
+                        >
+                          {course.courseName} - {course.courseCode}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب في طباعة الجدول</div>
                   <select
                     value={printDepartmentFilter}
-                    onChange={(e) => {
-                      setPrintDepartmentFilter(e.target.value);
-                      setPreviewPage(0);
-                    }}
-                    style={{ ...fieldStyle(), maxWidth: 420 }}
+                    onChange={(e) => setPrintDepartmentFilter(e.target.value)}
+                    style={{ ...fieldStyle(), maxWidth: 360 }}
                   >
                     <option value="__all__">جميع الأقسام</option>
                     {availableDepartmentsForPrint.map((department) => (
@@ -2942,432 +2527,165 @@ style={{
                     ))}
                   </select>
                 </div>
-<div style={{ marginBottom: 12 }}>
-  <div style={{ marginBottom: 8, fontWeight: 800 }}>التخصص المطلوب</div>
-  <select
-    value={printMajorFilter}
-    onChange={(e) => {
-      setPrintMajorFilter(e.target.value);
-      setPreviewPage(0);
-    }}
-    style={{ ...fieldStyle(), maxWidth: 420 }}
-  >
-    <option value="__all__">جميع التخصصات</option>
-    {availableMajorsForPrint.map((major) => (
-      <option key={major} value={major}>
-        {major}
-      </option>
-    ))}
-  </select>
-</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
-                  <button
-                    onClick={() => setPreviewTab("sortedCourses")}
-                    style={cardButtonStyle({ active: previewTab === "sortedCourses" })}
-                  >
-                    المقررات المرتبة
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                    السابق
+                  </button>
+
+                  <button onClick={exportMainSchedule} style={cardButtonStyle()}>
+                    تصدير جدول الاختبارات
                   </button>
 
                   <button
-                    onClick={() => setPreviewTab("schedule")}
-                    style={cardButtonStyle({ active: previewTab === "schedule" })}
+                    onClick={() =>
+                      printScheduleOnlyPdf({
+                        collegeName: parsed.collegeName,
+                        schedule: filteredScheduleForPrint,
+                        periodLabels: parsedPeriods
+                          .filter((p) => p.valid)
+                          .map((p, index) => ({
+                            period: index + 1,
+                            label: index === 0 ? "الفترة الأولى" : index === 1 ? "الفترة الثانية" : `الفترة ${index + 1}`,
+                            timeText: p.timeText,
+                          })),
+                        defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                        selectedDepartment: printDepartmentFilter,
+                      })
+                    }
+                    style={cardButtonStyle({ active: true })}
                   >
-                    معاينة جدول الاختبارات
+                    طباعة جدول الاختبارات
                   </button>
 
                   <button
-                    onClick={() => setPreviewTab("invigilators")}
-                    style={cardButtonStyle({ active: previewTab === "invigilators" })}
+                    onClick={() =>
+                      printInvigilatorsOnlyPdf({
+                        collegeName: parsed.collegeName,
+                        invigilatorTable,
+                      })
+                    }
+                    style={cardButtonStyle()}
                   >
-                    معاينة جدول المراقبين
-                  </button>
-
-                  <button
-                    onClick={() => setPreviewTab("print")}
-                    style={cardButtonStyle({ active: previewTab === "print" })}
-                  >
-                    الطباعة
+                    طباعة جدول المراقبين
                   </button>
                 </div>
+              </Card>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <Card>
+                <SectionHeader title="جدول المراقبين وفترات المراقبة" description="يعرض كل مراقب والفترات المسندة له بشكل منفصل." />
+
+                {!invigilatorTable.length ? (
+                  <div
+                    style={{
+                      border: `2px dashed ${COLORS.border}`,
+                      borderRadius: 22,
+                      padding: 26,
+                      textAlign: "center",
+                      color: COLORS.muted,
+                      background: "#F8FEFE",
+                    }}
+                  >
+                    أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 16 }}>
+                    {invigilatorTable.map((inv) => (
+                      <div key={inv.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
+                        <div
+                          style={{
+                            background: COLORS.primaryLight,
+                            padding: 16,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{inv.name}</div>
+                          <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
+                        </div>
+
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
+                                  <th
+                                    key={head}
+                                    style={{
+                                      padding: 12,
+                                      textAlign: "right",
+                                      borderBottom: `1px solid ${COLORS.border}`,
+                                      background: "#fff",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {inv.items.map((item, index) => (
+                                <tr key={`${inv.name}-${index}`}>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                  <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div
                   style={{
+                    marginTop: 14,
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 16,
                     padding: 12,
                     background: "#F8FEFE",
                     color: COLORS.muted,
-                    lineHeight: 1.9,
+                    lineHeight: 1.8,
                   }}
                 >
-                  عند اختيار قسم رئيسي محدد، ستتم فلترة المعاينة والطباعة والتصدير وفق هذا القسم،
-                  مع محاولة ضم مقررات الدراسات العامة المرتبطة به.
+                  في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
                 </div>
 
-                {previewTab === "print" ? (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                    <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-                      السابق
-                    </button>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
+                    تصدير جدول المراقبين
+                  </button>
 
-                    <button onClick={exportMainSchedule} style={cardButtonStyle()}>
-                      تصدير جدول الاختبارات
-                    </button>
-
-                    <button
-                      onClick={() =>
-printScheduleOnlyPdf({
-  collegeName: parsed.collegeName,
-  schedule: filteredScheduleForPrint,
-  periodLabels: parsedPeriods
-    .filter((p) => p.valid)
-    .map((p, index) => ({
-      period: index + 1,
-      label:
-        index === 0
-          ? "الفترة الأولى"
-          : index === 1
-          ? "الفترة الثانية"
-          : `الفترة ${index + 1}`,
-      timeText: p.timeText,
-    })),
-  defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
-  selectedDepartment: printDepartmentFilter,
-  selectedMajor: printMajorFilter,
-})
-                      }
-                      style={cardButtonStyle({ active: true })}
-                    >
-                      طباعة جدول الاختبارات
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        printInvigilatorsOnlyPdf({
-                          collegeName: parsed.collegeName,
-                          invigilatorTable,
-                        })
-                      }
-                      style={cardButtonStyle()}
-                    >
-                      طباعة جدول المراقبين
-                    </button>
-                  </div>
-                ) : null}
+                  <button
+                    onClick={() =>
+                      printInvigilatorsOnlyPdf({
+                        collegeName: parsed.collegeName,
+                        invigilatorTable,
+                      })
+                    }
+                    style={cardButtonStyle({ active: true })}
+                  >
+                    طباعة جدول المراقبين
+                  </button>
+                </div>
               </Card>
             </div>
-
-            {previewTab === "sortedCourses" && (
-              <div style={{ marginTop: 20 }}>
-                <Card>
-                  <SectionHeader
-                    title="المقررات مرتبة حسب عدد المتدربين والتعارضات"
-                    description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض."
-                  />
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ background: COLORS.primaryLight }}>
-                          {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
-                            <th
-                              key={label}
-                              style={{
-                                padding: 12,
-                                borderBottom: `1px solid ${COLORS.border}`,
-                                textAlign: "right",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {label}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredSortedCourses.map((course) => (
-                          <tr key={course.key}>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
-                          </tr>
-                        ))}
-                        {!filteredSortedCourses.length ? (
-                          <tr>
-                            <td colSpan={6} style={{ padding: 20, textAlign: "center", color: COLORS.muted }}>
-                              لا توجد مقررات مطابقة للقسم المختار.
-                            </td>
-                          </tr>
-                        ) : null}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {previewTab === "schedule" && (
-              <div style={{ marginTop: 20 }}>
-                <Card>
-                  <SectionHeader
-                    title="جدول الاختبارات النهائي"
-                    description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
-                  />
-
-                  {filteredScheduleForPrint.length ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        marginBottom: 16,
-                      }}
-                    >
-                      <button
-                        onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
-                        disabled={previewPage === 0}
-                        style={cardButtonStyle({ disabled: previewPage === 0 })}
-                      >
-                        السابق
-                      </button>
-
-                      <div style={{ fontWeight: 800, color: COLORS.primaryDark }}>
-                        الصفحة {previewPage + 1} من {totalPreviewPages}
-                      </div>
-
-                      <button
-                        onClick={() => setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))}
-                        disabled={previewPage >= totalPreviewPages - 1}
-                        style={cardButtonStyle({ disabled: previewPage >= totalPreviewPages - 1 })}
-                      >
-                        التالي
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {!filteredScheduleForPrint.length ? (
-                    <div
-                      style={{
-                        border: `2px dashed ${COLORS.border}`,
-                        borderRadius: 22,
-                        padding: 30,
-                        textAlign: "center",
-                        color: COLORS.muted,
-                        background: "#F8FEFE",
-                      }}
-                    >
-                      لا توجد عناصر مطابقة للقسم المختار.
-                    </div>
-                  ) : (
-                    <div style={{ display: "grid", gap: 18 }}>
-                      {paginatedGroupedSchedule.map(([dateISO, items]) => (
-                        <div key={dateISO} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
-                          <div style={{ background: COLORS.primaryLight, padding: 16, borderBottom: `1px solid ${COLORS.border}` }}>
-                            <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{items[0].gregorian}</div>
-                            <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
-                          </div>
-
-                          <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                              <thead>
-                                <tr style={{ background: "#fff" }}>
-                                  {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
-                                    <th
-                                      key={head}
-                                      style={{
-                                        padding: 12,
-                                        textAlign: "right",
-                                        borderBottom: `1px solid ${COLORS.border}`,
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {head}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-
-                              <tbody>
-                                {items.map((item) => (
-                                  <tr key={`${item.key}-${item.id}`}>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {unscheduled.length ? (
-                    <div
-                      style={{
-                        marginTop: 18,
-                        borderRadius: 18,
-                        background: COLORS.warningBg,
-                        border: "1px solid #FED7AA",
-                        color: COLORS.warning,
-                        padding: 14,
-                      }}
-                    >
-                      <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {unscheduled.map((course) => (
-                          <span
-                            key={course.key}
-                            style={{
-                              background: "#fff",
-                              border: "1px solid #FED7AA",
-                              borderRadius: 999,
-                              padding: "6px 12px",
-                              fontSize: 13,
-                            }}
-                          >
-                            {course.courseName} - {course.courseCode}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </Card>
-              </div>
-            )}
-
-            {previewTab === "invigilators" && (
-              <div style={{ marginTop: 20 }}>
-                <Card>
-                  <SectionHeader
-                    title="جدول المراقبين وفترات المراقبة"
-                    description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
-                  />
-
-                  {!invigilatorTable.length ? (
-                    <div
-                      style={{
-                        border: `2px dashed ${COLORS.border}`,
-                        borderRadius: 22,
-                        padding: 26,
-                        textAlign: "center",
-                        color: COLORS.muted,
-                        background: "#F8FEFE",
-                      }}
-                    >
-                      لا توجد عناصر مطابقة للقسم المختار.
-                    </div>
-                  ) : (
-                    <div style={{ display: "grid", gap: 16 }}>
-                      {invigilatorTable.map((inv) => (
-                        <div key={inv.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
-                          <div
-                            style={{
-                              background: COLORS.primaryLight,
-                              padding: 16,
-                              borderBottom: `1px solid ${COLORS.border}`,
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{inv.name}</div>
-                            <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
-                          </div>
-
-                          <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                              <thead>
-                                <tr>
-                                  {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
-                                    <th
-                                      key={head}
-                                      style={{
-                                        padding: 12,
-                                        textAlign: "right",
-                                        borderBottom: `1px solid ${COLORS.border}`,
-                                        background: "#fff",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {head}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-
-                              <tbody>
-                                {inv.items.map((item, index) => (
-                                  <tr key={`${inv.name}-${index}`}>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      marginTop: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 16,
-                      padding: 12,
-                      background: "#F8FEFE",
-                      color: COLORS.muted,
-                      lineHeight: 1.8,
-                    }}
-                  >
-                    في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
-                  </div>
-
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                    <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
-                      تصدير جدول المراقبين
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        printInvigilatorsOnlyPdf({
-                          collegeName: parsed.collegeName,
-                          invigilatorTable,
-                        })
-                      }
-                      style={cardButtonStyle({ active: true })}
-                    >
-                      طباعة جدول المراقبين
-                    </button>
-                  </div>
-                </Card>
-              </div>
-            )}
           </>
         )}
       </div>
     </div>
   );
-});
- </div>
-     
+}
