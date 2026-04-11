@@ -1862,7 +1862,7 @@ const filteredSortedCourses = useMemo(() => {
                 handleUpload(e.dataTransfer.files?.[0]);
               }}
 style={{
-  height: 110,          
+  height: 70,          
   borderRadius: 20,    
   border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
   background: dragActive ? COLORS.primaryLight : "#FCFFFF",
