@@ -211,29 +211,6 @@ function splitBySlash(value) {
     .filter(Boolean);
 }
 
-function matchesSelectedMainDepartment(item, selectedDepartment) {
-  if (selectedDepartment === "__all__") return true;
-
-  const target = normalizeArabic(selectedDepartment);
-
-  const tokens = [
-    ...splitBySlash(item.department),
-    ...splitBySlash(item.sectionName),
-    ...splitBySlash(item.major),
-  ].map((x) => normalizeArabic(x));
-
-  if (tokens.includes(target)) return true;
-
-  // دعم إضافي لمقررات الدراسات العامة المرتبطة بالقسم
-  if (isGeneralStudiesCourse(item)) {
-    const fullText = normalizeArabic(
-      `${item.department} ${item.major} ${item.sectionName} ${item.courseName} ${item.courseCode}`
-    );
-    return fullText.includes(target);
-  }
-
-  return false;
-}
 function groupScheduleForOfficialPrint(schedule) {
   const byDate = {};
   schedule.forEach((item) => {
@@ -976,6 +953,30 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
   openPrintWindow("طباعة جدول المراقبين", html);
 }
 
+function matchesSelectedMainDepartment(item, selectedDepartment) {
+  if (selectedDepartment === "__all__") return true;
+
+  const target = normalizeArabic(selectedDepartment);
+
+  const departmentTokens = splitBySlash(item.department).map(normalizeArabic);
+  const sectionTokens = splitBySlash(item.sectionName).map(normalizeArabic);
+  const majorTokens = splitBySlash(item.major).map(normalizeArabic);
+
+  if (departmentTokens.includes(target) || sectionTokens.includes(target) || majorTokens.includes(target)) {
+    return true;
+  }
+
+  if (isGeneralStudiesCourse(item)) {
+    const fullText = normalizeArabic(
+      `${item.department} ${item.major} ${item.sectionName} ${item.courseName} ${item.courseCode}`
+    );
+
+    if (fullText.includes(target)) return true;
+  }
+
+  return false;
+}
+
 export default function App() {
   const fileRef = useRef(null);
 
@@ -984,6 +985,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewTab, setPreviewTab] = useState("schedule");
+
   const [invigilationMode, setInvigilationMode] = useState("fixed");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
@@ -1047,6 +1049,7 @@ export default function App() {
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
         setCourseLevels({});
         setPreviewPage(0);
+        setPreviewTab("schedule");
         setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
@@ -1218,7 +1221,10 @@ export default function App() {
       });
   }, [examHallsText]);
 
-  const slots = useMemo(() => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }), [startDate, numberOfDays, selectedDays, parsedPeriods]);
+  const slots = useMemo(
+    () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
+    [startDate, numberOfDays, selectedDays, parsedPeriods]
+  );
 
   const allCourseOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -1375,7 +1381,20 @@ export default function App() {
       if (hardConflict) return Number.POSITIVE_INFINITY;
 
       let score = slotLoadPenalty + sameDayPenalty;
+
       if (course.conflictDegree > 10 && slot.period > 1) score += 1;
+
+      if (prioritizeTrainer.trim()) {
+        const normalizedTargetTrainer = normalizeArabic(prioritizeTrainer);
+        const hasPriorityTrainer = course.trainerText
+          .split("/")
+          .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
+
+        if (hasPriorityTrainer) {
+          score -= 3;
+        }
+      }
+
       return score;
     };
 
@@ -1456,11 +1475,9 @@ export default function App() {
     setCurrentStep(6);
   };
 
-const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter((item) =>
-    matchesSelectedMainDepartment(item, printDepartmentFilter)
-  );
-}, [schedule, printDepartmentFilter]);
+  const filteredScheduleForPrint = useMemo(() => {
+    return schedule.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
+  }, [schedule, printDepartmentFilter]);
 
   const groupedSchedule = useMemo(() => {
     return schedule.reduce((acc, item) => {
@@ -1514,27 +1531,27 @@ const filteredScheduleForPrint = useMemo(() => {
     return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
   }, [manualInvigilators, parsed.invigilators]);
 
-const availableDepartmentsForPrint = useMemo(() => {
-  const map = new Map();
+  const availableDepartmentsForPrint = useMemo(() => {
+    const map = new Map();
 
-  schedule
-    .filter((item) => !isGeneralStudiesCourse(item))
-    .forEach((item) => {
-      splitBySlash(item.department).forEach((department) => {
-        const clean = String(department || "").trim();
-        const normalized = normalizeArabic(clean);
+    schedule
+      .filter((item) => !isGeneralStudiesCourse(item))
+      .forEach((item) => {
+        splitBySlash(item.department).forEach((department) => {
+          const clean = String(department || "").trim();
+          const normalized = normalizeArabic(clean);
 
-        if (!clean) return;
-        if (normalized === normalizeArabic("الدراسات العامة")) return;
+          if (!clean) return;
+          if (normalized === normalizeArabic("الدراسات العامة")) return;
 
-        if (!map.has(normalized)) {
-          map.set(normalized, clean);
-        }
+          if (!map.has(normalized)) {
+            map.set(normalized, clean);
+          }
+        });
       });
-    });
 
-  return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
-}, [schedule]);
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [schedule]);
 
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
@@ -1572,9 +1589,11 @@ const availableDepartmentsForPrint = useMemo(() => {
   };
 
   const exportMainSchedule = () => {
-    if (!schedule.length) return showToast("لا يوجد جدول", "أنشئ الجدول أولًا ثم صدّر الملف.", "error");
+    if (!filteredScheduleForPrint.length) {
+      return showToast("لا يوجد جدول", "أنشئ الجدول أولًا أو غيّر فلتر القسم ثم أعد المحاولة.", "error");
+    }
 
-    const exportRows = schedule.map((item) => ({
+    const exportRows = filteredScheduleForPrint.map((item) => ({
       الكلية: parsed.collegeName,
       القسم: item.department,
       التخصص: item.major,
@@ -1592,13 +1611,18 @@ const availableDepartmentsForPrint = useMemo(() => {
       المراقبون: (item.invigilators || []).join(" | "),
     }));
 
+    const suffix =
+      printDepartmentFilter === "__all__"
+        ? "all-departments"
+        : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
+
     downloadFile(
-      `final-exam-schedule-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
+      `final-exam-schedule-${suffix}-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
 
-    showToast("تم التصدير", "تم تنزيل جدول الاختبارات.", "success");
+    showToast("تم التصدير", "تم تنزيل جدول الاختبارات حسب القسم المختار.", "success");
   };
 
   const exportInvigilatorsTable = () => {
@@ -2393,132 +2417,130 @@ const availableDepartmentsForPrint = useMemo(() => {
         {currentStep === 6 && (
           <>
             <div style={{ marginTop: 20 }}>
-  <Card>
-    <SectionHeader
-      title="المعاينة والطباعة"
-      description="اختر تبويب المعاينة المناسب، ومن هنا تتم خيارات الطباعة في أعلى الصفحة."
-    />
+              <Card>
+                <SectionHeader
+                  title="المعاينة والطباعة"
+                  description="اختر تبويب المعاينة المناسب، ومن هنا تتم خيارات الطباعة في أعلى الصفحة."
+                />
 
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
-      <button
-        onClick={() => setPreviewTab("schedule")}
-        style={cardButtonStyle({ active: previewTab === "schedule" })}
-      >
-        معاينة جدول الاختبارات
-      </button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+                  <button
+                    onClick={() => setPreviewTab("schedule")}
+                    style={cardButtonStyle({ active: previewTab === "schedule" })}
+                  >
+                    معاينة جدول الاختبارات
+                  </button>
 
-      <button
-        onClick={() => setPreviewTab("invigilators")}
-        style={cardButtonStyle({ active: previewTab === "invigilators" })}
-      >
-        معاينة جدول المراقبين
-      </button>
+                  <button
+                    onClick={() => setPreviewTab("invigilators")}
+                    style={cardButtonStyle({ active: previewTab === "invigilators" })}
+                  >
+                    معاينة جدول المراقبين
+                  </button>
 
-      <button
-        onClick={() => setPreviewTab("print")}
-        style={cardButtonStyle({ active: previewTab === "print" })}
-      >
-        الطباعة
-      </button>
-    </div>
+                  <button
+                    onClick={() => setPreviewTab("print")}
+                    style={cardButtonStyle({ active: previewTab === "print" })}
+                  >
+                    الطباعة
+                  </button>
+                </div>
 
-    {previewTab === "print" ? (
-      <>
-        <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب في الطباعة</div>
-        <select
-          value={printDepartmentFilter}
-          onChange={(e) => setPrintDepartmentFilter(e.target.value)}
-          style={{ ...fieldStyle(), maxWidth: 420 }}
-        >
-          <option value="__all__">جميع الأقسام</option>
-          {availableDepartmentsForPrint.map((department) => (
-            <option key={department} value={department}>
-              {department}
-            </option>
-          ))}
-        </select>
+                {previewTab === "print" ? (
+                  <>
+                    <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب في الطباعة</div>
+                    <select
+                      value={printDepartmentFilter}
+                      onChange={(e) => setPrintDepartmentFilter(e.target.value)}
+                      style={{ ...fieldStyle(), maxWidth: 420 }}
+                    >
+                      <option value="__all__">جميع الأقسام</option>
+                      {availableDepartmentsForPrint.map((department) => (
+                        <option key={department} value={department}>
+                          {department}
+                        </option>
+                      ))}
+                    </select>
 
-        <div
-          style={{
-            marginTop: 12,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 16,
-            padding: 12,
-            background: "#F8FEFE",
-            color: COLORS.muted,
-            lineHeight: 1.9,
-          }}
-        >
-          عند اختيار قسم رئيسي محدد، ستظهر في الطباعة مقررات هذا القسم
-          بالإضافة إلى مقررات الدراسات العامة المرتبطة به، وسيطبع اسم القسم
-          المختار بدلًا من "جميع الأقسام".
-        </div>
+                    <div
+                      style={{
+                        marginTop: 12,
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 16,
+                        padding: 12,
+                        background: "#F8FEFE",
+                        color: COLORS.muted,
+                        lineHeight: 1.9,
+                      }}
+                    >
+                      عند اختيار قسم رئيسي محدد، ستظهر في الطباعة مقررات هذا القسم بالإضافة إلى مقررات الدراسات العامة المرتبطة به،
+                      وسيطبع اسم القسم المختار بدلًا من "جميع الأقسام".
+                    </div>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-            السابق
-          </button>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                        السابق
+                      </button>
 
-          <button onClick={exportMainSchedule} style={cardButtonStyle()}>
-            تصدير جدول الاختبارات
-          </button>
+                      <button onClick={exportMainSchedule} style={cardButtonStyle()}>
+                        تصدير جدول الاختبارات
+                      </button>
 
-          <button
-            onClick={() =>
-              printScheduleOnlyPdf({
-                collegeName: parsed.collegeName,
-                schedule: filteredScheduleForPrint,
-                periodLabels: parsedPeriods
-                  .filter((p) => p.valid)
-                  .map((p, index) => ({
-                    period: index + 1,
-                    label:
-                      index === 0
-                        ? "الفترة الأولى"
-                        : index === 1
-                        ? "الفترة الثانية"
-                        : `الفترة ${index + 1}`,
-                    timeText: p.timeText,
-                  })),
-                defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
-                selectedDepartment: printDepartmentFilter,
-              })
-            }
-            style={cardButtonStyle({ active: true })}
-          >
-            طباعة جدول الاختبارات
-          </button>
+                      <button
+                        onClick={() =>
+                          printScheduleOnlyPdf({
+                            collegeName: parsed.collegeName,
+                            schedule: filteredScheduleForPrint,
+                            periodLabels: parsedPeriods
+                              .filter((p) => p.valid)
+                              .map((p, index) => ({
+                                period: index + 1,
+                                label:
+                                  index === 0
+                                    ? "الفترة الأولى"
+                                    : index === 1
+                                    ? "الفترة الثانية"
+                                    : `الفترة ${index + 1}`,
+                                timeText: p.timeText,
+                              })),
+                            defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                            selectedDepartment: printDepartmentFilter,
+                          })
+                        }
+                        style={cardButtonStyle({ active: true })}
+                      >
+                        طباعة جدول الاختبارات
+                      </button>
 
-          <button
-            onClick={() =>
-              printInvigilatorsOnlyPdf({
-                collegeName: parsed.collegeName,
-                invigilatorTable,
-              })
-            }
-            style={cardButtonStyle()}
-          >
-            طباعة جدول المراقبين
-          </button>
-        </div>
-      </>
-    ) : (
-      <div
-        style={{
-          border: `1px dashed ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 18,
-          color: COLORS.muted,
-          background: "#F8FEFE",
-        }}
-      >
-        اختر تبويب "الطباعة" لعرض خيارات الطباعة في أعلى الصفحة.
-      </div>
-    )}
-  </Card>
-</div>
-            
-            
+                      <button
+                        onClick={() =>
+                          printInvigilatorsOnlyPdf({
+                            collegeName: parsed.collegeName,
+                            invigilatorTable,
+                          })
+                        }
+                        style={cardButtonStyle()}
+                      >
+                        طباعة جدول المراقبين
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      border: `1px dashed ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 18,
+                      color: COLORS.muted,
+                      background: "#F8FEFE",
+                    }}
+                  >
+                    اختر تبويب "الطباعة" لعرض خيارات الطباعة في أعلى الصفحة.
+                  </div>
+                )}
+              </Card>
+            </div>
+
             <div style={{ marginTop: 20 }}>
               <Card>
                 <SectionHeader title="المقررات مرتبة حسب عدد المتدربين والتعارضات" description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض." />
@@ -2559,229 +2581,260 @@ const availableDepartmentsForPrint = useMemo(() => {
               </Card>
             </div>
 
-           {previewTab === "schedule" && (
-  <div style={{ marginTop: 20 }}>
-    <Card>
-      <SectionHeader
-        title="جدول الاختبارات النهائي"
-        description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
-      />
+            {previewTab === "schedule" && (
+              <div style={{ marginTop: 20 }}>
+                <Card>
+                  <SectionHeader
+                    title="جدول الاختبارات النهائي"
+                    description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
+                  />
 
-      {schedule.length ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-            marginBottom: 16,
-          }}
-        >
-          <button
-            onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
-            disabled={previewPage === 0}
-            style={cardButtonStyle({ disabled: previewPage === 0 })}
-          >
-            السابق
-          </button>
+                  {schedule.length ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <button
+                        onClick={() => setPreviewPage((prev) => Math.max(prev - 1, 0))}
+                        disabled={previewPage === 0}
+                        style={cardButtonStyle({ disabled: previewPage === 0 })}
+                      >
+                        السابق
+                      </button>
 
-          <div style={{ fontWeight: 800, color: COLORS.primaryDark }}>
-            الصفحة {previewPage + 1} من {totalPreviewPages}
-          </div>
+                      <div style={{ fontWeight: 800, color: COLORS.primaryDark }}>
+                        الصفحة {previewPage + 1} من {totalPreviewPages}
+                      </div>
 
-          <button
-            onClick={() => setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))}
-            disabled={previewPage >= totalPreviewPages - 1}
-            style={cardButtonStyle({ disabled: previewPage >= totalPreviewPages - 1 })}
-          >
-            التالي
-          </button>
-        </div>
-      ) : null}
+                      <button
+                        onClick={() => setPreviewPage((prev) => Math.min(prev + 1, totalPreviewPages - 1))}
+                        disabled={previewPage >= totalPreviewPages - 1}
+                        style={cardButtonStyle({ disabled: previewPage >= totalPreviewPages - 1 })}
+                      >
+                        التالي
+                      </button>
+                    </div>
+                  ) : null}
 
-      {!schedule.length ? (
-        <div
-          style={{
-            border: `2px dashed ${COLORS.border}`,
-            borderRadius: 22,
-            padding: 30,
-            textAlign: "center",
-            color: COLORS.muted,
-            background: "#F8FEFE",
-          }}
-        >
-          أنشئ الجدول أولًا ليظهر هنا.
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 18 }}>
-          {paginatedGroupedSchedule.map(([dateISO, items]) => (
-            <div key={dateISO} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
-              <div style={{ background: COLORS.primaryLight, padding: 16, borderBottom: `1px solid ${COLORS.border}` }}>
-                <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{items[0].gregorian}</div>
-                <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
-              </div>
+                  {!schedule.length ? (
+                    <div
+                      style={{
+                        border: `2px dashed ${COLORS.border}`,
+                        borderRadius: 22,
+                        padding: 30,
+                        textAlign: "center",
+                        color: COLORS.muted,
+                        background: "#F8FEFE",
+                      }}
+                    >
+                      أنشئ الجدول أولًا ليظهر هنا.
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 18 }}>
+                      {paginatedGroupedSchedule.map(([dateISO, items]) => (
+                        <div key={dateISO} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
+                          <div style={{ background: COLORS.primaryLight, padding: 16, borderBottom: `1px solid ${COLORS.border}` }}>
+                            <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{items[0].gregorian}</div>
+                            <div style={{ marginTop: 4, color: COLORS.charcoalSoft }}>{items[0].hijri}</div>
+                          </div>
 
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#fff" }}>
-                      {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
-                        <th
-                          key={head}
-                          style={{
-                            padding: 12,
-                            textAlign: "right",
-                            borderBottom: `1px solid ${COLORS.border}`,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {head}
-                        </th>
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr style={{ background: "#fff" }}>
+                                  {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
+                                    <th
+                                      key={head}
+                                      style={{
+                                        padding: 12,
+                                        textAlign: "right",
+                                        borderBottom: `1px solid ${COLORS.border}`,
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {head}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {items.map((item) => (
+                                  <tr key={`${item.key}-${item.id}`}>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       ))}
-                    </tr>
-                  </thead>
+                    </div>
+                  )}
 
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={`${item.key}-${item.id}`}>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  {unscheduled.length ? (
+                    <div
+                      style={{
+                        marginTop: 18,
+                        borderRadius: 18,
+                        background: COLORS.warningBg,
+                        border: "1px solid #FED7AA",
+                        color: COLORS.warning,
+                        padding: 14,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {unscheduled.map((course) => (
+                          <span
+                            key={course.key}
+                            style={{
+                              background: "#fff",
+                              border: "1px solid #FED7AA",
+                              borderRadius: 999,
+                              padding: "6px 12px",
+                              fontSize: 13,
+                            }}
+                          >
+                            {course.courseName} - {course.courseCode}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </Card>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  </div>
-)}
+            )}
 
-{previewTab === "invigilators" && (
-  <div style={{ marginTop: 20 }}>
-    <Card>
-      <SectionHeader
-        title="جدول المراقبين وفترات المراقبة"
-        description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
-      />
+            {previewTab === "invigilators" && (
+              <div style={{ marginTop: 20 }}>
+                <Card>
+                  <SectionHeader
+                    title="جدول المراقبين وفترات المراقبة"
+                    description="يعرض كل مراقب والفترات المسندة له بشكل منفصل."
+                  />
 
-      {!invigilatorTable.length ? (
-        <div
-          style={{
-            border: `2px dashed ${COLORS.border}`,
-            borderRadius: 22,
-            padding: 26,
-            textAlign: "center",
-            color: COLORS.muted,
-            background: "#F8FEFE",
-          }}
-        >
-          أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 16 }}>
-          {invigilatorTable.map((inv) => (
-            <div key={inv.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
-              <div
-                style={{
-                  background: COLORS.primaryLight,
-                  padding: 16,
-                  borderBottom: `1px solid ${COLORS.border}`,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{inv.name}</div>
-                <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
-              </div>
+                  {!invigilatorTable.length ? (
+                    <div
+                      style={{
+                        border: `2px dashed ${COLORS.border}`,
+                        borderRadius: 22,
+                        padding: 26,
+                        textAlign: "center",
+                        color: COLORS.muted,
+                        background: "#F8FEFE",
+                      }}
+                    >
+                      أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 16 }}>
+                      {invigilatorTable.map((inv) => (
+                        <div key={inv.name} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 22, overflow: "hidden" }}>
+                          <div
+                            style={{
+                              background: COLORS.primaryLight,
+                              padding: 16,
+                              borderBottom: `1px solid ${COLORS.border}`,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div style={{ fontWeight: 900, fontSize: 18, color: COLORS.charcoal }}>{inv.name}</div>
+                            <div style={{ color: COLORS.charcoalSoft }}>عدد الفترات: {inv.periodsCount}</div>
+                          </div>
 
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
-                        <th
-                          key={head}
-                          style={{
-                            padding: 12,
-                            textAlign: "right",
-                            borderBottom: `1px solid ${COLORS.border}`,
-                            background: "#fff",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {head}
-                        </th>
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr>
+                                  {["التاريخ", "اليوم", "الفترة", "الوقت", "المقرر", "الرمز"].map((head) => (
+                                    <th
+                                      key={head}
+                                      style={{
+                                        padding: 12,
+                                        textAlign: "right",
+                                        borderBottom: `1px solid ${COLORS.border}`,
+                                        background: "#fff",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {head}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {inv.items.map((item, index) => (
+                                  <tr key={`${inv.name}-${index}`}>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
+                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       ))}
-                    </tr>
-                  </thead>
+                    </div>
+                  )}
 
-                  <tbody>
-                    {inv.items.map((item, index) => (
-                      <tr key={`${inv.name}-${index}`}>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.gregorian}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.dayName}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  <div
+                    style={{
+                      marginTop: 14,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 16,
+                      padding: 12,
+                      background: "#F8FEFE",
+                      color: COLORS.muted,
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                    <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
+                      تصدير جدول المراقبين
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        printInvigilatorsOnlyPdf({
+                          collegeName: parsed.collegeName,
+                          invigilatorTable,
+                        })
+                      }
+                      style={cardButtonStyle({ active: true })}
+                    >
+                      طباعة جدول المراقبين
+                    </button>
+                  </div>
+                </Card>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: 14,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 16,
-          padding: 12,
-          background: "#F8FEFE",
-          color: COLORS.muted,
-          lineHeight: 1.8,
-        }}
-      >
-        في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
-      </div>
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-        <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
-          تصدير جدول المراقبين
-        </button>
-
-        <button
-          onClick={() =>
-            printInvigilatorsOnlyPdf({
-              collegeName: parsed.collegeName,
-              invigilatorTable,
-            })
-          }
-          style={cardButtonStyle({ active: true })}
-        >
-          طباعة جدول المراقبين
-        </button>
-      </div>
-    </Card>
-  </div>
-)} 
+            )}
           </>
         )}
       </div>
