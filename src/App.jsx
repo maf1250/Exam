@@ -345,7 +345,7 @@ function StatBox({ label, value }) {
   );
 }
 
-function Toast({ item, onClose }) {
+function Toast({ item, onClose, onRestore }) {
   if (!item) return null;
 
   const bg =
@@ -371,19 +371,36 @@ function Toast({ item, onClose }) {
     >
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
       <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
-      <button
-        onClick={onClose}
-        style={{
-          marginTop: 10,
-          background: "transparent",
-          border: "none",
-          color,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        إغلاق
-      </button>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        {item.type === "warning" && item.action === "restore_session" && onRestore ? (
+          <button
+            onClick={onRestore}
+            style={{
+              background: "transparent",
+              border: "none",
+              color,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            استرجاع
+          </button>
+        ) : null}
+
+        <button
+          onClick={onClose}
+          style={{
+            background: "transparent",
+            border: "none",
+            color,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          إغلاق
+        </button>
+      </div>
     </div>
   );
 }
@@ -1093,6 +1110,8 @@ export default function App() {
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
+  const [pendingRestore, setPendingRestore] = useState(null);
+  const [didRestore, setDidRestore] = useState(false);
 
   const showToast = (title, description, type = "success") => {
     setToast({ title, description, type });
@@ -1130,10 +1149,72 @@ const buildPersistedState = () => ({
   previewTab,
   previewPage,
 });
+
+const restorePersistedState = (saved) => {
+  setRows(saved.rows || []);
+  setFileName(saved.fileName || "");
+  setCurrentStep(saved.currentStep || 1);
+  setStartDate(saved.startDate || "");
+  setNumberOfDays(saved.numberOfDays || 8);
+  setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+  setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
+  setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
+  setIncludeInvigilators(saved.includeInvigilators ?? true);
+  setExcludedInvigilators(saved.excludedInvigilators || []);
+  setExcludeInactive(saved.excludeInactive ?? true);
+  setPrioritizeTrainer(saved.prioritizeTrainer || "");
+  setManualInvigilators(saved.manualInvigilators || "");
+  setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
+  setInvigilationMode(saved.invigilationMode || "ratio");
+  setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
+  setExcludedCourses(saved.excludedCourses || []);
+  setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
+  setPrintMajorFilter(saved.printMajorFilter || "__all__");
+  setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
+  setCourseLevels(saved.courseLevels || {});
+  setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
+  setGeneralSchedule(saved.generalSchedule || []);
+  setSpecializedSchedule(saved.specializedSchedule || []);
+  setSchedule(saved.schedule || []);
+  setUnscheduled(saved.unscheduled || []);
+  setPreviewTab(saved.previewTab || "sortedCourses");
+  setPreviewPage(saved.previewPage || 0);
+};
+
 useEffect(() => {
-  const data = buildPersistedState();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      setDidRestore(true);
+      return;
+    }
+
+    const saved = JSON.parse(raw);
+    setPendingRestore(saved);
+    setToast({
+      title: "جلسة محفوظة",
+      description: "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
+      type: "warning",
+      action: "restore_session",
+    });
+    setDidRestore(true);
+  } catch (error) {
+    console.error("Failed to restore saved state:", error);
+    setDidRestore(true);
+  }
+}, []);
+
+useEffect(() => {
+  if (!didRestore) return;
+
+  try {
+    const data = buildPersistedState();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to persist state:", error);
+  }
 }, [
+  didRestore,
   rows,
   fileName,
   currentStep,
@@ -1163,67 +1244,21 @@ useEffect(() => {
   previewTab,
   previewPage,
 ]);
-useEffect(() => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
 
-    const saved = JSON.parse(raw);
+const restoreSavedSession = () => {
+  if (!pendingRestore) return;
 
-    const shouldRestore = window.confirm(
-      "تم العثور على جلسة محفوظة — هل تريد استرجاعها؟"
-    );
+  restorePersistedState(pendingRestore);
+  setPendingRestore(null);
+  showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
+};
 
-    if (!shouldRestore) {
-  localStorage.removeItem(STORAGE_KEY);
-  return;
-}
-
-    setRows(saved.rows || []);
-    setFileName(saved.fileName || "");
-    setCurrentStep(saved.currentStep || 1);
-    setStartDate(saved.startDate || "");
-    setNumberOfDays(saved.numberOfDays || 8);
-    setSelectedDays(
-      saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]
-    );
-    setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
-    setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
-
-    setIncludeInvigilators(saved.includeInvigilators ?? true);
-    setExcludedInvigilators(saved.excludedInvigilators || []);
-    setExcludeInactive(saved.excludeInactive ?? true);
-    setPrioritizeTrainer(saved.prioritizeTrainer || "");
-    setManualInvigilators(saved.manualInvigilators || "");
-    setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
-    setInvigilationMode(saved.invigilationMode || "ratio");
-    setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
-
-    setExcludedCourses(saved.excludedCourses || []);
-    setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
-    setPrintMajorFilter(saved.printMajorFilter || "__all__");
-
-    setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
-    setCourseLevels(saved.courseLevels || {});
-    setPreferCourseTrainerInvigilation(
-      saved.preferCourseTrainerInvigilation ?? true
-    );
-
-    setGeneralSchedule(saved.generalSchedule || []);
-    setSpecializedSchedule(saved.specializedSchedule || []);
-    setSchedule(saved.schedule || []);
-    setUnscheduled(saved.unscheduled || []);
-
-    setPreviewTab(saved.previewTab || "sortedCourses");
-    setPreviewPage(saved.previewPage || 0);
-  } catch (error) {
-    console.error("Failed to restore saved state:", error);
-  }
-}, []);
 const clearSavedState = () => {
   localStorage.removeItem(STORAGE_KEY);
+  setPendingRestore(null);
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
 };
+
 const exportSavedSession = () => {
   const data = buildPersistedState();
   downloadFile(
@@ -1233,6 +1268,7 @@ const exportSavedSession = () => {
   );
   showToast("تم التصدير", "تم تنزيل ملف الجلسة بنجاح.", "success");
 };
+
 const importSessionRef = useRef(null);
 const importSavedSession = (file) => {
   if (!file) return;
@@ -1241,37 +1277,9 @@ const importSavedSession = (file) => {
   reader.onload = (e) => {
     try {
       const saved = JSON.parse(e.target.result);
-
-      setRows(saved.rows || []);
-      setFileName(saved.fileName || "");
-      setCurrentStep(saved.currentStep || 1);
-      setStartDate(saved.startDate || "");
-      setNumberOfDays(saved.numberOfDays || 8);
-      setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
-      setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
-      setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
-      setIncludeInvigilators(saved.includeInvigilators ?? true);
-      setExcludedInvigilators(saved.excludedInvigilators || []);
-      setExcludeInactive(saved.excludeInactive ?? true);
-      setPrioritizeTrainer(saved.prioritizeTrainer || "");
-      setManualInvigilators(saved.manualInvigilators || "");
-      setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
-      setInvigilationMode(saved.invigilationMode || "ratio");
-      setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
-      setExcludedCourses(saved.excludedCourses || []);
-      setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
-      setPrintMajorFilter(saved.printMajorFilter || "__all__");
-      setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
-      setCourseLevels(saved.courseLevels || {});
-      setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
-      setGeneralSchedule(saved.generalSchedule || []);
-      setSpecializedSchedule(saved.specializedSchedule || []);
-      setSchedule(saved.schedule || []);
-      setUnscheduled(saved.unscheduled || []);
-      setPreviewTab(saved.previewTab || "sortedCourses");
-      setPreviewPage(saved.previewPage || 0);
-
+      restorePersistedState(saved);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      setPendingRestore(null);
       showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
     } catch (error) {
       showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
@@ -2082,7 +2090,11 @@ const availableMajorsForPrint = useMemo(() => {
         color: COLORS.text,
       }}
     >
-      <Toast item={toast} onClose={() => setToast(null)} />
+      <Toast
+        item={toast}
+        onClose={() => setToast(null)}
+        onRestore={restoreSavedSession}
+      />
 
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
