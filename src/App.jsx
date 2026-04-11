@@ -1861,18 +1861,19 @@ const filteredSortedCourses = useMemo(() => {
                 setDragActive(false);
                 handleUpload(e.dataTransfer.files?.[0]);
               }}
-              style={{
-                minHeight: 180,
-                borderRadius: 26,
-                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
-                background: dragActive ? COLORS.primaryLight : "#FCFFFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                textAlign: "center",
-                cursor: "pointer",
-              }}
+style={{
+  height: 110,          
+  borderRadius: 20,    
+  border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
+  background: dragActive ? COLORS.primaryLight : "#FCFFFF",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "column",
+  textAlign: "center",
+  cursor: "pointer",
+  padding: "10px",     
+}}
             >
               <input
                 ref={fileRef}
@@ -1881,8 +1882,8 @@ const filteredSortedCourses = useMemo(() => {
                 style={{ display: "none" }}
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>اسحب الملف هنا أو اضغط للاختيار</div>
-              <div style={{ marginTop: 8, color: COLORS.muted }}>CSV فقط</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>اسحب الملف هنا أو اضغط للاختيار</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: COLORS.muted }}>CSV فقط</div>
               {fileName ? (
                 <div
                   style={{
