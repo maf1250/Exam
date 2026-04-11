@@ -1244,7 +1244,12 @@ useEffect(() => {
   previewTab,
   previewPage,
 ]);
-
+useEffect(() => {
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth", // ممكن تشيلها لو تبي بدون حركة
+  });
+}, [currentStep]);
 const restoreSavedSession = () => {
   if (!pendingRestore) return;
 
@@ -2163,7 +2168,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
             <div style={{ flex: 1, minWidth: 260 }}>
               <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
               <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية، بهوية لونية مستوحاة من المؤسسة العامة للتدريب التقني والمهني.
+                نسخة احترافية لبناء جدول الاختبارات النهائية مخصصة للكليات التقنية في المملكة العربية السعودية.
               </div>
             </div>
 
