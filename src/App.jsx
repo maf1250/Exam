@@ -2225,10 +2225,10 @@ const floatingBtn = ({ danger = false } = {}) => ({
           }}
         >
           <StatBox label="السجلات" value={stats.rows} />
-          <StatBox label="المتدربون" value={stats.students} />
-          <StatBox label="المقررات" value={stats.courses} />
-          <StatBox label="الدراسات العامة" value={stats.generalCourses} />
-          <StatBox label="التخصص" value={stats.specializedCourses} />
+          <StatBox label="عدد المتدربين" value={stats.students} />
+          <StatBox label="عدد المقررات" value={stats.courses} />
+          <StatBox label="مقررات الدراسات العامة" value={stats.generalCourses} />
+          <StatBox label="مقررات التخصص" value={stats.specializedCourses} />
           <StatBox label="المراقبون" value={stats.invigilators} />
         </div>
 
