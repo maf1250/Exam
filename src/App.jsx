@@ -211,25 +211,6 @@ function splitBySlash(value) {
     .filter(Boolean);
 }
 
-function groupScheduleForOfficialPrint(schedule) {
-  const byDate = {};
-  schedule.forEach((item) => {
-    if (!byDate[item.dateISO]) {
-      byDate[item.dateISO] = {
-        dateISO: item.dateISO,
-        dayName: item.dayName,
-        hijriNumeric: item.hijriNumeric,
-        periods: {},
-      };
-    }
-    if (!byDate[item.dateISO].periods[item.period]) {
-      byDate[item.dateISO].periods[item.period] = [];
-    }
-    byDate[item.dateISO].periods[item.period].push(item);
-  });
-  return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-}
-
 function fieldStyle() {
   return {
     width: "100%",
@@ -455,6 +436,25 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
   return Array.from(map.values())
     .filter((item) => item.hasCoop || (item.hasPractical && !item.hasTheoretical))
     .map((item) => item.key);
+}
+
+function groupScheduleForOfficialPrint(schedule) {
+  const byDate = {};
+  schedule.forEach((item) => {
+    if (!byDate[item.dateISO]) {
+      byDate[item.dateISO] = {
+        dateISO: item.dateISO,
+        dayName: item.dayName,
+        hijriNumeric: item.hijriNumeric,
+        periods: {},
+      };
+    }
+    if (!byDate[item.dateISO].periods[item.period]) {
+      byDate[item.dateISO].periods[item.period] = [];
+    }
+    byDate[item.dateISO].periods[item.period].push(item);
+  });
+  return Object.values(byDate).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 }
 
 function openPrintWindow(title, html) {
@@ -970,7 +970,6 @@ function matchesSelectedMainDepartment(item, selectedDepartment) {
     const fullText = normalizeArabic(
       `${item.department} ${item.major} ${item.sectionName} ${item.courseName} ${item.courseCode}`
     );
-
     if (fullText.includes(target)) return true;
   }
 
@@ -984,7 +983,7 @@ export default function App() {
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-  const [previewTab, setPreviewTab] = useState("schedule");
+  const [previewTab, setPreviewTab] = useState("sortedCourses");
 
   const [invigilationMode, setInvigilationMode] = useState("fixed");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
@@ -1049,7 +1048,7 @@ export default function App() {
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
         setCourseLevels({});
         setPreviewPage(0);
-        setPreviewTab("schedule");
+        setPreviewTab("sortedCourses");
         setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
@@ -1256,7 +1255,6 @@ export default function App() {
       const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
       return Math.max(1, Math.ceil((course.studentCount || 0) / ratio));
     }
-
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
   };
 
@@ -1390,9 +1388,7 @@ export default function App() {
           .split("/")
           .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
 
-        if (hasPriorityTrainer) {
-          score -= 3;
-        }
+        if (hasPriorityTrainer) score -= 3;
       }
 
       return score;
@@ -1464,7 +1460,7 @@ export default function App() {
   const generateSpecializedSchedule = () => {
     const placed = generateScheduleForCourses(specializedCourses);
     setSpecializedSchedule(placed);
-    setPreviewTab("schedule");
+    setPreviewTab("sortedCourses");
 
     const merged = [...generalSchedule, ...placed].sort(
       (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
@@ -1479,13 +1475,18 @@ export default function App() {
     return schedule.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
   }, [schedule, printDepartmentFilter]);
 
+  const filteredSortedCourses = useMemo(() => {
+    if (printDepartmentFilter === "__all__") return parsed.courses;
+    return parsed.courses.filter((item) => matchesSelectedMainDepartment(item, printDepartmentFilter));
+  }, [parsed.courses, printDepartmentFilter]);
+
   const groupedSchedule = useMemo(() => {
-    return schedule.reduce((acc, item) => {
+    return filteredScheduleForPrint.reduce((acc, item) => {
       if (!acc[item.dateISO]) acc[item.dateISO] = [];
       acc[item.dateISO].push(item);
       return acc;
     }, {});
-  }, [schedule]);
+  }, [filteredScheduleForPrint]);
 
   const groupedScheduleEntries = useMemo(() => Object.entries(groupedSchedule), [groupedSchedule]);
 
@@ -1500,7 +1501,7 @@ export default function App() {
   const invigilatorTable = useMemo(() => {
     const table = new Map();
 
-    schedule.forEach((item) => {
+    filteredScheduleForPrint.forEach((item) => {
       (item.invigilators || []).forEach((name) => {
         if (!table.has(name)) table.set(name, []);
         table.get(name).push({
@@ -1522,7 +1523,7 @@ export default function App() {
         items: items.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [schedule]);
+  }, [filteredScheduleForPrint]);
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
@@ -1626,7 +1627,9 @@ export default function App() {
   };
 
   const exportInvigilatorsTable = () => {
-    if (!invigilatorTable.length) return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا ثم صدّر جدول المراقبين.", "error");
+    if (!invigilatorTable.length) {
+      return showToast("لا يوجد توزيع", "أنشئ الجدول أولًا أو غيّر فلتر القسم ثم أعد المحاولة.", "error");
+    }
 
     const rowsToExport = invigilatorTable.flatMap((inv) =>
       inv.items.map((item) => ({
@@ -2420,10 +2423,36 @@ export default function App() {
               <Card>
                 <SectionHeader
                   title="المعاينة والطباعة"
-                  description="اختر تبويب المعاينة المناسب، ومن هنا تتم خيارات الطباعة في أعلى الصفحة."
+                  description="اختر التبويب المناسب، ويمكنك أيضًا تحديد القسم لتطبيقه على المعاينة والطباعة والتصدير."
                 />
 
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب</div>
+                  <select
+                    value={printDepartmentFilter}
+                    onChange={(e) => {
+                      setPrintDepartmentFilter(e.target.value);
+                      setPreviewPage(0);
+                    }}
+                    style={{ ...fieldStyle(), maxWidth: 420 }}
+                  >
+                    <option value="__all__">جميع الأقسام</option>
+                    {availableDepartmentsForPrint.map((department) => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+                  <button
+                    onClick={() => setPreviewTab("sortedCourses")}
+                    style={cardButtonStyle({ active: previewTab === "sortedCourses" })}
+                  >
+                    المقررات المرتبة
+                  </button>
+
                   <button
                     onClick={() => setPreviewTab("schedule")}
                     style={cardButtonStyle({ active: previewTab === "schedule" })}
@@ -2446,140 +2475,123 @@ export default function App() {
                   </button>
                 </div>
 
-                {previewTab === "print" ? (
-                  <>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب في الطباعة</div>
-                    <select
-                      value={printDepartmentFilter}
-                      onChange={(e) => setPrintDepartmentFilter(e.target.value)}
-                      style={{ ...fieldStyle(), maxWidth: 420 }}
-                    >
-                      <option value="__all__">جميع الأقسام</option>
-                      {availableDepartmentsForPrint.map((department) => (
-                        <option key={department} value={department}>
-                          {department}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div
-                      style={{
-                        marginTop: 12,
-                        border: `1px solid ${COLORS.border}`,
-                        borderRadius: 16,
-                        padding: 12,
-                        background: "#F8FEFE",
-                        color: COLORS.muted,
-                        lineHeight: 1.9,
-                      }}
-                    >
-                      عند اختيار قسم رئيسي محدد، ستظهر في الطباعة مقررات هذا القسم بالإضافة إلى مقررات الدراسات العامة المرتبطة به،
-                      وسيطبع اسم القسم المختار بدلًا من "جميع الأقسام".
-                    </div>
-
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-                        السابق
-                      </button>
-
-                      <button onClick={exportMainSchedule} style={cardButtonStyle()}>
-                        تصدير جدول الاختبارات
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          printScheduleOnlyPdf({
-                            collegeName: parsed.collegeName,
-                            schedule: filteredScheduleForPrint,
-                            periodLabels: parsedPeriods
-                              .filter((p) => p.valid)
-                              .map((p, index) => ({
-                                period: index + 1,
-                                label:
-                                  index === 0
-                                    ? "الفترة الأولى"
-                                    : index === 1
-                                    ? "الفترة الثانية"
-                                    : `الفترة ${index + 1}`,
-                                timeText: p.timeText,
-                              })),
-                            defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
-                            selectedDepartment: printDepartmentFilter,
-                          })
-                        }
-                        style={cardButtonStyle({ active: true })}
-                      >
-                        طباعة جدول الاختبارات
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          printInvigilatorsOnlyPdf({
-                            collegeName: parsed.collegeName,
-                            invigilatorTable,
-                          })
-                        }
-                        style={cardButtonStyle()}
-                      >
-                        طباعة جدول المراقبين
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div
-                    style={{
-                      border: `1px dashed ${COLORS.border}`,
-                      borderRadius: 18,
-                      padding: 18,
-                      color: COLORS.muted,
-                      background: "#F8FEFE",
-                    }}
-                  >
-                    اختر تبويب "الطباعة" لعرض خيارات الطباعة في أعلى الصفحة.
-                  </div>
-                )}
-              </Card>
-            </div>
-
-            <div style={{ marginTop: 20 }}>
-              <Card>
-                <SectionHeader title="المقررات مرتبة حسب عدد المتدربين والتعارضات" description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض." />
-
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ background: COLORS.primaryLight }}>
-                        {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
-                          <th
-                            key={label}
-                            style={{
-                              padding: 12,
-                              borderBottom: `1px solid ${COLORS.border}`,
-                              textAlign: "right",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsed.courses.slice(0, 30).map((course) => (
-                        <tr key={course.key}>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-                          <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 16,
+                    padding: 12,
+                    background: "#F8FEFE",
+                    color: COLORS.muted,
+                    lineHeight: 1.9,
+                  }}
+                >
+                  عند اختيار قسم رئيسي محدد، ستتم فلترة المعاينة والطباعة والتصدير وفق هذا القسم،
+                  مع محاولة ضم مقررات الدراسات العامة المرتبطة به.
                 </div>
+
+                {previewTab === "print" ? (
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                    <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                      السابق
+                    </button>
+
+                    <button onClick={exportMainSchedule} style={cardButtonStyle()}>
+                      تصدير جدول الاختبارات
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        printScheduleOnlyPdf({
+                          collegeName: parsed.collegeName,
+                          schedule: filteredScheduleForPrint,
+                          periodLabels: parsedPeriods
+                            .filter((p) => p.valid)
+                            .map((p, index) => ({
+                              period: index + 1,
+                              label:
+                                index === 0
+                                  ? "الفترة الأولى"
+                                  : index === 1
+                                  ? "الفترة الثانية"
+                                  : `الفترة ${index + 1}`,
+                              timeText: p.timeText,
+                            })),
+                          defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                          selectedDepartment: printDepartmentFilter,
+                        })
+                      }
+                      style={cardButtonStyle({ active: true })}
+                    >
+                      طباعة جدول الاختبارات
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        printInvigilatorsOnlyPdf({
+                          collegeName: parsed.collegeName,
+                          invigilatorTable,
+                        })
+                      }
+                      style={cardButtonStyle()}
+                    >
+                      طباعة جدول المراقبين
+                    </button>
+                  </div>
+                ) : null}
               </Card>
             </div>
+
+            {previewTab === "sortedCourses" && (
+              <div style={{ marginTop: 20 }}>
+                <Card>
+                  <SectionHeader
+                    title="المقررات مرتبة حسب عدد المتدربين والتعارضات"
+                    description="يعرض المقررات الأعلى من حيث عدد المتدربين وشدة التعارض."
+                  />
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: COLORS.primaryLight }}>
+                          {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
+                            <th
+                              key={label}
+                              style={{
+                                padding: 12,
+                                borderBottom: `1px solid ${COLORS.border}`,
+                                textAlign: "right",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredSortedCourses.map((course) => (
+                          <tr key={course.key}>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
+                          </tr>
+                        ))}
+                        {!filteredSortedCourses.length ? (
+                          <tr>
+                            <td colSpan={6} style={{ padding: 20, textAlign: "center", color: COLORS.muted }}>
+                              لا توجد مقررات مطابقة للقسم المختار.
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </div>
+            )}
 
             {previewTab === "schedule" && (
               <div style={{ marginTop: 20 }}>
@@ -2589,7 +2601,7 @@ export default function App() {
                     description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
                   />
 
-                  {schedule.length ? (
+                  {filteredScheduleForPrint.length ? (
                     <div
                       style={{
                         display: "flex",
@@ -2622,7 +2634,7 @@ export default function App() {
                     </div>
                   ) : null}
 
-                  {!schedule.length ? (
+                  {!filteredScheduleForPrint.length ? (
                     <div
                       style={{
                         border: `2px dashed ${COLORS.border}`,
@@ -2633,7 +2645,7 @@ export default function App() {
                         background: "#F8FEFE",
                       }}
                     >
-                      أنشئ الجدول أولًا ليظهر هنا.
+                      لا توجد عناصر مطابقة للقسم المختار.
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 18 }}>
@@ -2739,7 +2751,7 @@ export default function App() {
                         background: "#F8FEFE",
                       }}
                     >
-                      أنشئ الجدول أولًا ليظهر توزيع المراقبين هنا.
+                      لا توجد عناصر مطابقة للقسم المختار.
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 16 }}>
