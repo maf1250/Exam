@@ -984,11 +984,9 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewTab, setPreviewTab] = useState("sortedCourses");
-
-  const [invigilationMode, setInvigilationMode] = useState("fixed");
+  const [invigilationMode, setInvigilationMode] = useState("ratio");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
-
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -1006,7 +1004,7 @@ export default function App() {
   const [excludeInactive, setExcludeInactive] = useState(true);
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
-  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(2);
+  const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
 
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
@@ -1014,7 +1012,7 @@ export default function App() {
   const [courseLevels, setCourseLevels] = useState({});
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
-
+  const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
@@ -1546,22 +1544,31 @@ const generateSpecializedSchedule = () => {
 };
 
 const filteredScheduleForPrint = useMemo(() => {
-  if (printDepartmentFilter === "__all__") return schedule;
-
-  const target = normalizeArabic(printDepartmentFilter);
-
   return schedule.filter((item) => {
-    const roots = item.departmentRoots || [];
-   if (roots.includes(target)) return true;
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      (() => {
+        const target = normalizeArabic(printDepartmentFilter);
+        const roots = item.departmentRoots || [];
 
-// دعم إضافي للدراسات العامة
-if (isGeneralStudiesCourse(item)) {
-return roots.some((r) => r.includes(target));}
+        if (roots.includes(target)) return true;
 
-return false;
+        if (isGeneralStudiesCourse(item)) {
+          return roots.some((r) => r.includes(target));
+        }
+
+        return false;
+      })();
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
   });
-}, [schedule, printDepartmentFilter]);
-
+}, [schedule, printDepartmentFilter, printMajorFilter]);
 const filteredSortedCourses = useMemo(() => {
   if (printDepartmentFilter === "__all__") return parsed.courses;
   return parsed.courses.filter((item) => {
@@ -1643,7 +1650,25 @@ const filteredSortedCourses = useMemo(() => {
 
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
   }, [schedule]);
+const availableMajorsForPrint = useMemo(() => {
+  const map = new Map();
 
+  schedule.forEach((item) => {
+    splitBySlash(item.major).forEach((major) => {
+      const clean = String(major || "").trim();
+      const normalized = normalizeArabic(clean);
+
+      if (!clean) return;
+
+      if (!map.has(normalized)) {
+        map.set(normalized, clean);
+      }
+    });
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
+}, [schedule]);
+  
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
       prev.some((item) => normalizeArabic(item) === normalizeArabic(name))
@@ -2320,13 +2345,13 @@ style={{
 
                     {invigilationMode === "fixed" ? (
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل فترة</div>
+                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
                         <input
                           type="number"
                           min="1"
                           max="10"
                           value={invigilatorsPerPeriod}
-                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 2))}
+                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
                           style={fieldStyle()}
                         />
                       </div>
@@ -2535,7 +2560,24 @@ style={{
                     ))}
                   </select>
                 </div>
-
+<div style={{ marginBottom: 12 }}>
+  <div style={{ marginBottom: 8, fontWeight: 800 }}>التخصص المطلوب</div>
+  <select
+    value={printMajorFilter}
+    onChange={(e) => {
+      setPrintMajorFilter(e.target.value);
+      setPreviewPage(0);
+    }}
+    style={{ ...fieldStyle(), maxWidth: 420 }}
+  >
+    <option value="__all__">جميع التخصصات</option>
+    {availableMajorsForPrint.map((major) => (
+      <option key={major} value={major}>
+        {major}
+      </option>
+    ))}
+  </select>
+</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
                   <button
                     onClick={() => setPreviewTab("sortedCourses")}
