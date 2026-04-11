@@ -698,6 +698,7 @@ function printScheduleOnlyPdf({
   periodLabels = [],
   defaultExamHall = "قاعة النشاط",
   selectedDepartment = "__all__",
+  selectedMajor = "__all__",
 }) {
   if (!schedule?.length) return;
 
@@ -746,14 +747,54 @@ function printScheduleOnlyPdf({
     day: "numeric",
   }).format(new Date());
 
-  const departmentLabel = selectedDepartment === "__all__" ? "جميع الأقسام" : selectedDepartment;
+const selectedMajorNormalized = normalizeArabic(selectedMajor);
 
+const extractedDepartments = Array.from(
+  new Set(
+    schedule.flatMap((item) =>
+      splitBySlash(item.department)
+        .map((dep) => String(dep || "").trim())
+        .filter(Boolean)
+    )
+  )
+).sort((a, b) => a.localeCompare(b, "ar"));
+
+const extractedMajors = Array.from(
+  new Set(
+    schedule.flatMap((item) =>
+      splitBySlash(item.major)
+        .map((major) => String(major || "").trim())
+        .filter(Boolean)
+    )
+  )
+).sort((a, b) => a.localeCompare(b, "ar"));
+
+const departmentLabel =
+  selectedDepartment !== "__all__"
+    ? selectedDepartment
+    : extractedDepartments.length === 1
+    ? extractedDepartments[0]
+    : extractedDepartments.length
+    ? extractedDepartments.join(" / ")
+    : "جميع الأقسام";
+
+const majorLabel =
+  selectedMajor !== "__all__"
+    ? selectedMajor
+    : extractedMajors.length === 1
+    ? extractedMajors[0]
+    : extractedMajors.length
+    ? extractedMajors.join(" / ")
+    : "جميع التخصصات";
+  
   const instructions = [
-    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بمدة كافية.",
-    "لا يسمح بالدخول بعد مضي نصف ساعة من بداية الاختبار، ولا بالخروج قبل مضي نصف ساعة.",
-    "الغش أو الشروع فيه يعد مخالفة صريحة لتعليمات الاختبارات.",
-    "وجود الجوال أو أي أوراق تخص المقرر داخل القاعة يعد مخالفة.",
-    "يلتزم المتدرب بالهدوء والزي التدريبي والتعليمات المنظمة داخل القاعة.",
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولايسمح له بالخروج قبل مضي نصف ساعة.",
+    "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+    "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
+    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
   ];
 
   const html = `
@@ -772,8 +813,8 @@ function printScheduleOnlyPdf({
             <div class="doc-title">جدول الاختبارات النهائية</div>
 
             <div class="meta-grid">
-              <div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
-              <div class="meta-box"><strong>التخصص:</strong> جميع التخصصات</div>
+<div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
+<div class="meta-box"><strong>التخصص:</strong> ${majorLabel}</div>
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
           </div>
@@ -2634,24 +2675,25 @@ style={{
 
                     <button
                       onClick={() =>
-                        printScheduleOnlyPdf({
-                          collegeName: parsed.collegeName,
-                          schedule: filteredScheduleForPrint,
-                          periodLabels: parsedPeriods
-                            .filter((p) => p.valid)
-                            .map((p, index) => ({
-                              period: index + 1,
-                              label:
-                                index === 0
-                                  ? "الفترة الأولى"
-                                  : index === 1
-                                  ? "الفترة الثانية"
-                                  : `الفترة ${index + 1}`,
-                              timeText: p.timeText,
-                            })),
-                          defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
-                          selectedDepartment: printDepartmentFilter,
-                        })
+printScheduleOnlyPdf({
+  collegeName: parsed.collegeName,
+  schedule: filteredScheduleForPrint,
+  periodLabels: parsedPeriods
+    .filter((p) => p.valid)
+    .map((p, index) => ({
+      period: index + 1,
+      label:
+        index === 0
+          ? "الفترة الأولى"
+          : index === 1
+          ? "الفترة الثانية"
+          : `الفترة ${index + 1}`,
+      timeText: p.timeText,
+    })),
+  defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+  selectedDepartment: printDepartmentFilter,
+  selectedMajor: printMajorFilter,
+})
                       }
                       style={cardButtonStyle({ active: true })}
                     >
