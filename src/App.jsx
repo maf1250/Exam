@@ -1111,19 +1111,21 @@ export default function App() {
       const trainer = String(row["المدرب"] ?? "").trim();
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       const department = String(row["القسم"] ?? "").trim();
-      if (studentId && department) {
-const dept = normalizeArabic(department);
-if (!studentDepartmentMap.has(studentId)) {
-  studentDepartmentMap.set(studentId, new Set());
+     if (studentId && department) {
+  const dept = normalizeArabic(department);
+  if (!studentDepartmentMap.has(studentId)) {
+    studentDepartmentMap.set(studentId, new Set());
+  }
+  studentDepartmentMap.get(studentId).add(dept);
+
+  const dept = studentDepartmentMap.get(studentId);
+  if (dept) {
+    course.departmentRoots.add(dept);
+  }
 }
-studentDepartmentMap.get(studentId).add(dept);
-        const dept = studentDepartmentMap.get(studentId);
-if (dept) {
-  course.departmentRoots.add(dept);
-}
-}
-      const depts = studentDepartmentMap.get(studentId) || [];
+const depts = studentDepartmentMap.get(studentId) || [];
 depts.forEach((d) => course.departmentRoots.add(d));
+
       const major = String(row["التخصص"] ?? "").trim();
       const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
       const sectionName = `${department || "-"} / ${major || "-"}`;
