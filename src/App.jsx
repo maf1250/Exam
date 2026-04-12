@@ -2234,7 +2234,7 @@ const headerBtn = (danger = false) => ({
         <img
           src={LOGO_SRC}
           alt="logo"
-          style={{ width: 75, display: "block" }}
+          style={{ width: 135, display: "block" }}
         />
       </div>   
     </div>
