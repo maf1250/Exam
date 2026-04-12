@@ -2675,7 +2675,7 @@ style={{
                 إضافة المراقبين تلقائيًا
               </label>
 
-             <label
+          <label
   style={{
     display: "flex",
     alignItems: "center",
@@ -2683,7 +2683,7 @@ style={{
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 14,
-    position: "relative", // مهم
+    position: "relative",
   }}
 >
   <input
@@ -2717,7 +2717,6 @@ style={{
     </span>
   </span>
 
-  {/* Tooltip */}
   {showTrainerHint && (
     <div
       style={{
