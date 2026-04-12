@@ -3276,14 +3276,14 @@ style={{
                       value={manualInvigilators}
                       onChange={(e) => setManualInvigilators(e.target.value)}
                       placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(),   maxWidth: 400,
+                      style={{ ...fieldStyle(),   maxWidth: 700,
   width: "100%",
   minHeight: 120,
   resize: "vertical", }}
                     />
                   </div>
 
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gap: 12, width: "100%" }}>
                     <div>
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
