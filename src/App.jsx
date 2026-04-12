@@ -1224,6 +1224,7 @@ const restorePersistedState = (saved) => {
 useEffect(() => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+
     if (!raw) {
       setDidRestore(true);
       return;
@@ -1237,9 +1238,9 @@ useEffect(() => {
       type: "warning",
       action: "restore_session",
     });
-    setDidRestore(true);
+
   } catch (error) {
-    console.error("Failed to restore saved state:", error);
+    console.error("فشل في استرجاع البيانات المحفوظة:", error);
     setDidRestore(true);
   }
 }, []);
@@ -1312,6 +1313,7 @@ const restoreSavedSession = () => {
 const clearSavedState = () => {
   localStorage.removeItem(STORAGE_KEY);
   setPendingRestore(null);
+  setDidRestore(true);
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
 };
 
