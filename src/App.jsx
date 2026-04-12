@@ -2202,7 +2202,8 @@ const headerBtn = (danger = false) => ({
       <div
         style={{
           display: "flex",
-          gap: 8,
+          flexDirection: "column",
+         gap: 8,
           flexWrap: "wrap",
         }}
       >
