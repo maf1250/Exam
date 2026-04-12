@@ -1223,6 +1223,18 @@ const deserializeScheduleItem = (item) => ({
   students: Array.isArray(item.students) ? item.students : [],
 });
 
+
+const hasMeaningfulSessionData = (data) => {
+  return (
+    (Array.isArray(data?.rows) && data.rows.length > 0) ||
+    (Array.isArray(data?.schedule) && data.schedule.length > 0) ||
+    (Array.isArray(data?.generalSchedule) && data.generalSchedule.length > 0) ||
+    (Array.isArray(data?.specializedSchedule) && data.specializedSchedule.length > 0) ||
+    (Array.isArray(data?.unscheduled) && data.unscheduled.length > 0) ||
+    Boolean(data?.fileName)
+  );
+};
+
 const buildPersistedState = () => ({
   rows,
   fileName,
@@ -1305,15 +1317,7 @@ useEffect(() => {
 
       if (cancelled) return;
 
-      const hasMeaningfulSavedData =
-        (Array.isArray(saved?.rows) && saved.rows.length > 0) ||
-        (Array.isArray(saved?.schedule) && saved.schedule.length > 0) ||
-        (Array.isArray(saved?.generalSchedule) && saved.generalSchedule.length > 0) ||
-        (Array.isArray(saved?.specializedSchedule) && saved.specializedSchedule.length > 0) ||
-        (Array.isArray(saved?.unscheduled) && saved.unscheduled.length > 0) ||
-        Boolean(saved?.fileName);
-
-      if (!saved || !hasMeaningfulSavedData) {
+      if (!saved || !hasMeaningfulSessionData(saved)) {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(STORAGE_MODE_KEY);
         await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
@@ -1390,6 +1394,15 @@ useEffect(() => {
   const persistState = async () => {
     try {
       const data = buildPersistedState();
+
+      if (!hasMeaningfulSessionData(data)) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_MODE_KEY);
+        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+        if (!cancelled) setStorageMode("localStorage");
+        return;
+      }
+
       const serialized = JSON.stringify(data);
 
       try {
