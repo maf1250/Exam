@@ -4383,10 +4383,11 @@ printScheduleOnlyPdf({
                     </button>
                   </div>
                 </Card>
-              </div>
+              </div>    
             )}
           </>
         )}
       </Card>
 
   )}
+</div>
