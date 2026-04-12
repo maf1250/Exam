@@ -2437,7 +2437,7 @@ style={{
             >
               <div>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
-                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
+                <input value={parsed.collegeName || ""} style={fieldStyle()} />
               </div>
 
               <div>
