@@ -2506,7 +2506,7 @@ style={{
                   checked={avoidSameLevelSameDay}
                   onChange={(e) => setAvoidSameLevelSameDay(e.target.checked)}
                 />
-                جعل المقررات ذات المستوى الواحد لا تكون في نفس اليوم
+                تجنب وضع مقررات من المستوى نفسه في نفس اليوم
               </label>
             </div>
 
@@ -2685,7 +2685,7 @@ style={{
   />
 
   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-    جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+    إعطاء أولوية لمدرب المقرر كمراقب أساسي
 
     <span
       onMouseEnter={() => setShowTrainerHint(true)}
@@ -2742,7 +2742,7 @@ style={{
                     <textarea
                       value={manualInvigilators}
                       onChange={(e) => setManualInvigilators(e.target.value)}
-                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
+                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
                       style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
                     />
                   </div>
@@ -2814,7 +2814,7 @@ style={{
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
                   <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                    يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
+                    يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
                   </div>
 
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
