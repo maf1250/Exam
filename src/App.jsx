@@ -2247,34 +2247,10 @@ const floatingBtn = ({ danger = false } = {}) => ({
       </div>
     </div>
   </div>
-</div>
-
-            <div
-              style={{
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.22)",
-                borderRadius: 24,
-                padding: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 140,
-              }}
-            >
-              <img
-                src={LOGO_SRC}
-                alt="شعار المؤسسة العامة للتدريب التقني والمهني"
-                style={{
-                  width: 95,
-                  height: "auto",
-                  objectFit: "contain",
-                  display: "block",
-                }}
-              />
+</div>        
             </div>
           </div>
-        </div>
-
+  
         <div
           style={{
             display: "grid",
