@@ -1178,6 +1178,7 @@ const pendingRestoreRef = useRef(null);
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
+  const [lockGeneralStudiesStep, setLockGeneralStudiesStep] = useState(false);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
   const [courseLevels, setCourseLevels] = useState({});
@@ -1258,6 +1259,7 @@ const buildPersistedState = () => ({
   excludedCourses,
   includeAllDepartmentsAndMajors,
   excludedDepartmentMajors,
+  lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
   avoidSameLevelSameDay,
@@ -1292,6 +1294,7 @@ const restorePersistedState = (saved) => {
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
+  setLockGeneralStudiesStep(saved.lockGeneralStudiesStep ?? false);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
@@ -1454,6 +1457,7 @@ useEffect(() => {
   excludedCourses,
   includeAllDepartmentsAndMajors,
   excludedDepartmentMajors,
+  lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
   avoidSameLevelSameDay,
@@ -1581,6 +1585,13 @@ const importSavedSession = (file) => {
           const cleanMajor = String(maj || "").trim() || "-";
           const key = `${normalizeArabic(cleanDepartment)}|${normalizeArabic(cleanMajor)}`;
 
+          if (
+            normalizeArabic(cleanDepartment) === normalizeArabic("الدراسات العامة") ||
+            normalizeArabic(cleanMajor) === normalizeArabic("الدراسات العامة")
+          ) {
+            return;
+          }
+
           if (!map.has(key)) {
             map.set(key, {
               key,
@@ -1603,6 +1614,10 @@ const importSavedSession = (file) => {
         : [...prev, itemKey]
     );
   };
+
+  useEffect(() => {
+    setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
+  }, [includeAllDepartmentsAndMajors]);
 
   const handleUpload = (file) => {
     if (!file) return;
@@ -1627,6 +1642,7 @@ const importSavedSession = (file) => {
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
         setIncludeAllDepartmentsAndMajors(true);
         setExcludedDepartmentMajors([]);
+        setLockGeneralStudiesStep(false);
         setCourseLevels({});
         setPreviewPage(0);
         setPreviewTab("sortedCourses");
@@ -2598,11 +2614,23 @@ const headerBtn = (danger = false) => ({
             { id: 4, label: "4. الدراسات العامة" },
             { id: 5, label: "5. التخصص" },
             { id: 6, label: "6. المعاينة والطباعة" },
-          ].map((step) => (
-            <StepButton key={step.id} active={currentStep === step.id} done={currentStep > step.id} onClick={() => setCurrentStep(step.id)}>
-              {step.label}
-            </StepButton>
-          ))}
+          ].map((step) => {
+            const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
+
+            return (
+              <StepButton
+                key={step.id}
+                active={currentStep === step.id}
+                done={currentStep > step.id}
+                onClick={() => {
+                  if (isLockedGeneralStudies) return;
+                  setCurrentStep(step.id);
+                }}
+              >
+                {isLockedGeneralStudies ? `${step.label} 🔒` : step.label}
+              </StepButton>
+            );
+          })}
         </div>
         <div
           style={{
@@ -2831,6 +2859,9 @@ style={{
                     setIncludeAllDepartmentsAndMajors(e.target.checked);
                     if (e.target.checked) {
                       setExcludedDepartmentMajors([]);
+                      setLockGeneralStudiesStep(false);
+                    } else {
+                      setLockGeneralStudiesStep(true);
                     }
                   }}
                 />
@@ -2848,6 +2879,21 @@ style={{
                   background: "#F8FEFE",
                 }}
               >
+                <div
+                  style={{
+                    marginBottom: 12,
+                    background: COLORS.warningBg,
+                    color: COLORS.warning,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 14,
+                    padding: 12,
+                    lineHeight: 1.8,
+                    fontSize: 14,
+                  }}
+                >
+                  لن تظهر الدراسات العامة ضمن هذه القائمة لأنها مستقلة عن الأقسام والتخصصات.
+                  وعند توزيع قسم محدد سيتم قفل صفحة الدراسات العامة حتى لا يتم تعديلها.
+                </div>
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
                 <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
                   اختر القسم أو التخصص الذي لا تريد دخوله في التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
@@ -3304,6 +3350,22 @@ style={{
           <Card>
             <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
+            {lockGeneralStudiesStep ? (
+              <div
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 18,
+                  background: COLORS.warningBg,
+                  color: COLORS.warning,
+                  lineHeight: 1.9,
+                }}
+              >
+                هذه الصفحة مقفلة لأنك اخترت توزيع قسم/تخصص محدد فقط.
+                مقررات الدراسات العامة مستقلة، لذلك لا يمكن تعديلها من هذه النسخة المخصصة للأقسام.
+              </div>
+            ) : (
+              <>
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
             </div>
@@ -3347,6 +3409,8 @@ style={{
                 توزيع الدراسات العامة
               </button>
             </div>
+              </>
+            )}
           </Card>
         )}
 
