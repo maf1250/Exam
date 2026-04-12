@@ -303,6 +303,7 @@ function StepButton({ active, done, children, onClick }) {
 function Card({ children, style }) {
   return (
     <div
+      ref={topRef}
       style={{
         background: COLORS.card,
         border: `1px solid ${COLORS.border}`,
@@ -788,7 +789,6 @@ function printScheduleOnlyPdf({
     day: "numeric",
   }).format(new Date());
 
-const selectedMajorNormalized = normalizeArabic(selectedMajor);
 const extractedDepartments = Array.from(
   new Set(
     schedule.flatMap((item) =>
@@ -1083,15 +1083,6 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
   openPrintWindow("طباعة جدول المراقبين", html);
 }
 
-function matchesSelectedMainDepartment(item, selectedDepartment) {
-  if (selectedDepartment === "__all__") return true;
-
-  const target = normalizeArabic(selectedDepartment);
-  const roots = getCourseDepartmentRoots(item);
-
-  return roots.includes(target);
-}
-
 export default function App() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -1139,14 +1130,23 @@ const pendingRestoreRef = useRef(null);
   const [didRestore, setDidRestore] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
 
-const showToast = (title, description, type = "success") => {
-  setToast({ title, description, type });
+const showToast = (title, description, type = "success", options = {}) => {
+  const nextToast = { title, description, type, ...options };
+  setToast(nextToast);
+
   const duration =
-    type === "error" ? 7000 :
-    type === "warning" ? 6000 :
-    4000;
+    options.persistent || options.action === "restore_session"
+      ? null
+      : type === "error"
+      ? 7000
+      : type === "warning"
+      ? 6000
+      : 4000;
+
   window.clearTimeout(window.__examToastTimer);
-  window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
+  if (duration) {
+    window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
+  }
 };
 const serializeScheduleItem = (item) => ({
   ...item,
@@ -1237,12 +1237,12 @@ useEffect(() => {
     pendingRestoreRef.current = saved;
     setPendingRestore(saved);
 
-    setToast({
-      title: "جلسة محفوظة",
-      description: "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
-      type: "warning",
-      action: "restore_session",
-    });
+    showToast(
+      "جلسة محفوظة",
+      "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
+      "warning",
+      { action: "restore_session", persistent: true }
+    );
   } catch (error) {
     console.error("فشل في استرجاع البيانات المحفوظة:", error);
     setDidRestore(true);
@@ -1352,10 +1352,17 @@ const importSavedSession = (file) => {
       const saved = JSON.parse(e.target.result);
       restorePersistedState(saved);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      pendingRestoreRef.current = null;
       setPendingRestore(null);
       setDidRestore(true);
+      if (importSessionRef.current) {
+        importSessionRef.current.value = "";
+      }
       showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
     } catch (error) {
+      if (importSessionRef.current) {
+        importSessionRef.current.value = "";
+      }
       showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
     }
   };
