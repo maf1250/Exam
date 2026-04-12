@@ -2196,22 +2196,7 @@ const headerBtn = (danger = false) => ({
         gap: 14,
       }}
     >
-      {/* الشعار */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.15)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 18,
-          padding: 10,
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        <img
-          src={LOGO_SRC}
-          alt="logo"
-          style={{ width: 75, display: "block" }}
-        />
-      </div>
+
 
       {/* الأزرار */}
       <div
@@ -2233,9 +2218,25 @@ const headerBtn = (danger = false) => ({
           حذف البيانات المحلية
         </button>
       </div>
-    </div>
 
-  
+
+        {/* الشعار */}
+      <div
+        style={{
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          borderRadius: 18,
+          padding: 10,
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        <img
+          src={LOGO_SRC}
+          alt="logo"
+          style={{ width: 75, display: "block" }}
+        />
+      </div>   
+    </div>
     <div style={{ textAlign: "right", maxWidth: 500 }}>
       <div style={{ fontSize: 28, fontWeight: 800 }}>
         نظام بناء جدول الاختبارات
