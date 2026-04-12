@@ -464,7 +464,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     }
 
     if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
-  });
+ 
    if (normalizedScheduleType.includes("مشروع")) item.hasCoop = true;
   });
 
