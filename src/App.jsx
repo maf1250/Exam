@@ -430,7 +430,6 @@ function isGeneralStudiesCourse(course) {
 }
 
 
-
 function getDefaultExcludedPracticalCourseKeys(rows) {
   const map = new Map();
 
@@ -444,6 +443,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     const normalizedCourseCode = normalizeArabic(courseCode);
     const normalizedCourseName = normalizeArabic(courseName);
     const normalizedScheduleType = normalizeArabic(scheduleType);
+    const compactCourseName = normalizedCourseName.replace(/\s+/g, "");
 
     const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
@@ -452,32 +452,44 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
         key,
         hasPractical: false,
         hasTheoretical: false,
-        hasCoop: false,
+        isCoop: false,
+        isProject: false,
       });
     }
 
     const item = map.get(key);
 
-    if (normalizedScheduleType.includes("عملي")) item.hasPractical = true;
+    if (normalizedScheduleType.includes("عملي")) {
+      item.hasPractical = true;
+    }
 
     if (
       normalizedScheduleType.includes("نظري") ||
-      normalizedScheduleType.includes("محاضره")
+      normalizedScheduleType.includes("محاضره") ||
+      normalizedScheduleType.includes("محاضرة")
     ) {
       item.hasTheoretical = true;
     }
 
     if (normalizedScheduleType.includes("تعاوني")) {
-      item.hasCoop = true;
+      item.isCoop = true;
     }
 
-    const compactCourseName = normalizedCourseName.replace(/\s+/g, "");
-    const projectKeywords = ["مشروع" ,"تخرج"];
-
-    if (projectKeywords.some((word) => compactCourseName.includes(word))) {
-      item.hasCoop = true;
+    if (
+      compactCourseName.includes("مشروع") ||
+      compactCourseName.includes("تخرج")
+    ) {
+      item.isProject = true;
     }
   });
+
+  return Array.from(map.values())
+    .filter((item) => {
+      const practicalOnly = item.hasPractical && !item.hasTheoretical;
+      return practicalOnly || item.isCoop || item.isProject;
+    })
+    .map((item) => item.key);
+}
 
   return Array.from(map.values())
     .filter((item) => item.hasPractical && !item.hasTheoretical && !item.hasCoop)
