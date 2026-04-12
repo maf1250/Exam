@@ -2373,7 +2373,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات المرنة</div>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات</div>
               <textarea
                 value={periodsText}
                 onChange={(e) => setPeriodsText(e.target.value)}
