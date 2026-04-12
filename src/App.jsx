@@ -1303,10 +1303,20 @@ useEffect(() => {
 const restoreSavedSession = () => {
   if (!pendingRestore) return;
 
+  // 1. أوقف الحفظ مؤقتًا
+  setDidRestore(false);
+
+  // 2. استرجع البيانات
   restorePersistedState(pendingRestore);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingRestore));
+
+  // 3. انتظر لحظة ثم فعّل الحفظ
+  setTimeout(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingRestore));
+    setDidRestore(true);
+  }, 0);
+
   setPendingRestore(null);
-  setDidRestore(true);
+
   showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
 };
 
