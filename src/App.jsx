@@ -1087,6 +1087,7 @@ export default function App() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
 const pendingRestoreRef = useRef(null);
+  const toastTimerRef = useRef(null);
   
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
@@ -1247,6 +1248,15 @@ useEffect(() => {
     console.error("فشل في استرجاع البيانات المحفوظة:", error);
     setDidRestore(true);
   }
+}, []);
+
+
+useEffect(() => {
+  return () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+  };
 }, []);
 
 useEffect(() => {
@@ -2192,6 +2202,7 @@ const headerBtn = (danger = false) => ({
 });
   return (
     <div
+      ref={topRef}
       style={{
         minHeight: "100vh",
         background: `linear-gradient(135deg, ${COLORS.bg1} 0%, ${COLORS.bg2} 35%, ${COLORS.bg3} 100%)`,
