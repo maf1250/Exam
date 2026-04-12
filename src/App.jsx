@@ -466,9 +466,7 @@ const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, "");
 
     if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
 
-  if (normalizedCourseName.includes("مشروع")) {
-  item.hasCoop = true;
-}
+
   });
 
   return Array.from(map.values())
