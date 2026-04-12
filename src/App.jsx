@@ -303,7 +303,6 @@ function StepButton({ active, done, children, onClick }) {
 function Card({ children, style }) {
   return (
     <div
-      ref={topRef}
       style={{
         background: COLORS.card,
         border: `1px solid ${COLORS.border}`,
