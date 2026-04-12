@@ -2139,7 +2139,18 @@ const floatingBtn = ({ danger = false } = {}) => ({
     specializedCourses: specializedCourses.length,
     invigilators: parsed.invigilators.length,
   };
-
+const headerBtn = (danger = false) => ({
+  padding: "8px 14px",
+  borderRadius: 10,
+  border: "none",
+  background: danger ? "#DC2626" : "rgba(255,255,255,0.15)",
+  color: "#fff",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: "pointer",
+  backdropFilter: "blur(6px)",
+  transition: "0.2s",
+});
   return (
     <div
       style={{
