@@ -1147,6 +1147,29 @@ const showToast = (title, description, type = "success") => {
   window.clearTimeout(window.__examToastTimer);
   window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
 };
+const serializeScheduleItem = (item) => ({
+  ...item,
+  students: Array.isArray(item.students)
+    ? item.students
+    : Array.from(item.students || []),
+});
+
+const deserializeScheduleItem = (item) => ({
+  ...item,
+  students: Array.isArray(item.students) ? item.students : [],
+});
+
+  const serializeScheduleItem = (item) => ({
+  ...item,
+  students: Array.isArray(item.students)
+    ? item.students
+    : Array.from(item.students || []),
+});
+
+const deserializeScheduleItem = (item) => ({
+  ...item,
+  students: Array.isArray(item.students) ? item.students : [],
+});
 
 const buildPersistedState = () => ({
   rows,
@@ -1171,10 +1194,10 @@ const buildPersistedState = () => ({
   avoidSameLevelSameDay,
   courseLevels,
   preferCourseTrainerInvigilation,
-  generalSchedule,
-  specializedSchedule,
-  schedule,
-  unscheduled,
+  generalSchedule: generalSchedule.map(serializeScheduleItem),
+  specializedSchedule: specializedSchedule.map(serializeScheduleItem),
+  schedule: schedule.map(serializeScheduleItem),
+  unscheduled: unscheduled.map(serializeScheduleItem),
   previewTab,
   previewPage,
 });
@@ -1202,10 +1225,10 @@ const restorePersistedState = (saved) => {
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
   setCourseLevels(saved.courseLevels || {});
   setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
-  setGeneralSchedule(saved.generalSchedule || []);
-  setSpecializedSchedule(saved.specializedSchedule || []);
-  setSchedule(saved.schedule || []);
-  setUnscheduled(saved.unscheduled || []);
+  setGeneralSchedule((saved.generalSchedule || []).map(deserializeScheduleItem));
+  setSpecializedSchedule((saved.specializedSchedule || []).map(deserializeScheduleItem));
+  setSchedule((saved.schedule || []).map(deserializeScheduleItem));
+  setUnscheduled((saved.unscheduled || []).map(deserializeScheduleItem));
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
 };
@@ -1315,6 +1338,7 @@ const exportSavedSession = () => {
 };
 
 const importSessionRef = useRef(null);
+
 const importSavedSession = (file) => {
   if (!file) return;
 
@@ -1325,12 +1349,15 @@ const importSavedSession = (file) => {
       restorePersistedState(saved);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
       setPendingRestore(null);
+      setDidRestore(true);
       showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
     } catch (error) {
       showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
     }
   };
 
+  reader.readAsText(file, "utf-8");
+};
   reader.readAsText(file, "utf-8");
 };
   const handleUpload = (file) => {
