@@ -3276,7 +3276,10 @@ style={{
                       value={manualInvigilators}
                       onChange={(e) => setManualInvigilators(e.target.value)}
                       placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
+                      style={{ ...fieldStyle(),   maxWidth: 400,
+  width: "100%",
+  minHeight: 120,
+  resize: "vertical", }}
                     />
                   </div>
 
