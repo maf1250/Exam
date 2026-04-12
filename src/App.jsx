@@ -2160,60 +2160,96 @@ const floatingBtn = ({ danger = false } = {}) => ({
       <div ref={topRef} />
 
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
-        <div
-          style={{
-            background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
-            color: "#fff",
-            borderRadius: 34,
-            padding: 30,
-            boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
-          }}
-        >
-         <div
+
+ 
+<div
   style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 20,
-    flexWrap: "wrap",
+    background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
+    color: "#fff",
+    borderRadius: 34,
+    padding: 30,
+    boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
   }}
 >
- 
   <div
     style={{
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      justifyContent: "space-between",
+      gap: 20,
+      flexWrap: "wrap",
     }}
   >
- 
-    <img
-      src={LOGO_SRC}
-      alt="logo"
-      style={{ width: 90 }}
-    />
-    <div style={{ display: "flex", gap: 8 }}>
-      <button onClick={exportSavedSession} style={iconBtnStyle()} title="تصدير">
-        <Download size={18} />
-      </button>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          background: "rgba(255,255,255,0.12)",
+          border: "1px solid rgba(255,255,255,0.22)",
+          borderRadius: 24,
+          padding: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minWidth: 140,
+        }}
+      >
+        <img
+          src={LOGO_SRC}
+          alt="شعار المؤسسة العامة للتدريب التقني والمهني"
+          style={{
+            width: 95,
+            height: "auto",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+      </div>
 
-      <button onClick={() => importSessionRef.current?.click()} style={iconBtnStyle()} title="استيراد">
-        <Upload size={18} />
-      </button>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <button onClick={exportSavedSession} style={floatingBtn()}>
+          تصدير الجدول
+        </button>
 
-      <button onClick={clearSavedState} style={iconBtnStyle(true)} title="حذف">
-        <Trash2 size={18} />
-      </button>
+        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
+          استيراد الجدول
+        </button>
+
+        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
+          حذف البيانات المحلية
+        </button>
+      </div>
+
+      <input
+        ref={importSessionRef}
+        type="file"
+        accept=".json,application/json"
+        style={{ display: "none" }}
+        onChange={(e) => importSavedSession(e.target.files?.[0])}
+      />
+    </div>
+
+    <div style={{ flex: 1, minWidth: 260 }}>
+      <div style={{ fontSize: 32, fontWeight: 900 }}>
+        نظام بناء جدول الاختبارات النهائية
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
+        نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
+      </div>
     </div>
   </div>
-  <div style={{ flex: 1, minWidth: 260 }}>
-    <div style={{ fontSize: 32, fontWeight: 900 }}>
-      نظام بناء جدول الاختبارات النهائية
-    </div>
-    <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10 }}>
-      نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
-    </div>
-  </div>
+</div>
 
             <div
               style={{
