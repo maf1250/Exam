@@ -3479,6 +3479,6 @@ printScheduleOnlyPdf({
         )}
       </div>
     </div>
-   </div>    
+
   );
 }
