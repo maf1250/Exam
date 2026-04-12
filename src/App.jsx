@@ -2179,6 +2179,7 @@ const headerBtn = (danger = false) => ({
 >
   <div
     style={{
+      flexDirection: "row-reverse",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -2187,7 +2188,7 @@ const headerBtn = (danger = false) => ({
     }}
   >
 
-    {/* 🔹 اليمين: الشعار + الأزرار */}
+  
     <div
       style={{
         display: "flex",
@@ -2234,7 +2235,7 @@ const headerBtn = (danger = false) => ({
       </div>
     </div>
 
-    {/* 🔹 اليسار: العنوان */}
+  
     <div style={{ textAlign: "right", maxWidth: 500 }}>
       <div style={{ fontSize: 28, fontWeight: 800 }}>
         نظام بناء جدول الاختبارات
