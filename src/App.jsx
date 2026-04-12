@@ -1176,6 +1176,8 @@ const pendingRestoreRef = useRef(null);
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
 
   const [excludedCourses, setExcludedCourses] = useState([]);
+  const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
+  const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
   const [courseLevels, setCourseLevels] = useState({});
@@ -1254,6 +1256,8 @@ const buildPersistedState = () => ({
   invigilationMode,
   studentsPerInvigilator,
   excludedCourses,
+  includeAllDepartmentsAndMajors,
+  excludedDepartmentMajors,
   printDepartmentFilter,
   printMajorFilter,
   avoidSameLevelSameDay,
@@ -1286,6 +1290,8 @@ const restorePersistedState = (saved) => {
   setInvigilationMode(saved.invigilationMode || "ratio");
   setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
   setExcludedCourses(saved.excludedCourses || []);
+  setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
+  setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
@@ -1446,6 +1452,8 @@ useEffect(() => {
   invigilationMode,
   studentsPerInvigilator,
   excludedCourses,
+  includeAllDepartmentsAndMajors,
+  excludedDepartmentMajors,
   printDepartmentFilter,
   printMajorFilter,
   avoidSameLevelSameDay,
@@ -1557,6 +1565,45 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
+
+  const departmentMajorOptions = useMemo(() => {
+    if (!rows.length) return [];
+
+    const map = new Map();
+
+    rows.forEach((row) => {
+      const department = String(row["القسم"] ?? "").trim();
+      const major = String(row["التخصص"] ?? "").trim();
+
+      splitBySlash(department || "-").forEach((dep) => {
+        splitBySlash(major || "-").forEach((maj) => {
+          const cleanDepartment = String(dep || "").trim() || "-";
+          const cleanMajor = String(maj || "").trim() || "-";
+          const key = `${normalizeArabic(cleanDepartment)}|${normalizeArabic(cleanMajor)}`;
+
+          if (!map.has(key)) {
+            map.set(key, {
+              key,
+              department: cleanDepartment,
+              major: cleanMajor,
+              label: `${cleanDepartment} / ${cleanMajor}`,
+            });
+          }
+        });
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+  }, [rows]);
+
+  const toggleExcludedDepartmentMajor = (itemKey) => {
+    setExcludedDepartmentMajors((prev) =>
+      prev.includes(itemKey)
+        ? prev.filter((key) => key !== itemKey)
+        : [...prev, itemKey]
+    );
+  };
+
   const handleUpload = (file) => {
     if (!file) return;
 
@@ -1578,6 +1625,8 @@ const importSavedSession = (file) => {
         setSpecializedSchedule([]);
         setUnscheduled([]);
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
+        setIncludeAllDepartmentsAndMajors(true);
+        setExcludedDepartmentMajors([]);
         setCourseLevels({});
         setPreviewPage(0);
         setPreviewTab("sortedCourses");
@@ -1630,6 +1679,28 @@ const importSavedSession = (file) => {
       return !badReg && !badTrainee;
     });
 
+    const activeExcludedDepartmentMajors = includeAllDepartmentsAndMajors
+      ? []
+      : excludedDepartmentMajors;
+
+    const rowsAfterDepartmentMajorFilter = filteredRows.filter((row) => {
+      if (includeAllDepartmentsAndMajors) return true;
+
+      const departments = splitBySlash(String(row["القسم"] ?? "").trim() || "-");
+      const majors = splitBySlash(String(row["التخصص"] ?? "").trim() || "-");
+
+      for (const dep of departments) {
+        for (const maj of majors) {
+          const pairKey = `${normalizeArabic(dep || "-")}|${normalizeArabic(maj || "-")}`;
+          if (activeExcludedDepartmentMajors.includes(pairKey)) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
     const courseMap = new Map();
     const studentSet = new Set();
     const studentCourseMap = new Map();
@@ -1637,7 +1708,7 @@ const importSavedSession = (file) => {
     const invigilatorSet = new Set();
     const sectionSet = new Set();
 
-    filteredRows.forEach((row) => {
+    rowsAfterDepartmentMajorFilter.forEach((row) => {
       const courseCode = String(row["المقرر"] ?? "").trim();
       const courseName = String(row["اسم المقرر"] ?? "").trim();
       const trainer = String(row["المدرب"] ?? "").trim();
@@ -1747,14 +1818,14 @@ courseMap.forEach((course) => {
 
     return {
       missingColumns,
-      filteredRows,
-      collegeName: collegeNameInput || filteredRows[0]?.["الوحدة"] || rows[0]?.["الوحدة"] || "الكلية التقنية",
+      filteredRows: rowsAfterDepartmentMajorFilter,
+      collegeName: collegeNameInput || rowsAfterDepartmentMajorFilter[0]?.["الوحدة"] || filteredRows[0]?.["الوحدة"] || rows[0]?.["الوحدة"] || "الكلية التقنية",
       courses,
       studentsCount: studentSet.size,
       invigilators: Array.from(invigilatorSet).sort((a, b) => a.localeCompare(b, "ar")),
       sections: Array.from(sectionSet).sort((a, b) => a.localeCompare(b, "ar")),
     };
-  }, [rows, excludeInactive, excludedCourses, collegeNameInput]);
+  }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors]);
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
@@ -2740,6 +2811,76 @@ style={{
               title="الصفحة الثانية: تعديل المقررات"
               description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الجدولة في نفس اليوم."
             />
+
+            <div style={{ marginTop: 4 }}>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                  background: "#fff",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={includeAllDepartmentsAndMajors}
+                  onChange={(e) => {
+                    setIncludeAllDepartmentsAndMajors(e.target.checked);
+                    if (e.target.checked) {
+                      setExcludedDepartmentMajors([]);
+                    }
+                  }}
+                />
+                توزيع جميع التخصصات والأقسام
+              </label>
+            </div>
+
+            {!includeAllDepartmentsAndMajors ? (
+              <div
+                style={{
+                  marginTop: 18,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                  background: "#F8FEFE",
+                }}
+              >
+                <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
+                <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+                  اختر القسم أو التخصص الذي لا تريد دخوله في التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
+                  {departmentMajorOptions.length ? (
+                    departmentMajorOptions.map((item) => {
+                      const excluded = excludedDepartmentMajors.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => toggleExcludedDepartmentMajor(item.key)}
+                          style={{
+                            border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
+                            background: excluded ? COLORS.dangerBg : "#fff",
+                            color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                            borderRadius: 999,
+                            padding: "8px 14px",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {excluded ? `مستبعد: ${item.label}` : item.label}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
