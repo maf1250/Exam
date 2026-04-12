@@ -3269,8 +3269,18 @@ style={{
                     حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
                   </div>
                 ) : null}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
+                  <div>
+                    <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+                    <textarea
+                      value={manualInvigilators}
+                      onChange={(e) => setManualInvigilators(e.target.value)}
+                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
+                    />
+                  </div>
 
-                   <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gap: 12 }}>
                     <div>
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -3305,7 +3315,7 @@ style={{
                         </button>
                       </div>
                     </div>
-  </div>
+
                     {invigilationMode === "fixed" ? (
                       <div>
                         <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
@@ -3332,22 +3342,7 @@ style={{
                       </div>
                     )}
                   </div>
-              
-  
-                
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
-                  <div>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
-                    <textarea
-                      value={manualInvigilators}
-                      onChange={(e) => setManualInvigilators(e.target.value)}
-                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
-                    />
-                  </div>
-
-                  
-               
+                </div>
 
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
