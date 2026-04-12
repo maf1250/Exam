@@ -303,7 +303,6 @@ function StepButton({ active, done, children, onClick }) {
 function Card({ children, style }) {
   return (
     <div
-      ref={topRef}
       style={{
         background: COLORS.card,
         border: `1px solid ${COLORS.border}`,
@@ -430,7 +429,6 @@ function isGeneralStudiesCourse(course) {
   return keywords.some((k) => text.includes(normalizeArabic(k)));
 }
 
-
 function getDefaultExcludedPracticalCourseKeys(rows) {
   const map = new Map();
 
@@ -441,28 +439,21 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
 
     if (!courseCode && !courseName) return;
 
-    const normalizedCourseCode = normalizeArabic(courseCode);
-    const normalizedCourseName = normalizeArabic(courseName);
     const normalizedScheduleType = normalizeArabic(scheduleType);
-    const compactCourseName = normalizedCourseName.replace(/\s+/g, "");
-
-    const key = [normalizedCourseCode, normalizedCourseName].join("|");
+    const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
 
     if (!map.has(key)) {
       map.set(key, {
         key,
         hasPractical: false,
         hasTheoretical: false,
-        isCoop: false,
-        isProject: false,
+        hasCoop: false,
       });
     }
 
     const item = map.get(key);
 
-    if (normalizedScheduleType.includes("عملي")) {
-      item.hasPractical = true;
-    }
+    if (normalizedScheduleType.includes("عملي")) item.hasPractical = true;
 
     if (
       normalizedScheduleType.includes("نظري") ||
@@ -472,27 +463,13 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
       item.hasTheoretical = true;
     }
 
-    if (normalizedScheduleType.includes("تعاوني")) {
-      item.isCoop = true;
-    }
-
-    if (
-      compactCourseName.includes("مشروع") ||
-      compactCourseName.includes("تخرج")
-    ) {
-      item.isProject = true;
-    }
+    if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
   });
 
   return Array.from(map.values())
-    .filter((item) => {
-      const practicalOnly = item.hasPractical && !item.hasTheoretical;
-      return practicalOnly || item.isCoop || item.isProject;
-    })
+    .filter((item) => item.hasCoop || (item.hasPractical && !item.hasTheoretical))
     .map((item) => item.key);
 }
-
-
 
 function groupScheduleForOfficialPrint(schedule) {
   const byDate = {};
@@ -789,6 +766,7 @@ function printScheduleOnlyPdf({
     day: "numeric",
   }).format(new Date());
 
+const selectedMajorNormalized = normalizeArabic(selectedMajor);
 const extractedDepartments = Array.from(
   new Set(
     schedule.flatMap((item) =>
@@ -1083,12 +1061,19 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
   openPrintWindow("طباعة جدول المراقبين", html);
 }
 
+function matchesSelectedMainDepartment(item, selectedDepartment) {
+  if (selectedDepartment === "__all__") return true;
+
+  const target = normalizeArabic(selectedDepartment);
+  const roots = getCourseDepartmentRoots(item);
+
+  return roots.includes(target);
+}
+
 export default function App() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
-const pendingRestoreRef = useRef(null);
-  const toastTimerRef = useRef(null);
-  
+
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [toast, setToast] = useState(null);
@@ -1102,7 +1087,7 @@ const pendingRestoreRef = useRef(null);
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
-  const [showTrainerHint, setShowTrainerHint] = useState(false);
+
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
@@ -1131,35 +1116,15 @@ const pendingRestoreRef = useRef(null);
   const [didRestore, setDidRestore] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
 
-const showToast = (title, description, type = "success", options = {}) => {
-  const nextToast = { title, description, type, ...options };
-  setToast(nextToast);
-
+const showToast = (title, description, type = "success") => {
+  setToast({ title, description, type });
   const duration =
-    options.persistent || options.action === "restore_session"
-      ? null
-      : type === "error"
-      ? 7000
-      : type === "warning"
-      ? 6000
-      : 4000;
-
+    type === "error" ? 7000 :
+    type === "warning" ? 6000 :
+    4000;
   window.clearTimeout(window.__examToastTimer);
-  if (duration) {
-    window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
-  }
+  window.__examToastTimer = window.setTimeout(() => setToast(null), duration);
 };
-const serializeScheduleItem = (item) => ({
-  ...item,
-  students: Array.isArray(item.students)
-    ? item.students
-    : Array.from(item.students || []),
-});
-
-const deserializeScheduleItem = (item) => ({
-  ...item,
-  students: Array.isArray(item.students) ? item.students : [],
-});
 
 const buildPersistedState = () => ({
   rows,
@@ -1184,10 +1149,10 @@ const buildPersistedState = () => ({
   avoidSameLevelSameDay,
   courseLevels,
   preferCourseTrainerInvigilation,
-  generalSchedule: generalSchedule.map(serializeScheduleItem),
-  specializedSchedule: specializedSchedule.map(serializeScheduleItem),
-  schedule: schedule.map(serializeScheduleItem),
-  unscheduled: unscheduled.map(serializeScheduleItem),
+  generalSchedule,
+  specializedSchedule,
+  schedule,
+  unscheduled,
   previewTab,
   previewPage,
 });
@@ -1215,48 +1180,35 @@ const restorePersistedState = (saved) => {
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
   setCourseLevels(saved.courseLevels || {});
   setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
-  setGeneralSchedule((saved.generalSchedule || []).map(deserializeScheduleItem));
-  setSpecializedSchedule((saved.specializedSchedule || []).map(deserializeScheduleItem));
-  setSchedule((saved.schedule || []).map(deserializeScheduleItem));
-  setUnscheduled((saved.unscheduled || []).map(deserializeScheduleItem));
+  setGeneralSchedule(saved.generalSchedule || []);
+  setSpecializedSchedule(saved.specializedSchedule || []);
+  setSchedule(saved.schedule || []);
+  setUnscheduled(saved.unscheduled || []);
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
 };
 
-
 useEffect(() => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-
     if (!raw) {
       setDidRestore(true);
       return;
     }
 
     const saved = JSON.parse(raw);
-
-    pendingRestoreRef.current = saved;
     setPendingRestore(saved);
-
-    showToast(
-      "جلسة محفوظة",
-      "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
-      "warning",
-      { action: "restore_session", persistent: true }
-    );
+    setToast({
+      title: "جلسة محفوظة",
+      description: "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
+      type: "warning",
+      action: "restore_session",
+    });
+    setDidRestore(true);
   } catch (error) {
-    console.error("فشل في استرجاع البيانات المحفوظة:", error);
+    console.error("Failed to restore saved state:", error);
     setDidRestore(true);
   }
-}, []);
-
-
-useEffect(() => {
-  return () => {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-  };
 }, []);
 
 useEffect(() => {
@@ -1275,7 +1227,6 @@ useEffect(() => {
 
 useEffect(() => {
   if (!didRestore) return;
-  if (pendingRestoreRef.current) return;
 
   try {
     const data = buildPersistedState();
@@ -1316,28 +1267,16 @@ useEffect(() => {
 ]);
 
 const restoreSavedSession = () => {
-  const saved = pendingRestoreRef.current || pendingRestore;
-  if (!saved) return;
+  if (!pendingRestore) return;
 
-  restorePersistedState(saved);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-
-  pendingRestoreRef.current = null;
+  restorePersistedState(pendingRestore);
   setPendingRestore(null);
-  setToast(null);
-  setDidRestore(true);
-
   showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
 };
 
 const clearSavedState = () => {
   localStorage.removeItem(STORAGE_KEY);
-
-  pendingRestoreRef.current = null;
   setPendingRestore(null);
-  setToast(null);
-  setDidRestore(true);
-
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
 };
 
@@ -1352,7 +1291,6 @@ const exportSavedSession = () => {
 };
 
 const importSessionRef = useRef(null);
-
 const importSavedSession = (file) => {
   if (!file) return;
 
@@ -1362,24 +1300,15 @@ const importSavedSession = (file) => {
       const saved = JSON.parse(e.target.result);
       restorePersistedState(saved);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-      pendingRestoreRef.current = null;
       setPendingRestore(null);
-      setDidRestore(true);
-      if (importSessionRef.current) {
-        importSessionRef.current.value = "";
-      }
       showToast("تم الاستيراد", "تم تحميل الجلسة بنجاح.", "success");
     } catch (error) {
-      if (importSessionRef.current) {
-        importSessionRef.current.value = "";
-      }
       showToast("خطأ في الاستيراد", "ملف الجلسة غير صالح.", "error");
     }
   };
 
   reader.readAsText(file, "utf-8");
 };
-
   const handleUpload = (file) => {
     if (!file) return;
 
@@ -1718,23 +1647,19 @@ invigilatorBusyPeriods.get(name).add(periodKey);
     });
   });
 
-
-
-const getMinInvigilatorLoad = () => {
-  const values = Array.from(invigilatorLoad.values());
-  return values.length ? Math.min(...values) : 0;
-};
 const rankInvigilatorForFairness = (name, preferTrainer = false) => {
   const load = invigilatorLoad.get(name) || 0;
   const minLoad = getMinInvigilatorLoad();
 
-  // عقوبة كبيرة إذا تجاوز الأدنى بأكثر من 1
+  // نعطي أفضلية بسيطة فقط، لكن لا نسمح بتضخم الفارق
   const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
-
-  // أفضلية بسيطة جدًا لمدرب المقرر بدون كسر العدالة
-  const trainerBonus = preferTrainer ? -0.15 : 0;
+  const trainerBonus = preferTrainer ? -0.25 : 0;
 
   return load + overloadPenalty + trainerBonus;
+};
+ const getMinInvigilatorLoad = () => {
+  const values = Array.from(invigilatorLoad.values());
+  return values.length ? Math.min(...values) : 0;
 };
 
 const pickInvigilators = (course, slot) => {
@@ -1753,59 +1678,56 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
-  const availableCandidates = invigilatorPool
-    .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+  // 1) نضيف مدرب المقرر أولًا إذا كان متاحًا
+  if (preferCourseTrainerInvigilation) {
+    const trainerCandidates = invigilatorPool
+      .filter((name) => normalizedTrainerSet.has(normalizeArabic(name)))
+      .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
+      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+      .sort(
+        (a, b) =>
+          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+          a.localeCompare(b, "ar")
+      );
 
-  // المرحلة 1: نختار فقط من ضمن من هم داخل هامش العدالة
-  while (chosen.length < requiredCount) {
-    const minLoad = getMinInvigilatorLoad();
-
-    const fairCandidates = availableCandidates
-      .filter((name) => !chosen.includes(name))
-      .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
-      .sort((a, b) => {
-        const aScore = rankInvigilatorForFairness(
-          a,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a))
-        );
-        const bScore = rankInvigilatorForFairness(
-          b,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b))
-        );
-
-        return aScore - bScore || a.localeCompare(b, "ar");
-      });
-
-    if (!fairCandidates.length) break;
-
-    chosen.push(fairCandidates[0]);
+    if (trainerCandidates.length) {
+      const trainerName = trainerCandidates[0];
+      chosen.push(trainerName);
+    }
   }
 
-  // المرحلة 2: إذا لم يكتمل العدد، نكمل من الأقل حملًا مهما كان
+  // 2) نكمل بقية العدد من الأقل حملًا
+  const availableOthers = invigilatorPool
+    .filter((name) => !chosen.includes(name))
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .sort(
+      (a, b) =>
+        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
+        a.localeCompare(b, "ar")
+    );
+
+  for (const name of availableOthers) {
+    if (chosen.length >= requiredCount) break;
+
+    const currentLoad = invigilatorLoad.get(name) || 0;
+    const minLoad = getMinInvigilatorLoad();
+
+    // لا نسمح بفارق كبير في العدالة إلا عند الضرورة
+   if (currentLoad > minLoad + 1 && chosen.length > 0) continue;
+
+    chosen.push(name);
+  }
+
+  // 3) إذا ما اكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا مهما كان
   if (chosen.length < requiredCount) {
-    const fallbackCandidates = availableCandidates
-      .filter((name) => !chosen.includes(name))
-      .sort((a, b) => {
-        const aLoad = invigilatorLoad.get(a) || 0;
-        const bLoad = invigilatorLoad.get(b) || 0;
-
-        const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
-        const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
-
-        return (
-          aLoad - bLoad ||
-          Number(bTrainer) - Number(aTrainer) ||
-          a.localeCompare(b, "ar")
-        );
-      });
-
-    for (const name of fallbackCandidates) {
+    for (const name of availableOthers) {
       if (chosen.length >= requiredCount) break;
+      if (chosen.includes(name)) continue;
       chosen.push(name);
     }
   }
 
+  // 4) تحديث الأحمال والانشغال
   chosen.forEach((name) => {
     if (!invigilatorBusyPeriods.has(name)) {
       invigilatorBusyPeriods.set(name, new Set());
@@ -1817,6 +1739,7 @@ const pickInvigilators = (course, slot) => {
 
   return chosen;
 };
+
   const scoreSlot = (course, slot) => {
     let hardConflict = false;
     let sameDayPenalty = 0;
@@ -2188,21 +2111,9 @@ const floatingBtn = ({ danger = false } = {}) => ({
     specializedCourses: specializedCourses.length,
     invigilators: parsed.invigilators.length,
   };
-const headerBtn = (danger = false) => ({
-  padding: "8px 14px",
-  borderRadius: 10,
-  border: "none",
-  background: danger ? "#DC2626" : "rgba(255,255,255,0.15)",
-  color: "#fff",
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: "pointer",
-  backdropFilter: "blur(6px)",
-  transition: "0.2s",
-});
+
   return (
     <div
-      ref={topRef}
       style={{
         minHeight: "100vh",
         background: `linear-gradient(135deg, ${COLORS.bg1} 0%, ${COLORS.bg2} 35%, ${COLORS.bg3} 100%)`,
@@ -2218,106 +2129,93 @@ const headerBtn = (danger = false) => ({
         onRestore={restoreSavedSession}
       />
 
-<div
-  style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
-    color: "#fff",
-    borderRadius: 28,
-    padding: "28px 32px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
-  }}
->
-  <div
-    style={{
-      flexDirection: "row-reverse",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
-      flexWrap: "wrap",
-    }}
-  >
-
-  
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-      }}
-    >
+      <div ref={topRef} />
 
 
-      {/* الأزرار */}
       <div
         style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
           display: "flex",
           flexDirection: "column",
-         gap: 8,
-          flexWrap: "wrap",
+          gap: 10,
+          zIndex: 9998,
         }}
       >
-        <button style={headerBtn()} onClick={exportSavedSession}>
+        <button onClick={exportSavedSession} style={floatingBtn()}>
           تصدير الجدول
         </button>
 
-        <button style={headerBtn()} onClick={() => importSessionRef.current?.click()}>
+        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
           استيراد الجدول
         </button>
 
-        <button style={headerBtn(true)} onClick={clearSavedState}>
+        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
           حذف البيانات المحلية
         </button>
-      </div>
 
-
-        {/* الشعار */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.15)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 18,
-          padding: 10,
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        <img
-          src={LOGO_SRC}
-          alt="logo"
-          style={{ width: 160, display: "block" }}
+        <input
+          ref={importSessionRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={(e) => importSavedSession(e.target.files?.[0])}
         />
-      </div>   
-    </div>
-    <div style={{ textAlign: "right", maxWidth: 500 }}>
-      <div style={{ fontSize: 28, fontWeight: 800 }}>
-        نظام بناء جدول الاختبارات
       </div>
 
-      <div
-        style={{
-          marginTop: 6,
-          fontSize: 14,
-          opacity: 0.9,
-          lineHeight: 1.8,
-        }}
-      >
-        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
-      </div>
-    </div>
+      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
+            color: "#fff",
+            borderRadius: 34,
+            padding: 30,
+            boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 20,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
+              <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
+                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
+              </div>
+            </div>
 
-  </div>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.22)",
+                borderRadius: 24,
+                padding: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 140,
+              }}
+            >
+              <img
+                src={LOGO_SRC}
+                alt="شعار المؤسسة العامة للتدريب التقني والمهني"
+                style={{
+                  width: 95,
+                  height: "auto",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
-  {/* input مخفي */}
-  <input
-    ref={importSessionRef}
-    type="file"
-    accept=".json,application/json"
-    style={{ display: "none" }}
-    onChange={(e) => importSavedSession(e.target.files?.[0])}
-  />
-</div>
-        
-  
         <div
           style={{
             display: "grid",
@@ -2437,7 +2335,7 @@ style={{
             >
               <div>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
-                <input value={parsed.collegeName || ""} style={fieldStyle()} />
+                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
               </div>
 
               <div>
@@ -2469,7 +2367,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات</div>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات المرنة</div>
               <textarea
                 value={periodsText}
                 onChange={(e) => setPeriodsText(e.target.value)}
@@ -2602,7 +2500,7 @@ style={{
                   checked={avoidSameLevelSameDay}
                   onChange={(e) => setAvoidSameLevelSameDay(e.target.checked)}
                 />
-                تجنب وضع مقررات من المستوى نفسه في نفس اليوم
+                جعل المقررات ذات المستوى الواحد لا تكون في نفس اليوم
               </label>
             </div>
 
@@ -2763,71 +2661,23 @@ style={{
                 إضافة المراقبين تلقائيًا
               </label>
 
-          <label
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    position: "relative",
-  }}
->
-  <input
-    type="checkbox"
-    checked={preferCourseTrainerInvigilation}
-    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-  />
-
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-    إعطاء أولوية لمدرب المقرر كمراقب أساسي
-
-    <span
-      onMouseEnter={() => setShowTrainerHint(true)}
-      onMouseLeave={() => setShowTrainerHint(false)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 20,
-        height: 20,
-        borderRadius: "50%",
-        background: COLORS.warningBg,
-        color: COLORS.warning,
-        fontWeight: 900,
-        fontSize: 13,
-        cursor: "help",
-        border: `1px solid ${COLORS.border}`,
-      }}
-    >
-      !
-    </span>
-  </span>
-
-  {showTrainerHint && (
-    <div
-      style={{
-        position: "absolute",
-        bottom: "110%",
-        right: 10,
-        background: "#111827",
-        color: "#fff",
-        padding: "10px 12px",
-        borderRadius: 10,
-        fontSize: 13,
-        lineHeight: 1.6,
-        width: 260,
-        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-        zIndex: 9999,
-        transition: "opacity 0.2s ease, transform 0.2s ease",
-      }}
-    >
-      سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-      مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
-    </div>
-  )}
-</label>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={preferCourseTrainerInvigilation}
+                  onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+                />
+                جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+              </label>
             </div>
 
             {includeInvigilators ? (
@@ -2838,7 +2688,7 @@ style={{
                     <textarea
                       value={manualInvigilators}
                       onChange={(e) => setManualInvigilators(e.target.value)}
-                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في الملف، أو اكتب كل اسم في سطر مستقل"
                       style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
                     />
                   </div>
@@ -2910,7 +2760,7 @@ style={{
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
                   <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                    يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
+                    يتم جلب الأسماء تلقائيًا من الملف، ويمكنك اختيار من لا يراقب.
                   </div>
 
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -3494,7 +3344,7 @@ printScheduleOnlyPdf({
                       lineHeight: 1.8,
                     }}
                   >
-                     تظهر أسماء المراقبين يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
+                    في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
                   </div>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
@@ -3521,6 +3371,6 @@ printScheduleOnlyPdf({
         )}
       </div>
     </div>
-
+       </div>
   );
 }
