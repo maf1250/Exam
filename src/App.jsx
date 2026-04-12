@@ -2214,7 +2214,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
       نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
     </div>
   </div>
-</div>
+
             <div
               style={{
                 background: "rgba(255,255,255,0.12)",
@@ -3444,6 +3444,6 @@ printScheduleOnlyPdf({
         )}
       </div>
     </div>
-       
+   </div>    
   );
 }
