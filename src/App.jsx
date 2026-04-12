@@ -429,6 +429,8 @@ function isGeneralStudiesCourse(course) {
   return keywords.some((k) => text.includes(normalizeArabic(k)));
 }
 
+
+
 function getDefaultExcludedPracticalCourseKeys(rows) {
   const map = new Map();
 
@@ -439,9 +441,11 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
 
     if (!courseCode && !courseName) return;
 
+    const normalizedCourseCode = normalizeArabic(courseCode);
+    const normalizedCourseName = normalizeArabic(courseName);
     const normalizedScheduleType = normalizeArabic(scheduleType);
-const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, "");
-    const key = [normalizeArabic(courseCode), normalizedCourseName].join("|");
+
+    const key = [normalizedCourseCode, normalizedCourseName].join("|");
 
     if (!map.has(key)) {
       map.set(key, {
@@ -458,15 +462,21 @@ const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, "");
 
     if (
       normalizedScheduleType.includes("نظري") ||
-      normalizedScheduleType.includes("محاضره") ||
-      normalizedScheduleType.includes("محاضرة")
+      normalizedScheduleType.includes("محاضره")
     ) {
       item.hasTheoretical = true;
     }
 
-    if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
+    if (normalizedScheduleType.includes("تعاوني")) {
+      item.hasCoop = true;
+    }
 
+    const compactCourseName = normalizedCourseName.replace(/\s+/g, "");
+    const projectKeywords = ["مشروع" ,"تخرج"];
 
+    if (projectKeywords.some((word) => compactCourseName.includes(word))) {
+      item.hasCoop = true;
+    }
   });
 
   return Array.from(map.values())
