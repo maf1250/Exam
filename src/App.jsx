@@ -1648,15 +1648,7 @@ invigilatorBusyPeriods.get(name).add(periodKey);
   });
 
 const rankInvigilatorForFairness = (name, preferTrainer = false) => {
-  const load = invigilatorLoad.get(name) || 0;
-  const minLoad = getMinInvigilatorLoad();
 
-  // نعطي أفضلية بسيطة فقط، لكن لا نسمح بتضخم الفارق
-  const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
-  const trainerBonus = preferTrainer ? -0.25 : 0;
-
-  return load + overloadPenalty + trainerBonus;
-};
 const getMinInvigilatorLoad = () => {
   const values = Array.from(invigilatorLoad.values());
   return values.length ? Math.min(...values) : 0;
