@@ -2,6 +2,70 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
 
+const LARGE_STORAGE_KEY = "exam_scheduler_saved_state_large_v1";
+const STORAGE_MODE_KEY = "exam_scheduler_storage_mode_v1";
+const DB_NAME = "exam_scheduler_db";
+const DB_VERSION = 1;
+const STORE_NAME = "sessions";
+
+function openAppDb() {
+  return new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("تعذر فتح قاعدة البيانات المحلية"));
+  });
+}
+
+async function saveStateToIndexedDb(key, value) {
+  const db = await openAppDb();
+
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("تعذر حفظ البيانات الكبيرة"));
+    tx.onabort = () => reject(tx.error || new Error("تم إلغاء حفظ البيانات الكبيرة"));
+  });
+
+  db.close();
+}
+
+async function loadStateFromIndexedDb(key) {
+  const db = await openAppDb();
+
+  const result = await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const request = tx.objectStore(STORE_NAME).get(key);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error || new Error("تعذر قراءة البيانات الكبيرة"));
+  });
+
+  db.close();
+  return result;
+}
+
+async function removeStateFromIndexedDb(key) {
+  const db = await openAppDb();
+
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("تعذر حذف البيانات الكبيرة"));
+    tx.onabort = () => reject(tx.error || new Error("تم إلغاء حذف البيانات الكبيرة"));
+  });
+
+  db.close();
+}
+
 const REQUIRED_COLUMNS = [
   "المقرر",
   "اسم المقرر",
@@ -1128,6 +1192,7 @@ const pendingRestoreRef = useRef(null);
   const [unscheduled, setUnscheduled] = useState([]);
   const [pendingRestore, setPendingRestore] = useState(null);
   const [didRestore, setDidRestore] = useState(false);
+  const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
 const showToast = (title, description, type = "success", options = {}) => {
@@ -1224,29 +1289,48 @@ const restorePersistedState = (saved) => {
 
 
 useEffect(() => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+  let cancelled = false;
 
-    if (!raw) {
-      setDidRestore(true);
-      return;
+  const loadSavedSession = async () => {
+    try {
+      const mode = localStorage.getItem(STORAGE_MODE_KEY) || "localStorage";
+      let saved = null;
+
+      if (mode === "indexedDB") {
+        saved = await loadStateFromIndexedDb(LARGE_STORAGE_KEY);
+      } else {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        saved = raw ? JSON.parse(raw) : null;
+      }
+
+      if (cancelled) return;
+
+      if (!saved) {
+        setDidRestore(true);
+        return;
+      }
+
+      pendingRestoreRef.current = saved;
+      setPendingRestore(saved);
+      setStorageMode(mode);
+
+      showToast(
+        "جلسة محفوظة",
+        "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
+        "warning",
+        { action: "restore_session", persistent: true }
+      );
+    } catch (error) {
+      console.error("فشل في استرجاع البيانات المحفوظة:", error);
+      if (!cancelled) setDidRestore(true);
     }
+  };
 
-    const saved = JSON.parse(raw);
+  loadSavedSession();
 
-    pendingRestoreRef.current = saved;
-    setPendingRestore(saved);
-
-    showToast(
-      "جلسة محفوظة",
-      "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
-      "warning",
-      { action: "restore_session", persistent: true }
-    );
-  } catch (error) {
-    console.error("فشل في استرجاع البيانات المحفوظة:", error);
-    setDidRestore(true);
-  }
+  return () => {
+    cancelled = true;
+  };
 }, []);
 
 
@@ -1276,12 +1360,34 @@ useEffect(() => {
   if (!didRestore) return;
   if (pendingRestoreRef.current) return;
 
-  try {
-    const data = buildPersistedState();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error("Failed to persist state:", error);
-  }
+  let cancelled = false;
+
+  const persistState = async () => {
+    try {
+      const data = buildPersistedState();
+      const serialized = JSON.stringify(data);
+
+      try {
+        localStorage.setItem(STORAGE_KEY, serialized);
+        localStorage.setItem(STORAGE_MODE_KEY, "localStorage");
+        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+        if (!cancelled) setStorageMode("localStorage");
+      } catch (storageError) {
+        await saveStateToIndexedDb(LARGE_STORAGE_KEY, data);
+        localStorage.setItem(STORAGE_MODE_KEY, "indexedDB");
+        localStorage.removeItem(STORAGE_KEY);
+        if (!cancelled) setStorageMode("indexedDB");
+      }
+    } catch (error) {
+      console.error("Failed to persist state:", error);
+    }
+  };
+
+  persistState();
+
+  return () => {
+    cancelled = true;
+  };
 }, [
   didRestore,
   rows,
@@ -1314,12 +1420,28 @@ useEffect(() => {
   previewPage,
 ]);
 
-const restoreSavedSession = () => {
+const restoreSavedSession = async () => {
   const saved = pendingRestoreRef.current || pendingRestore;
   if (!saved) return;
 
   restorePersistedState(saved);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+  try {
+    const serialized = JSON.stringify(saved);
+    try {
+      localStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(STORAGE_MODE_KEY, "localStorage");
+      await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+      setStorageMode("localStorage");
+    } catch (storageError) {
+      await saveStateToIndexedDb(LARGE_STORAGE_KEY, saved);
+      localStorage.setItem(STORAGE_MODE_KEY, "indexedDB");
+      localStorage.removeItem(STORAGE_KEY);
+      setStorageMode("indexedDB");
+    }
+  } catch (error) {
+    console.error("Failed to re-save restored session:", error);
+  }
 
   pendingRestoreRef.current = null;
   setPendingRestore(null);
@@ -1329,13 +1451,16 @@ const restoreSavedSession = () => {
   showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
 };
 
-const clearSavedState = () => {
+const clearSavedState = async () => {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_MODE_KEY);
+  await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
 
   pendingRestoreRef.current = null;
   setPendingRestore(null);
   setToast(null);
   setDidRestore(true);
+  setStorageMode("localStorage");
 
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
 };
@@ -1356,11 +1481,24 @@ const importSavedSession = (file) => {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const saved = JSON.parse(e.target.result);
       restorePersistedState(saved);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+      const serialized = JSON.stringify(saved);
+      try {
+        localStorage.setItem(STORAGE_KEY, serialized);
+        localStorage.setItem(STORAGE_MODE_KEY, "localStorage");
+        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+        setStorageMode("localStorage");
+      } catch (storageError) {
+        await saveStateToIndexedDb(LARGE_STORAGE_KEY, saved);
+        localStorage.setItem(STORAGE_MODE_KEY, "indexedDB");
+        localStorage.removeItem(STORAGE_KEY);
+        setStorageMode("indexedDB");
+      }
+
       pendingRestoreRef.current = null;
       setPendingRestore(null);
       setDidRestore(true);
@@ -2436,7 +2574,7 @@ style={{
             >
               <div>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
-                <input value={parsed.collegeName || ""}  style={fieldStyle()} />
+                <input value={parsed.collegeName || ""} readOnly style={fieldStyle()} />
               </div>
 
               <div>
