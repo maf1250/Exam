@@ -3401,8 +3401,7 @@ style={{
           <Card>
             <SectionHeader title="الصفحة الثالثة: المراقبون" description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول." />
 
-            <div
-              style={{
+          
 <div
   style={{
     display: "flex",
@@ -3521,69 +3520,68 @@ style={{
                     />
                   </div>
 
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div>
-                      <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => setInvigilationMode("fixed")}
-                          style={{
-                            border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
-                            background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
-                            color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
-                            borderRadius: 999,
-                            padding: "10px 14px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          عدد ثابت
-                        </button>
+              <div style={{ display: "grid", gap: 12, width: "100%" }}>
+  <div style={{ width: "100%", textAlign: "right" }}>
+    <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", width: "100%" }}>
+      <button
+        onClick={() => setInvigilationMode("fixed")}
+        style={{
+          border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
+          background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
+          color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
+          borderRadius: 999,
+          padding: "10px 14px",
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        عدد ثابت
+      </button>
 
-                        <button
-                          onClick={() => setInvigilationMode("ratio")}
-                          style={{
-                            border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
-                            background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
-                            color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
-                            borderRadius: 999,
-                            padding: "10px 14px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          حسب عدد المتدربين
-                        </button>
-                      </div>
-                    </div>
+      <button
+        onClick={() => setInvigilationMode("ratio")}
+        style={{
+          border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
+          background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
+          color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
+          borderRadius: 999,
+          padding: "10px 14px",
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        حسب عدد المتدربين
+      </button>
+    </div>
+  </div>
 
-                    {invigilationMode === "fixed" ? (
-                      <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
-                        <input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={invigilatorsPerPeriod}
-                          onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
-                          style={fieldStyle()}
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
-                        <input
-                          type="number"
-                          min="1"
-                          max="200"
-                          value={studentsPerInvigilator}
-                          onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 17))}
-                          style={fieldStyle()}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+  {invigilationMode === "fixed" ? (
+    <div style={{ width: "100%" }}>
+      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
+      <input
+        type="number"
+        min="1"
+        max="10"
+        value={invigilatorsPerPeriod}
+        onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
+        style={fieldStyle()}
+      />
+    </div>
+  ) : (
+    <div style={{ width: "100%" }}>
+      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
+      <input
+        type="number"
+        min="1"
+        max="200"
+        value={studentsPerInvigilator}
+        onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 17))}
+        style={fieldStyle()}
+      />
+    </div>
+  )}
+</div>
 
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
