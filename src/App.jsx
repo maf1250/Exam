@@ -2247,7 +2247,6 @@ const floatingBtn = ({ danger = false } = {}) => ({
       <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
         نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
       </div>
-    </div>
   </div>
 </div>
 
