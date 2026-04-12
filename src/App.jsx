@@ -799,6 +799,7 @@ function printScheduleOnlyPdf({
   defaultExamHall = "قاعة النشاط",
   selectedDepartment = "__all__",
   selectedMajor = "__all__",
+  compactMode = false,
 }) {
   if (!schedule?.length) return;
 
@@ -920,6 +921,10 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
 }
 
   
+  const tableFontSize = compactMode ? "9px" : "11px";
+  const tablePadding = compactMode ? "4px 3px" : "6px 5px";
+  const pageMargin = compactMode ? "6mm" : "10mm";
+
   const instructions = [
     "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
     "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولايسمح له بالخروج قبل مضي نصف ساعة.",
@@ -934,7 +939,39 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
     <html dir="rtl" lang="ar">
       <head>
         <title>طباعة جدول الاختبارات</title>
-        <style>${getPrintBaseStyles()}</style>
+        <style>
+          ${getPrintBaseStyles()}
+
+          @page {
+            size: A4 portrait;
+            margin: ${pageMargin};
+          }
+
+          body {
+            zoom: ${compactMode ? "0.86" : "1"};
+          }
+
+          th, td {
+            font-size: ${tableFontSize};
+            padding: ${tablePadding};
+          }
+
+          .college-name {
+            font-size: ${compactMode ? "19px" : "22px"};
+          }
+
+          .doc-title {
+            font-size: ${compactMode ? "16px" : "18px"};
+          }
+
+          .meta-grid {
+            font-size: ${compactMode ? "11px" : "12px"};
+          }
+
+          .section-note {
+            font-size: ${compactMode ? "10px" : "11px"};
+          }
+        </style>
       </head>
       <body>
         <div class="page">
@@ -1027,7 +1064,7 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
   openPrintWindow("طباعة جدول الاختبارات", html);
 }
 
-function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
+function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode = false }) {
   if (!invigilatorTable?.length) return;
 
   const todayText = new Intl.DateTimeFormat("ar-SA", {
@@ -1064,9 +1101,18 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
         <style>
           ${getPrintBaseStyles()}
 
+          @page {
+            size: A4 portrait;
+            margin: ${'${compactMode ? "6mm" : "10mm"}'};
+          }
+
+          body {
+            zoom: ${'${compactMode ? "0.86" : "1"}'};
+          }
+
           th, td {
-            font-size: 12px;
-            padding: 8px 6px;
+            font-size: ${'${compactMode ? "10px" : "12px"}'};
+            padding: ${'${compactMode ? "5px 4px" : "8px 6px"}'};
           }
 
           .invigilators-table {
@@ -1141,6 +1187,146 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable }) {
   openPrintWindow("طباعة جدول المراقبين", html);
 }
 
+
+function printSingleStudentSchedule({ collegeName, student, items, compactMode = false }) {
+  if (!student || !items?.length) return;
+
+  const isLong = compactMode || items.length > 6;
+  const todayText = new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+
+  const rowsHtml = items
+    .map(
+      (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${item.courseName || ""}</td>
+          <td>${item.courseCode || ""}</td>
+          <td>${item.dayName || ""}</td>
+          <td>${item.gregorian || ""}</td>
+          <td>${item.hijriNumeric || ""}</td>
+          <td>${item.period || ""}</td>
+          <td>${item.timeText || ""}</td>
+          <td>${item.examHall || ""}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const html = `
+    <html dir="rtl" lang="ar">
+      <head>
+        <title>طباعة جدول متدرب</title>
+        <style>
+          ${getPrintBaseStyles()}
+
+          @page {
+            size: A4 portrait;
+            margin: 8mm;
+          }
+
+          body {
+            zoom: ${isLong ? 0.82 : 0.92};
+          }
+
+          .page {
+            page-break-after: avoid !important;
+          }
+
+          table {
+            table-layout: auto;
+          }
+
+          th, td {
+            font-size: ${isLong ? "9px" : "10px"};
+            padding: ${isLong ? "4px 3px" : "6px 4px"};
+            white-space: nowrap;
+          }
+
+          .header {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+          }
+
+          .college-name {
+            font-size: ${isLong ? "18px" : "20px"};
+            margin-bottom: 2px;
+          }
+
+          .doc-title {
+            font-size: ${isLong ? "14px" : "16px"};
+            margin-bottom: 4px;
+          }
+
+          .student-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            margin: 8px 0;
+            font-size: ${isLong ? "10px" : "11px"};
+          }
+
+          .student-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 8px;
+            background: #f8fafc;
+          }
+
+          .footer {
+            margin-top: 6px;
+            font-size: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="logo-wrap">
+              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+            </div>
+            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
+            <div class="doc-title">جدول الاختبارات النهائي للمتدرب</div>
+          </div>
+
+          <div class="student-meta">
+            <div class="student-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
+            <div class="student-box"><strong>رقم المتدرب:</strong> ${student.id || "-"}</div>
+            <div class="student-box"><strong>القسم:</strong> ${student.department || "-"}</div>
+            <div class="student-box"><strong>التخصص:</strong> ${student.major || "-"}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>المقرر</th>
+                <th>الرمز</th>
+                <th>اليوم</th>
+                <th>التاريخ الميلادي</th>
+                <th>التاريخ الهجري</th>
+                <th>الفترة</th>
+                <th>الوقت</th>
+                <th>المقر</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="footer">${todayText}</div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  openPrintWindow("طباعة جدول متدرب", html);
+}
+
 export default function App() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -1167,6 +1353,8 @@ const pendingRestoreRef = useRef(null);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
   const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
   const [previewPage, setPreviewPage] = useState(0);
+  const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
+  const [compactPrintMode, setCompactPrintMode] = useState(false);
 
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
   const [excludedInvigilators, setExcludedInvigilators] = useState([]);
@@ -1271,6 +1459,8 @@ const buildPersistedState = () => ({
   unscheduled: unscheduled.map(serializeScheduleItem),
   previewTab,
   previewPage,
+  selectedStudentIdForPrint,
+  compactPrintMode,
 });
 
 const restorePersistedState = (saved) => {
@@ -1306,6 +1496,8 @@ const restorePersistedState = (saved) => {
   setUnscheduled((saved.unscheduled || []).map(deserializeScheduleItem));
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
+  setSelectedStudentIdForPrint(saved.selectedStudentIdForPrint || "");
+  setCompactPrintMode(saved.compactPrintMode ?? false);
 };
 
 
@@ -1469,6 +1661,8 @@ useEffect(() => {
   unscheduled,
   previewTab,
   previewPage,
+  selectedStudentIdForPrint,
+  compactPrintMode,
 ]);
 
 const restoreSavedSession = async () => {
@@ -1646,6 +1840,8 @@ const importSavedSession = (file) => {
         setCourseLevels({});
         setPreviewPage(0);
         setPreviewTab("sortedCourses");
+        setSelectedStudentIdForPrint("");
+        setCompactPrintMode(false);
         setCurrentStep(1);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
@@ -2288,6 +2484,49 @@ const filteredSortedCourses = useMemo(() => {
     const start = previewPage * daysPerPage;
     return groupedScheduleEntries.slice(start, start + daysPerPage);
   }, [groupedScheduleEntries, previewPage]);
+
+
+  const studentOptionsForPrint = useMemo(() => {
+    const scheduledStudentIds = new Set(
+      schedule.flatMap((item) => Array.isArray(item.students) ? item.students : [])
+    );
+
+    const map = new Map();
+
+    parsed.filteredRows.forEach((row) => {
+      const studentId = String(row["رقم المتدرب"] ?? "").trim();
+      if (!studentId || !scheduledStudentIds.has(studentId)) return;
+
+      const studentName = String(row["إسم المتدرب"] ?? "").trim();
+      const department = String(row["القسم"] ?? "").trim();
+      const major = String(row["التخصص"] ?? "").trim();
+
+      if (!map.has(studentId)) {
+        map.set(studentId, {
+          id: studentId,
+          name: studentName,
+          department,
+          major,
+          label: `${studentName || "بدون اسم"} - ${studentId}`,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+  }, [parsed.filteredRows, schedule]);
+
+  const selectedStudentInfoForPrint = useMemo(
+    () => studentOptionsForPrint.find((student) => student.id === selectedStudentIdForPrint) || null,
+    [studentOptionsForPrint, selectedStudentIdForPrint]
+  );
+
+  const selectedStudentScheduleForPrint = useMemo(() => {
+    if (!selectedStudentIdForPrint) return [];
+
+    return schedule
+      .filter((item) => (item.students || []).includes(selectedStudentIdForPrint))
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
+  }, [schedule, selectedStudentIdForPrint]);
 
   const invigilatorTable = useMemo(() => {
     const table = new Map();
@@ -3162,6 +3401,8 @@ style={{
           <Card>
             <SectionHeader title="الصفحة الثالثة: المراقبون" description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول." />
 
+            <div
+              style={{
 <div
   style={{
     display: "flex",
@@ -3276,14 +3517,11 @@ style={{
                       value={manualInvigilators}
                       onChange={(e) => setManualInvigilators(e.target.value)}
                       placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(),   maxWidth: 700,
-  width: "100%",
-  minHeight: 120,
-  resize: "vertical", }}
+                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
                     />
                   </div>
 
-                  <div style={{ display: "grid", gap: 12, width: "100%" }}>
+                  <div style={{ display: "grid", gap: 12 }}>
                     <div>
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -3706,17 +3944,98 @@ style={{
                 </div>
 
                 {previewTab === "print" ? (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                    <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-                      السابق
-                    </button>
+                  <>
+                    <div
+                      style={{
+                        marginTop: 18,
+                        marginBottom: 14,
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 18,
+                        padding: 14,
+                        background: "#fff",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 10,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 14,
+                          padding: "10px 12px",
+                          background: "#fff",
+                          marginBottom: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={compactPrintMode}
+                          onChange={(e) => setCompactPrintMode(e.target.checked)}
+                        />
+                        ضغط الطباعة في صفحة واحدة قدر الإمكان
+                      </label>
 
-                    <button onClick={exportMainSchedule} style={cardButtonStyle()}>
-                      تصدير جدول الاختبارات
-                    </button>
+                      <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
+                      <select
+                        value={selectedStudentIdForPrint}
+                        onChange={(e) => setSelectedStudentIdForPrint(e.target.value)}
+                        style={{ ...fieldStyle(), maxWidth: 520 }}
+                      >
+                        <option value="">اختر المتدرب بالاسم أو الرقم</option>
+                        {studentOptionsForPrint.map((student) => (
+                          <option key={student.id} value={student.id}>
+                            {student.label}
+                          </option>
+                        ))}
+                      </select>
 
-                    <button
-                      onClick={() =>
+                      {selectedStudentInfoForPrint ? (
+                        <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
+                          <strong>{selectedStudentInfoForPrint.name}</strong>
+                          {" — "}
+                          {selectedStudentInfoForPrint.id}
+                          {" — "}
+                          {selectedStudentInfoForPrint.department || "-"}
+                          {" / "}
+                          {selectedStudentInfoForPrint.major || "-"}
+                        </div>
+                      ) : null}
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                        <button
+                          onClick={() => {
+                            if (!selectedStudentInfoForPrint || !selectedStudentScheduleForPrint.length) {
+                              showToast("لا يوجد متدرب", "اختر متدربًا لديه جدول مطبوع.", "error");
+                              return;
+                            }
+
+                            printSingleStudentSchedule({
+                              collegeName: parsed.collegeName,
+                              student: selectedStudentInfoForPrint,
+                              items: selectedStudentScheduleForPrint,
+                              compactMode: compactPrintMode,
+                            });
+                          }}
+                          style={cardButtonStyle({ active: true, disabled: !selectedStudentIdForPrint })}
+                          disabled={!selectedStudentIdForPrint}
+                        >
+                          طباعة جدول المتدرب
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                        السابق
+                      </button>
+
+                      <button onClick={exportMainSchedule} style={cardButtonStyle()}>
+                        تصدير جدول الاختبارات
+                      </button>
+
+                      <button
+                        onClick={() =>
 printScheduleOnlyPdf({
   collegeName: parsed.collegeName,
   schedule: filteredScheduleForPrint,
@@ -3735,25 +4054,28 @@ printScheduleOnlyPdf({
   defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
   selectedDepartment: printDepartmentFilter,
   selectedMajor: printMajorFilter,
+  compactMode: compactPrintMode,
 })
                       }
-                      style={cardButtonStyle({ active: true })}
-                    >
-                      طباعة جدول الاختبارات
-                    </button>
+                        style={cardButtonStyle({ active: true })}
+                      >
+                        طباعة جدول الاختبارات
+                      </button>
 
-                    <button
-                      onClick={() =>
-                        printInvigilatorsOnlyPdf({
-                          collegeName: parsed.collegeName,
-                          invigilatorTable,
-                        })
-                      }
-                      style={cardButtonStyle()}
-                    >
-                      طباعة جدول المراقبين
-                    </button>
-                  </div>
+                      <button
+                        onClick={() =>
+                          printInvigilatorsOnlyPdf({
+                            collegeName: parsed.collegeName,
+                            invigilatorTable,
+                            compactMode: compactPrintMode,
+                          })
+                        }
+                        style={cardButtonStyle()}
+                      >
+                        طباعة جدول المراقبين
+                      </button>
+                    </div>
+                  </>
                 ) : null}
               </Card>
             </div>
