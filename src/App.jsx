@@ -1647,13 +1647,13 @@ invigilatorBusyPeriods.get(name).add(periodKey);
     });
   });
 
-const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+
 
 const getMinInvigilatorLoad = () => {
   const values = Array.from(invigilatorLoad.values());
   return values.length ? Math.min(...values) : 0;
 };
-
+const rankInvigilatorForFairness = (name, preferTrainer = false) => {
   const load = invigilatorLoad.get(name) || 0;
   const minLoad = getMinInvigilatorLoad();
 
@@ -2727,7 +2727,7 @@ style={{
         transition: "opacity 0.2s ease, transform 0.2s ease",
       }}
     >
-      سيتم إعطاء أولوية لمدرب المقرر عند التوزيع،
+      سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
       مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
     </div>
   )}
