@@ -440,7 +440,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     if (!courseCode && !courseName) return;
 
     const normalizedScheduleType = normalizeArabic(scheduleType);
-    const normalizedCourseName = normalizeArabic(courseName);
+const normalizedCourseName = normalizeArabic(courseName).replace(/\s+/g, "");
     const key = [normalizeArabic(courseCode), normalizedCourseName].join("|");
 
     if (!map.has(key)) {
@@ -466,7 +466,9 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
 
     if (normalizedScheduleType.includes("تعاوني")) item.hasCoop = true;
 
-    if (normalizedCourseName.includes("مشروع")) item.hasCoop = true;
+  if (normalizedCourseName.includes("مشروع")) {
+  item.hasCoop = true;
+}
   });
 
   return Array.from(map.values())
