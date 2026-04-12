@@ -2157,16 +2157,13 @@ const floatingBtn = ({ danger = false } = {}) => ({
         onRestore={restoreSavedSession}
       />
 
-      <div ref={topRef} />
-
-      <div style={{ maxWidth: 1450, margin: "0 auto" }}>
 <div
   style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
+    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
     color: "#fff",
-    borderRadius: 34,
-    padding: 30,
-    boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
+    borderRadius: 28,
+    padding: "28px 32px",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
   }}
 >
   <div
@@ -2178,76 +2175,82 @@ const floatingBtn = ({ danger = false } = {}) => ({
       flexWrap: "wrap",
     }}
   >
+
+    {/* 🔹 اليمين: الشعار + الأزرار */}
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: 14,
       }}
     >
+      {/* الشعار */}
       <div
         style={{
-          background: "rgba(255,255,255,0.12)",
-          border: "1px solid rgba(255,255,255,0.22)",
-          borderRadius: 24,
-          padding: 14,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 140,
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          borderRadius: 18,
+          padding: 10,
+          backdropFilter: "blur(6px)",
         }}
       >
         <img
           src={LOGO_SRC}
-          alt="شعار المؤسسة العامة للتدريب التقني والمهني"
-          style={{
-            width: 95,
-            height: "auto",
-            objectFit: "contain",
-            display: "block",
-          }}
+          alt="logo"
+          style={{ width: 75, display: "block" }}
         />
+      </div>
+
+      {/* الأزرار */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <button style={headerBtn()} onClick={exportSavedSession}>
+          تصدير الجدول
+        </button>
+
+        <button style={headerBtn()} onClick={() => importSessionRef.current?.click()}>
+          استيراد الجدول
+        </button>
+
+        <button style={headerBtn(true)} onClick={clearSavedState}>
+          حذف البيانات المحلية
+        </button>
+      </div>
+    </div>
+
+    {/* 🔹 اليسار: العنوان */}
+    <div style={{ textAlign: "right", maxWidth: 500 }}>
+      <div style={{ fontSize: 28, fontWeight: 800 }}>
+        نظام بناء جدول الاختبارات
       </div>
 
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          marginTop: 6,
+          fontSize: 14,
+          opacity: 0.9,
+          lineHeight: 1.8,
         }}
       >
-        <button onClick={exportSavedSession} style={floatingBtn()}>
-          تصدير الجدول
-        </button>
-
-        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
-          استيراد الجدول
-        </button>
-
-        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
-          حذف البيانات المحلية
-        </button>
-      </div>
-
-      <input
-        ref={importSessionRef}
-        type="file"
-        accept=".json,application/json"
-        style={{ display: "none" }}
-        onChange={(e) => importSavedSession(e.target.files?.[0])}
-      />
-    </div>
-
-    <div style={{ flex: 1, minWidth: 260 }}>
-      <div style={{ fontSize: 32, fontWeight: 900 }}>
-        نظام بناء جدول الاختبارات النهائية
-      </div>
-      <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-        نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
+        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
       </div>
     </div>
+
   </div>
-</div>        
+
+  {/* input مخفي */}
+  <input
+    ref={importSessionRef}
+    type="file"
+    accept=".json,application/json"
+    style={{ display: "none" }}
+    onChange={(e) => importSavedSession(e.target.files?.[0])}
+  />
 </div>
         
   
