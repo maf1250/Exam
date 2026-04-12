@@ -2160,8 +2160,6 @@ const floatingBtn = ({ danger = false } = {}) => ({
       <div ref={topRef} />
 
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
-
- 
 <div
   style={{
     background: `linear-gradient(135deg, ${COLORS.primaryDark} 0%, ${COLORS.primary} 60%, #5CC7C2 100%)`,
@@ -2247,6 +2245,7 @@ const floatingBtn = ({ danger = false } = {}) => ({
       <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
         نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
       </div>
+    </div>
   </div>
 </div>
 
