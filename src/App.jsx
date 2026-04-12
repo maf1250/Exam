@@ -1254,6 +1254,11 @@ useEffect(() => {
   }
 }, []);
 
+useEffect(() => {
+  if (!collegeNameInput && parsed.collegeName) {
+    setCollegeNameInput(parsed.collegeName);
+  }
+}, [parsed.collegeName]);
 
 useEffect(() => {
   return () => {
@@ -2443,7 +2448,12 @@ style={{
             >
               <div>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
-                <input value={collegeNameInput || parsed.collegeName || ""} onChange={(e) => setCollegeNameInput(e.target.value)} style={fieldStyle()} placeholder="اكتب اسم الكلية" />
+                <input
+                  value={collegeNameInput}
+                  onChange={(e) => setCollegeNameInput(e.target.value)}
+                  style={fieldStyle()}
+                  placeholder="اكتب اسم الكلية"
+                />
               </div>
 
               <div>
