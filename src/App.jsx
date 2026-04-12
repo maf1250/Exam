@@ -1087,7 +1087,7 @@ export default function App() {
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
-
+  const [showTrainerHint, setShowTrainerHint] = useState(false);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
@@ -1657,9 +1657,22 @@ const rankInvigilatorForFairness = (name, preferTrainer = false) => {
 
   return load + overloadPenalty + trainerBonus;
 };
- const getMinInvigilatorLoad = () => {
+const getMinInvigilatorLoad = () => {
   const values = Array.from(invigilatorLoad.values());
   return values.length ? Math.min(...values) : 0;
+};
+
+const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+  const load = invigilatorLoad.get(name) || 0;
+  const minLoad = getMinInvigilatorLoad();
+
+  // عقوبة كبيرة إذا تجاوز الأدنى بأكثر من 1
+  const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+
+  // أفضلية بسيطة جدًا لمدرب المقرر بدون كسر العدالة
+  const trainerBonus = preferTrainer ? -0.15 : 0;
+
+  return load + overloadPenalty + trainerBonus;
 };
 
 const pickInvigilators = (course, slot) => {
@@ -1678,56 +1691,59 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
-  // 1) نضيف مدرب المقرر أولًا إذا كان متاحًا
-  if (preferCourseTrainerInvigilation) {
-    const trainerCandidates = invigilatorPool
-      .filter((name) => normalizedTrainerSet.has(normalizeArabic(name)))
-      .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-      .sort(
-        (a, b) =>
-          (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-          a.localeCompare(b, "ar")
-      );
+  const availableCandidates = invigilatorPool
+    .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
 
-    if (trainerCandidates.length) {
-      const trainerName = trainerCandidates[0];
-      chosen.push(trainerName);
-    }
-  }
-
-  // 2) نكمل بقية العدد من الأقل حملًا
-  const availableOthers = invigilatorPool
-    .filter((name) => !chosen.includes(name))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .sort(
-      (a, b) =>
-        (invigilatorLoad.get(a) || 0) - (invigilatorLoad.get(b) || 0) ||
-        a.localeCompare(b, "ar")
-    );
-
-  for (const name of availableOthers) {
-    if (chosen.length >= requiredCount) break;
-
-    const currentLoad = invigilatorLoad.get(name) || 0;
+  // المرحلة 1: نختار فقط من ضمن من هم داخل هامش العدالة
+  while (chosen.length < requiredCount) {
     const minLoad = getMinInvigilatorLoad();
 
-    // لا نسمح بفارق كبير في العدالة إلا عند الضرورة
-   if (currentLoad > minLoad + 1 && chosen.length > 0) continue;
+    const fairCandidates = availableCandidates
+      .filter((name) => !chosen.includes(name))
+      .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
+      .sort((a, b) => {
+        const aScore = rankInvigilatorForFairness(
+          a,
+          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a))
+        );
+        const bScore = rankInvigilatorForFairness(
+          b,
+          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b))
+        );
 
-    chosen.push(name);
+        return aScore - bScore || a.localeCompare(b, "ar");
+      });
+
+    if (!fairCandidates.length) break;
+
+    chosen.push(fairCandidates[0]);
   }
 
-  // 3) إذا ما اكتمل العدد بسبب شرط العدالة، نكمّل من الأقل حملًا مهما كان
+  // المرحلة 2: إذا لم يكتمل العدد، نكمل من الأقل حملًا مهما كان
   if (chosen.length < requiredCount) {
-    for (const name of availableOthers) {
+    const fallbackCandidates = availableCandidates
+      .filter((name) => !chosen.includes(name))
+      .sort((a, b) => {
+        const aLoad = invigilatorLoad.get(a) || 0;
+        const bLoad = invigilatorLoad.get(b) || 0;
+
+        const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
+        const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
+
+        return (
+          aLoad - bLoad ||
+          Number(bTrainer) - Number(aTrainer) ||
+          a.localeCompare(b, "ar")
+        );
+      });
+
+    for (const name of fallbackCandidates) {
       if (chosen.length >= requiredCount) break;
-      if (chosen.includes(name)) continue;
       chosen.push(name);
     }
   }
 
-  // 4) تحديث الأحمال والانشغال
   chosen.forEach((name) => {
     if (!invigilatorBusyPeriods.has(name)) {
       invigilatorBusyPeriods.set(name, new Set());
@@ -1739,7 +1755,6 @@ const pickInvigilators = (course, slot) => {
 
   return chosen;
 };
-
   const scoreSlot = (course, slot) => {
     let hardConflict = false;
     let sameDayPenalty = 0;
@@ -2661,23 +2676,72 @@ style={{
                 إضافة المراقبين تلقائيًا
               </label>
 
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 14,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={preferCourseTrainerInvigilation}
-                  onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-                />
-                جعل مدرب المقرر يراقب في مقرره بشكل أساسي
-              </label>
+             <label
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 14,
+    position: "relative", // مهم
+  }}
+>
+  <input
+    type="checkbox"
+    checked={preferCourseTrainerInvigilation}
+    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+  />
+
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    جعل مدرب المقرر يراقب في مقرره بشكل أساسي
+
+    <span
+      onMouseEnter={() => setShowTrainerHint(true)}
+      onMouseLeave={() => setShowTrainerHint(false)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        background: COLORS.warningBg,
+        color: COLORS.warning,
+        fontWeight: 900,
+        fontSize: 13,
+        cursor: "help",
+        border: `1px solid ${COLORS.border}`,
+      }}
+    >
+      !
+    </span>
+  </span>
+
+  {/* Tooltip */}
+  {showTrainerHint && (
+    <div
+      style={{
+        position: "absolute",
+        bottom: "110%",
+        right: 10,
+        background: "#111827",
+        color: "#fff",
+        padding: "10px 12px",
+        borderRadius: 10,
+        fontSize: 13,
+        lineHeight: 1.6,
+        width: 260,
+        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+        zIndex: 9999,
+        transition: "opacity 0.2s ease, transform 0.2s ease",
+      }}
+    >
+      سيتم إعطاء أولوية لمدرب المقرر عند التوزيع،
+      مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+    </div>
+  )}
+</label>
             </div>
 
             {includeInvigilators ? (
@@ -3344,7 +3408,7 @@ printScheduleOnlyPdf({
                       lineHeight: 1.8,
                     }}
                   >
-                    في الطباعة الجديدة: أسماء المراقبين تظهر يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
+                     تظهر أسماء المراقبين يمين الجدول، والأعمدة تمثل الأيام، وتحت كل يوم تظهر الفترات المسندة للمراقب.
                   </div>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
