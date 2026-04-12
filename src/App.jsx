@@ -1292,7 +1292,9 @@ const restoreSavedSession = () => {
   if (!pendingRestore) return;
 
   restorePersistedState(pendingRestore);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingRestore));
   setPendingRestore(null);
+  setDidRestore(true);
   showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
 };
 
