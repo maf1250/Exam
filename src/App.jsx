@@ -3643,7 +3643,8 @@ style={{
               </div>
             )
           </Card>
-        )}
+  }
+        )
 
         {currentStep === 4 && (
           <Card>
