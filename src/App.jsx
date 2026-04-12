@@ -491,10 +491,7 @@ function getDefaultExcludedPracticalCourseKeys(rows) {
     .map((item) => item.key);
 }
 
-  return Array.from(map.values())
-    .filter((item) => item.hasPractical && !item.hasTheoretical && !item.hasCoop)
-    .map((item) => item.key);
-}
+
 
 function groupScheduleForOfficialPrint(schedule) {
   const byDate = {};
