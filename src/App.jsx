@@ -3162,8 +3162,6 @@ style={{
           <Card>
             <SectionHeader title="الصفحة الثالثة: المراقبون" description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول." />
 
-            <div
-              style={{
 <div
   style={{
     display: "flex",
