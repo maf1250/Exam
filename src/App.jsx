@@ -1159,18 +1159,6 @@ const deserializeScheduleItem = (item) => ({
   students: Array.isArray(item.students) ? item.students : [],
 });
 
-  const serializeScheduleItem = (item) => ({
-  ...item,
-  students: Array.isArray(item.students)
-    ? item.students
-    : Array.from(item.students || []),
-});
-
-const deserializeScheduleItem = (item) => ({
-  ...item,
-  students: Array.isArray(item.students) ? item.students : [],
-});
-
 const buildPersistedState = () => ({
   rows,
   fileName,
@@ -1358,8 +1346,7 @@ const importSavedSession = (file) => {
 
   reader.readAsText(file, "utf-8");
 };
-  reader.readAsText(file, "utf-8");
-};
+
   const handleUpload = (file) => {
     if (!file) return;
 
