@@ -3164,15 +3164,17 @@ style={{
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 12,
-                marginTop: 18,
-              }}
-            >
-              <label
+<div
+  style={{
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 18,
+  }}
+>
+                <label
                 style={{
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
                   gap: 10,
                   border: `1px solid ${COLORS.border}`,
@@ -3186,7 +3188,7 @@ style={{
 
           <label
   style={{
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
     gap: 10,
     border: `1px solid ${COLORS.border}`,
