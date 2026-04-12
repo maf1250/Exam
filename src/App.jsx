@@ -1305,8 +1305,24 @@ useEffect(() => {
 
       if (cancelled) return;
 
-      if (!saved) {
-        setDidRestore(true);
+      const hasMeaningfulSavedData =
+        (Array.isArray(saved?.rows) && saved.rows.length > 0) ||
+        (Array.isArray(saved?.schedule) && saved.schedule.length > 0) ||
+        (Array.isArray(saved?.generalSchedule) && saved.generalSchedule.length > 0) ||
+        (Array.isArray(saved?.specializedSchedule) && saved.specializedSchedule.length > 0) ||
+        (Array.isArray(saved?.unscheduled) && saved.unscheduled.length > 0) ||
+        Boolean(saved?.fileName);
+
+      if (!saved || !hasMeaningfulSavedData) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_MODE_KEY);
+        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+        if (!cancelled) {
+          setPendingRestore(null);
+          pendingRestoreRef.current = null;
+          setDidRestore(true);
+          setStorageMode("localStorage");
+        }
         return;
       }
 
