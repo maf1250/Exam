@@ -1662,7 +1662,6 @@ const getMinInvigilatorLoad = () => {
   return values.length ? Math.min(...values) : 0;
 };
 
-const rankInvigilatorForFairness = (name, preferTrainer = false) => {
   const load = invigilatorLoad.get(name) || 0;
   const minLoad = getMinInvigilatorLoad();
 
