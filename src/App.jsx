@@ -17,7 +17,7 @@ function openAppDb() {
         db.createObjectStore(STORE_NAME);
       }
     };
-
+    
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error || new Error("تعذر فتح قاعدة البيانات المحلية"));
   });
@@ -4387,7 +4387,7 @@ printScheduleOnlyPdf({
           </>
         )}
       </div>
-    </div>
+
 
   );
 }
