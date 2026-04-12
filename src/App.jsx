@@ -1850,6 +1850,19 @@ courseMap.forEach((course) => {
     return parsed.courses.filter((course) => !keys.has(course.key));
   }, [parsed.courses, generalCourses]);
 
+  const excludedInvigilatorsForSelectedDepartments = useMemo(() => {
+    if (includeAllDepartmentsAndMajors) return new Set();
+
+    const names = generalCourses.flatMap((course) =>
+      String(course.trainerText || "")
+        .split("/")
+        .map((name) => name.trim())
+        .filter(Boolean)
+    );
+
+    return new Set(names.map((name) => normalizeArabic(name)));
+  }, [includeAllDepartmentsAndMajors, generalCourses]);
+
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
@@ -1941,9 +1954,19 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
 
   const invigilatorPool = [
     ...new Set(
-      baseInvigilators.filter(
-        (name) => !excludedInvigilators.some((excluded) => normalizeArabic(excluded) === normalizeArabic(name))
-      )
+      baseInvigilators.filter((name) => {
+        const normalizedName = normalizeArabic(name);
+
+        const manuallyExcluded = excludedInvigilators.some(
+          (excluded) => normalizeArabic(excluded) === normalizedName
+        );
+
+        const excludedBecauseGeneralStudiesOnly =
+          !includeAllDepartmentsAndMajors &&
+          excludedInvigilatorsForSelectedDepartments.has(normalizedName);
+
+        return !manuallyExcluded && !excludedBecauseGeneralStudiesOnly;
+      })
     ),
   ];
 
@@ -2297,8 +2320,29 @@ const filteredSortedCourses = useMemo(() => {
     const baseInvigilators = manualInvigilators
       ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
-    return Array.from(new Set(baseInvigilators)).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [manualInvigilators, parsed.invigilators]);
+
+    return Array.from(
+      new Set(
+        baseInvigilators.filter((name) => {
+          const normalizedName = normalizeArabic(name);
+
+          if (
+            !includeAllDepartmentsAndMajors &&
+            excludedInvigilatorsForSelectedDepartments.has(normalizedName)
+          ) {
+            return false;
+          }
+
+          return true;
+        })
+      )
+    ).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [
+    manualInvigilators,
+    parsed.invigilators,
+    includeAllDepartmentsAndMajors,
+    excludedInvigilatorsForSelectedDepartments,
+  ]);
 
   const availableDepartmentsForPrint = useMemo(() => {
     const map = new Map();
@@ -3209,6 +3253,22 @@ style={{
 
             {includeInvigilators ? (
               <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+                {!includeAllDepartmentsAndMajors ? (
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 14,
+                      background: COLORS.warningBg,
+                      color: COLORS.warning,
+                      lineHeight: 1.8,
+                      fontSize: 14,
+                    }}
+                  >
+                    عند اختيار قسم/تخصص محدد، يتم استبعاد مدربي مقررات الدراسات العامة من قائمة المراقبين
+                    حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
+                  </div>
+                ) : null}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
                   <div>
                     <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
