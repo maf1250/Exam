@@ -2159,39 +2159,6 @@ const floatingBtn = ({ danger = false } = {}) => ({
 
       <div ref={topRef} />
 
-
-      <div
-        style={{
-          position: "fixed",
-          top: 300,
-          right: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          zIndex: 9998,
-        }}
-      >
-        <button onClick={exportSavedSession} style={floatingBtn()}>
-          تصدير الجدول
-        </button>
-
-        <button onClick={() => importSessionRef.current?.click()} style={floatingBtn()}>
-          استيراد الجدول
-        </button>
-
-        <button onClick={clearSavedState} style={floatingBtn({ danger: true })}>
-          حذف البيانات المحلية
-        </button>
-
-        <input
-          ref={importSessionRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: "none" }}
-          onChange={(e) => importSavedSession(e.target.files?.[0])}
-        />
-      </div>
-
       <div style={{ maxWidth: 1450, margin: "0 auto" }}>
         <div
           style={{
@@ -2202,22 +2169,52 @@ const floatingBtn = ({ danger = false } = {}) => ({
             boxShadow: "0 20px 46px rgba(20,123,131,0.22)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontSize: 32, fontWeight: 900 }}>نظام بناء جدول الاختبارات النهائية</div>
-              <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10, lineHeight: 1.9 }}>
-                نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
-              </div>
-            </div>
+         <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 20,
+    flexWrap: "wrap",
+  }}
+>
+ 
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+    }}
+  >
+ 
+    <img
+      src={LOGO_SRC}
+      alt="logo"
+      style={{ width: 90 }}
+    />
+    <div style={{ display: "flex", gap: 8 }}>
+      <button onClick={exportSavedSession} style={iconBtnStyle()} title="تصدير">
+        <Download size={18} />
+      </button>
 
+      <button onClick={() => importSessionRef.current?.click()} style={iconBtnStyle()} title="استيراد">
+        <Upload size={18} />
+      </button>
+
+      <button onClick={clearSavedState} style={iconBtnStyle(true)} title="حذف">
+        <Trash2 size={18} />
+      </button>
+    </div>
+  </div>
+  <div style={{ flex: 1, minWidth: 260 }}>
+    <div style={{ fontSize: 32, fontWeight: 900 }}>
+      نظام بناء جدول الاختبارات النهائية
+    </div>
+    <div style={{ color: "rgba(255,255,255,0.92)", marginTop: 10 }}>
+      نسخة احترافية مخصصة للكليات التقنية في المملكة العربية السعودية.
+    </div>
+  </div>
+</div>
             <div
               style={{
                 background: "rgba(255,255,255,0.12)",
