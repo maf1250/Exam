@@ -3305,7 +3305,7 @@ style={{
                         </button>
                       </div>
                     </div>
-
+  </div>
                     {invigilationMode === "fixed" ? (
                       <div>
                         <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
@@ -3332,7 +3332,7 @@ style={{
                       </div>
                     )}
                   </div>
-                </div>
+              
   
                 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
