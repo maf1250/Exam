@@ -1221,6 +1221,7 @@ const restorePersistedState = (saved) => {
   setPreviewPage(saved.previewPage || 0);
 };
 
+
 useEffect(() => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1231,14 +1232,16 @@ useEffect(() => {
     }
 
     const saved = JSON.parse(raw);
+
+    pendingRestoreRef.current = saved;
     setPendingRestore(saved);
+
     setToast({
       title: "جلسة محفوظة",
       description: "تم العثور على جلسة محفوظة — اضغط استرجاع لاستعادتها.",
       type: "warning",
       action: "restore_session",
     });
-
   } catch (error) {
     console.error("فشل في استرجاع البيانات المحفوظة:", error);
     setDidRestore(true);
@@ -1261,6 +1264,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (!didRestore) return;
+  if (pendingRestoreRef.current) return;
 
   try {
     const data = buildPersistedState();
@@ -1301,29 +1305,28 @@ useEffect(() => {
 ]);
 
 const restoreSavedSession = () => {
-  if (!pendingRestore) return;
+  const saved = pendingRestoreRef.current || pendingRestore;
+  if (!saved) return;
 
-  // 1. أوقف الحفظ مؤقتًا
-  setDidRestore(false);
+  restorePersistedState(saved);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 
-  // 2. استرجع البيانات
-  restorePersistedState(pendingRestore);
-
-  // 3. انتظر لحظة ثم فعّل الحفظ
-  setTimeout(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingRestore));
-    setDidRestore(true);
-  }, 0);
-
+  pendingRestoreRef.current = null;
   setPendingRestore(null);
+  setToast(null);
+  setDidRestore(true);
 
   showToast("تم الاسترجاع", "تم استرجاع الجلسة بنجاح.", "success");
 };
 
 const clearSavedState = () => {
   localStorage.removeItem(STORAGE_KEY);
+
+  pendingRestoreRef.current = null;
   setPendingRestore(null);
+  setToast(null);
   setDidRestore(true);
+
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
 };
 
