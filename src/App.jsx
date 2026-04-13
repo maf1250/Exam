@@ -4208,7 +4208,7 @@ style={{
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(360px, 280px))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 280px))",
         gap: 14,
         marginBottom: 18,
         
