@@ -3610,9 +3610,9 @@ style={{
               onChange={(e) => setManualInvigilators(e.target.value)}
               placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
               style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
-            />
+            />  </span>
           </div>
-        </span>
+      
 
         <div
           style={{
