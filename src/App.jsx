@@ -4569,26 +4569,7 @@ style={{
                         background: "#fff",
                       }}
                     >
-                      <label
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 10,
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 14,
-                          padding: "10px 12px",
-                          background: "#fff",
-                          marginBottom: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={compactPrintMode}
-                          onChange={(e) => setCompactPrintMode(e.target.checked)}
-                        />
-                        ضغط الطباعة في صفحة واحدة قدر الإمكان
-                      </label>
+                      
 
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
                       
@@ -4656,15 +4637,23 @@ style={{
               fontFamily: "inherit",
             }}
           >
+
+            
+           
+            
+            
             <div style={{ fontWeight: 800, color: COLORS.text }}>
               {student.name}
             </div>
+
+            
             <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
               {student.id} — {student.department} / {student.major}
             </div>
           </button>
         ))}
 
+      
       {!studentOptionsForPrint.some((student) => {
         const q = normalizeArabic(studentSearchText.trim());
         if (!q) return false;
@@ -4679,6 +4668,10 @@ style={{
           label.includes(q)
         );
       }) && (
+
+
+
+      
         <div
           style={{
             padding: "12px 14px",
@@ -4760,6 +4753,32 @@ printScheduleOnlyPdf({
   compactMode: compactPrintMode,
 })
                       }
+
+
+                         <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 10,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 14,
+                          padding: "10px 12px",
+                          background: "#fff",
+                          marginBottom: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={compactPrintMode}
+                          onChange={(e) => setCompactPrintMode(e.target.checked)}
+                        />
+                        ضغط الطباعة في صفحة واحدة قدر الإمكان
+                      </label>
+
+
+
+                      
                         style={cardButtonStyle({ active: true })}
                       >
                         طباعة جدول الاختبارات
