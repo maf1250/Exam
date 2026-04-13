@@ -1416,10 +1416,7 @@ const deserializeScheduleItem = (item) => ({
 });
 
 const getConflictsDetails = (courseKey) => {
-  const conflicts = conflictMap.get(courseKey);
-  if (!conflicts) return [];
-
-  return Array.from(conflicts);
+  return parsed.conflictDetailsByCourse?.[courseKey] || [];
 };
   
 const hasMeaningfulSessionData = (data) => {
@@ -1869,6 +1866,7 @@ const importSavedSession = (file) => {
         studentsCount: 0,
         invigilators: [],
         sections: [],
+        conflictDetailsByCourse: {},
       };
     }
 
@@ -1883,6 +1881,7 @@ const importSavedSession = (file) => {
         studentsCount: 0,
         invigilators: [],
         sections: [],
+        conflictDetailsByCourse: {},
       };
     }
 
@@ -2035,11 +2034,28 @@ courseMap.forEach((course) => {
       .filter((course) => !excludedCourses.includes(course.key))
       .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
+    const conflictDetailsByCourse = Object.fromEntries(
+      Array.from(conflictMap.keys()).map((courseKey) => {
+        const details = Array.from(conflictMap.get(courseKey) || [])
+          .map((conflictKey) => {
+            const conflictCourse = courseMap.get(conflictKey);
+            if (!conflictCourse) return conflictKey;
+            const code = String(conflictCourse.courseCode || "").trim();
+            const name = String(conflictCourse.courseName || "").trim();
+            return code ? `${name} - ${code}` : name || conflictKey;
+          })
+          .sort((a, b) => a.localeCompare(b, "ar"));
+
+        return [courseKey, details];
+      })
+    );
+
     return {
       missingColumns,
       filteredRows: rowsAfterDepartmentMajorFilter,
       collegeName: collegeNameInput || rowsAfterDepartmentMajorFilter[0]?.["الوحدة"] || filteredRows[0]?.["الوحدة"] || rows[0]?.["الوحدة"] || "الكلية التقنية",
       courses,
+      conflictDetailsByCourse,
       studentsCount: studentSet.size,
       invigilators: Array.from(invigilatorSet).sort((a, b) => a.localeCompare(b, "ar")),
       sections: Array.from(sectionSet).sort((a, b) => a.localeCompare(b, "ar")),
@@ -4173,7 +4189,7 @@ printScheduleOnlyPdf({
   }}
   onClick={() =>
     setSelectedConflicts({
-      name: course.name,
+      name: course.courseName,
       list: getConflictsDetails(course.key),
     })
   }
