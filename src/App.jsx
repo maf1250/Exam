@@ -3049,6 +3049,182 @@ const headerBtn = (danger = false) => ({
   backdropFilter: "blur(6px)",
   transition: "0.2s",
 });
+ const [showHeader, setShowHeader] = React.useState(false);
+const [counts, setCounts] = React.useState({
+  rows: 0,
+  students: 0,
+  courses: 0,
+  sections: 0,
+});
+
+React.useEffect(() => {
+  const t = setTimeout(() => setShowHeader(true), 80);
+  return () => clearTimeout(t);
+}, []);
+
+React.useEffect(() => {
+  const target = {
+    rows: rows?.length || 0,
+    students: new Set((rows || []).map((r) => r["رقم المتدرب"]).filter(Boolean)).size,
+    courses: new Set((rows || []).map((r) => r["المقرر"]).filter(Boolean)).size,
+    sections: new Set(
+      (rows || [])
+        .map((r) => `${r["المقرر"] || ""}__${r["الشعبة"] || ""}`)
+        .filter((v) => v !== "__")
+    ).size,
+  };
+
+  let frame = 0;
+  const totalFrames = 24;
+
+  const interval = setInterval(() => {
+    frame += 1;
+    const p = frame / totalFrames;
+
+    setCounts({
+      rows: Math.floor(target.rows * p),
+      students: Math.floor(target.students * p),
+      courses: Math.floor(target.courses * p),
+      sections: Math.floor(target.sections * p),
+    });
+
+    if (frame >= totalFrames) clearInterval(interval);
+  }, 22);
+
+  return () => clearInterval(interval);
+}, [rows]);
+  const dashboardCard = {
+  background: "linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(240,255,252,0.76) 100%)",
+  border: "1px solid rgba(255,255,255,0.65)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  boxShadow: "0 14px 32px rgba(15,118,110,0.12)",
+  borderRadius: 24,
+};
+
+const sectionTitleStyle = {
+  margin: 0,
+  fontSize: 20,
+  fontWeight: 900,
+  color: "#15343b",
+};
+
+const sectionSubStyle = {
+  margin: "6px 0 0",
+  fontSize: 14,
+  color: "#5f6f75",
+  lineHeight: 1.8,
+};
+
+const quickBtnStyle = {
+  border: "none",
+  borderRadius: 16,
+  padding: "12px 16px",
+  fontWeight: 800,
+  fontSize: 14,
+  cursor: "pointer",
+  background: "rgba(15,118,110,0.08)",
+  color: "#0f766e",
+};
+
+const getStepLabel = (step) => {
+  switch (step) {
+    case 1:
+      return "رفع البيانات";
+    case 2:
+      return "إعداد الجدولة";
+    case 3:
+      return "المراقبون";
+    case 4:
+      return "التوزيع";
+    case 5:
+      return "المعاينة";
+    case 6:
+      return "الطباعة";
+    default:
+      return `الخطوة ${step}`;
+  }
+};
+
+const getStepDesc = (step) => {
+  switch (step) {
+    case 1:
+      return "رفع ملف CSV والتحقق من جاهزية البيانات";
+    case 2:
+      return "تحديد الأيام والفترات وإعدادات الجدولة";
+    case 3:
+      return "إدخال المراقبين وتحديد طريقة توزيعهم";
+    case 4:
+      return "تشغيل توزيع المقررات وفق الإعدادات";
+    case 5:
+      return "استعراض الجداول والتعارضات والنتائج";
+    case 6:
+      return "إخراج وطباعة الجداول النهائية";
+    default:
+      return "إدارة هذه المرحلة من بناء الجدول";
+  }
+};
+
+const infoItemStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "12px 14px",
+  borderRadius: 16,
+  background: "rgba(15,118,110,0.05)",
+};
+
+const valueBadgeStyle = {
+  minWidth: 44,
+  textAlign: "center",
+  padding: "6px 10px",
+  borderRadius: 999,
+  background: "rgba(15,118,110,0.10)",
+  color: "#0f766e",
+  fontWeight: 900,
+  fontSize: 13,
+};
+
+const stepCardBase = (active) => ({
+  ...dashboardCard,
+  padding: 18,
+  cursor: "pointer",
+  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+  border: active
+    ? "1px solid rgba(15,118,110,0.35)"
+    : "1px solid rgba(255,255,255,0.65)",
+  boxShadow: active
+    ? "0 18px 38px rgba(15,118,110,0.18)"
+    : "0 14px 32px rgba(15,118,110,0.12)",
+});
+
+const statCardStyle = {
+  ...dashboardCard,
+  padding: "18px 14px",
+  textAlign: "center",
+};
+
+const topGlassButton = {
+  border: "none",
+  borderRadius: 14,
+  padding: "10px 14px",
+  background: "rgba(255,255,255,0.16)",
+  color: "#fff",
+  fontWeight: 800,
+  fontSize: 14,
+  cursor: "pointer",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+};
+
+const topDangerButton = {
+  ...topGlassButton,
+  background: "linear-gradient(135deg, #d92d20 0%, #ef4444 100%)",
+  boxShadow: "0 10px 20px rgba(185,28,28,0.22)",
+};
+  
+  
   return (
     <div
       ref={topRef}
@@ -3076,119 +3252,439 @@ const headerBtn = (danger = false) => ({
 
 <div
   style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
-    color: "#fff",
-    borderRadius: 28,
-    padding: "28px 32px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
+    marginBottom: 24,
+    opacity: showHeader ? 1 : 0,
+    transform: showHeader ? "translateY(0)" : "translateY(18px)",
+    transition: "all 520ms ease",
   }}
 >
+  {/* =====  Dashboard ===== */}
   <div
     style={{
-      flexDirection: "row-reverse",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
-      flexWrap: "wrap",
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 34,
+      padding: 20,
+      paddingBottom: 52,
+      background:
+        "linear-gradient(270deg, #0f766e 0%, #159e9c 35%, #1fb7b5 75%, #0f766e 100%)",
+      backgroundSize: "400% 400%",
+      animation: "gradientMove 14s ease infinite",
+      boxShadow: "0 22px 60px rgba(0,0,0,0.18)",
     }}
   >
-
-  
     <div
       style={{
+        position: "absolute",
+        top: -90,
+        left: -90,
+        width: 260,
+        height: 260,
+        borderRadius: "50%",
+        background: "rgba(255,255,255,0.10)",
+        filter: "blur(26px)",
+        pointerEvents: "none",
+      }}
+    />
+    <div
+      style={{
+        position: "absolute",
+        bottom: -90,
+        right: -70,
+        width: 260,
+        height: 260,
+        borderRadius: "50%",
+        background: "rgba(255,255,255,0.14)",
+        filter: "blur(30px)",
+        pointerEvents: "none",
+      }}
+    />
+
+    {/* Top bar */}
+    <div
+      style={{
+        position: "relative",
+        zIndex: 2,
         display: "flex",
+        justifyContent: "space-between",
         alignItems: "center",
-        gap: 14,
+        gap: 12,
+        flexWrap: "wrap",
+        padding: "12px 14px",
+        borderRadius: 22,
+        background: "rgba(255,255,255,0.14)",
+        border: "1px solid rgba(255,255,255,0.20)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
       }}
     >
-
-
-      {/* الأزرار */}
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-         gap: 8,
-          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 12,
+          minWidth: 0,
+          flex: 1,
         }}
       >
-        <button style={headerBtn()} onClick={exportSavedSession}>
-          تصدير الجدول
-        </button>
+        <div
+          style={{
+            width: 62,
+            height: 62,
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.18)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src="/tvtc-logo.png"
+            alt="TVTC"
+            style={{ width: "70%", height: "70%", objectFit: "contain" }}
+          />
+        </div>
 
-        <button style={headerBtn()} onClick={() => importSessionRef.current?.click()}>
-          استيراد الجدول
-        </button>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: "rgba(255,255,255,0.84)",
+              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 4,
+            }}
+          >
+            المؤسسة العامة للتدريب التقني والمهني
+          </div>
+          <div
+            style={{
+              color: "#fff",
+              fontSize: 17,
+              fontWeight: 900,
+              lineHeight: 1.4,
+            }}
+          >
+            لوحة تحكم جداول الاختبارات
+          </div>
+        </div>
+      </div>
 
-        <button style={headerBtn(true)} onClick={clearSavedState}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={handleImportData} style={topGlassButton}>
+          استيراد
+        </button>
+        <button onClick={handleExportData} style={topGlassButton}>
+          تصدير
+        </button>
+        <button onClick={handleClearLocalData} style={topDangerButton}>
           حذف البيانات المحلية
         </button>
       </div>
-
-
-        {/* الشعار */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.15)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 18,
-          padding: 10,
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        <img
-          src={LOGO_SRC}
-          alt="logo"
-          style={{ width: 160, display: "block" }}
-        />
-      </div>   
-    </div>
-    <div style={{ textAlign: "right", maxWidth: 500 }}>
-      <div style={{ fontSize: 28, fontWeight: 800 }}>
-        نظام بناء جدول الاختبارات
-      </div>
-
-      <div
-        style={{
-          marginTop: 6,
-          fontSize: 14,
-          opacity: 0.9,
-          lineHeight: 1.8,
-        }}
-      >
-        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
-      </div>
     </div>
 
+    {/* Main  text */}
+    <div
+      style={{
+        position: "relative",
+        zIndex: 2,
+        marginTop: 26,
+      }}
+    >
+      <h1
+        style={{
+          margin: 0,
+          color: "#fff",
+          fontSize: "clamp(28px, 5vw, 42px)",
+          fontWeight: 900,
+          lineHeight: 1.25,
+          textShadow: "0 2px 10px rgba(0,0,0,0.10)",
+        }}
+      >
+        بناء الجداول وإدارة المراقبين من مكان واحد
+      </h1>
+
+      <p
+        style={{
+          margin: "12px 0 0",
+          color: "rgba(255,255,255,0.92)",
+          fontSize: 16,
+          lineHeight: 1.9,
+          maxWidth: 720,
+          fontWeight: 500,
+        }}
+      >
+        واجهة احترافية لرفع البيانات، ضبط الجدولة، توزيع المراقبين،
+        استعراض النتائج، وطباعة الجداول النهائية بهوية مؤسسية أنيقة.
+      </p>
+
+      <div
+        style={{
+          marginTop: 18,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        {["الكليات التقنية", "ميلادي / هجري", "جدولة + مراقبين", "تعارضات + طباعة"].map((item) => (
+          <div
+            key={item}
+            style={{
+              padding: "9px 14px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.14)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 800,
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
+          >
+            {item}
+          </div>
+        ))}
+      </div>
+    </div>
   </div>
 
-  {/* input مخفي */}
-  <input
-    ref={importSessionRef}
-    type="file"
-    accept=".json,application/json"
-    style={{ display: "none" }}
-    onChange={(e) => importSavedSession(e.target.files?.[0])}
-  />
-</div>
-        
-  
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 16,
-            marginTop: 20,
-          }}
-        >
-          <StatBox label="السجلات" value={stats.rows} />
-          <StatBox label="عدد المتدربين" value={stats.students} />
-          <StatBox label="عدد المقررات" value={stats.courses} />
-          <StatBox label="مقررات الدراسات العامة" value={stats.generalCourses} />
-          <StatBox label="مقررات التخصص" value={stats.specializedCourses} />
-          <StatBox label="المراقبون" value={stats.invigilators} />
+  {/* ===== Stats ===== */}
+  <div
+    style={{
+      position: "relative",
+      zIndex: 5,
+      marginTop: -26,
+      padding: "0 14px",
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+      gap: 12,
+    }}
+  >
+    <div style={statCardStyle}>
+      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
+        السجلات
+      </div>
+      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
+        {counts.rows}
+      </div>
+    </div>
+
+    <div style={statCardStyle}>
+      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
+        المتدربين
+      </div>
+      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
+        {counts.students}
+      </div>
+    </div>
+
+    <div style={statCardStyle}>
+      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
+        المقررات
+      </div>
+      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
+        {counts.courses}
+      </div>
+    </div>
+
+    <div style={statCardStyle}>
+      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
+        الشعب
+      </div>
+      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
+        {counts.sections}
+      </div>
+    </div>
+  </div>
+
+  {/* ===== Quick Actions + System Status ===== */}
+  <div
+    style={{
+      marginTop: 14,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gap: 14,
+    }}
+  >
+    <div style={{ ...dashboardCard, padding: 18 }}>
+      <h3 style={sectionTitleStyle}>إجراءات سريعة</h3>
+      <p style={sectionSubStyle}>الوصول السريع لأكثر العمليات استخدامًا.</p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          gap: 10,
+          marginTop: 14,
+        }}
+      >
+        <button style={quickBtnStyle} onClick={handleImportData}>استيراد ملف</button>
+        <button style={quickBtnStyle} onClick={handleExportData}>تصدير الجلسة</button>
+        <button style={quickBtnStyle} onClick={() => setCurrentStep?.(1)}>رفع البيانات</button>
+        <button style={quickBtnStyle} onClick={() => setCurrentStep?.(5)}>المعاينة</button>
+      </div>
+    </div>
+
+    <div style={{ ...dashboardCard, padding: 18 }}>
+      <h3 style={sectionTitleStyle}>حالة النظام</h3>
+      <p style={sectionSubStyle}>نظرة سريعة على جاهزية البيانات وخطوة العمل الحالية.</p>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>الخطوة الحالية</span>
+          <span style={valueBadgeStyle}>{getStepLabel(currentStep)}</span>
         </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>وجود بيانات مرفوعة</span>
+          <span style={valueBadgeStyle}>{(rows?.length ?? 0) > 0 ? "نعم" : "لا"}</span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>عدد الأيام المحددة</span>
+          <span style={valueBadgeStyle}>{selectedDays?.length ?? 0}</span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>عدد الفترات</span>
+          <span style={valueBadgeStyle}>{periods?.length ?? 0}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* ===== Steps ===== */}
+  <div style={{ ...dashboardCard, padding: 18, marginTop: 14 }}>
+    <h3 style={sectionTitleStyle}>مراحل العمل</h3>
+    <p style={sectionSubStyle}>اختر المرحلة التي تريد الانتقال إليها مباشرة.</p>
+
+    <div
+      style={{
+        marginTop: 14,
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 12,
+      }}
+    >
+      {[1, 2, 3, 4, 5, 6].map((step) => {
+        const active = currentStep === step;
+        return (
+          <div
+            key={step}
+            onClick={() => setCurrentStep?.(step)}
+            style={stepCardBase(active)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-3px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: active ? "rgba(15,118,110,0.16)" : "rgba(15,118,110,0.08)",
+                color: "#0f766e",
+                fontWeight: 900,
+                marginBottom: 12,
+              }}
+            >
+              {step}
+            </div>
+
+            <div style={{ color: "#16323a", fontWeight: 900, fontSize: 16 }}>
+              {getStepLabel(step)}
+            </div>
+
+            <div
+              style={{
+                color: "#5f6f75",
+                fontSize: 13,
+                lineHeight: 1.8,
+                marginTop: 6,
+              }}
+            >
+              {getStepDesc(step)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+  {/* ===== Summary ===== */}
+  <div
+    style={{
+      marginTop: 14,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gap: 14,
+    }}
+  >
+    <div style={{ ...dashboardCard, padding: 18 }}>
+      <h3 style={sectionTitleStyle}>ملخص البيانات</h3>
+      <p style={sectionSubStyle}>ملخص سريع لما تم تحميله واحتسابه حتى الآن.</p>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>الأقسام</span>
+          <span style={valueBadgeStyle}>
+            {new Set((rows || []).map((r) => r["القسم"]).filter(Boolean)).size}
+          </span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>التخصصات</span>
+          <span style={valueBadgeStyle}>
+            {new Set((rows || []).map((r) => r["التخصص"]).filter(Boolean)).size}
+          </span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>المدربون</span>
+          <span style={valueBadgeStyle}>
+            {new Set((rows || []).map((r) => r["المدرب"]).filter(Boolean)).size}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div style={{ ...dashboardCard, padding: 18 }}>
+      <h3 style={sectionTitleStyle}>جاهزية التنفيذ</h3>
+      <p style={sectionSubStyle}>مؤشرات سريعة قبل تشغيل بناء الجدول.</p>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>تم رفع ملف</span>
+          <span style={valueBadgeStyle}>{(rows?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>تم تحديد الأيام</span>
+          <span style={valueBadgeStyle}>{(selectedDays?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>تم تحديد الفترات</span>
+          <span style={valueBadgeStyle}>{(periods?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
+        </div>
+
+        <div style={infoItemStyle}>
+          <span style={{ color: "#27444b", fontWeight: 700 }}>مرحلة المعالجة</span>
+          <span style={valueBadgeStyle}>{getStepLabel(currentStep)}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
