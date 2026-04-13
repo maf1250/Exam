@@ -3292,7 +3292,7 @@ React.useEffect(() => {
       </div>
     ))}
   </div>
-</div>
+</div></div>
 
       const btnGlass = {
   border: "none",
