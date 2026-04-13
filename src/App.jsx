@@ -3519,20 +3519,12 @@ style={{
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 220px",
+            gridTemplateColumns: "minmax(240px, 300px) minmax(320px, 460px)",
+            justifyContent: "space-between",
+            alignItems: "start",
             gap: 14,
           }}
         >
-          <div>
-            <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
-            <textarea
-              value={manualInvigilators}
-              onChange={(e) => setManualInvigilators(e.target.value)}
-              placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-              style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
-            />
-          </div>
-
           <div style={{ display: "grid", gap: 12, width: "100%" }}>
             <div style={{ width: "100%", textAlign: "right" }}>
               <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
@@ -3585,7 +3577,7 @@ style={{
             </div>
 
             {invigilationMode === "fixed" ? (
-              <div style={{ width: "100%" }}>
+              <div style={{ width: "100%", maxWidth: 280 }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
                 <input
                   type="number"
@@ -3597,7 +3589,7 @@ style={{
                 />
               </div>
             ) : (
-              <div style={{ width: "100%" }}>
+              <div style={{ width: "100%", maxWidth: 280 }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
                 <input
                   type="number"
@@ -3609,6 +3601,16 @@ style={{
                 />
               </div>
             )}
+          </div>
+
+          <div style={{ width: "100%", maxWidth: 460 }}>
+            <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+            <textarea
+              value={manualInvigilators}
+              onChange={(e) => setManualInvigilators(e.target.value)}
+              placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+              style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
+            />
           </div>
         </div>
 
@@ -3669,24 +3671,25 @@ style={{
             التالي: الدراسات العامة
           </button>
         </div>
-              </div>
-      ) : (
-        <div
-          style={{
-            marginTop: 18,
-            border: `1px dashed ${COLORS.border}`,
-            borderRadius: 18,
-            padding: 18,
-            color: COLORS.muted,
-            background: "#F8FEFE",
-          }}
-        >
-          تم إيقاف إضافة المراقبين تلقائيًا.
-        </div>
-      )}
-    </Card>
-  )}
-        {currentStep === 4 && (
+      </div>
+    ) : (
+      <div
+        style={{
+          marginTop: 18,
+          border: `1px dashed ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 18,
+          color: COLORS.muted,
+          background: "#F8FEFE",
+        }}
+      >
+        تم إيقاف إضافة المراقبين تلقائيًا.
+      </div>
+    )}
+  </Card>
+)}
+
+{currentStep === 4 && (
           <Card>
             <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
@@ -4431,4 +4434,3 @@ printScheduleOnlyPdf({
       </div>
   );
 }
-
