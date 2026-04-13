@@ -1460,34 +1460,7 @@ const getPeriodTheme = (period) => {
 
   return themes[(Math.max(1, Number(period) || 1) - 1) % themes.length];
 };
- const getSelectedPairConflictStudents = useMemo(() => {
-  if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
-
-  const courseA = parsed.courses.find((c) => c.key === courseAKey);
-  const courseB = parsed.courses.find((c) => c.key === courseBKey);
-
-  if (!courseA || !courseB) return [];
-
-  const studentsA = new Set(Array.from(courseA.students || []));
-  const studentsB = new Set(Array.from(courseB.students || []));
-
-  return Array.from(studentsA)
-    .filter((studentId) => studentsB.has(studentId))
-    .map((studentId) => {
-      const info = preciseStudentInfoMap.get(studentId);
-      return (
-        info || {
-          id: studentId,
-          name: "بدون اسم",
-          department: "-",
-          major: "-",
-        }
-      );
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
-}, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
-  
-const getConflictsDetails = (courseKey) => {
+ const getConflictsDetails = (courseKey) => {
   const detailsMap = parsed.conflictDetailsMap?.get(courseKey);
   if (!detailsMap) return [];
 
@@ -1524,20 +1497,6 @@ const getConflictStudentsDetails = (courseKey, conflictKey) => {
     })
     .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
 };
-
-const getSelectedPairConflictStudents = useMemo(() => {
-  ...
-}, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
-
-const selectedCourseA = useMemo(
-  () => parsed.courses.find((c) => c.key === courseAKey) || null,
-  [parsed.courses, courseAKey]
-);
-
-const selectedCourseB = useMemo(
-  () => parsed.courses.find((c) => c.key === courseBKey) || null,
-  [parsed.courses, courseBKey]
-);
   
 const hasMeaningfulSessionData = (data) => {
   return (
@@ -1891,15 +1850,6 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
-const selectedCourseA = useMemo(
-  () => parsed.courses.find((c) => c.key === courseAKey) || null,
-  [parsed.courses, courseAKey]
-);
-
-const selectedCourseB = useMemo(
-  () => parsed.courses.find((c) => c.key === courseBKey) || null,
-  [parsed.courses, courseBKey]
-);
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -2282,6 +2232,45 @@ courseMap.forEach((course) => {
 
   return map;
 }, [parsed.filteredRows]);
+
+const getSelectedPairConflictStudents = useMemo(() => {
+  if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
+
+  const courseA = parsed.courses.find((c) => c.key === courseAKey);
+  const courseB = parsed.courses.find((c) => c.key === courseBKey);
+
+  if (!courseA || !courseB) return [];
+
+  const studentsA = new Set(Array.from(courseA.students || []));
+  const studentsB = new Set(Array.from(courseB.students || []));
+
+  return Array.from(studentsA)
+    .filter((studentId) => studentsB.has(studentId))
+    .map((studentId) => {
+      const info = preciseStudentInfoMap.get(studentId);
+      return (
+        info || {
+          id: studentId,
+          name: "بدون اسم",
+          department: "-",
+          major: "-",
+        }
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
+}, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
+  
+
+const selectedCourseA = useMemo(
+  () => parsed.courses.find((c) => c.key === courseAKey) || null,
+  [parsed.courses, courseAKey]
+);
+
+const selectedCourseB = useMemo(
+  () => parsed.courses.find((c) => c.key === courseBKey) || null,
+  [parsed.courses, courseBKey]
+);
+
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
