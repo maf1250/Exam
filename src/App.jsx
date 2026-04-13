@@ -1571,6 +1571,8 @@ const buildPersistedState = () => ({
   previewPage,
   selectedStudentIdForPrint,
   compactPrintMode,
+  courseAKey,
+courseBKey,
 });
 
 const restorePersistedState = (saved) => {
@@ -1608,6 +1610,8 @@ const restorePersistedState = (saved) => {
   setPreviewPage(saved.previewPage || 0);
   setSelectedStudentIdForPrint(saved.selectedStudentIdForPrint || "");
   setCompactPrintMode(saved.compactPrintMode ?? false);
+  setCourseAKey(saved.courseAKey || "");
+setCourseBKey(saved.courseBKey || "");
 };
 
 
