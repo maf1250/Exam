@@ -4427,8 +4427,8 @@ printScheduleOnlyPdf({
             )}
           </>
         )}
-      </Card>
-</div>
-    
-  )}
+        </div>
+      </div>
+  );
+}
 
