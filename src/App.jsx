@@ -1440,8 +1440,7 @@ const serializeScheduleItem = (item) => ({
   return themes[index % themes.length];
 };
 
-  return colors[index % colors.length];
-};
+
   
 const deserializeScheduleItem = (item) => ({
   ...item,
