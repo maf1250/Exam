@@ -1075,9 +1075,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
   const allDays = Array.from(
     new Set(
-      invigilatorTable.flatMap((inv) =>
-        inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`)
-      )
+      invigilatorTable.flatMap((inv) => inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`))
     )
   )
     .map((value) => {
@@ -1105,16 +1103,16 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
           @page {
             size: A4 portrait;
-            margin: ${compactMode ? "6mm" : "10mm"};
+            margin: ${'${compactMode ? "6mm" : "10mm"}'};
           }
 
           body {
-            zoom: ${compactMode ? "0.86" : "1"};
+            zoom: ${'${compactMode ? "0.86" : "1"}'};
           }
 
           th, td {
-            font-size: ${compactMode ? "10px" : "12px"};
-            padding: ${compactMode ? "5px 4px" : "8px 6px"};
+            font-size: ${'${compactMode ? "10px" : "12px"}'};
+            padding: ${'${compactMode ? "5px 4px" : "8px 6px"}'};
           }
 
           .invigilators-table {
@@ -1188,6 +1186,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
   openPrintWindow("طباعة جدول المراقبين", html);
 }
+
 
 function printSingleStudentSchedule({ collegeName, student, items, compactMode = false }) {
   if (!student || !items?.length) return;
@@ -1328,7 +1327,6 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   openPrintWindow("طباعة جدول متدرب", html);
 }
 
-
 export default function App() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -1368,8 +1366,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
- const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
-  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
+
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
@@ -1388,8 +1385,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
-  
-  
+
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
   setToast(nextToast);
@@ -1884,11 +1880,6 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
-  const periods = parsedPeriods;
-const handleImportData = importSavedSession;
-const handleExportData = exportSavedSession;
-const handleClearLocalData = clearSavedState;
-  
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -2337,7 +2328,8 @@ const selectedCourseB = useMemo(
     return new Set(names.map((name) => normalizeArabic(name)));
   }, [includeAllDepartmentsAndMajors, generalCourses]);
 
- 
+  const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
+  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
   const examHalls = useMemo(() => {
     return String(examHallsText || "")
@@ -3057,111 +3049,6 @@ const headerBtn = (danger = false) => ({
   backdropFilter: "blur(6px)",
   transition: "0.2s",
 });
-
-  const [showHeader, setShowHeader] = React.useState(false);
-const [counts, setCounts] = React.useState({
-  rows: 0,
-  students: 0,
-  courses: 0,
-  sections: 0,
-});
-
-React.useEffect(() => {
-  setTimeout(() => setShowHeader(true), 80);
-}, []);
-
-/* Count Up Animation */
-React.useEffect(() => {
-  const target = {
-    rows: rows?.length || 0,
-    students: new Set((rows || []).map(r => r["رقم المتدرب"])).size,
-    courses: new Set((rows || []).map(r => r["المقرر"])).size,
-    sections: new Set((rows || []).map(r => r["الشعبة"])).size,
-  };
-
-  let frame = 0;
-  const totalFrames = 25;
-
-  const interval = setInterval(() => {
-    frame++;
-    const progress = frame / totalFrames;
-
-    setCounts({
-      rows: Math.floor(target.rows * progress),
-      students: Math.floor(target.students * progress),
-      courses: Math.floor(target.courses * progress),
-      sections: Math.floor(target.sections * progress),
-    });
-
-    if (frame >= totalFrames) clearInterval(interval);
-  }, 20);
-
-  return () => clearInterval(interval);
-}, [rows]);
-  
-
-     const btnGlass = {
-  border: "none",
-  borderRadius: 12,
-  padding: "8px 12px",
-  background: "rgba(255,255,255,0.18)",
-  color: "#fff",
-  fontWeight: 700,
-  cursor: "pointer",
-  transition: "0.2s",
-};
-
-const btnDanger = {
-  ...btnGlass,
-  background: "#ef4444",
-};
-
-const btnPrimary = {
-  marginTop: 15,
-  padding: "12px 20px",
-  borderRadius: 14,
-  border: "none",
-  background: "#fff",
-  color: "#0f766e",
-  fontWeight: 800,
-  cursor: "pointer",
-  transition: "0.2s",
-};
-
-const statCard = {
-  background: "rgba(255,255,255,0.8)",
-  borderRadius: 18,
-  padding: "14px",
-  textAlign: "center",
-  backdropFilter: "blur(10px)",
-  transition: "0.25s",
-};
-
-/* Hover Effects */
-const hoverIn = (e, danger=false) => {
-  e.currentTarget.style.transform = "translateY(-2px)";
-  e.currentTarget.style.boxShadow = danger
-    ? "0 8px 20px rgba(220,38,38,0.4)"
-    : "0 8px 20px rgba(0,0,0,0.2)";
-};
-
-const hoverOut = (e) => {
-  e.currentTarget.style.transform = "translateY(0)";
-  e.currentTarget.style.boxShadow = "none";
-};
-
-const hoverCard = (e) => {
-  e.currentTarget.style.transform = "translateY(-4px)";
-  e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.15)";
-};
-
-const hoverCardOut = (e) => {
-  e.currentTarget.style.transform = "translateY(0)";
-  e.currentTarget.style.boxShadow = "none";
-};
-      
-
-  
   return (
     <div
       ref={topRef}
@@ -3187,174 +3074,122 @@ const hoverCardOut = (e) => {
         onRestore={restoreSavedSession}
       />
 
-{/* ===================== PREMIUM HEADER (ANIMATED) ===================== */}
 <div
   style={{
-    marginBottom: 26,
-    opacity: showHeader ? 1 : 0,
-    transform: showHeader ? "translateY(0)" : "translateY(20px)",
-    transition: "all 500ms ease",
+    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
+    color: "#fff",
+    borderRadius: 28,
+    padding: "28px 32px",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
   }}
 >
-  {/* ===== Header ===== */}
   <div
     style={{
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: 32,
-      padding: 20,
-      paddingBottom: 48,
-      background:
-        "linear-gradient(135deg, #0f766e 0%, #159e9c 42%, #1fb7b5 78%)",
-      boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+      flexDirection: "row-reverse",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 20,
+      flexWrap: "wrap",
     }}
   >
-    {/* Glow */}
-    <div style={{
-      position: "absolute",
-      top: -80,
-      left: -80,
-      width: 250,
-      height: 250,
-      background: "rgba(255,255,255,0.08)",
-      borderRadius: "50%",
-      filter: "blur(20px)"
-    }} />
-
-    <div style={{
-      position: "absolute",
-      bottom: -80,
-      right: -60,
-      width: 250,
-      height: 250,
-      background: "rgba(255,255,255,0.1)",
-      borderRadius: "50%",
-      filter: "blur(25px)"
-    }} />
-
-    {/* ===== Top Bar ===== */}
-    <div style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: 12,
-      padding: "10px 12px",
-      borderRadius: 20,
-      background: "rgba(255,255,255,0.12)",
-      backdropFilter: "blur(12px)",
-      border: "1px solid rgba(255,255,255,0.2)",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{
-          width: 60,
-          height: 60,
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <img src="/tvtc-logo.png" alt="logo" style={{ width: "70%" }} />
-        </div>
-
-        <div>
-          <div style={{ color: "#dff7f5", fontSize: 12 }}>
-            المؤسسة العامة للتدريب التقني والمهني
-          </div>
-          <div style={{ color: "#fff", fontWeight: 800 }}>
-            نظام جداول الاختبارات
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 8 }}>
-        <button
-          onClick={handleImportData}
-          style={btnGlass}
-          onMouseEnter={(e)=>hoverIn(e)}
-          onMouseLeave={(e)=>hoverOut(e)}
-        >استيراد</button>
-
-        <button
-          onClick={handleExportData}
-          style={btnGlass}
-          onMouseEnter={(e)=>hoverIn(e)}
-          onMouseLeave={(e)=>hoverOut(e)}
-        >تصدير</button>
-
-        <button
-          onClick={handleClearLocalData}
-          style={btnDanger}
-          onMouseEnter={(e)=>hoverIn(e,true)}
-          onMouseLeave={(e)=>hoverOut(e,true)}
-        >حذف</button>
-      </div>
-    </div>
-
-    {/* ===== Content ===== */}
-    <div style={{ marginTop: 25 }}>
-      <h1 style={{
-        color: "#fff",
-        fontSize: "clamp(26px, 5vw, 40px)",
-        fontWeight: 900
-      }}>
-        بناء جداول الاختبارات باحترافية
-      </h1>
-
-      <p style={{
-        color: "rgba(255,255,255,0.9)",
-        lineHeight: 1.8
-      }}>
-        نظام ذكي لتنظيم الاختبارات وتوزيع المقررات والمراقبين
-      </p>
-
-      <button
-        style={btnPrimary}
-        onMouseEnter={(e)=>hoverIn(e)}
-        onMouseLeave={(e)=>hoverOut(e)}
-      >
-        بدء العمل
-      </button>
-    </div>
-  </div>
-
-  {/* ===== Stats (Animated + Hover) ===== */}
-  <div style={{
-    marginTop: -26,
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))",
-    gap: 12
-  }}>
-    {[{
-      label: "السجلات",
-      value: rows?.length ?? 0
-    },{
-      label: "المتدربين",
-      value: new Set((rows||[]).map(r=>r["رقم المتدرب"])).size
-    },{
-      label: "المقررات",
-      value: new Set((rows||[]).map(r=>r["المقرر"])).size
-    },{
-      label: "الشعب",
-      value: new Set((rows||[]).map(r=>r["الشعبة"])).size
-    }].map((item,i)=>(
-      <div
-        key={i}
-        style={statCard}
-        onMouseEnter={(e)=>hoverCard(e)}
-        onMouseLeave={(e)=>hoverCardOut(e)}
-      >
-        <div style={{ fontSize: 14, color:"#5f6f75" }}>{item.label}</div>
-        <div style={{ fontSize: 30, fontWeight: 900, color:"#0f8b8d" }}>
-          {item.value}
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
 
   
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+
+
+      {/* الأزرار */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+         gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <button style={headerBtn()} onClick={exportSavedSession}>
+          تصدير الجدول
+        </button>
+
+        <button style={headerBtn()} onClick={() => importSessionRef.current?.click()}>
+          استيراد الجدول
+        </button>
+
+        <button style={headerBtn(true)} onClick={clearSavedState}>
+          حذف البيانات المحلية
+        </button>
+      </div>
+
+
+        {/* الشعار */}
+      <div
+        style={{
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          borderRadius: 18,
+          padding: 10,
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        <img
+          src={LOGO_SRC}
+          alt="logo"
+          style={{ width: 160, display: "block" }}
+        />
+      </div>   
+    </div>
+    <div style={{ textAlign: "right", maxWidth: 500 }}>
+      <div style={{ fontSize: 28, fontWeight: 800 }}>
+        نظام بناء جدول الاختبارات
+      </div>
+
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 14,
+          opacity: 0.9,
+          lineHeight: 1.8,
+        }}
+      >
+        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
+      </div>
+    </div>
+
+  </div>
+
+  {/* input مخفي */}
+  <input
+    ref={importSessionRef}
+    type="file"
+    accept=".json,application/json"
+    style={{ display: "none" }}
+    onChange={(e) => importSavedSession(e.target.files?.[0])}
+  />
+</div>
+        
+  
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 16,
+            marginTop: 20,
+          }}
+        >
+          <StatBox label="السجلات" value={stats.rows} />
+          <StatBox label="عدد المتدربين" value={stats.students} />
+          <StatBox label="عدد المقررات" value={stats.courses} />
+          <StatBox label="مقررات الدراسات العامة" value={stats.generalCourses} />
+          <StatBox label="مقررات التخصص" value={stats.specializedCourses} />
+          <StatBox label="المراقبون" value={stats.invigilators} />
+        </div>
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
   { id: 1, label: "1. رفع الملف" },
@@ -4373,7 +4208,7 @@ style={{
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 280px))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(360px, 280px))",
         gap: 14,
         marginBottom: 18,
         
