@@ -4383,13 +4383,9 @@ style={{
     {student.major}
   </td>
 </tr>
-                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-                        {student.department}
-                      </td>
-                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-                        {student.major}
-                      </td>
-                    </tr>
+              
+                   
+                  
                   ))}
                 </tbody>
               </table>
