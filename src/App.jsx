@@ -3603,8 +3603,8 @@ style={{
             )}
           </div>
 
-          <span style={{ width: "100%", maxWidth: 600 }}>
-            <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+          <span style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
+            <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right"}}>أسماء المراقبين</div>
             <textarea
               value={manualInvigilators}
               onChange={(e) => setManualInvigilators(e.target.value)}
