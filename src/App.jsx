@@ -4156,7 +4156,7 @@ style={{
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 260px))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(320px, 260px))",
         gap: 14,
         marginBottom: 18,
       }}
@@ -4229,7 +4229,8 @@ style={{
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", }}>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", whiteSpace: "nowrap",
+    overflow: "hidden" }}>
               {selectedCourseA.courseName}
             </div>
             <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
@@ -4246,7 +4247,8 @@ style={{
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الثاني</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", }}>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", whiteSpace: "nowrap",
+    overflow: "hidden"}}>
               {selectedCourseB.courseName}
             </div>
             <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
