@@ -1524,6 +1524,20 @@ const getConflictStudentsDetails = (courseKey, conflictKey) => {
     })
     .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
 };
+
+const getSelectedPairConflictStudents = useMemo(() => {
+  ...
+}, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
+
+const selectedCourseA = useMemo(
+  () => parsed.courses.find((c) => c.key === courseAKey) || null,
+  [parsed.courses, courseAKey]
+);
+
+const selectedCourseB = useMemo(
+  () => parsed.courses.find((c) => c.key === courseBKey) || null,
+  [parsed.courses, courseBKey]
+);
   
 const hasMeaningfulSessionData = (data) => {
   return (
