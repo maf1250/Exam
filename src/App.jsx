@@ -1327,6 +1327,8 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 
   openPrintWindow("طباعة جدول متدرب", html);
 }
+ const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
+  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
 export default function App() {
   const fileRef = useRef(null);
@@ -1386,7 +1388,11 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
-
+  const periods = parsedPeriods;
+const handleImportData = importSavedSession;
+const handleExportData = exportSavedSession;
+const handleClearLocalData = clearSavedState;
+  
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
   setToast(nextToast);
@@ -2329,8 +2335,7 @@ const selectedCourseB = useMemo(
     return new Set(names.map((name) => normalizeArabic(name)));
   }, [includeAllDepartmentsAndMajors, generalCourses]);
 
-  const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
-  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
+ 
 
   const examHalls = useMemo(() => {
     return String(examHallsText || "")
@@ -3550,7 +3555,7 @@ const topDangerButton = {
 
         <div style={infoItemStyle}>
           <span style={{ color: "#27444b", fontWeight: 700 }}>عدد الفترات</span>
-          <span style={valueBadgeStyle}>{periods?.length ?? 0}</span>
+          <span style={valueBadgeStyle}>{parsedPeriods.filter((p) => p.valid).length}</span>
         </div>
       </div>
     </div>
