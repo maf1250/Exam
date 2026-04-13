@@ -1808,68 +1808,7 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
-  const preciseStudentInfoMap = useMemo(() => {
-  const map = new Map();
 
-  parsed.filteredRows.forEach((row) => {
-    const id = String(row["رقم المتدرب"] ?? "").trim();
-    if (!id) return;
-
-    const name = String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم";
-    const department = String(row["القسم"] ?? "").trim() || "-";
-    const major = String(row["التخصص"] ?? "").trim() || "-";
-
-    const normalizedDepartment = normalizeArabic(department);
-    const isGeneralStudies =
-      normalizedDepartment === normalizeArabic("الدراسات العامة");
-
-    const existing = map.get(id);
-
-    if (!existing) {
-      map.set(id, {
-        id,
-        name,
-        department,
-        major,
-        isGeneralStudies,
-      });
-      return;
-    }
-
-    // إذا الموجود الحالي من الدراسات العامة، ووجدنا صف أدق، نستبدله
-    if (existing.isGeneralStudies && !isGeneralStudies) {
-      map.set(id, {
-        id,
-        name,
-        department,
-        major,
-        isGeneralStudies,
-      });
-      return;
-    }
-
-    // إذا الحالي أدق، لا نستبدله بصف من الدراسات العامة
-    if (!existing.isGeneralStudies && isGeneralStudies) {
-      return;
-    }
-
-    // لو كلاهما غير دراسات عامة، فضّل الصف الذي فيه تخصص أوضح
-    const existingMajorScore = existing.major && existing.major !== "-" ? existing.major.length : 0;
-    const newMajorScore = major && major !== "-" ? major.length : 0;
-
-    if (newMajorScore > existingMajorScore) {
-      map.set(id, {
-        id,
-        name,
-        department,
-        major,
-        isGeneralStudies,
-      });
-    }
-  });
-
-  return map;
-}, [parsed.filteredRows]);
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -2180,6 +2119,69 @@ courseMap.forEach((course) => {
       conflictDetailsMap,
     };
   }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors]);
+
+  const preciseStudentInfoMap = useMemo(() => {
+  const map = new Map();
+
+  parsed.filteredRows.forEach((row) => {
+    const id = String(row["رقم المتدرب"] ?? "").trim();
+    if (!id) return;
+
+    const name = String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم";
+    const department = String(row["القسم"] ?? "").trim() || "-";
+    const major = String(row["التخصص"] ?? "").trim() || "-";
+
+    const normalizedDepartment = normalizeArabic(department);
+    const isGeneralStudies =
+      normalizedDepartment === normalizeArabic("الدراسات العامة");
+
+    const existing = map.get(id);
+
+    if (!existing) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+      return;
+    }
+
+    // إذا الموجود الحالي من الدراسات العامة، ووجدنا صف أدق، نستبدله
+    if (existing.isGeneralStudies && !isGeneralStudies) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+      return;
+    }
+
+    // إذا الحالي أدق، لا نستبدله بصف من الدراسات العامة
+    if (!existing.isGeneralStudies && isGeneralStudies) {
+      return;
+    }
+
+    // لو كلاهما غير دراسات عامة، فضّل الصف الذي فيه تخصص أوضح
+    const existingMajorScore = existing.major && existing.major !== "-" ? existing.major.length : 0;
+    const newMajorScore = major && major !== "-" ? major.length : 0;
+
+    if (newMajorScore > existingMajorScore) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+    }
+  });
+
+  return map;
+}, [parsed.filteredRows]);
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
