@@ -3397,256 +3397,263 @@ style={{
           </Card>
         )}
 
-        {currentStep === 3 && (
-          <Card>
-            <SectionHeader title="الصفحة الثالثة: المراقبون" description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول." />
+      {currentStep === 3 && (
+  <Card>
+    <SectionHeader
+      title="الصفحة الثالثة: المراقبون"
+      description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
+    />
 
-          
-<div
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginTop: 18,
-  }}
->
-                <label
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 14,
-                }}
-              >
-                <input type="checkbox" checked={includeInvigilators} onChange={(e) => setIncludeInvigilators(e.target.checked)} />
-                إضافة المراقبين تلقائيًا
-              </label>
-
-          <label
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 10,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    position: "relative",
-  }}
->
-  <input
-    type="checkbox"
-    checked={preferCourseTrainerInvigilation}
-    onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-  />
-
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-    إعطاء أولوية لمدرب المقرر كمراقب أساسي
-
-    <span
-      onMouseEnter={() => setShowTrainerHint(true)}
-      onMouseLeave={() => setShowTrainerHint(false)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 20,
-        height: 20,
-        borderRadius: "50%",
-        background: COLORS.warningBg,
-        color: COLORS.warning,
-        fontWeight: 900,
-        fontSize: 13,
-        cursor: "help",
-        border: `1px solid ${COLORS.border}`,
-      }}
-    >
-      !
-    </span>
-  </span>
-
-  {showTrainerHint && (
     <div
       style={{
-        position: "absolute",
-        bottom: "110%",
-        right: 10,
-        background: "#111827",
-        color: "#fff",
-        padding: "10px 12px",
-        borderRadius: 10,
-        fontSize: 13,
-        lineHeight: 1.6,
-        width: 260,
-        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-        zIndex: 9999,
-        transition: "opacity 0.2s ease, transform 0.2s ease",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 12,
+        marginTop: 18,
       }}
     >
-      سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-      مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+      <label
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 14,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={includeInvigilators}
+          onChange={(e) => setIncludeInvigilators(e.target.checked)}
+        />
+        إضافة المراقبين تلقائيًا
+      </label>
+
+      <label
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 14,
+          position: "relative",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={preferCourseTrainerInvigilation}
+          onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+        />
+
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          إعطاء أولوية لمدرب المقرر كمراقب أساسي
+
+          <span
+            onMouseEnter={() => setShowTrainerHint(true)}
+            onMouseLeave={() => setShowTrainerHint(false)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: COLORS.warningBg,
+              color: COLORS.warning,
+              fontWeight: 900,
+              fontSize: 13,
+              cursor: "help",
+              border: `1px solid ${COLORS.border}`,
+            }}
+          >
+            !
+          </span>
+        </span>
+
+        {showTrainerHint && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "110%",
+              right: 10,
+              background: "#111827",
+              color: "#fff",
+              padding: "10px 12px",
+              borderRadius: 10,
+              fontSize: 13,
+              lineHeight: 1.6,
+              width: 260,
+              boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+              zIndex: 9999,
+              transition: "opacity 0.2s ease, transform 0.2s ease",
+            }}
+          >
+            سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
+            مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+          </div>
+        )}
+      </label>
     </div>
-  )}
-</label>
+
+    {includeInvigilators ? (
+      <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+        {!includeAllDepartmentsAndMajors ? (
+          <div
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 14,
+              background: COLORS.warningBg,
+              color: COLORS.warning,
+              lineHeight: 1.8,
+              fontSize: 14,
+            }}
+          >
+            عند اختيار قسم/تخصص محدد، يتم استبعاد مدربي مقررات الدراسات العامة من قائمة المراقبين
+            حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
+          </div>
+        ) : null}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
+          <div>
+            <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
+            <textarea
+              value={manualInvigilators}
+              onChange={(e) => setManualInvigilators(e.target.value)}
+              placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+              style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: 12, width: "100%" }}>
+            <div style={{ width: "100%", textAlign: "right" }}>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", width: "100%" }}>
+                <button
+                  onClick={() => setInvigilationMode("fixed")}
+                  style={{
+                    border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
+                    background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
+                    color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  عدد ثابت
+                </button>
+
+                <button
+                  onClick={() => setInvigilationMode("ratio")}
+                  style={{
+                    border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
+                    background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
+                    color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  حسب عدد المتدربين
+                </button>
+              </div>
             </div>
 
-            {includeInvigilators ? (
-              <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
-                {!includeAllDepartmentsAndMajors ? (
-                  <div
-                    style={{
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 18,
-                      padding: 14,
-                      background: COLORS.warningBg,
-                      color: COLORS.warning,
-                      lineHeight: 1.8,
-                      fontSize: 14,
-                    }}
-                  >
-                    عند اختيار قسم/تخصص محدد، يتم استبعاد مدربي مقررات الدراسات العامة من قائمة المراقبين
-                    حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
-                  </div>
-                ) : null}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
-                  <div>
-                    <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
-                    <textarea
-                      value={manualInvigilators}
-                      onChange={(e) => setManualInvigilators(e.target.value)}
-                      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-                      style={{ ...fieldStyle(), minHeight: 120, resize: "vertical" }}
-                    />
-                  </div>
-
-              <div style={{ display: "grid", gap: 12, width: "100%" }}>
-  <div style={{ width: "100%", textAlign: "right" }}>
-    <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", width: "100%" }}>
-      <button
-        onClick={() => setInvigilationMode("fixed")}
-        style={{
-          border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
-          background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
-          color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
-          borderRadius: 999,
-          padding: "10px 14px",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        عدد ثابت
-      </button>
-
-      <button
-        onClick={() => setInvigilationMode("ratio")}
-        style={{
-          border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
-          background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
-          color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
-          borderRadius: 999,
-          padding: "10px 14px",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        حسب عدد المتدربين
-      </button>
-    </div>
-  </div>
-
-  {invigilationMode === "fixed" ? (
-    <div style={{ width: "100%" }}>
-      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
-      <input
-        type="number"
-        min="1"
-        max="10"
-        value={invigilatorsPerPeriod}
-        onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
-        style={fieldStyle()}
-      />
-    </div>
-  ) : (
-    <div style={{ width: "100%" }}>
-      <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
-      <input
-        type="number"
-        min="1"
-        max="200"
-        value={studentsPerInvigilator}
-        onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 17))}
-        style={fieldStyle()}
-      />
-    </div>
-  )}
-</div>
-
-                <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
-                  <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                    يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
-                  </div>
-
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                    {availableInvigilators.length ? (
-                      availableInvigilators.map((name) => {
-                        const excluded = excludedInvigilators.some((item) => normalizeArabic(item) === normalizeArabic(name));
-
-                        return (
-                          <button
-                            key={name}
-                            onClick={() => toggleExcludedInvigilator(name)}
-                            style={{
-                              border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
-                              background: excluded ? COLORS.dangerBg : "#fff",
-                              color: excluded ? COLORS.danger : COLORS.charcoalSoft,
-                              borderRadius: 999,
-                              padding: "8px 14px",
-                              cursor: "pointer",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {excluded ? `مستبعد: ${name}` : name}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
-                    السابق
-                  </button>
-
-                  <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
-                    التالي: الدراسات العامة
-                  </button>
-                </div>
+            {invigilationMode === "fixed" ? (
+              <div style={{ width: "100%" }}>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={invigilatorsPerPeriod}
+                  onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
+                  style={fieldStyle()}
+                />
               </div>
             ) : (
-              <div
-                style={{
-                  marginTop: 18,
-                  border: `1px dashed ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 18,
-                  color: COLORS.muted,
-                  background: "#F8FEFE",
-                }}
-              >
-                تم إيقاف إضافة المراقبين تلقائيًا.
-             
-            </div>
-                </div>
-              
-  ):}
-          </Card>
-        )}
+              <div style={{ width: "100%" }}>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={studentsPerInvigilator}
+                  onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 17))}
+                  style={fieldStyle()}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
+          <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
+          <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+            يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {availableInvigilators.length ? (
+              availableInvigilators.map((name) => {
+                const excluded = excludedInvigilators.some(
+                  (item) => normalizeArabic(item) === normalizeArabic(name)
+                );
+
+                return (
+                  <button
+                    key={name}
+                    onClick={() => toggleExcludedInvigilator(name)}
+                    style={{
+                      border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
+                      background: excluded ? COLORS.dangerBg : "#fff",
+                      color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                      borderRadius: 999,
+                      padding: "8px 14px",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {excluded ? `مستبعد: ${name}` : name}
+                  </button>
+                );
+              })
+            ) : (
+              <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+          <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+            السابق
+          </button>
+
+          <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
+            التالي: الدراسات العامة
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div
+        style={{
+          marginTop: 18,
+          border: `1px dashed ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 18,
+          color: COLORS.muted,
+          background: "#F8FEFE",
+        }}
+      >
+        تم إيقاف إضافة المراقبين تلقائيًا.
+      </div>
+    )}
+  </Card>
+)}
 
         {currentStep === 4 && (
           <Card>
