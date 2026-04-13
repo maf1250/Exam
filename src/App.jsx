@@ -4795,7 +4795,7 @@ printScheduleOnlyPdf({
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                       <thead>
                         <tr style={{ background: COLORS.primaryLight }}>
-                          {["المقرر", "الرمز", "القسم / الشعبة", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
+                          {["المقرر", "الرمز", "القسم / التخصص", "المدرب", "عدد المتدربين", "التعارضات"].map((label) => (
                             <th
                               key={label}
                               style={{
@@ -4919,7 +4919,7 @@ printScheduleOnlyPdf({
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                               <thead>
                                 <tr style={{ background: "#fff" }}>
-                                  {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / الشعبة", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
+                                  {["الفترة", "الوقت", "اسم المقرر", "الرمز", "قاعة الاختبار", "القسم / التخصص", "المدرب", "عدد المتدربين", "المراقبون"].map((head) => (
                                     <th
                                       key={head}
                                       style={{
