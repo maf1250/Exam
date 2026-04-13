@@ -3057,7 +3057,8 @@ const headerBtn = (danger = false) => ({
   backdropFilter: "blur(6px)",
   transition: "0.2s",
 });
- const [showHeader, setShowHeader] = React.useState(false);
+
+  const [showHeader, setShowHeader] = React.useState(false);
 const [counts, setCounts] = React.useState({
   rows: 0,
   students: 0,
@@ -3066,171 +3067,44 @@ const [counts, setCounts] = React.useState({
 });
 
 React.useEffect(() => {
-  const t = setTimeout(() => setShowHeader(true), 80);
-  return () => clearTimeout(t);
+  setTimeout(() => setShowHeader(true), 80);
 }, []);
 
+/* Count Up Animation */
 React.useEffect(() => {
   const target = {
     rows: rows?.length || 0,
-    students: new Set((rows || []).map((r) => r["رقم المتدرب"]).filter(Boolean)).size,
-    courses: new Set((rows || []).map((r) => r["المقرر"]).filter(Boolean)).size,
-    sections: new Set(
-      (rows || [])
-        .map((r) => `${r["المقرر"] || ""}__${r["الشعبة"] || ""}`)
-        .filter((v) => v !== "__")
-    ).size,
+    students: new Set((rows || []).map(r => r["رقم المتدرب"])).size,
+    courses: new Set((rows || []).map(r => r["المقرر"])).size,
+    sections: new Set((rows || []).map(r => r["الشعبة"])).size,
   };
 
   let frame = 0;
-  const totalFrames = 24;
+  const totalFrames = 25;
 
   const interval = setInterval(() => {
-    frame += 1;
-    const p = frame / totalFrames;
+    frame++;
+    const progress = frame / totalFrames;
 
     setCounts({
-      rows: Math.floor(target.rows * p),
-      students: Math.floor(target.students * p),
-      courses: Math.floor(target.courses * p),
-      sections: Math.floor(target.sections * p),
+      rows: Math.floor(target.rows * progress),
+      students: Math.floor(target.students * progress),
+      courses: Math.floor(target.courses * progress),
+      sections: Math.floor(target.sections * progress),
     });
 
     if (frame >= totalFrames) clearInterval(interval);
-  }, 22);
+  }, 20);
 
   return () => clearInterval(interval);
 }, [rows]);
-  const dashboardCard = {
-  background: "linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(240,255,252,0.76) 100%)",
-  border: "1px solid rgba(255,255,255,0.65)",
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-  boxShadow: "0 14px 32px rgba(15,118,110,0.12)",
-  borderRadius: 24,
-};
+  
 
-const sectionTitleStyle = {
-  margin: 0,
-  fontSize: 20,
-  fontWeight: 900,
-  color: "#15343b",
-};
+  const [showHeader, setShowHeader] = React.useState(false);
 
-const sectionSubStyle = {
-  margin: "6px 0 0",
-  fontSize: 14,
-  color: "#5f6f75",
-  lineHeight: 1.8,
-};
-
-const quickBtnStyle = {
-  border: "none",
-  borderRadius: 16,
-  padding: "12px 16px",
-  fontWeight: 800,
-  fontSize: 14,
-  cursor: "pointer",
-  background: "rgba(15,118,110,0.08)",
-  color: "#0f766e",
-};
-
-const getStepLabel = (step) => {
-  switch (step) {
-    case 1:
-      return "رفع البيانات";
-    case 2:
-      return "إعداد الجدولة";
-    case 3:
-      return "المراقبون";
-    case 4:
-      return "التوزيع";
-    case 5:
-      return "المعاينة";
-    case 6:
-      return "الطباعة";
-    default:
-      return `الخطوة ${step}`;
-  }
-};
-
-const getStepDesc = (step) => {
-  switch (step) {
-    case 1:
-      return "رفع ملف CSV والتحقق من جاهزية البيانات";
-    case 2:
-      return "تحديد الأيام والفترات وإعدادات الجدولة";
-    case 3:
-      return "إدخال المراقبين وتحديد طريقة توزيعهم";
-    case 4:
-      return "تشغيل توزيع المقررات وفق الإعدادات";
-    case 5:
-      return "استعراض الجداول والتعارضات والنتائج";
-    case 6:
-      return "إخراج وطباعة الجداول النهائية";
-    default:
-      return "إدارة هذه المرحلة من بناء الجدول";
-  }
-};
-
-const infoItemStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "12px 14px",
-  borderRadius: 16,
-  background: "rgba(15,118,110,0.05)",
-};
-
-const valueBadgeStyle = {
-  minWidth: 44,
-  textAlign: "center",
-  padding: "6px 10px",
-  borderRadius: 999,
-  background: "rgba(15,118,110,0.10)",
-  color: "#0f766e",
-  fontWeight: 900,
-  fontSize: 13,
-};
-
-const stepCardBase = (active) => ({
-  ...dashboardCard,
-  padding: 18,
-  cursor: "pointer",
-  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
-  border: active
-    ? "1px solid rgba(15,118,110,0.35)"
-    : "1px solid rgba(255,255,255,0.65)",
-  boxShadow: active
-    ? "0 18px 38px rgba(15,118,110,0.18)"
-    : "0 14px 32px rgba(15,118,110,0.12)",
-});
-
-const statCardStyle = {
-  ...dashboardCard,
-  padding: "18px 14px",
-  textAlign: "center",
-};
-
-const topGlassButton = {
-  border: "none",
-  borderRadius: 14,
-  padding: "10px 14px",
-  background: "rgba(255,255,255,0.16)",
-  color: "#fff",
-  fontWeight: 800,
-  fontSize: 14,
-  cursor: "pointer",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-};
-
-const topDangerButton = {
-  ...topGlassButton,
-  background: "linear-gradient(135deg, #d92d20 0%, #ef4444 100%)",
-  boxShadow: "0 10px 20px rgba(185,28,28,0.22)",
-};
+React.useEffect(() => {
+  setTimeout(() => setShowHeader(true), 80);
+}, []);
   
   
   return (
@@ -3258,440 +3132,232 @@ const topDangerButton = {
         onRestore={restoreSavedSession}
       />
 
+{/* ===================== PREMIUM HEADER (ANIMATED) ===================== */}
 <div
   style={{
-    marginBottom: 24,
+    marginBottom: 26,
     opacity: showHeader ? 1 : 0,
-    transform: showHeader ? "translateY(0)" : "translateY(18px)",
-    transition: "all 520ms ease",
+    transform: showHeader ? "translateY(0)" : "translateY(20px)",
+    transition: "all 500ms ease",
   }}
 >
-  {/* =====  Dashboard ===== */}
+  {/* ===== Header ===== */}
   <div
     style={{
       position: "relative",
       overflow: "hidden",
-      borderRadius: 34,
+      borderRadius: 32,
       padding: 20,
-      paddingBottom: 52,
+      paddingBottom: 48,
       background:
-        "linear-gradient(270deg, #0f766e 0%, #159e9c 35%, #1fb7b5 75%, #0f766e 100%)",
-      backgroundSize: "400% 400%",
-      animation: "gradientMove 14s ease infinite",
-      boxShadow: "0 22px 60px rgba(0,0,0,0.18)",
+        "linear-gradient(135deg, #0f766e 0%, #159e9c 42%, #1fb7b5 78%)",
+      boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
     }}
   >
-    <div
-      style={{
-        position: "absolute",
-        top: -90,
-        left: -90,
-        width: 260,
-        height: 260,
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.10)",
-        filter: "blur(26px)",
-        pointerEvents: "none",
-      }}
-    />
-    <div
-      style={{
-        position: "absolute",
-        bottom: -90,
-        right: -70,
-        width: 260,
-        height: 260,
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.14)",
-        filter: "blur(30px)",
-        pointerEvents: "none",
-      }}
-    />
+    {/* Glow */}
+    <div style={{
+      position: "absolute",
+      top: -80,
+      left: -80,
+      width: 250,
+      height: 250,
+      background: "rgba(255,255,255,0.08)",
+      borderRadius: "50%",
+      filter: "blur(20px)"
+    }} />
 
-    {/* Top bar */}
-    <div
-      style={{
-        position: "relative",
-        zIndex: 2,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-        flexWrap: "wrap",
-        padding: "12px 14px",
-        borderRadius: 22,
-        background: "rgba(255,255,255,0.14)",
-        border: "1px solid rgba(255,255,255,0.20)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-      }}
-    >
-      <div
-        style={{
+    <div style={{
+      position: "absolute",
+      bottom: -80,
+      right: -60,
+      width: 250,
+      height: 250,
+      background: "rgba(255,255,255,0.1)",
+      borderRadius: "50%",
+      filter: "blur(25px)"
+    }} />
+
+    {/* ===== Top Bar ===== */}
+    <div style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 12,
+      padding: "10px 12px",
+      borderRadius: 20,
+      background: "rgba(255,255,255,0.12)",
+      backdropFilter: "blur(12px)",
+      border: "1px solid rgba(255,255,255,0.2)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 60,
+          height: 60,
+          borderRadius: 16,
+          background: "rgba(255,255,255,0.2)",
           display: "flex",
           alignItems: "center",
-          gap: 12,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
-        <div
-          style={{
-            width: 62,
-            height: 62,
-            borderRadius: 18,
-            background: "rgba(255,255,255,0.18)",
-            border: "1px solid rgba(255,255,255,0.18)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <img
-            src="/tvtc-logo.png"
-            alt="TVTC"
-            style={{ width: "70%", height: "70%", objectFit: "contain" }}
-          />
+          justifyContent: "center",
+        }}>
+          <img src="/tvtc-logo.png" alt="logo" style={{ width: "70%" }} />
         </div>
 
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.84)",
-              fontSize: 12,
-              fontWeight: 700,
-              marginBottom: 4,
-            }}
-          >
+        <div>
+          <div style={{ color: "#dff7f5", fontSize: 12 }}>
             المؤسسة العامة للتدريب التقني والمهني
           </div>
-          <div
-            style={{
-              color: "#fff",
-              fontSize: 17,
-              fontWeight: 900,
-              lineHeight: 1.4,
-            }}
-          >
-            لوحة تحكم جداول الاختبارات
+          <div style={{ color: "#fff", fontWeight: 800 }}>
+            نظام جداول الاختبارات
           </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={handleImportData} style={topGlassButton}>
-          استيراد
-        </button>
-        <button onClick={handleExportData} style={topGlassButton}>
-          تصدير
-        </button>
-        <button onClick={handleClearLocalData} style={topDangerButton}>
-          حذف البيانات المحلية
-        </button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={handleImportData}
+          style={btnGlass}
+          onMouseEnter={(e)=>hoverIn(e)}
+          onMouseLeave={(e)=>hoverOut(e)}
+        >استيراد</button>
+
+        <button
+          onClick={handleExportData}
+          style={btnGlass}
+          onMouseEnter={(e)=>hoverIn(e)}
+          onMouseLeave={(e)=>hoverOut(e)}
+        >تصدير</button>
+
+        <button
+          onClick={handleClearLocalData}
+          style={btnDanger}
+          onMouseEnter={(e)=>hoverIn(e,true)}
+          onMouseLeave={(e)=>hoverOut(e,true)}
+        >حذف</button>
       </div>
     </div>
 
-    {/* Main  text */}
-    <div
-      style={{
-        position: "relative",
-        zIndex: 2,
-        marginTop: 26,
-      }}
-    >
-      <h1
-        style={{
-          margin: 0,
-          color: "#fff",
-          fontSize: "clamp(28px, 5vw, 42px)",
-          fontWeight: 900,
-          lineHeight: 1.25,
-          textShadow: "0 2px 10px rgba(0,0,0,0.10)",
-        }}
-      >
-        بناء الجداول وإدارة المراقبين من مكان واحد
+    {/* ===== Content ===== */}
+    <div style={{ marginTop: 25 }}>
+      <h1 style={{
+        color: "#fff",
+        fontSize: "clamp(26px, 5vw, 40px)",
+        fontWeight: 900
+      }}>
+        بناء جداول الاختبارات باحترافية
       </h1>
 
-      <p
-        style={{
-          margin: "12px 0 0",
-          color: "rgba(255,255,255,0.92)",
-          fontSize: 16,
-          lineHeight: 1.9,
-          maxWidth: 720,
-          fontWeight: 500,
-        }}
-      >
-        واجهة احترافية لرفع البيانات، ضبط الجدولة، توزيع المراقبين،
-        استعراض النتائج، وطباعة الجداول النهائية بهوية مؤسسية أنيقة.
+      <p style={{
+        color: "rgba(255,255,255,0.9)",
+        lineHeight: 1.8
+      }}>
+        نظام ذكي لتنظيم الاختبارات وتوزيع المقررات والمراقبين
       </p>
 
-      <div
-        style={{
-          marginTop: 18,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
-        }}
+      <button
+        style={btnPrimary}
+        onMouseEnter={(e)=>hoverIn(e)}
+        onMouseLeave={(e)=>hoverOut(e)}
       >
-        {["الكليات التقنية", "ميلادي / هجري", "جدولة + مراقبين", "تعارضات + طباعة"].map((item) => (
-          <div
-            key={item}
-            style={{
-              padding: "9px 14px",
-              borderRadius: 999,
-              background: "rgba(255,255,255,0.14)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 800,
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-          >
-            {item}
-          </div>
-        ))}
-      </div>
+        بدء العمل
+      </button>
     </div>
   </div>
 
-  {/* ===== Stats ===== */}
-  <div
-    style={{
-      position: "relative",
-      zIndex: 5,
-      marginTop: -26,
-      padding: "0 14px",
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-      gap: 12,
-    }}
-  >
-    <div style={statCardStyle}>
-      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
-        السجلات
-      </div>
-      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
-        {counts.rows}
-      </div>
-    </div>
-
-    <div style={statCardStyle}>
-      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
-        المتدربين
-      </div>
-      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
-        {counts.students}
-      </div>
-    </div>
-
-    <div style={statCardStyle}>
-      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
-        المقررات
-      </div>
-      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
-        {counts.courses}
-      </div>
-    </div>
-
-    <div style={statCardStyle}>
-      <div style={{ color: "#5f6f75", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
-        الشعب
-      </div>
-      <div style={{ color: "#0f8b8d", fontSize: 32, fontWeight: 900, lineHeight: 1 }}>
-        {counts.sections}
-      </div>
-    </div>
-  </div>
-
-  {/* ===== Quick Actions + System Status ===== */}
-  <div
-    style={{
-      marginTop: 14,
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-      gap: 14,
-    }}
-  >
-    <div style={{ ...dashboardCard, padding: 18 }}>
-      <h3 style={sectionTitleStyle}>إجراءات سريعة</h3>
-      <p style={sectionSubStyle}>الوصول السريع لأكثر العمليات استخدامًا.</p>
-
+  {/* ===== Stats (Animated + Hover) ===== */}
+  <div style={{
+    marginTop: -26,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))",
+    gap: 12
+  }}>
+    {[{
+      label: "السجلات",
+      value: rows?.length ?? 0
+    },{
+      label: "المتدربين",
+      value: new Set((rows||[]).map(r=>r["رقم المتدرب"])).size
+    },{
+      label: "المقررات",
+      value: new Set((rows||[]).map(r=>r["المقرر"])).size
+    },{
+      label: "الشعب",
+      value: new Set((rows||[]).map(r=>r["الشعبة"])).size
+    }].map((item,i)=>(
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-          gap: 10,
-          marginTop: 14,
-        }}
+        key={i}
+        style={statCard}
+        onMouseEnter={(e)=>hoverCard(e)}
+        onMouseLeave={(e)=>hoverCardOut(e)}
       >
-        <button style={quickBtnStyle} onClick={handleImportData}>استيراد ملف</button>
-        <button style={quickBtnStyle} onClick={handleExportData}>تصدير الجلسة</button>
-        <button style={quickBtnStyle} onClick={() => setCurrentStep?.(1)}>رفع البيانات</button>
-        <button style={quickBtnStyle} onClick={() => setCurrentStep?.(5)}>المعاينة</button>
-      </div>
-    </div>
-
-    <div style={{ ...dashboardCard, padding: 18 }}>
-      <h3 style={sectionTitleStyle}>حالة النظام</h3>
-      <p style={sectionSubStyle}>نظرة سريعة على جاهزية البيانات وخطوة العمل الحالية.</p>
-
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>الخطوة الحالية</span>
-          <span style={valueBadgeStyle}>{getStepLabel(currentStep)}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>وجود بيانات مرفوعة</span>
-          <span style={valueBadgeStyle}>{(rows?.length ?? 0) > 0 ? "نعم" : "لا"}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>عدد الأيام المحددة</span>
-          <span style={valueBadgeStyle}>{selectedDays?.length ?? 0}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>عدد الفترات</span>
-          <span style={valueBadgeStyle}>{parsedPeriods.filter((p) => p.valid).length}</span>
+        <div style={{ fontSize: 14, color:"#5f6f75" }}>{item.label}</div>
+        <div style={{ fontSize: 30, fontWeight: 900, color:"#0f8b8d" }}>
+          {item.value}
         </div>
       </div>
-    </div>
-  </div>
-
-  {/* ===== Steps ===== */}
-  <div style={{ ...dashboardCard, padding: 18, marginTop: 14 }}>
-    <h3 style={sectionTitleStyle}>مراحل العمل</h3>
-    <p style={sectionSubStyle}>اختر المرحلة التي تريد الانتقال إليها مباشرة.</p>
-
-    <div
-      style={{
-        marginTop: 14,
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-        gap: 12,
-      }}
-    >
-      {[1, 2, 3, 4, 5, 6].map((step) => {
-        const active = currentStep === step;
-        return (
-          <div
-            key={step}
-            onClick={() => setCurrentStep?.(step)}
-            style={stepCardBase(active)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-3px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: active ? "rgba(15,118,110,0.16)" : "rgba(15,118,110,0.08)",
-                color: "#0f766e",
-                fontWeight: 900,
-                marginBottom: 12,
-              }}
-            >
-              {step}
-            </div>
-
-            <div style={{ color: "#16323a", fontWeight: 900, fontSize: 16 }}>
-              {getStepLabel(step)}
-            </div>
-
-            <div
-              style={{
-                color: "#5f6f75",
-                fontSize: 13,
-                lineHeight: 1.8,
-                marginTop: 6,
-              }}
-            >
-              {getStepDesc(step)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-
-  {/* ===== Summary ===== */}
-  <div
-    style={{
-      marginTop: 14,
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-      gap: 14,
-    }}
-  >
-    <div style={{ ...dashboardCard, padding: 18 }}>
-      <h3 style={sectionTitleStyle}>ملخص البيانات</h3>
-      <p style={sectionSubStyle}>ملخص سريع لما تم تحميله واحتسابه حتى الآن.</p>
-
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>الأقسام</span>
-          <span style={valueBadgeStyle}>
-            {new Set((rows || []).map((r) => r["القسم"]).filter(Boolean)).size}
-          </span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>التخصصات</span>
-          <span style={valueBadgeStyle}>
-            {new Set((rows || []).map((r) => r["التخصص"]).filter(Boolean)).size}
-          </span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>المدربون</span>
-          <span style={valueBadgeStyle}>
-            {new Set((rows || []).map((r) => r["المدرب"]).filter(Boolean)).size}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div style={{ ...dashboardCard, padding: 18 }}>
-      <h3 style={sectionTitleStyle}>جاهزية التنفيذ</h3>
-      <p style={sectionSubStyle}>مؤشرات سريعة قبل تشغيل بناء الجدول.</p>
-
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>تم رفع ملف</span>
-          <span style={valueBadgeStyle}>{(rows?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>تم تحديد الأيام</span>
-          <span style={valueBadgeStyle}>{(selectedDays?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>تم تحديد الفترات</span>
-          <span style={valueBadgeStyle}>{(periods?.length ?? 0) > 0 ? "جاهز" : "ناقص"}</span>
-        </div>
-
-        <div style={infoItemStyle}>
-          <span style={{ color: "#27444b", fontWeight: 700 }}>مرحلة المعالجة</span>
-          <span style={valueBadgeStyle}>{getStepLabel(currentStep)}</span>
-        </div>
-      </div>
-    </div>
+    ))}
   </div>
 </div>
+
+      const btnGlass = {
+  border: "none",
+  borderRadius: 12,
+  padding: "8px 12px",
+  background: "rgba(255,255,255,0.18)",
+  color: "#fff",
+  fontWeight: 700,
+  cursor: "pointer",
+  transition: "0.2s",
+};
+
+const btnDanger = {
+  ...btnGlass,
+  background: "#ef4444",
+};
+
+const btnPrimary = {
+  marginTop: 15,
+  padding: "12px 20px",
+  borderRadius: 14,
+  border: "none",
+  background: "#fff",
+  color: "#0f766e",
+  fontWeight: 800,
+  cursor: "pointer",
+  transition: "0.2s",
+};
+
+const statCard = {
+  background: "rgba(255,255,255,0.8)",
+  borderRadius: 18,
+  padding: "14px",
+  textAlign: "center",
+  backdropFilter: "blur(10px)",
+  transition: "0.25s",
+};
+
+/* Hover Effects */
+const hoverIn = (e, danger=false) => {
+  e.currentTarget.style.transform = "translateY(-2px)";
+  e.currentTarget.style.boxShadow = danger
+    ? "0 8px 20px rgba(220,38,38,0.4)"
+    : "0 8px 20px rgba(0,0,0,0.2)";
+};
+
+const hoverOut = (e) => {
+  e.currentTarget.style.transform = "translateY(0)";
+  e.currentTarget.style.boxShadow = "none";
+};
+
+const hoverCard = (e) => {
+  e.currentTarget.style.transform = "translateY(-4px)";
+  e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.15)";
+};
+
+const hoverCardOut = (e) => {
+  e.currentTarget.style.transform = "translateY(0)";
+  e.currentTarget.style.boxShadow = "none";
+};
       
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
