@@ -2199,14 +2199,22 @@ courseMap.forEach((course) => {
     };
   }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors]);
 
-  const preciseStudentInfoMap = useMemo(() => {
+const getStudentNameFromRow = (row) =>
+  String(
+    row["إسم المتدرب"] ??
+    row["اسم المتدرب"] ??
+    row["اسم المتدرب "] ??
+    ""
+  ).trim();
+  
+const preciseStudentInfoMap = useMemo(() => {
   const map = new Map();
 
   parsed.filteredRows.forEach((row) => {
     const id = String(row["رقم المتدرب"] ?? "").trim();
     if (!id) return;
 
-    const name = String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم";
+    const name = getStudentNameFromRow(row) || "بدون اسم";
     const department = String(row["القسم"] ?? "").trim() || "-";
     const major = String(row["التخصص"] ?? "").trim() || "-";
 
@@ -2227,7 +2235,6 @@ courseMap.forEach((course) => {
       return;
     }
 
-    // إذا الموجود الحالي من الدراسات العامة، ووجدنا صف أدق، نستبدله
     if (existing.isGeneralStudies && !isGeneralStudies) {
       map.set(id, {
         id,
@@ -2239,14 +2246,14 @@ courseMap.forEach((course) => {
       return;
     }
 
-    // إذا الحالي أدق، لا نستبدله بصف من الدراسات العامة
     if (!existing.isGeneralStudies && isGeneralStudies) {
       return;
     }
 
-    // لو كلاهما غير دراسات عامة، فضّل الصف الذي فيه تخصص أوضح
-    const existingMajorScore = existing.major && existing.major !== "-" ? existing.major.length : 0;
-    const newMajorScore = major && major !== "-" ? major.length : 0;
+    const existingMajorScore =
+      existing.major && existing.major !== "-" ? existing.major.length : 0;
+    const newMajorScore =
+      major && major !== "-" ? major.length : 0;
 
     if (newMajorScore > existingMajorScore) {
       map.set(id, {
@@ -2261,7 +2268,7 @@ courseMap.forEach((course) => {
 
   return map;
 }, [parsed.filteredRows]);
-
+  
 const getSelectedPairConflictStudents = useMemo(() => {
   if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
 
@@ -2767,7 +2774,7 @@ const studentOptionsForPrint = useMemo(() => {
 
  const info = preciseStudentInfoMap.get(studentId) || {
   id: studentId,
-  name: String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم",
+  name: getStudentNameFromRow(row) || "بدون اسم",
   department: String(row["القسم"] ?? "").trim() || "-",
   major: String(row["التخصص"] ?? "").trim() || "-",
 };
