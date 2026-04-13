@@ -2277,14 +2277,13 @@ const getSelectedPairConflictStudents = useMemo(() => {
     .filter((studentId) => studentsB.has(studentId))
     .map((studentId) => {
       const info = preciseStudentInfoMap.get(studentId);
-      return (
-        info || {
-          id: studentId,
-          name: "بدون اسم",
-          department: "-",
-          major: "-",
-        }
-      );
+
+      return {
+        id: studentId,
+        name: info?.name || "بدون اسم",
+        department: info?.department || "-",
+        major: info?.major || "-",
+      };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
 }, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
@@ -4342,7 +4341,7 @@ style={{
                 <tbody>
                   {getSelectedPairConflictStudents.map((student, index) => (
 
-            <tr
+           <tr
   key={student.id}
   style={{
     background: getTvtcRowTheme(index).bg,
@@ -4365,21 +4364,42 @@ style={{
       fontWeight: 800,
       color: getTvtcRowTheme(index).text,
       borderRight: `4px solid ${getTvtcRowTheme(index).border}`,
+      background: getTvtcRowTheme(index).bg,
     }}
   >
-    {student.name}
+    {student.name || "-"}
   </td>
 
-  <td style={{ padding: 12, fontWeight: 600 }}>
-    {student.id}
+  <td
+    style={{
+      padding: 12,
+      fontWeight: 600,
+      color: COLORS.text,
+      background: getTvtcRowTheme(index).bg,
+    }}
+  >
+    {student.id || "-"}
   </td>
 
-  <td style={{ padding: 12 }}>
-    {student.department}
+  <td
+    style={{
+      padding: 12,
+      color: COLORS.text,
+      background: getTvtcRowTheme(index).bg,
+    }}
+  >
+    {student.department || "-"}
   </td>
 
-  <td style={{ padding: 12 }}>
-    {student.major}
+  <td
+    style={{
+      padding: 12,
+      color: COLORS.text,
+      background: getTvtcRowTheme(index).bg,
+      fontWeight: 700,
+    }}
+  >
+    {student.major?.trim() || "-"}
   </td>
 </tr>
               
