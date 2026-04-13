@@ -4339,74 +4339,86 @@ style={{
                   </tr>
                 </thead>
                 <tbody>
-                  {getSelectedPairConflictStudents.map((student, index) => (
+                  {getSelectedPairConflictStudents.map((student, index) => {
+                    const rowTheme = getTvtcRowTheme(index);
 
-           <tr
-  key={student.id}
-  style={{
-    background: getTvtcRowTheme(index).bg,
-    borderBottom: `1px solid ${COLORS.border}`,
-    transition: "all 0.2s ease",
-    cursor: "default",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.transform = "scale(1.01)";
-    e.currentTarget.style.boxShadow = "0 6px 14px rgba(0,0,0,0.08)";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.transform = "scale(1)";
-    e.currentTarget.style.boxShadow = "none";
-  }}
->
-  <td
-    style={{
-      padding: 12,
-      fontWeight: 800,
-      color: getTvtcRowTheme(index).text,
-      borderRight: `4px solid ${getTvtcRowTheme(index).border}`,
-      background: getTvtcRowTheme(index).bg,
-    }}
-  >
-    {student.name || "-"}
-  </td>
+                    return (
+                      <tr
+                        key={`${student.id}-${index}`}
+                        style={{
+                          background: rowTheme.bg,
+                          transition: "all 0.2s ease",
+                          cursor: "default",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "scale(1.01)";
+                          e.currentTarget.style.boxShadow = "0 6px 14px rgba(0,0,0,0.08)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                      >
+                        <td
+                          style={{
+                            padding: 12,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: rowTheme.bg,
+                            fontWeight: 800,
+                            color: rowTheme.text,
+                            borderRight: `4px solid ${rowTheme.border}`,
+                          }}
+                        >
+                          {index + 1}
+                        </td>
 
-  <td
-    style={{
-      padding: 12,
-      fontWeight: 600,
-      color: COLORS.text,
-      background: getTvtcRowTheme(index).bg,
-    }}
-  >
-    {student.id || "-"}
-  </td>
+                        <td
+                          style={{
+                            padding: 12,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: rowTheme.bg,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {student.id || "-"}
+                        </td>
 
-  <td
-    style={{
-      padding: 12,
-      color: COLORS.text,
-      background: getTvtcRowTheme(index).bg,
-    }}
-  >
-    {student.department || "-"}
-  </td>
+                        <td
+                          style={{
+                            padding: 12,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: rowTheme.bg,
+                            fontWeight: 800,
+                            color: rowTheme.text,
+                          }}
+                        >
+                          {student.name || "-"}
+                        </td>
 
-      <td
-        style={{
-          padding: 12,
-          borderBottom: `1px solid ${COLORS.border}`,
-          background: rowTheme.bg,
-          fontWeight: 700,
-          color: rowTheme.text,
-        }}
-      >
-        {student.major || "-"}
-  </td>
-</tr>
-              
-                   
-                  
-                  ))}
+                        <td
+                          style={{
+                            padding: 12,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: rowTheme.bg,
+                          }}
+                        >
+                          {student.department || "-"}
+                        </td>
+
+                        <td
+                          style={{
+                            padding: 12,
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: rowTheme.bg,
+                            fontWeight: 700,
+                            color: rowTheme.text,
+                          }}
+                        >
+                          {student.major || "-"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -5212,15 +5224,53 @@ printScheduleOnlyPdf({
               </tr>
             </thead>
             <tbody>
-              {selectedConflictStudents.students.map((student, index) => (
-                <tr key={`${student.id}-${index}`}>
-                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{index + 1}</td>
-                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.id}</td>
-                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.name}</td>
-                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.department}</td>
-                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.major}</td>
-                </tr>
-              ))}
+              {selectedConflictStudents.students.map((student, index) => {
+                const rowTheme = getTvtcRowTheme(index);
+
+                return (
+                  <tr
+                    key={`${student.id}-${index}`}
+                    style={{
+                      background: rowTheme.bg,
+                      transition: "all 0.2s ease",
+                      cursor: "default",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.01)";
+                      e.currentTarget.style.boxShadow = "0 6px 14px rgba(0,0,0,0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: 12,
+                        borderBottom: `1px solid ${COLORS.border}`,
+                        background: rowTheme.bg,
+                        fontWeight: 800,
+                        color: rowTheme.text,
+                        borderRight: `4px solid ${rowTheme.border}`,
+                      }}
+                    >
+                      {index + 1}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, background: rowTheme.bg, fontWeight: 700 }}>
+                      {student.id || "-"}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, background: rowTheme.bg, fontWeight: 800, color: rowTheme.text }}>
+                      {student.name || "-"}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, background: rowTheme.bg }}>
+                      {student.department || "-"}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, background: rowTheme.bg, fontWeight: 700, color: rowTheme.text }}>
+                      {student.major || "-"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
