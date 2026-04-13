@@ -2826,9 +2826,9 @@ useEffect(() => {
     const normalizedLabel = normalizeArabic(student.label || "");
 
     return (
-      normalizedName === normalizedSearch ||
-      normalizedId === normalizedSearch ||
-      normalizedLabel === normalizedSearch
+normalizedName.includes(normalizedSearch) ||
+normalizedId.includes(normalizedSearch) ||
+normalizedLabel.includes(normalizedSearch)
     );
   });
 
