@@ -2263,7 +2263,7 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
   const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
-  // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر الطالب في نفس الفترة
+  // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
   const notPlaced = [];
@@ -2578,10 +2578,17 @@ const filteredSortedCourses = useMemo(() => {
   }, [groupedScheduleEntries, previewPage]);
 
 
-  const studentOptionsForPrint = useMemo(() => {
-    const scheduledStudentIds = new Set(
-      schedule.flatMap((item) => Array.isArray(item.students) ? item.students : [])
-    );
+const studentOptionsForPrint = useMemo(() => {
+  const combinedSchedule =
+    schedule.length
+      ? schedule
+      : [...generalSchedule, ...specializedSchedule];
+
+  const scheduledStudentIds = new Set(
+    combinedSchedule.flatMap((item) =>
+      Array.isArray(item.students) ? item.students : []
+    )
+  );
 
     const map = new Map();
 
@@ -2612,13 +2619,18 @@ const filteredSortedCourses = useMemo(() => {
     [studentOptionsForPrint, selectedStudentIdForPrint]
   );
 
-  const selectedStudentScheduleForPrint = useMemo(() => {
-    if (!selectedStudentIdForPrint) return [];
+const selectedStudentScheduleForPrint = useMemo(() => {
+  if (!selectedStudentIdForPrint) return [];
 
-    return schedule
-      .filter((item) => (item.students || []).includes(selectedStudentIdForPrint))
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
-  }, [schedule, selectedStudentIdForPrint]);
+  const combinedSchedule =
+    schedule.length
+      ? schedule
+      : [...generalSchedule, ...specializedSchedule];
+
+  return combinedSchedule
+    .filter((item) => (item.students || []).includes(selectedStudentIdForPrint))
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
+}, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint]);
 
   const invigilatorTable = useMemo(() => {
     const table = new Map();
@@ -4640,7 +4652,7 @@ printScheduleOnlyPdf({
                     flex: 1,
                     minWidth: 0,
                   }}
-                  title="عرض الطلاب المشتركين"
+                  title="عرض المتدربين المشتركين"
                 >
                   {item.name}
                 </button>
@@ -4721,16 +4733,16 @@ printScheduleOnlyPdf({
       onClick={(e) => e.stopPropagation()}
     >
       <h4 style={{ margin: "0 0 8px", color: COLORS.primaryDark, fontWeight: 900, fontSize: 18 }}>
-        الطلاب المشتركون
+        المتدربون المشتركون
       </h4>
       <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 14 }}>
         <div><strong>المقرر الأساسي:</strong> {selectedConflictStudents.courseName}</div>
         <div><strong>المقرر المتعارض:</strong> {selectedConflictStudents.conflictName}</div>
-        <div><strong>عدد الطلاب:</strong> {selectedConflictStudents.students.length} {formatTrainees(selectedConflictStudents.students.length)}</div>
+        <div><strong>عدد المتدربين:</strong> {selectedConflictStudents.students.length} {formatTrainees(selectedConflictStudents.students.length)}</div>
       </div>
 
       {!selectedConflictStudents.students.length ? (
-        <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد طلاب مشتركون.</p>
+        <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد متدربين مشتركين.</p>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
