@@ -3352,7 +3352,7 @@ const hoverCardOut = (e) => {
       </div>
     ))}
   </div>
-</div></div>
+</div>
 
   
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
