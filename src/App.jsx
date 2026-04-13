@@ -4156,9 +4156,10 @@ style={{
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(360px, 260px))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(360px, 280px))",
         gap: 14,
         marginBottom: 18,
+        
       }}
     >
       <div>
