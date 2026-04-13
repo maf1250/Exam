@@ -1075,7 +1075,9 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
   const allDays = Array.from(
     new Set(
-      invigilatorTable.flatMap((inv) => inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`))
+      invigilatorTable.flatMap((inv) =>
+        inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`)
+      )
     )
   )
     .map((value) => {
@@ -1103,16 +1105,16 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
           @page {
             size: A4 portrait;
-            margin: ${'${compactMode ? "6mm" : "10mm"}'};
+            margin: ${compactMode ? "6mm" : "10mm"};
           }
 
           body {
-            zoom: ${'${compactMode ? "0.86" : "1"}'};
+            zoom: ${compactMode ? "0.86" : "1"};
           }
 
           th, td {
-            font-size: ${'${compactMode ? "10px" : "12px"}'};
-            padding: ${'${compactMode ? "5px 4px" : "8px 6px"}'};
+            font-size: ${compactMode ? "10px" : "12px"};
+            padding: ${compactMode ? "5px 4px" : "8px 6px"};
           }
 
           .invigilators-table {
@@ -1186,7 +1188,6 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
   openPrintWindow("طباعة جدول المراقبين", html);
 }
-
 
 function printSingleStudentSchedule({ collegeName, student, items, compactMode = false }) {
   if (!student || !items?.length) return;
