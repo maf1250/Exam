@@ -1447,18 +1447,7 @@ const getConflictStudentsDetails = (courseKey, conflictKey) => {
   const sourceStudents = Array.from(sourceCourse.students || []);
   const conflictStudentsSet = new Set(Array.from(conflictCourse.students || []));
 
-  const studentInfoMap = new Map();
-  parsed.filteredRows.forEach((row) => {
-    const id = String(row["رقم المتدرب"] ?? "").trim();
-    if (!id || studentInfoMap.has(id)) return;
-
-    studentInfoMap.set(id, {
-      id,
-      name: String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم",
-      department: String(row["القسم"] ?? "").trim() || "-",
-      major: String(row["التخصص"] ?? "").trim() || "-",
-    });
-  });
+ const studentInfoMap = preciseStudentInfoMap;
 
   return sourceStudents
     .filter((studentId) => conflictStudentsSet.has(studentId))
@@ -1819,6 +1808,68 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
+  const preciseStudentInfoMap = useMemo(() => {
+  const map = new Map();
+
+  parsed.filteredRows.forEach((row) => {
+    const id = String(row["رقم المتدرب"] ?? "").trim();
+    if (!id) return;
+
+    const name = String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم";
+    const department = String(row["القسم"] ?? "").trim() || "-";
+    const major = String(row["التخصص"] ?? "").trim() || "-";
+
+    const normalizedDepartment = normalizeArabic(department);
+    const isGeneralStudies =
+      normalizedDepartment === normalizeArabic("الدراسات العامة");
+
+    const existing = map.get(id);
+
+    if (!existing) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+      return;
+    }
+
+    // إذا الموجود الحالي من الدراسات العامة، ووجدنا صف أدق، نستبدله
+    if (existing.isGeneralStudies && !isGeneralStudies) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+      return;
+    }
+
+    // إذا الحالي أدق، لا نستبدله بصف من الدراسات العامة
+    if (!existing.isGeneralStudies && isGeneralStudies) {
+      return;
+    }
+
+    // لو كلاهما غير دراسات عامة، فضّل الصف الذي فيه تخصص أوضح
+    const existingMajorScore = existing.major && existing.major !== "-" ? existing.major.length : 0;
+    const newMajorScore = major && major !== "-" ? major.length : 0;
+
+    if (newMajorScore > existingMajorScore) {
+      map.set(id, {
+        id,
+        name,
+        department,
+        major,
+        isGeneralStudies,
+      });
+    }
+  });
+
+  return map;
+}, [parsed.filteredRows, schedule, generalSchedule, specializedSchedule, preciseStudentInfoMap]);
 
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -2596,19 +2647,23 @@ const studentOptionsForPrint = useMemo(() => {
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
       if (!studentId || !scheduledStudentIds.has(studentId)) return;
 
-      const studentName = String(row["إسم المتدرب"] ?? "").trim();
-      const department = String(row["القسم"] ?? "").trim();
-      const major = String(row["التخصص"] ?? "").trim();
+ const info = preciseStudentInfoMap.get(studentId) || {
+  id: studentId,
+  name: String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم",
+  department: String(row["القسم"] ?? "").trim() || "-",
+  major: String(row["التخصص"] ?? "").trim() || "-",
+};
 
-      if (!map.has(studentId)) {
-        map.set(studentId, {
-          id: studentId,
-          name: studentName,
-          department,
-          major,
-          label: `${studentName || "بدون اسم"} - ${studentId}`,
-        });
-      }
+if (!map.has(studentId)) {
+  map.set(studentId, {
+    id: studentId,
+    name: info.name,
+    department: info.department,
+    major: info.major,
+    label: `${info.name || "بدون اسم"} - ${studentId}`,
+  });
+}
+      
     });
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
