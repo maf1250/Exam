@@ -1333,6 +1333,7 @@ export default function App() {
 const pendingRestoreRef = useRef(null);
   const toastTimerRef = useRef(null);
   
+  const [selectedConflicts, setSelectedConflicts] = useState(null);
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [collegeNameInput, setCollegeNameInput] = useState("");
@@ -1414,7 +1415,13 @@ const deserializeScheduleItem = (item) => ({
   students: Array.isArray(item.students) ? item.students : [],
 });
 
+const getConflictsDetails = (courseKey) => {
+  const conflicts = conflictMap.get(courseKey);
+  if (!conflicts) return [];
 
+  return Array.from(conflicts);
+};
+  
 const hasMeaningfulSessionData = (data) => {
   return (
     (Array.isArray(data?.rows) && data.rows.length > 0) ||
@@ -4157,7 +4164,22 @@ printScheduleOnlyPdf({
                             <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.sectionName}</td>
                             <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
                             <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.conflictDegree}</td>
+                            <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}><span
+  style={{
+    cursor: "pointer",
+    color: "#147B83",
+    fontWeight: "bold",
+    textDecoration: "underline",
+  }}
+  onClick={() =>
+    setSelectedConflicts({
+      name: course.name,
+      list: getConflictsDetails(course.key),
+    })
+  }
+>
+  {course.conflictDegree}
+</span></td>
                           </tr>
                         ))}
                         {!filteredSortedCourses.length ? (
@@ -4431,6 +4453,67 @@ printScheduleOnlyPdf({
           </>
         )}
         </div>
+      
+      {selectedConflicts && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    }}
+    onClick={() => setSelectedConflicts(null)}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        width: 400,
+        maxHeight: "70vh",
+        overflowY: "auto",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3 style={{ marginBottom: 10 }}>
+        المقررات المتعارضة مع:
+        <br />
+        {selectedConflicts.name}
+      </h3>
+
+      {selectedConflicts.list.length === 0 ? (
+        <p>لا يوجد تعارض</p>
+      ) : (
+        <ul>
+          {selectedConflicts.list.map((c, i) => (
+            <li key={i}>{c}</li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        onClick={() => setSelectedConflicts(null)}
+        style={{
+          marginTop: 10,
+          padding: "6px 12px",
+          borderRadius: 8,
+          border: "none",
+          background: "#147B83",
+          color: "#fff",
+          cursor: "pointer",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
+  </div>
+)}
       </div>
   );
 }
