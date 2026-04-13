@@ -1413,17 +1413,32 @@ const serializeScheduleItem = (item) => ({
     : Array.from(item.students || []),
 });
 
-  const getStudentColor = (index) => {
-  const colors = [
-    "#0F766E", // primary dark
-    "#047857",
-    "#1D4ED8",
-    "#6D28D9",
-    "#C2410C",
-    "#B91C1C",
-    "#0369A1",
-    "#7C3AED",
+ const getTvtcRowTheme = (index) => {
+  const themes = [
+    {
+      bg: "#E7F8F7",
+      border: "#1FA7A8",
+      text: "#0F766E",
+    },
+    {
+      bg: "#F0FDFA",
+      border: "#0F766E",
+      text: "#115E59",
+    },
+    {
+      bg: "#ECFEFF",
+      border: "#06B6D4",
+      text: "#0E7490",
+    },
+    {
+      bg: "#F5FBFA",
+      border: "#147B83",
+      text: "#134E4A",
+    },
   ];
+
+  return themes[index % themes.length];
+};
 
   return colors[index % colors.length];
 };
@@ -4327,23 +4342,47 @@ style={{
                 </thead>
                 <tbody>
                   {getSelectedPairConflictStudents.map((student, index) => (
-                    <tr key={student.id}>
-                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-                        {index + 1}
-                      </td>
-                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-                        {student.id}
-                      </td>
-                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-  <span
+
+            <tr
+  key={student.id}
+  style={{
+    background: getTvtcRowTheme(index).bg,
+    borderBottom: `1px solid ${COLORS.border}`,
+    transition: "all 0.2s ease",
+    cursor: "default",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = "scale(1.01)";
+    e.currentTarget.style.boxShadow = "0 6px 14px rgba(0,0,0,0.08)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = "scale(1)";
+    e.currentTarget.style.boxShadow = "none";
+  }}
+>
+  <td
     style={{
-      color: getStudentColor(index),
+      padding: 12,
       fontWeight: 800,
+      color: getTvtcRowTheme(index).text,
+      borderRight: `4px solid ${getTvtcRowTheme(index).border}`,
     }}
   >
     {student.name}
-  </span>
-</td>
+  </td>
+
+  <td style={{ padding: 12, fontWeight: 600 }}>
+    {student.id}
+  </td>
+
+  <td style={{ padding: 12 }}>
+    {student.department}
+  </td>
+
+  <td style={{ padding: 12 }}>
+    {student.major}
+  </td>
+</tr>
                       <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
                         {student.department}
                       </td>
