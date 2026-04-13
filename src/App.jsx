@@ -3100,7 +3100,67 @@ React.useEffect(() => {
 }, [rows]);
   
 
- 
+     const btnGlass = {
+  border: "none",
+  borderRadius: 12,
+  padding: "8px 12px",
+  background: "rgba(255,255,255,0.18)",
+  color: "#fff",
+  fontWeight: 700,
+  cursor: "pointer",
+  transition: "0.2s",
+};
+
+const btnDanger = {
+  ...btnGlass,
+  background: "#ef4444",
+};
+
+const btnPrimary = {
+  marginTop: 15,
+  padding: "12px 20px",
+  borderRadius: 14,
+  border: "none",
+  background: "#fff",
+  color: "#0f766e",
+  fontWeight: 800,
+  cursor: "pointer",
+  transition: "0.2s",
+};
+
+const statCard = {
+  background: "rgba(255,255,255,0.8)",
+  borderRadius: 18,
+  padding: "14px",
+  textAlign: "center",
+  backdropFilter: "blur(10px)",
+  transition: "0.25s",
+};
+
+/* Hover Effects */
+const hoverIn = (e, danger=false) => {
+  e.currentTarget.style.transform = "translateY(-2px)";
+  e.currentTarget.style.boxShadow = danger
+    ? "0 8px 20px rgba(220,38,38,0.4)"
+    : "0 8px 20px rgba(0,0,0,0.2)";
+};
+
+const hoverOut = (e) => {
+  e.currentTarget.style.transform = "translateY(0)";
+  e.currentTarget.style.boxShadow = "none";
+};
+
+const hoverCard = (e) => {
+  e.currentTarget.style.transform = "translateY(-4px)";
+  e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.15)";
+};
+
+const hoverCardOut = (e) => {
+  e.currentTarget.style.transform = "translateY(0)";
+  e.currentTarget.style.boxShadow = "none";
+};
+      
+
   
   return (
     <div
@@ -3294,67 +3354,7 @@ React.useEffect(() => {
   </div>
 </div></div>
 
-      const btnGlass = {
-  border: "none",
-  borderRadius: 12,
-  padding: "8px 12px",
-  background: "rgba(255,255,255,0.18)",
-  color: "#fff",
-  fontWeight: 700,
-  cursor: "pointer",
-  transition: "0.2s",
-};
-
-const btnDanger = {
-  ...btnGlass,
-  background: "#ef4444",
-};
-
-const btnPrimary = {
-  marginTop: 15,
-  padding: "12px 20px",
-  borderRadius: 14,
-  border: "none",
-  background: "#fff",
-  color: "#0f766e",
-  fontWeight: 800,
-  cursor: "pointer",
-  transition: "0.2s",
-};
-
-const statCard = {
-  background: "rgba(255,255,255,0.8)",
-  borderRadius: 18,
-  padding: "14px",
-  textAlign: "center",
-  backdropFilter: "blur(10px)",
-  transition: "0.25s",
-};
-
-/* Hover Effects */
-const hoverIn = (e, danger=false) => {
-  e.currentTarget.style.transform = "translateY(-2px)";
-  e.currentTarget.style.boxShadow = danger
-    ? "0 8px 20px rgba(220,38,38,0.4)"
-    : "0 8px 20px rgba(0,0,0,0.2)";
-};
-
-const hoverOut = (e) => {
-  e.currentTarget.style.transform = "translateY(0)";
-  e.currentTarget.style.boxShadow = "none";
-};
-
-const hoverCard = (e) => {
-  e.currentTarget.style.transform = "translateY(-4px)";
-  e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.15)";
-};
-
-const hoverCardOut = (e) => {
-  e.currentTarget.style.transform = "translateY(0)";
-  e.currentTarget.style.boxShadow = "none";
-};
-      
-
+  
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
   { id: 1, label: "1. رفع الملف" },
