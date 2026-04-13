@@ -3397,7 +3397,7 @@ style={{
           </Card>
         )}
 
-      {currentStep === 3 && (
+  {currentStep === 3 && (
   <Card>
     <SectionHeader
       title="الصفحة الثالثة: المراقبون"
@@ -3511,12 +3511,18 @@ style={{
               fontSize: 14,
             }}
           >
-            عند اختيار قسم/تخصص محدد، يتم استبعاد مدربي مقررات الدراسات العامة من قائمة المراقبين
-            حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
+            عند اختيار قسم/تخصص محدد، يتم استبعاد مدربي مقررات الدراسات العامة من قائمة
+            المراقبين حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 220px",
+            gap: 14,
+          }}
+        >
           <div>
             <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
             <textarea
@@ -3530,11 +3536,23 @@ style={{
           <div style={{ display: "grid", gap: 12, width: "100%" }}>
             <div style={{ width: "100%", textAlign: "right" }}>
               <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", width: "100%" }}>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                }}
+              >
                 <button
+                  type="button"
                   onClick={() => setInvigilationMode("fixed")}
                   style={{
-                    border: `1px solid ${invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border}`,
+                    border: `1px solid ${
+                      invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border
+                    }`,
                     background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
                     color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
                     borderRadius: 999,
@@ -3547,9 +3565,12 @@ style={{
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setInvigilationMode("ratio")}
                   style={{
-                    border: `1px solid ${invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border}`,
+                    border: `1px solid ${
+                      invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border
+                    }`,
                     background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
                     color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
                     borderRadius: 999,
@@ -3591,7 +3612,13 @@ style={{
           </div>
         </div>
 
-        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
+        <div
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 14,
+          }}
+        >
           <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
           <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
             يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
@@ -3607,6 +3634,7 @@ style={{
                 return (
                   <button
                     key={name}
+                    type="button"
                     onClick={() => toggleExcludedInvigilator(name)}
                     style={{
                       border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
@@ -3629,11 +3657,15 @@ style={{
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+          <button type="button" onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
             السابق
           </button>
 
-          <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
+          <button
+            type="button"
+            onClick={() => setCurrentStep(4)}
+            style={cardButtonStyle({ active: true })}
+          >
             التالي: الدراسات العامة
           </button>
         </div>
@@ -3654,7 +3686,6 @@ style={{
     )}
   </Card>
 )}
-
         {currentStep === 4 && (
           <Card>
             <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
