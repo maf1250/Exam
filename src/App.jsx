@@ -4330,13 +4330,13 @@ style={{
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#F9FAFB" }}>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"` }}>م</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"` }}>رقم المتدرب</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"` }}>اسم المتدرب</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"` }}>القسم</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"` }}>التخصص</th>
-                  </tr>
+                <tr style={{ background: "#F9FAFB" }}>
+  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
+  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
+  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
+  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>القسم</th>
+  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>التخصص</th>
+</tr>
                 </thead>
                 <tbody>
                   {getSelectedPairConflictStudents.map((student, index) => {
