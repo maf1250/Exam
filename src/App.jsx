@@ -1344,6 +1344,7 @@ const pendingRestoreRef = useRef(null);
   const [invigilationMode, setInvigilationMode] = useState("ratio");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
+  
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -1357,7 +1358,8 @@ const pendingRestoreRef = useRef(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
-
+const [courseAKey, setCourseAKey] = useState("");
+const [courseBKey, setCourseBKey] = useState("");
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
   const [excludedInvigilators, setExcludedInvigilators] = useState([]);
   const [excludeInactive, setExcludeInactive] = useState(true);
@@ -1458,6 +1460,32 @@ const getPeriodTheme = (period) => {
 
   return themes[(Math.max(1, Number(period) || 1) - 1) % themes.length];
 };
+ const getSelectedPairConflictStudents = useMemo(() => {
+  if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
+
+  const courseA = parsed.courses.find((c) => c.key === courseAKey);
+  const courseB = parsed.courses.find((c) => c.key === courseBKey);
+
+  if (!courseA || !courseB) return [];
+
+  const studentsA = new Set(Array.from(courseA.students || []));
+  const studentsB = new Set(Array.from(courseB.students || []));
+
+  return Array.from(studentsA)
+    .filter((studentId) => studentsB.has(studentId))
+    .map((studentId) => {
+      const info = preciseStudentInfoMap.get(studentId);
+      return (
+        info || {
+          id: studentId,
+          name: "بدون اسم",
+          department: "-",
+          major: "-",
+        }
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
+}, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
   
 const getConflictsDetails = (courseKey) => {
   const detailsMap = parsed.conflictDetailsMap?.get(courseKey);
@@ -1845,7 +1873,15 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
+const selectedCourseA = useMemo(
+  () => parsed.courses.find((c) => c.key === courseAKey) || null,
+  [parsed.courses, courseAKey]
+);
 
+const selectedCourseB = useMemo(
+  () => parsed.courses.find((c) => c.key === courseBKey) || null,
+  [parsed.courses, courseBKey]
+);
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -3097,13 +3133,14 @@ const headerBtn = (danger = false) => ({
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
-            { id: 1, label: "1. رفع الملف" },
-            { id: 2, label: "2. المقررات" },
-            { id: 3, label: "3. المراقبون" },
-            { id: 4, label: "4. الدراسات العامة" },
-            { id: 5, label: "5. التخصص" },
-            { id: 6, label: "6. المعاينة والطباعة" },
-          ].map((step) => {
+  { id: 1, label: "1. رفع الملف" },
+  { id: 2, label: "2. المقررات" },
+  { id: 3, label: "3. المراقبون" },
+  { id: 4, label: "4. مقررات الدراسات العامة" },
+  { id: 5, label: "5. مقررات التخصص" },
+  { id: 6, label: "6. تحليل تعارض مقررين" },
+  { id: 7, label: "7. المعاينة والطباعة" },
+].map((step) => {
             const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
 
             return (
@@ -4102,7 +4139,210 @@ style={{
           </Card>
         )}
 
-        {currentStep === 6 && (
+{currentStep === 6 && (
+  <Card>
+    <SectionHeader
+      title="تحليل تعارض مقررين محددين"
+      description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
+    />
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 14,
+        marginBottom: 18,
+      }}
+    >
+      <div>
+        <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
+        <select
+          value={courseAKey}
+          onChange={(e) => setCourseAKey(e.target.value)}
+          style={fieldStyle()}
+        >
+          <option value="">اختر المقرر الأول</option>
+          {parsed.courses.map((course) => (
+            <option key={course.key} value={course.key}>
+              {course.courseName} - {course.courseCode}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الثاني</div>
+        <select
+          value={courseBKey}
+          onChange={(e) => setCourseBKey(e.target.value)}
+          style={fieldStyle()}
+        >
+          <option value="">اختر المقرر الثاني</option>
+          {parsed.courses.map((course) => (
+            <option key={course.key} value={course.key}>
+              {course.courseName} - {course.courseCode}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    {courseAKey && courseBKey && courseAKey === courseBKey ? (
+      <div
+        style={{
+          background: COLORS.warningBg,
+          color: COLORS.warning,
+          border: `1px solid #FCD34D`,
+          borderRadius: 16,
+          padding: 14,
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
+        اختر مقررين مختلفين.
+      </div>
+    ) : null}
+
+    {selectedCourseA && selectedCourseB && courseAKey !== courseBKey ? (
+      <>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            marginBottom: 18,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 16,
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+              {selectedCourseA.courseName}
+            </div>
+            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+              {selectedCourseA.courseCode}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 16,
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الثاني</div>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+              {selectedCourseB.courseName}
+            </div>
+            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+              {selectedCourseB.courseCode}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: COLORS.primaryLight,
+              border: `1px solid ${COLORS.primaryBorder}`,
+              borderRadius: 18,
+              padding: 16,
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+              عدد المتدربين المشتركين
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
+              {getSelectedPairConflictStudents.length}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#fff",
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 22,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "14px 16px",
+              background: COLORS.primaryLight,
+              borderBottom: `1px solid ${COLORS.primaryBorder}`,
+              fontWeight: 900,
+              color: COLORS.primaryDark,
+            }}
+          >
+            تفاصيل المتدربين المتعارضين
+          </div>
+
+          {getSelectedPairConflictStudents.length === 0 ? (
+            <div style={{ padding: 18, color: COLORS.muted }}>
+              لا يوجد متدربون مشتركون بين هذين المقررين.
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#F9FAFB" }}>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>م</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>رقم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>اسم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>القسم</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>التخصص</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getSelectedPairConflictStudents.map((student, index) => (
+                    <tr key={student.id}>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {index + 1}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {student.id}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {student.name}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {student.department}
+                      </td>
+                      <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
+                        {student.major}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </>
+    ) : (
+      <div
+        style={{
+          background: "#fff",
+          border: `1px dashed ${COLORS.primaryBorder}`,
+          borderRadius: 18,
+          padding: 18,
+          color: COLORS.muted,
+        }}
+      >
+        اختر مقررين لعرض التعارض بينهما.
+      </div>
+    )}
+  </Card>
+)}
+          
+        {currentStep === 7 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
