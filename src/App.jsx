@@ -1327,8 +1327,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 
   openPrintWindow("طباعة جدول متدرب", html);
 }
- const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
-  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
+
 
 export default function App() {
   const fileRef = useRef(null);
@@ -1369,7 +1368,8 @@ const [courseBKey, setCourseBKey] = useState("");
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
-
+ const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
+  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
@@ -1388,10 +1388,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
-  const periods = parsedPeriods;
-const handleImportData = importSavedSession;
-const handleExportData = exportSavedSession;
-const handleClearLocalData = clearSavedState;
+  
   
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -1887,6 +1884,11 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
+  const periods = parsedPeriods;
+const handleImportData = importSavedSession;
+const handleExportData = exportSavedSession;
+const handleClearLocalData = clearSavedState;
+  
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
