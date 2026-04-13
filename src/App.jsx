@@ -2667,7 +2667,13 @@ sortedCoursesForInvigilation.forEach((course) => {
 newPlaced.push({
   ...course,
   ...bestSlot,
-  departmentRoots: course.departmentRoots || [],
+  students: Array.from(course.students || []),
+  trainers: Array.from(course.trainers || []),
+  departments: Array.from(course.departments || []),
+  majors: Array.from(course.majors || []),
+  sectionNames: Array.from(course.sectionNames || []),
+  scheduleTypes: Array.from(course.scheduleTypes || []),
+  departmentRoots: Array.from(course.departmentRoots || []),
   examHall: assignedHall,
   invigilators: pickInvigilators(course, bestSlot),
 });
@@ -2760,11 +2766,13 @@ const studentOptionsForPrint = useMemo(() => {
       ? schedule
       : [...generalSchedule, ...specializedSchedule];
 
-  const scheduledStudentIds = new Set(
-    combinedSchedule.flatMap((item) =>
-      Array.isArray(item.students) ? item.students : []
-    )
-  );
+const scheduledStudentIds = new Set(
+  combinedSchedule.flatMap((item) =>
+    Array.isArray(item.students)
+      ? item.students
+      : Array.from(item.students || [])
+  )
+);
 
     const map = new Map();
 
@@ -2808,8 +2816,13 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       : [...generalSchedule, ...specializedSchedule];
 
   return combinedSchedule
-    .filter((item) => (item.students || []).includes(selectedStudentIdForPrint))
-    .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
+  .filter((item) =>
+    (Array.isArray(item.students)
+      ? item.students
+      : Array.from(item.students || [])
+    ).includes(selectedStudentIdForPrint)
+  )
+  .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
 }, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint]);
 
   const invigilatorTable = useMemo(() => {
