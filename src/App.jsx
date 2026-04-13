@@ -1869,8 +1869,7 @@ const importSavedSession = (file) => {
   });
 
   return map;
-}, [parsed.filteredRows, schedule, generalSchedule, specializedSchedule, preciseStudentInfoMap]);
-
+}, [parsed.filteredRows]);
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -2667,7 +2666,7 @@ if (!map.has(studentId)) {
     });
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
-  }, [parsed.filteredRows, schedule]);
+  }, [parsed.filteredRows, schedule, generalSchedule, specializedSchedule, preciseStudentInfoMap]);
 
   const selectedStudentInfoForPrint = useMemo(
     () => studentOptionsForPrint.find((student) => student.id === selectedStudentIdForPrint) || null,
