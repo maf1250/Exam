@@ -3100,12 +3100,7 @@ React.useEffect(() => {
 }, [rows]);
   
 
-  const [showHeader, setShowHeader] = React.useState(false);
-
-React.useEffect(() => {
-  setTimeout(() => setShowHeader(true), 80);
-}, []);
-  
+ 
   
   return (
     <div
