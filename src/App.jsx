@@ -1344,7 +1344,7 @@ const pendingRestoreRef = useRef(null);
   const [invigilationMode, setInvigilationMode] = useState("ratio");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
-  
+  const [studentSearchText, setStudentSearchText] = useState("");
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -1702,6 +1702,12 @@ useEffect(() => {
   return () => window.clearTimeout(timer);
 }, [currentStep, previewTab]);
 
+  useEffect(() => {
+  if (!selectedStudentInfoForPrint) return;
+
+  setStudentSearchText(selectedStudentInfoForPrint.label || "");
+}, [selectedStudentInfoForPrint]);
+  
 useEffect(() => {
   if (!didRestore) return;
   if (pendingRestoreRef.current) return;
@@ -1932,7 +1938,7 @@ const importSavedSession = (file) => {
     if (!file) return;
 
     setFileName(file.name);
-
+    setStudentSearchText("");
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -2806,7 +2812,30 @@ if (!map.has(studentId)) {
     () => studentOptionsForPrint.find((student) => student.id === selectedStudentIdForPrint) || null,
     [studentOptionsForPrint, selectedStudentIdForPrint]
   );
+useEffect(() => {
+  if (!studentSearchText.trim()) {
+    setSelectedStudentIdForPrint("");
+    return;
+  }
 
+  const normalizedSearch = normalizeArabic(studentSearchText);
+
+  const matchedStudent = studentOptionsForPrint.find((student) => {
+    const normalizedName = normalizeArabic(student.name || "");
+    const normalizedId = normalizeArabic(student.id || "");
+    const normalizedLabel = normalizeArabic(student.label || "");
+
+    return (
+      normalizedName === normalizedSearch ||
+      normalizedId === normalizedSearch ||
+      normalizedLabel === normalizedSearch
+    );
+  });
+
+  if (matchedStudent) {
+    setSelectedStudentIdForPrint(matchedStudent.id);
+  }
+}, [studentSearchText, studentOptionsForPrint]);
 const selectedStudentScheduleForPrint = useMemo(() => {
   if (!selectedStudentIdForPrint) return [];
 
@@ -4587,18 +4616,19 @@ style={{
                       </label>
 
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
-                      <select
-                        value={selectedStudentIdForPrint}
-                        onChange={(e) => setSelectedStudentIdForPrint(e.target.value)}
-                        style={{ ...fieldStyle(), maxWidth: 520 }}
-                      >
-                        <option value="">اختر المتدرب بالاسم أو الرقم</option>
-                        {studentOptionsForPrint.map((student) => (
-                          <option key={student.id} value={student.id}>
-                            {student.label}
-                          </option>
-                        ))}
-                      </select>
+                      <input
+  list="students-print-list"
+  value={studentSearchText}
+  onChange={(e) => setStudentSearchText(e.target.value)}
+  placeholder="البحث باسم المتدرب أو رقمه"
+  style={fieldStyle()}
+/>
+
+<datalist id="students-print-list">
+  {studentOptionsForPrint.map((student) => (
+    <option key={student.id} value={student.label} />
+  ))}
+</datalist>
 
                       {selectedStudentInfoForPrint ? (
                         <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
