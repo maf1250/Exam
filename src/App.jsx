@@ -1415,8 +1415,27 @@ const deserializeScheduleItem = (item) => ({
   students: Array.isArray(item.students) ? item.students : [],
 });
 
+  const formatTrainees = (n) => {
+  if (n === 1) return "متدرب";
+  if (n >= 2 && n <= 10) return "متدربين";
+  return "متدرب";
+};
+  
 const getConflictsDetails = (courseKey) => {
-  return parsed.conflictDetailsByCourse?.[courseKey] || [];
+  const detailsMap = parsed.conflictDetailsMap?.get(courseKey);
+  if (!detailsMap) return [];
+
+  return Array.from(detailsMap.entries())
+    .map(([conflictKey, sharedCount]) => {
+      const course = parsed.courses.find((c) => c.key === conflictKey);
+
+      return {
+        key: conflictKey,
+        name: course ? `${course.courseName} - ${course.courseCode}` : conflictKey,
+        sharedCount,
+      };
+    })
+    .sort((a, b) => b.sharedCount - a.sharedCount || a.name.localeCompare(b.name, "ar"));
 };
   
 const hasMeaningfulSessionData = (data) => {
@@ -2000,18 +2019,34 @@ splitBySlash(sectionName).forEach((value) => {
       }
     });
 
-    const conflictMap = new Map();
-    Array.from(courseMap.keys()).forEach((key) => conflictMap.set(key, new Set()));
+const conflictMap = new Map();
+const conflictDetailsMap = new Map();
 
-    studentCourseMap.forEach((courseSet) => {
-      const list = Array.from(courseSet);
-      for (let i = 0; i < list.length; i += 1) {
-        for (let j = i + 1; j < list.length; j += 1) {
-          conflictMap.get(list[i]).add(list[j]);
-          conflictMap.get(list[j]).add(list[i]);
-        }
-      }
-    });
+Array.from(courseMap.keys()).forEach((key) => {
+  conflictMap.set(key, new Set());
+  conflictDetailsMap.set(key, new Map());
+});
+
+studentCourseMap.forEach((courseSet) => {
+  const list = Array.from(courseSet);
+
+  for (let i = 0; i < list.length; i += 1) {
+    for (let j = i + 1; j < list.length; j += 1) {
+      const a = list[i];
+      const b = list[j];
+
+      conflictMap.get(a).add(b);
+      conflictMap.get(b).add(a);
+
+      const aDetails = conflictDetailsMap.get(a);
+      const bDetails = conflictDetailsMap.get(b);
+
+      aDetails.set(b, (aDetails.get(b) || 0) + 1);
+      bDetails.set(a, (bDetails.get(a) || 0) + 1);
+    }
+  }
+});
+    
 // ربط الأقسام بالمقررات بعد اكتمال البيانات
 courseMap.forEach((course) => {
   course.students.forEach((studentId) => {
@@ -2059,6 +2094,7 @@ courseMap.forEach((course) => {
       studentsCount: studentSet.size,
       invigilators: Array.from(invigilatorSet).sort((a, b) => a.localeCompare(b, "ar")),
       sections: Array.from(sectionSet).sort((a, b) => a.localeCompare(b, "ar")),
+      conflictDetailsMap,
     };
   }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors]);
 
@@ -4187,12 +4223,13 @@ printScheduleOnlyPdf({
     fontWeight: "bold",
     textDecoration: "underline",
   }}
+
   onClick={() =>
-    setSelectedConflicts({
-      name: course.courseName,
-      list: getConflictsDetails(course.key),
-    })
-  }
+  setSelectedConflicts({
+    name: `${course.courseName} - ${course.courseCode}`,
+    list: getConflictsDetails(course.key),
+  })
+}
 >
   {course.conflictDegree}
 </span></td>
@@ -4517,23 +4554,56 @@ printScheduleOnlyPdf({
   {selectedConflicts.list.length === 0 ? (
     <p style={{ color: COLORS.muted }}>لا يوجد تعارض</p>
   ) : (
-    <ul style={{ paddingRight: 18 }}>
-      {selectedConflicts.list.map((c, i) => (
-        <li
-          key={i}
-          style={{
-            marginBottom: 6,
-            background: "#fff",
-            borderRadius: 10,
-            padding: "6px 10px",
-            border: `1px solid ${COLORS.border}`,
-            fontWeight: 600,
-          }}
-        >
-          {c}
-        </li>
-      ))}
-    </ul>
+   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+{selectedConflicts.list.map((item) => (
+  <li
+    key={item.key}
+    style={{
+      marginBottom: 8,
+      background: "#fff",
+      borderRadius: 10,
+      padding: "8px 12px",
+      border: `1px solid ${COLORS.border}`,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+    }}
+  >
+    <span
+  style={{
+    background: COLORS.primaryDark,
+    color: "#fff",
+    borderRadius: "50%",
+    width: 24,
+    height: 24,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: "bold",
+  }}
+>
+  {i + 1}
+</span>
+
+    <span
+      style={{
+        background: COLORS.primaryLight,
+        color: COLORS.primaryDark,
+        borderRadius: 999,
+        padding: "4px 10px",
+        fontWeight: 800,
+        minWidth: 80,
+        textAlign: "center",
+      }}
+    >
+      {item.sharedCount} {formatTrainees(item.sharedCount)}
+    </span>
+  </li>
+))}
+      
+</ul>
   )}
 
   <button
