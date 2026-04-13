@@ -4377,7 +4377,8 @@ style={{
                             padding: 12,
                             borderBottom: `1px solid ${COLORS.border}`,
                             background: rowTheme.bg,
-                            fontWeight: 700,
+                            fontWeight: 800,
+                            color: rowTheme.text,
                           }}
                         >
                           {student.id || "-"}
@@ -4400,6 +4401,8 @@ style={{
                             padding: 12,
                             borderBottom: `1px solid ${COLORS.border}`,
                             background: rowTheme.bg,
+                            fontWeight: 800,
+                            color: rowTheme.text,
                           }}
                         >
                           {student.department || "-"}
@@ -4410,7 +4413,7 @@ style={{
                             padding: 12,
                             borderBottom: `1px solid ${COLORS.border}`,
                             background: rowTheme.bg,
-                            fontWeight: 700,
+                            fontWeight: 800,
                             color: rowTheme.text,
                           }}
                         >
