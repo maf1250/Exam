@@ -3669,23 +3669,23 @@ style={{
             التالي: الدراسات العامة
           </button>
         </div>
-      </div>
-    ) : (
-      <div
-        style={{
-          marginTop: 18,
-          border: `1px dashed ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 18,
-          color: COLORS.muted,
-          background: "#F8FEFE",
-        }}
-      >
-        تم إيقاف إضافة المراقبين تلقائيًا.
-      </div>
-    )}
-  </Card>
-)}
+              </div>
+      ) : (
+        <div
+          style={{
+            marginTop: 18,
+            border: `1px dashed ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 18,
+            color: COLORS.muted,
+            background: "#F8FEFE",
+          }}
+        >
+          تم إيقاف إضافة المراقبين تلقائيًا.
+        </div>
+      )}
+    </Card>
+  )}
         {currentStep === 4 && (
           <Card>
             <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
