@@ -1413,6 +1413,21 @@ const serializeScheduleItem = (item) => ({
     : Array.from(item.students || []),
 });
 
+  const getStudentColor = (index) => {
+  const colors = [
+    "#0F766E", // primary dark
+    "#047857",
+    "#1D4ED8",
+    "#6D28D9",
+    "#C2410C",
+    "#B91C1C",
+    "#0369A1",
+    "#7C3AED",
+  ];
+
+  return colors[index % colors.length];
+};
+  
 const deserializeScheduleItem = (item) => ({
   ...item,
   students: Array.isArray(item.students) ? item.students : [],
@@ -4320,8 +4335,15 @@ style={{
                         {student.id}
                       </td>
                       <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
-                        {student.name}
-                      </td>
+  <span
+    style={{
+      color: getStudentColor(index),
+      fontWeight: 800,
+    }}
+  >
+    {student.name}
+  </span>
+</td>
                       <td style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>
                         {student.department}
                       </td>
