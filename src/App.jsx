@@ -1421,6 +1421,43 @@ const deserializeScheduleItem = (item) => ({
   if (n >= 2 && n <= 10) return "متدربين";
   return "متدرب";
 };
+
+const getPeriodTheme = (period) => {
+  const themes = [
+    {
+      bg: "#F0FDFA",
+      border: "#99F6E4",
+      accent: "#0F766E",
+      badgeBg: "#CCFBF1",
+    },
+    {
+      bg: "#ECFDF5",
+      border: "#A7F3D0",
+      accent: "#047857",
+      badgeBg: "#D1FAE5",
+    },
+    {
+      bg: "#EFF6FF",
+      border: "#BFDBFE",
+      accent: "#1D4ED8",
+      badgeBg: "#DBEAFE",
+    },
+    {
+      bg: "#F5F3FF",
+      border: "#DDD6FE",
+      accent: "#6D28D9",
+      badgeBg: "#EDE9FE",
+    },
+    {
+      bg: "#FFF7ED",
+      border: "#FED7AA",
+      accent: "#C2410C",
+      badgeBg: "#FFEDD5",
+    },
+  ];
+
+  return themes[(Math.max(1, Number(period) || 1) - 1) % themes.length];
+};
   
 const getConflictsDetails = (courseKey) => {
   const detailsMap = parsed.conflictDetailsMap?.get(courseKey);
@@ -4444,19 +4481,43 @@ printScheduleOnlyPdf({
                               </thead>
 
                               <tbody>
-                                {items.map((item) => (
-                                  <tr key={`${item.key}-${item.id}`}>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", fontWeight: 800 }}>{item.period}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.timeText}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.courseCode}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.examHall || "-"}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.sectionName}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.trainerText}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{item.studentCount}</td>
-                                    <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{(item.invigilators || []).join("، ") || "-"}</td>
-                                  </tr>
-                                ))}
+                                {items.map((item) => {
+                                  const periodTheme = getPeriodTheme(item.period);
+                                  const cellStyle = {
+                                    padding: 12,
+                                    borderBottom: `1px solid ${periodTheme.border}`,
+                                    background: periodTheme.bg,
+                                  };
+
+                                  return (
+                                    <tr key={`${item.key}-${item.id}`}>
+                                      <td style={{ ...cellStyle, fontWeight: 800 }}>
+                                        <span
+                                          style={{
+                                            display: "inline-block",
+                                            minWidth: 74,
+                                            textAlign: "center",
+                                            padding: "6px 10px",
+                                            borderRadius: 999,
+                                            background: periodTheme.badgeBg,
+                                            color: periodTheme.accent,
+                                            fontWeight: 900,
+                                          }}
+                                        >
+                                          الفترة {item.period}
+                                        </span>
+                                      </td>
+                                      <td style={cellStyle}>{item.timeText}</td>
+                                      <td style={{ ...cellStyle, fontWeight: 700 }}>{item.courseName}</td>
+                                      <td style={cellStyle}>{item.courseCode}</td>
+                                      <td style={cellStyle}>{item.examHall || "-"}</td>
+                                      <td style={cellStyle}>{item.sectionName}</td>
+                                      <td style={cellStyle}>{item.trainerText}</td>
+                                      <td style={{ ...cellStyle, fontWeight: 800 }}>{item.studentCount}</td>
+                                      <td style={cellStyle}>{(item.invigilators || []).join("، ") || "-"}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
