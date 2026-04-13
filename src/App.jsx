@@ -4721,6 +4721,28 @@ style={{
                       </div>
                     </div>
 
+                     <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 10,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 14,
+                          padding: "10px 12px",
+                          background: "#fff",
+                          marginBottom: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={compactPrintMode}
+                          onChange={(e) => setCompactPrintMode(e.target.checked)}
+                        />
+                        ضغط الطباعة في صفحة واحدة قدر الإمكان
+                      </label>
+
+                    
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                       <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
                         السابق
@@ -4753,31 +4775,6 @@ printScheduleOnlyPdf({
   compactMode: compactPrintMode,
 })
                       }
-
-
-                         <label
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 10,
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 14,
-                          padding: "10px 12px",
-                          background: "#fff",
-                          marginBottom: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={compactPrintMode}
-                          onChange={(e) => setCompactPrintMode(e.target.checked)}
-                        />
-                        ضغط الطباعة في صفحة واحدة قدر الإمكان
-                      </label>
-
-
-
                       
                         style={cardButtonStyle({ active: true })}
                       >
