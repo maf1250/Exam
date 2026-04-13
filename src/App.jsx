@@ -2041,21 +2041,30 @@ splitBySlash(sectionName).forEach((value) => {
       }
     });
 
+const activeCourseKeys = Array.from(courseMap.keys()).filter(
+  (key) => !excludedCourses.includes(key)
+);
+
 const conflictMap = new Map();
 const conflictDetailsMap = new Map();
 
-Array.from(courseMap.keys()).forEach((key) => {
+activeCourseKeys.forEach((key) => {
   conflictMap.set(key, new Set());
   conflictDetailsMap.set(key, new Map());
 });
 
-studentCourseMap.forEach((courseSet) => {
-  const list = Array.from(courseSet);
+
+    studentCourseMap.forEach((courseSet) => {
+  const list = Array.from(courseSet).filter(
+    (key) => !excludedCourses.includes(key)
+  );
 
   for (let i = 0; i < list.length; i += 1) {
     for (let j = i + 1; j < list.length; j += 1) {
       const a = list[i];
       const b = list[j];
+
+      if (!conflictMap.has(a) || !conflictMap.has(b)) continue;
 
       conflictMap.get(a).add(b);
       conflictMap.get(b).add(a);
@@ -2091,8 +2100,8 @@ courseMap.forEach((course) => {
       .filter((course) => !excludedCourses.includes(course.key))
       .sort((a, b) => b.studentCount - a.studentCount || b.conflictDegree - a.conflictDegree);
 
-    const conflictDetailsByCourse = Object.fromEntries(
-      Array.from(conflictMap.keys()).map((courseKey) => {
+ const conflictDetailsByCourse = Object.fromEntries(
+  activeCourseKeys.map((courseKey) => {
         const details = Array.from(conflictMap.get(courseKey) || [])
           .map((conflictKey) => {
             const conflictCourse = courseMap.get(conflictKey);
