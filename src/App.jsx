@@ -4593,36 +4593,105 @@ style={{
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
                       
 
-<input
-  value={studentSearchText}
-  onChange={(e) => {
-    const value = e.target.value;
-    setStudentSearchText(value);
-
-    const normalizedSearch = normalizeArabic(value.trim());
-
-    if (!normalizedSearch) {
+<div style={{ position: "relative" }}>
+  <input
+    value={studentSearchText}
+    onChange={(e) => {
+      const value = e.target.value;
+      setStudentSearchText(value);
       setSelectedStudentIdForPrint("");
-      return;
-    }
+    }}
+    placeholder="ابحث باسم المتدرب أو رقمه"
+    style={fieldStyle()}
+  />
 
-    const matchedStudent = studentOptionsForPrint.find((student) => {
-      const normalizedName = normalizeArabic(student.name || "");
-      const normalizedId = normalizeArabic(student.id || "");
-      const normalizedLabel = normalizeArabic(student.label || "");
+  {studentSearchText.trim() && (
+    <div
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        right: 0,
+        left: 0,
+        background: "#fff",
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 16,
+        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+        maxHeight: 260,
+        overflowY: "auto",
+        zIndex: 2000,
+      }}
+    >
+      {studentOptionsForPrint
+        .filter((student) => {
+          const q = normalizeArabic(studentSearchText.trim());
+          if (!q) return false;
 
-      return (
-        normalizedName.includes(normalizedSearch) ||
-        normalizedId.includes(normalizedSearch) ||
-        normalizedLabel.includes(normalizedSearch)
-      );
-    });
+          const name = normalizeArabic(student.name || "");
+          const id = normalizeArabic(student.id || "");
+          const label = normalizeArabic(student.label || "");
 
-    setSelectedStudentIdForPrint(matchedStudent?.id || "");
-  }}
-  placeholder="ابحث باسم المتدرب أو رقمه"
-  style={fieldStyle()}
-/>
+          return (
+            name.includes(q) ||
+            id.includes(q) ||
+            label.includes(q)
+          );
+        })
+        .slice(0, 12)
+        .map((student) => (
+          <button
+            key={student.id}
+            type="button"
+            onClick={() => {
+              setStudentSearchText(student.label);
+              setSelectedStudentIdForPrint(student.id);
+            }}
+            style={{
+              width: "100%",
+              textAlign: "right",
+              border: "none",
+              borderBottom: `1px solid ${COLORS.border}`,
+              background: "#fff",
+              padding: "12px 14px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <div style={{ fontWeight: 800, color: COLORS.text }}>
+              {student.name}
+            </div>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
+              {student.id} — {student.department} / {student.major}
+            </div>
+          </button>
+        ))}
+
+      {!studentOptionsForPrint.some((student) => {
+        const q = normalizeArabic(studentSearchText.trim());
+        if (!q) return false;
+
+        const name = normalizeArabic(student.name || "");
+        const id = normalizeArabic(student.id || "");
+        const label = normalizeArabic(student.label || "");
+
+        return (
+          name.includes(q) ||
+          id.includes(q) ||
+          label.includes(q)
+        );
+      }) && (
+        <div
+          style={{
+            padding: "12px 14px",
+            color: COLORS.muted,
+            textAlign: "right",
+          }}
+        >
+          لا توجد نتائج
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
                       {selectedStudentInfoForPrint ? (
                         <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
