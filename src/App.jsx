@@ -4486,48 +4486,73 @@ printScheduleOnlyPdf({
     }}
     onClick={() => setSelectedConflicts(null)}
   >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        padding: 20,
-        width: 400,
-        maxHeight: "70vh",
-        overflowY: "auto",
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h3 style={{ marginBottom: 10 }}>
-        المقررات المتعارضة مع:
-        <br />
-        {selectedConflicts.name}
-      </h3>
+<div
+  style={{
+    background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #ffffff 100%)`,
+    borderRadius: 20,
+    padding: 22,
+    width: 420,
+    maxHeight: "70vh",
+    overflowY: "auto",
+    border: `1px solid ${COLORS.primaryBorder}`,
+    boxShadow: "0 20px 50px rgba(20,123,131,0.25)",
+  }}
+  onClick={(e) => e.stopPropagation()}
+>
+  <h4
+    style={{
+      marginBottom: 12,
+      color: COLORS.primaryDark,
+      fontWeight: 900,
+      fontSize: 18,
+    }}
+  >
+     المقررات المتعارضة مع:
+    <br />
+    <span style={{ color: COLORS.charcoal }}>
+      {selectedConflicts.name}
+    </span>
+  </h4>
 
-      {selectedConflicts.list.length === 0 ? (
-        <p>لا يوجد تعارض</p>
-      ) : (
-        <ul>
-          {selectedConflicts.list.map((c, i) => (
-            <li key={i}>{c}</li>
-          ))}
-        </ul>
-      )}
+  {selectedConflicts.list.length === 0 ? (
+    <p style={{ color: COLORS.muted }}>لا يوجد تعارض</p>
+  ) : (
+    <ul style={{ paddingRight: 18 }}>
+      {selectedConflicts.list.map((c, i) => (
+        <li
+          key={i}
+          style={{
+            marginBottom: 6,
+            background: "#fff",
+            borderRadius: 10,
+            padding: "6px 10px",
+            border: `1px solid ${COLORS.border}`,
+            fontWeight: 600,
+          }}
+        >
+          {c}
+        </li>
+      ))}
+    </ul>
+  )}
 
-      <button
-        onClick={() => setSelectedConflicts(null)}
-        style={{
-          marginTop: 10,
-          padding: "6px 12px",
-          borderRadius: 8,
-          border: "none",
-          background: "#147B83",
-          color: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        إغلاق
-      </button>
-    </div>
+  <button
+    onClick={() => setSelectedConflicts(null)}
+    style={{
+      marginTop: 14,
+      padding: "8px 14px",
+      borderRadius: 10,
+      border: "none",
+      background: COLORS.primaryDark,
+      color: "#fff",
+      cursor: "pointer",
+      fontWeight: 700,
+      width: "100%",
+    }}
+  >
+    إغلاق
+  </button>
+</div>
   </div>
 )}
       </div>
