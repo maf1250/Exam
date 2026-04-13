@@ -4331,11 +4331,11 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#F9FAFB" }}>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>م</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>رقم المتدرب</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>اسم المتدرب</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>القسم</th>
-                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}` }}>التخصص</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"}` }}>م</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"}` }}>رقم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"}` }}>اسم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"}` }}>القسم</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border, textAlign: "right"}` }}>التخصص</th>
                   </tr>
                 </thead>
                 <tbody>
