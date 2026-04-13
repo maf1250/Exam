@@ -3601,7 +3601,7 @@ style={{
                 />
               </div>
             )}
-          </div>
+         
 
           <div style={{ width: "100%", maxWidth: 460 }}>
             <div style={{ marginBottom: 8, fontWeight: 800 }}>أسماء المراقبين</div>
@@ -3613,7 +3613,7 @@ style={{
             />
           </div>
         </div>
-
+ </div>
         <div
           style={{
             border: `1px solid ${COLORS.border}`,
