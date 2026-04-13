@@ -1334,6 +1334,7 @@ const pendingRestoreRef = useRef(null);
   const toastTimerRef = useRef(null);
   
   const [selectedConflicts, setSelectedConflicts] = useState(null);
+  const [selectedConflictStudents, setSelectedConflictStudents] = useState(null);
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [collegeNameInput, setCollegeNameInput] = useState("");
@@ -1436,6 +1437,38 @@ const getConflictsDetails = (courseKey) => {
       };
     })
     .sort((a, b) => b.sharedCount - a.sharedCount || a.name.localeCompare(b.name, "ar"));
+};
+
+const getConflictStudentsDetails = (courseKey, conflictKey) => {
+  const sourceCourse = parsed.courses.find((c) => c.key === courseKey);
+  const conflictCourse = parsed.courses.find((c) => c.key === conflictKey);
+  if (!sourceCourse || !conflictCourse) return [];
+
+  const sourceStudents = Array.from(sourceCourse.students || []);
+  const conflictStudentsSet = new Set(Array.from(conflictCourse.students || []));
+
+  const studentInfoMap = new Map();
+  parsed.filteredRows.forEach((row) => {
+    const id = String(row["رقم المتدرب"] ?? "").trim();
+    if (!id || studentInfoMap.has(id)) return;
+
+    studentInfoMap.set(id, {
+      id,
+      name: String(row["إسم المتدرب"] ?? "").trim() || "بدون اسم",
+      department: String(row["القسم"] ?? "").trim() || "-",
+      major: String(row["التخصص"] ?? "").trim() || "-",
+    });
+  });
+
+  return sourceStudents
+    .filter((studentId) => conflictStudentsSet.has(studentId))
+    .map((studentId) => studentInfoMap.get(studentId) || {
+      id: studentId,
+      name: "بدون اسم",
+      department: "-",
+      major: "-",
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
 };
   
 const hasMeaningfulSessionData = (data) => {
@@ -4225,11 +4258,12 @@ printScheduleOnlyPdf({
   }}
 
   onClick={() =>
-  setSelectedConflicts({
-    name: `${course.courseName} - ${course.courseCode}`,
-    list: getConflictsDetails(course.key),
-  })
-}
+    setSelectedConflicts({
+      sourceKey: course.key,
+      name: `${course.courseName} - ${course.courseCode}`,
+      list: getConflictsDetails(course.key),
+    })
+  }
 >
   {course.conflictDegree}
 </span></td>
@@ -4511,118 +4545,239 @@ printScheduleOnlyPdf({
   <div
     style={{
       position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.4)",
+      inset: 0,
+      background: "rgba(20,123,131,0.22)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      padding: 16,
       zIndex: 9999,
     }}
     onClick={() => setSelectedConflicts(null)}
   >
-<div
-  style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #ffffff 100%)`,
-    borderRadius: 20,
-    padding: 22,
-    width: 420,
-    maxHeight: "70vh",
-    overflowY: "auto",
-    border: `1px solid ${COLORS.primaryBorder}`,
-    boxShadow: "0 20px 50px rgba(20,123,131,0.25)",
-  }}
-  onClick={(e) => e.stopPropagation()}
->
-  <h4
-    style={{
-      marginBottom: 12,
-      color: COLORS.primaryDark,
-      fontWeight: 900,
-      fontSize: 18,
-    }}
-  >
-     المقررات المتعارضة مع:
-    <br />
-    <span style={{ color: COLORS.charcoal }}>
-      {selectedConflicts.name}
-    </span>
-  </h4>
-
-  {selectedConflicts.list.length === 0 ? (
-    <p style={{ color: COLORS.muted }}>لا يوجد تعارض</p>
-  ) : (
-   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-{selectedConflicts.list.map((item) => (
-  <li
-    key={item.key}
-    style={{
-      marginBottom: 8,
-      background: "#fff",
-      borderRadius: 10,
-      padding: "8px 12px",
-      border: `1px solid ${COLORS.border}`,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 12,
-    }}
-  >
-    <span
-  style={{
-    background: COLORS.primaryDark,
-    color: "#fff",
-    borderRadius: "50%",
-    width: 24,
-    height: 24,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 12,
-    fontWeight: "bold",
-  }}
->
-  {i + 1}
-</span>
-
-    <span
+    <div
       style={{
-        background: COLORS.primaryLight,
-        color: COLORS.primaryDark,
-        borderRadius: 999,
-        padding: "4px 10px",
-        fontWeight: 800,
-        minWidth: 80,
-        textAlign: "center",
+        background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #ffffff 100%)`,
+        borderRadius: 20,
+        padding: 22,
+        width: "min(760px, 100%)",
+        maxHeight: "78vh",
+        overflowY: "auto",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        boxShadow: "0 20px 50px rgba(20,123,131,0.25)",
       }}
+      onClick={(e) => e.stopPropagation()}
     >
-      {item.sharedCount} {formatTrainees(item.sharedCount)}
-    </span>
-  </li>
-))}
-      
-</ul>
-  )}
+      <h4
+        style={{
+          margin: "0 0 12px",
+          color: COLORS.primaryDark,
+          fontWeight: 900,
+          fontSize: 18,
+        }}
+      >
+        المقررات المتعارضة مع:
+        <br />
+        <span style={{ color: COLORS.charcoal }}>{selectedConflicts.name}</span>
+      </h4>
 
-  <button
-    onClick={() => setSelectedConflicts(null)}
+      {selectedConflicts.list.length === 0 ? (
+        <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد تعارض</p>
+      ) : (
+        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {selectedConflicts.list.map((item, i) => (
+            <li
+              key={item.key}
+              style={{
+                marginBottom: 8,
+                background: "#fff",
+                borderRadius: 12,
+                padding: "10px 12px",
+                border: `1px solid ${COLORS.border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                <span
+                  style={{
+                    background: COLORS.primaryDark,
+                    color: "#fff",
+                    borderRadius: "50%",
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    flexShrink: 0,
+                  }}
+                >
+                  {i + 1}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedConflictStudents({
+                      courseName: selectedConflicts.name,
+                      conflictName: item.name,
+                      students: getConflictStudentsDetails(selectedConflicts.sourceKey, item.key),
+                    })
+                  }
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    margin: 0,
+                    cursor: "pointer",
+                    color: COLORS.charcoal,
+                    fontWeight: 700,
+                    textAlign: "right",
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                  title="عرض الطلاب المشتركين"
+                >
+                  {item.name}
+                </button>
+              </div>
+
+            <span
+  style={{
+    background:
+      item.sharedCount > 10
+        ? "#FEE2E2"
+        : COLORS.primaryLight,
+
+    color:
+      item.sharedCount > 10
+        ? "#B91C1C"
+        : COLORS.primaryDark,
+
+    borderRadius: 999,
+    padding: "4px 10px",
+    fontWeight: 800,
+    minWidth: 90,
+    textAlign: "center",
+    flexShrink: 0,
+  }}
+>
+                {item.sharedCount} {formatTrainees(item.sharedCount)}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <button
+        onClick={() => setSelectedConflicts(null)}
+        style={{
+          marginTop: 14,
+          padding: "8px 14px",
+          borderRadius: 10,
+          border: "none",
+          background: COLORS.primaryDark,
+          color: "#fff",
+          cursor: "pointer",
+          fontWeight: 700,
+          width: "100%",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
+  </div>
+)}
+
+{selectedConflictStudents && (
+  <div
     style={{
-      marginTop: 14,
-      padding: "8px 14px",
-      borderRadius: 10,
-      border: "none",
-      background: COLORS.primaryDark,
-      color: "#fff",
-      cursor: "pointer",
-      fontWeight: 700,
-      width: "100%",
+      position: "fixed",
+      inset: 0,
+      background: "rgba(20,123,131,0.18)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      zIndex: 10000,
     }}
+    onClick={() => setSelectedConflictStudents(null)}
   >
-    إغلاق
-  </button>
-</div>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 20,
+        padding: 22,
+        width: "min(860px, 100%)",
+        maxHeight: "78vh",
+        overflowY: "auto",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        boxShadow: "0 20px 50px rgba(20,123,131,0.18)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h4 style={{ margin: "0 0 8px", color: COLORS.primaryDark, fontWeight: 900, fontSize: 18 }}>
+        الطلاب المشتركون
+      </h4>
+      <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 14 }}>
+        <div><strong>المقرر الأساسي:</strong> {selectedConflictStudents.courseName}</div>
+        <div><strong>المقرر المتعارض:</strong> {selectedConflictStudents.conflictName}</div>
+        <div><strong>عدد الطلاب:</strong> {selectedConflictStudents.students.length} {formatTrainees(selectedConflictStudents.students.length)}</div>
+      </div>
+
+      {!selectedConflictStudents.students.length ? (
+        <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد طلاب مشتركون.</p>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: COLORS.primaryLight }}>
+                {['م','رقم المتدرب','اسم المتدرب','القسم','التخصص'].map((label) => (
+                  <th
+                    key={label}
+                    style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: 'right', whiteSpace: 'nowrap' }}
+                  >
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {selectedConflictStudents.students.map((student, index) => (
+                <tr key={`${student.id}-${index}`}>
+                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{index + 1}</td>
+                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.id}</td>
+                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.name}</td>
+                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.department}</td>
+                  <td style={{ padding: 12, borderBottom: '1px solid #F1F5F9' }}>{student.major}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <button
+        onClick={() => setSelectedConflictStudents(null)}
+        style={{
+          marginTop: 14,
+          padding: "8px 14px",
+          borderRadius: 10,
+          border: "none",
+          background: COLORS.primaryDark,
+          color: "#fff",
+          cursor: "pointer",
+          fontWeight: 700,
+          width: "100%",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
   </div>
 )}
       </div>
