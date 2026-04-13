@@ -4391,15 +4391,16 @@ style={{
     {student.department || "-"}
   </td>
 
-  <td
-    style={{
-      padding: 12,
-      color: COLORS.text,
-      background: getTvtcRowTheme(index).bg,
-      fontWeight: 700,
-    }}
-  >
-    {student.major?.trim() || "-"}
+      <td
+        style={{
+          padding: 12,
+          borderBottom: `1px solid ${COLORS.border}`,
+          background: rowTheme.bg,
+          fontWeight: 700,
+          color: rowTheme.text,
+        }}
+      >
+        {student.major || "-"}
   </td>
 </tr>
               
