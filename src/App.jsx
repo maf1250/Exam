@@ -1702,12 +1702,7 @@ useEffect(() => {
   return () => window.clearTimeout(timer);
 }, [currentStep, previewTab]);
 
-  useEffect(() => {
-  if (!selectedStudentInfoForPrint) return;
 
-  setStudentSearchText(selectedStudentInfoForPrint.label || "");
-}, [selectedStudentInfoForPrint]);
-  
 useEffect(() => {
   if (!didRestore) return;
   if (pendingRestoreRef.current) return;
@@ -2812,30 +2807,10 @@ if (!map.has(studentId)) {
     () => studentOptionsForPrint.find((student) => student.id === selectedStudentIdForPrint) || null,
     [studentOptionsForPrint, selectedStudentIdForPrint]
   );
-useEffect(() => {
-  if (!studentSearchText.trim()) {
-    setSelectedStudentIdForPrint("");
-    return;
-  }
 
-  const normalizedSearch = normalizeArabic(studentSearchText);
 
-  const matchedStudent = studentOptionsForPrint.find((student) => {
-    const normalizedName = normalizeArabic(student.name || "");
-    const normalizedId = normalizeArabic(student.id || "");
-    const normalizedLabel = normalizeArabic(student.label || "");
 
-    return (
-normalizedName.includes(normalizedSearch) ||
-normalizedId.includes(normalizedSearch) ||
-normalizedLabel.includes(normalizedSearch)
-    );
-  });
 
-  if (matchedStudent) {
-    setSelectedStudentIdForPrint(matchedStudent.id);
-  }
-}, [studentSearchText, studentOptionsForPrint]);
 const selectedStudentScheduleForPrint = useMemo(() => {
   if (!selectedStudentIdForPrint) return [];
 
@@ -4616,19 +4591,38 @@ style={{
                       </label>
 
                       <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
-                      <input
-  list="students-print-list"
+                      
+
+<input
   value={studentSearchText}
-  onChange={(e) => setStudentSearchText(e.target.value)}
-  placeholder="البحث باسم المتدرب أو رقمه"
+  onChange={(e) => {
+    const value = e.target.value;
+    setStudentSearchText(value);
+
+    const normalizedSearch = normalizeArabic(value.trim());
+
+    if (!normalizedSearch) {
+      setSelectedStudentIdForPrint("");
+      return;
+    }
+
+    const matchedStudent = studentOptionsForPrint.find((student) => {
+      const normalizedName = normalizeArabic(student.name || "");
+      const normalizedId = normalizeArabic(student.id || "");
+      const normalizedLabel = normalizeArabic(student.label || "");
+
+      return (
+        normalizedName.includes(normalizedSearch) ||
+        normalizedId.includes(normalizedSearch) ||
+        normalizedLabel.includes(normalizedSearch)
+      );
+    });
+
+    setSelectedStudentIdForPrint(matchedStudent?.id || "");
+  }}
+  placeholder="ابحث باسم المتدرب أو رقمه"
   style={fieldStyle()}
 />
-
-<datalist id="students-print-list">
-  {studentOptionsForPrint.map((student) => (
-    <option key={student.id} value={student.label} />
-  ))}
-</datalist>
 
                       {selectedStudentInfoForPrint ? (
                         <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
