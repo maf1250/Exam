@@ -3601,7 +3601,7 @@ style={{
                 />
               </div>
             )}
-          </div>
+          
 
           <span style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
             <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right"}}>أسماء المراقبين</div>
@@ -3612,7 +3612,7 @@ style={{
               style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
             />  </span>
           </div>
-      
+      </div>
 
         <div
           style={{
