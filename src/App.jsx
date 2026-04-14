@@ -6,6 +6,7 @@ const STORAGE_MODE_KEY = "exam_scheduler_storage_mode_v1";
 const DB_NAME = "exam_scheduler_db";
 const DB_VERSION = 1;
 const STORE_NAME = "sessions";
+const ADMIN_GATE_PASSWORD_KEY = "exam_scheduler_admin_password_v1";
 
 function openAppDb() {
   return new Promise((resolve, reject) => {
@@ -1409,7 +1410,14 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
-  const [appMode, setAppMode] = useState("admin");
+  const [appMode, setAppMode] = useState(() => window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY) ? "student" : "admin");
+  const [adminPasswordStored, setAdminPasswordStored] = useState(() => window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY) || "");
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => !window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY));
+  const [showAdminAccessCard, setShowAdminAccessCard] = useState(false);
+  const [showAdminLockCard, setShowAdminLockCard] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState("");
 
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -1907,6 +1915,91 @@ const importSavedSession = (file) => {
   };
 
   reader.readAsText(file, "utf-8");
+};
+
+
+const isAdminLocked = Boolean(adminPasswordStored);
+
+const openAdminMode = () => {
+  if (isAdminLocked && !isAdminUnlocked) {
+    setShowAdminAccessCard(true);
+    setShowAdminLockCard(false);
+    return;
+  }
+
+  setAppMode("admin");
+  setShowStudentSuggestions(false);
+  setShowAdminAccessCard(false);
+};
+
+const openStudentMode = () => {
+  setAppMode("student");
+  setStudentSearchText("");
+  setSelectedStudentIdForPrint("");
+  setShowStudentSuggestions(false);
+  setShowAdminAccessCard(false);
+  if (isAdminLocked) {
+    setIsAdminUnlocked(false);
+  }
+};
+
+const handleAdminLogin = () => {
+  const trimmed = adminPasswordInput.trim();
+  if (!trimmed) {
+    showToast("كلمة المرور مطلوبة", "أدخل كلمة مرور الإدارة للمتابعة.", "warning");
+    return;
+  }
+
+  if (trimmed !== adminPasswordStored) {
+    showToast("تعذر الدخول", "كلمة المرور غير صحيحة.", "error");
+    return;
+  }
+
+  setIsAdminUnlocked(true);
+  setAdminPasswordInput("");
+  setShowAdminAccessCard(false);
+  setAppMode("admin");
+  showToast("تم فتح الإدارة", "تم التحقق من كلمة المرور بنجاح.", "success");
+};
+
+const handleSetAdminPassword = () => {
+  const nextPassword = newAdminPassword.trim();
+  const confirmPassword = confirmAdminPassword.trim();
+
+  if (!nextPassword || !confirmPassword) {
+    showToast("بيانات ناقصة", "أدخل كلمة المرور الجديدة ثم أكدها.", "warning");
+    return;
+  }
+
+  if (nextPassword.length < 4) {
+    showToast("كلمة المرور قصيرة", "اجعل كلمة المرور 4 أحرف أو أرقام على الأقل.", "warning");
+    return;
+  }
+
+  if (nextPassword !== confirmPassword) {
+    showToast("عدم تطابق", "تأكيد كلمة المرور لا يطابق القيمة الجديدة.", "error");
+    return;
+  }
+
+  window.localStorage.setItem(ADMIN_GATE_PASSWORD_KEY, nextPassword);
+  setAdminPasswordStored(nextPassword);
+  setIsAdminUnlocked(true);
+  setShowAdminLockCard(false);
+  setNewAdminPassword("");
+  setConfirmAdminPassword("");
+  showToast("تم حفظ القفل", "تم تعيين كلمة مرور الإدارة بنجاح.", "success");
+};
+
+const handleRemoveAdminPassword = () => {
+  window.localStorage.removeItem(ADMIN_GATE_PASSWORD_KEY);
+  setAdminPasswordStored("");
+  setIsAdminUnlocked(true);
+  setShowAdminAccessCard(false);
+  setShowAdminLockCard(false);
+  setAdminPasswordInput("");
+  setNewAdminPassword("");
+  setConfirmAdminPassword("");
+  showToast("تم إلغاء القفل", "أصبحت الواجهة الإدارية بدون كلمة مرور.", "success");
 };
 
   const departmentMajorOptions = useMemo(() => {
@@ -3320,31 +3413,131 @@ const headerBtn = (danger = false) => ({
           display: "flex",
           gap: 10,
           flexWrap: "wrap",
+          alignItems: "center",
           marginTop: 18,
           marginBottom: 18,
         }}
       >
         <button
-          onClick={() => {
-            setAppMode("admin");
-            setShowStudentSuggestions(false);
-          }}
-          style={cardButtonStyle({ active: appMode === "admin" })}
+          onClick={openAdminMode}
+          style={cardButtonStyle({ active: appMode === "admin" && (!isAdminLocked || isAdminUnlocked) })}
         >
-          الواجهة الإدارية
+          {isAdminLocked ? "دخول الإدارة" : "الواجهة الإدارية"}
         </button>
         <button
-          onClick={() => {
-            setAppMode("student");
-            setStudentSearchText("");
-            setSelectedStudentIdForPrint("");
-            setShowStudentSuggestions(false);
-          }}
+          onClick={openStudentMode}
           style={cardButtonStyle({ active: appMode === "student" })}
         >
           بوابة المتدرب
         </button>
+
+        {appMode === "admin" ? (
+          <>
+            <button
+              onClick={() => {
+                setShowAdminLockCard(true);
+                setShowAdminAccessCard(false);
+                setNewAdminPassword("");
+                setConfirmAdminPassword("");
+              }}
+              style={cardButtonStyle()}
+            >
+              {isAdminLocked ? "تغيير كلمة المرور" : "قفل الإدارة"}
+            </button>
+
+            {isAdminLocked ? (
+              <button
+                onClick={handleRemoveAdminPassword}
+                style={cardButtonStyle({ danger: true })}
+              >
+                إزالة القفل
+              </button>
+            ) : null}
+          </>
+        ) : null}
       </div>
+
+      {showAdminAccessCard ? (
+        <Card style={{ marginBottom: 18, maxWidth: 520 }}>
+          <SectionHeader
+            title="دخول الإدارة"
+            description="أدخل كلمة المرور الخاصة بهذه الجهة للوصول إلى الواجهة الإدارية."
+          />
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <input
+              type="password"
+              value={adminPasswordInput}
+              onChange={(e) => setAdminPasswordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdminLogin();
+              }}
+              placeholder="كلمة مرور الإدارة"
+              style={fieldStyle()}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={handleAdminLogin} style={cardButtonStyle({ active: true })}>
+                دخول
+              </button>
+              <button
+                onClick={() => {
+                  setShowAdminAccessCard(false);
+                  setAdminPasswordInput("");
+                }}
+                style={cardButtonStyle()}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      {showAdminLockCard ? (
+        <Card style={{ marginBottom: 18, maxWidth: 620 }}>
+          <SectionHeader
+            title={isAdminLocked ? "تغيير كلمة مرور الإدارة" : "تعيين كلمة مرور للإدارة"}
+            description="كل جهة يمكنها تعيين كلمة مرورها الخاصة من داخل المشروع نفسه."
+          />
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <input
+              type="password"
+              value={newAdminPassword}
+              onChange={(e) => setNewAdminPassword(e.target.value)}
+              placeholder="كلمة المرور الجديدة"
+              style={fieldStyle()}
+            />
+            <input
+              type="password"
+              value={confirmAdminPassword}
+              onChange={(e) => setConfirmAdminPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSetAdminPassword();
+              }}
+              placeholder="تأكيد كلمة المرور"
+              style={fieldStyle()}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={handleSetAdminPassword} style={cardButtonStyle({ active: true })}>
+                حفظ كلمة المرور
+              </button>
+              <button
+                onClick={() => {
+                  setShowAdminLockCard(false);
+                  setNewAdminPassword("");
+                  setConfirmAdminPassword("");
+                }}
+                style={cardButtonStyle()}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
       {appMode === "student" ? (
         <Card>
