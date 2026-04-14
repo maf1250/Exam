@@ -3227,7 +3227,8 @@ const headerBtn = (danger = false) => ({
   { id: 4, label: "4. مقررات الدراسات العامة" },
   { id: 5, label: "5. مقررات التخصص" },
   { id: 6, label: "6. تحليل تعارض مقررين" },
-  { id: 7, label: "7. المعاينة والطباعة" },
+  { id: 7, label: "7. المعاينة" },
+  { id: 8, label: "8. الطباعة" },
 ].map((step) => {
             const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
 
@@ -4017,6 +4018,15 @@ style={{
         تم إيقاف إضافة المراقبين تلقائيًا.
       </div>
     )}
+
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+        السابق
+      </button>
+      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+        التالي: المعاينة
+      </button>
+    </div>
   </Card>
 )}
 
@@ -4081,6 +4091,9 @@ style={{
               </button>
               <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
                 توزيع الدراسات العامة
+              </button>
+              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                التالي
               </button>
             </div>
               </>
@@ -4222,6 +4235,9 @@ style={{
               </button>
               <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
                 توزيع مقررات التخصص
+              </button>
+              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                التالي
               </button>
             </div>
           </Card>
@@ -4571,8 +4587,8 @@ style={{
             <div style={{ marginTop: 20 }}>
               <Card>
                 <SectionHeader
-                  title="المعاينة والطباعة"
-                  description="اختر التبويب المناسب، ويمكنك أيضًا تحديد القسم لتطبيقه على المعاينة والطباعة والتصدير."
+                  title="المعاينة"
+                  description="اختر تبويب المعاينة المناسب، ويمكنك أيضًا تحديد القسم لتطبيقه على المعاينة والتصدير."
                 />
 
                 <div style={{ marginBottom: 12 }}>
@@ -4633,12 +4649,6 @@ style={{
                     معاينة جدول المراقبين
                   </button>
 
-                  <button
-                    onClick={() => setPreviewTab("print")}
-                    style={cardButtonStyle({ active: previewTab === "print" })}
-                  >
-                    الطباعة
-                  </button>
                 </div>
 
                 <div
@@ -4655,245 +4665,17 @@ style={{
                   مع ضم مقررات الدراسات العامة المرتبطة به.
                 </div>
 
-                {previewTab === "print" ? (
-                  <>
-                    <div
-                      style={{
-                        marginTop: 18,
-                        marginBottom: 14,
-                        border: `1px solid ${COLORS.border}`,
-                        borderRadius: 18,
-                        padding: 14,
-                        background: "#fff",
-                      }}
-                    >
-                      
 
-                      <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
-                      
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                    السابق
+                  </button>
+                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
+                    التالي: الطباعة
+                  </button>
+                </div>
 
-<div style={{ position: "relative" }}>
-  <input
-    value={studentSearchText}
-    onChange={(e) => {
-      const value = e.target.value;
-      setStudentSearchText(value);
-      setSelectedStudentIdForPrint("");
-      setShowStudentSuggestions(true);
-    }}
-    onFocus={() => {
-      if (studentSearchText.trim()) setShowStudentSuggestions(true);
-    }}
-    onBlur={() => {
-      window.setTimeout(() => setShowStudentSuggestions(false), 150);
-    }}
-    placeholder="ابحث باسم المتدرب أو رقمه"
-    style={fieldStyle()}
-  />
-
-  {showStudentSuggestions && studentSearchText.trim() && (
-    <div
-      style={{
-        position: "absolute",
-        top: "calc(100% + 6px)",
-        right: 0,
-        left: 0,
-        background: "#fff",
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 16,
-        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-        maxHeight: 260,
-        overflowY: "auto",
-        zIndex: 2000,
-      }}
-    >
-      {studentOptionsForPrint
-        .filter((student) => {
-          const q = normalizeArabic(studentSearchText.trim());
-          if (!q) return false;
-
-          const name = normalizeArabic(student.name || "");
-          const id = normalizeArabic(student.id || "");
-          const label = normalizeArabic(student.label || "");
-
-          return (
-            name.includes(q) ||
-            id.includes(q) ||
-            label.includes(q)
-          );
-        })
-        .slice(0, 12)
-        .map((student) => (
-          <button
-            key={student.id}
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              setStudentSearchText(student.label);
-              setSelectedStudentIdForPrint(student.id);
-              setShowStudentSuggestions(false);
-            }}
-            style={{
-              width: "100%",
-              textAlign: "right",
-              border: "none",
-              borderBottom: `1px solid ${COLORS.border}`,
-              background: "#fff",
-              padding: "12px 14px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            <div style={{ fontWeight: 800, color: COLORS.text }}>
-              {student.name}
-            </div>
-
-            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
-              {student.id} — {student.department} / {student.major}
-            </div>
-          </button>
-        ))}
-
-      {!studentOptionsForPrint.some((student) => {
-        const q = normalizeArabic(studentSearchText.trim());
-        if (!q) return false;
-
-        const name = normalizeArabic(student.name || "");
-        const id = normalizeArabic(student.id || "");
-        const label = normalizeArabic(student.label || "");
-
-        return (
-          name.includes(q) ||
-          id.includes(q) ||
-          label.includes(q)
-        );
-      }) && (
-        <div
-          style={{
-            padding: "12px 14px",
-            color: COLORS.muted,
-            textAlign: "right",
-          }}
-        >
-          لا توجد نتائج
-        </div>
-      )}
-    </div>
-  )}
-</div>
-
-                      {selectedStudentInfoForPrint ? (
-                        <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
-                          <strong>{selectedStudentInfoForPrint.name}</strong>
-                          {" — "}
-                          {selectedStudentInfoForPrint.id}
-                          {" — "}
-                          {selectedStudentInfoForPrint.department || "-"}
-                          {" / "}
-                          {selectedStudentInfoForPrint.major || "-"}
-                        </div>
-                      ) : null}
-
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                        <button
-                          onClick={() => {
-                            if (!selectedStudentInfoForPrint || !selectedStudentScheduleForPrint.length) {
-                              showToast("لا يوجد متدرب", "اختر متدربًا لديه جدول مطبوع.", "error");
-                              return;
-                            }
-
-                            printSingleStudentSchedule({
-                              collegeName: parsed.collegeName,
-                              student: selectedStudentInfoForPrint,
-                              items: selectedStudentScheduleForPrint,
-                              compactMode: compactPrintMode,
-                            });
-                          }}
-                          style={cardButtonStyle({ active: true, disabled: !selectedStudentIdForPrint })}
-                          disabled={!selectedStudentIdForPrint}
-                        >
-                          طباعة جدول المتدرب
-                        </button>
-                      </div>
-                    </div>
-
-                     <label
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 10,
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 14,
-                          padding: "10px 12px",
-                          background: "#fff",
-                          marginBottom: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={compactPrintMode}
-                          onChange={(e) => setCompactPrintMode(e.target.checked)}
-                        />
-                        ضغط الطباعة في صفحة واحدة قدر الإمكان
-                      </label>
-
-                    
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-                        السابق
-                      </button>
-
-                      <button onClick={exportMainSchedule} style={cardButtonStyle()}>
-                        تصدير جدول الاختبارات
-                      </button>
-
-                      <button
-                        onClick={() =>
-printScheduleOnlyPdf({
-  collegeName: parsed.collegeName,
-  schedule: filteredScheduleForPrint,
-  periodLabels: parsedPeriods
-    .filter((p) => p.valid)
-    .map((p, index) => ({
-      period: index + 1,
-      label:
-        index === 0
-          ? "الفترة الأولى"
-          : index === 1
-          ? "الفترة الثانية"
-          : `الفترة ${index + 1}`,
-      timeText: p.timeText,
-    })),
-  defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
-  selectedDepartment: printDepartmentFilter,
-  selectedMajor: printMajorFilter,
-  compactMode: compactPrintMode,
-})
-                      }
-                      
-                        style={cardButtonStyle({ active: true })}
-                      >
-                        طباعة جدول الاختبارات
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          printInvigilatorsOnlyPdf({
-                            collegeName: parsed.collegeName,
-                            invigilatorTable,
-                            compactMode: compactPrintMode,
-                          })
-                        }
-                        style={cardButtonStyle()}
-                      >
-                        طباعة جدول المراقبين
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </Card>
-            </div>
+                
 
             {previewTab === "sortedCourses" && (
               <div style={{ marginTop: 20 }}>
@@ -5226,24 +5008,293 @@ printScheduleOnlyPdf({
                     <button onClick={exportInvigilatorsTable} style={cardButtonStyle()}>
                       تصدير جدول المراقبين
                     </button>
-
-                    <button
-                      onClick={() =>
-                        printInvigilatorsOnlyPdf({
-                          collegeName: parsed.collegeName,
-                          invigilatorTable,
-                        })
-                      }
-                      style={cardButtonStyle({ active: true })}
-                    >
-                      طباعة جدول المراقبين
-                    </button>
                   </div>
                 </Card>
               </div>    
             )}
           </>
         )}
+        {currentStep === 8 && (
+          <div style={{ marginTop: 20 }}>
+            <Card>
+              <SectionHeader
+                title="الطباعة"
+                description="اختر نوع الطباعة المناسب، ويمكنك طباعة جدول الاختبارات أو جدول المراقبين أو جدول متدرب واحد."
+              />
+
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>القسم المطلوب</div>
+                <select
+                  value={printDepartmentFilter}
+                  onChange={(e) => {
+                    setPrintDepartmentFilter(e.target.value);
+                    setPreviewPage(0);
+                  }}
+                  style={{ ...fieldStyle(), maxWidth: 420 }}
+                >
+                  <option value="__all__">جميع الأقسام</option>
+                  {availableDepartmentsForPrint.map((department) => (
+                    <option key={department} value={department}>
+                      {department}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>التخصص المطلوب</div>
+                <select
+                  value={printMajorFilter}
+                  onChange={(e) => {
+                    setPrintMajorFilter(e.target.value);
+                    setPreviewPage(0);
+                  }}
+                  style={{ ...fieldStyle(), maxWidth: 420 }}
+                >
+                  <option value="__all__">جميع التخصصات</option>
+                  {availableMajorsForPrint.map((major) => (
+                    <option key={major} value={major}>
+                      {major}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 16,
+                  padding: 12,
+                  background: "#F8FEFE",
+                  color: COLORS.muted,
+                  lineHeight: 1.9,
+                  marginBottom: 18,
+                }}
+              >
+                عند اختيار قسم رئيسي محدد، ستتم فلترة الطباعة والتصدير وفق هذا القسم،
+                مع ضم مقررات الدراسات العامة المرتبطة به.
+              </div>
+
+              <div
+                style={{
+                  marginBottom: 14,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 14,
+                  background: "#fff",
+                }}
+              >
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    value={studentSearchText}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setStudentSearchText(value);
+                      setSelectedStudentIdForPrint("");
+                      setShowStudentSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (studentSearchText.trim()) setShowStudentSuggestions(true);
+                    }}
+                    onBlur={() => {
+                      window.setTimeout(() => setShowStudentSuggestions(false), 150);
+                    }}
+                    placeholder="ابحث باسم المتدرب أو رقمه"
+                    style={fieldStyle()}
+                  />
+
+                  {showStudentSuggestions && studentSearchText.trim() && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 6px)",
+                        right: 0,
+                        left: 0,
+                        background: "#fff",
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 16,
+                        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+                        maxHeight: 260,
+                        overflowY: "auto",
+                        zIndex: 2000,
+                      }}
+                    >
+                      {studentOptionsForPrint
+                        .filter((student) => {
+                          const q = normalizeArabic(studentSearchText.trim());
+                          if (!q) return false;
+
+                          const name = normalizeArabic(student.name || "");
+                          const id = normalizeArabic(student.id || "");
+                          const label = normalizeArabic(student.label || "");
+
+                          return name.includes(q) || id.includes(q) || label.includes(q);
+                        })
+                        .slice(0, 12)
+                        .map((student) => (
+                          <button
+                            key={student.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setStudentSearchText(student.label);
+                              setSelectedStudentIdForPrint(student.id);
+                              setShowStudentSuggestions(false);
+                            }}
+                            style={{
+                              width: "100%",
+                              textAlign: "right",
+                              border: "none",
+                              borderBottom: `1px solid ${COLORS.border}`,
+                              background: "#fff",
+                              padding: "12px 14px",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            <div style={{ fontWeight: 800, color: COLORS.text }}>{student.name}</div>
+                            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
+                              {student.id} — {student.department} / {student.major}
+                            </div>
+                          </button>
+                        ))}
+
+                      {!studentOptionsForPrint.some((student) => {
+                        const q = normalizeArabic(studentSearchText.trim());
+                        if (!q) return false;
+
+                        const name = normalizeArabic(student.name || "");
+                        const id = normalizeArabic(student.id || "");
+                        const label = normalizeArabic(student.label || "");
+
+                        return name.includes(q) || id.includes(q) || label.includes(q);
+                      }) && (
+                        <div
+                          style={{
+                            padding: "12px 14px",
+                            color: COLORS.muted,
+                            textAlign: "right",
+                          }}
+                        >
+                          لا توجد نتائج
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {selectedStudentInfoForPrint ? (
+                  <div style={{ marginTop: 12, color: COLORS.charcoalSoft, lineHeight: 1.8 }}>
+                    <strong>{selectedStudentInfoForPrint.name}</strong>
+                    {" — "}
+                    {selectedStudentInfoForPrint.id}
+                    {" — "}
+                    {selectedStudentInfoForPrint.department || "-"}
+                    {" / "}
+                    {selectedStudentInfoForPrint.major || "-"}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                  <button
+                    onClick={() => {
+                      if (!selectedStudentInfoForPrint || !selectedStudentScheduleForPrint.length) {
+                        showToast("لا يوجد متدرب", "اختر متدربًا لديه جدول مطبوع.", "error");
+                        return;
+                      }
+
+                      printSingleStudentSchedule({
+                        collegeName: parsed.collegeName,
+                        student: selectedStudentInfoForPrint,
+                        items: selectedStudentScheduleForPrint,
+                        compactMode: compactPrintMode,
+                      });
+                    }}
+                    style={cardButtonStyle({ active: true, disabled: !selectedStudentIdForPrint })}
+                    disabled={!selectedStudentIdForPrint}
+                  >
+                    طباعة جدول المتدرب
+                  </button>
+                </div>
+              </div>
+
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 14,
+                  padding: "10px 12px",
+                  background: "#fff",
+                  marginBottom: 12,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={compactPrintMode}
+                  onChange={(e) => setCompactPrintMode(e.target.checked)}
+                />
+                ضغط الطباعة في صفحة واحدة قدر الإمكان
+              </label>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
+                  السابق
+                </button>
+
+                <button onClick={exportMainSchedule} style={cardButtonStyle()}>
+                  تصدير جدول الاختبارات
+                </button>
+
+                <button
+                  onClick={() =>
+                    printScheduleOnlyPdf({
+                      collegeName: parsed.collegeName,
+                      schedule: filteredScheduleForPrint,
+                      periodLabels: parsedPeriods
+                        .filter((p) => p.valid)
+                        .map((p, index) => ({
+                          period: index + 1,
+                          label:
+                            index === 0
+                              ? "الفترة الأولى"
+                              : index === 1
+                              ? "الفترة الثانية"
+                              : `الفترة ${index + 1}`,
+                          timeText: p.timeText,
+                        })),
+                      defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                      selectedDepartment: printDepartmentFilter,
+                      selectedMajor: printMajorFilter,
+                      compactMode: compactPrintMode,
+                    })
+                  }
+                  style={cardButtonStyle({ active: true })}
+                >
+                  طباعة جدول الاختبارات
+                </button>
+
+                <button
+                  onClick={() =>
+                    printInvigilatorsOnlyPdf({
+                      collegeName: parsed.collegeName,
+                      invigilatorTable,
+                      compactMode: compactPrintMode,
+                    })
+                  }
+                  style={cardButtonStyle()}
+                >
+                  طباعة جدول المراقبين
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+
         </div>
       
       {selectedConflicts && (
