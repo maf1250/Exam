@@ -4205,15 +4205,7 @@ style={{
       description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
     />
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(360px, 280px))",
-        gap: 14,
-        marginBottom: 18,
-        
-      }}
-    >
+  
       <div>
         <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
         <select
@@ -4317,7 +4309,7 @@ style={{
 </div>
           <div
   style={{
-    background: COLORS.primaryDark,
+    background: COLORS.primaryLight,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
@@ -4366,7 +4358,7 @@ style={{
     {getSelectedPairConflictStudents.length}
   </div>
 </div>
-        </div></div>
+        </div>
 
         <div
           style={{
@@ -4384,13 +4376,12 @@ style={{
   style={{
     background: COLORS.primaryLight,
     borderBottom: `1px solid ${COLORS.primaryBorder}`,
-    display: "block",
+    display: "inline-block",
     fontWeight: 900,
     color: COLORS.primaryDark,
-    width: "100%",
-    borderCollapse: "collapse",
-    padding: 12,
-    borderBottom: `1px solid ${COLORS.border}`,
+    padding: "10px 14px",
+    borderRadius: 12,
+    marginBottom: 10,
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4404,7 +4395,7 @@ style={{
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                <tr style={{ background: "#b6b7b7" }}>
+                <tr style={{ background: "#E8E8E8" }}>
   <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
   <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
   <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
