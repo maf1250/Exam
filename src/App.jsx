@@ -1409,6 +1409,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
+  const [appMode, setAppMode] = useState("admin");
 
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -2906,6 +2907,59 @@ const selectedStudentScheduleForPrint = useMemo(() => {
   .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
 }, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint]);
 
+  const combinedScheduleForStudents = useMemo(() => (
+    schedule.length ? schedule : [...generalSchedule, ...specializedSchedule]
+  ), [schedule, generalSchedule, specializedSchedule]);
+
+  const studentPortalOptions = useMemo(() => {
+    const scheduledIds = new Set(
+      combinedScheduleForStudents.flatMap((item) =>
+        Array.isArray(item.students) ? item.students : Array.from(item.students || [])
+      )
+    );
+
+    const map = new Map();
+
+    parsed.filteredRows.forEach((row) => {
+      const studentId = String(row["رقم المتدرب"] ?? "").trim();
+      if (!studentId || !scheduledIds.has(studentId)) return;
+
+      const info = preciseStudentInfoMap.get(studentId) || {
+        id: studentId,
+        name: getStudentNameFromRow(row) || "بدون اسم",
+        department: String(row["القسم"] ?? "").trim() || "-",
+        major: String(row["التخصص"] ?? "").trim() || "-",
+      };
+
+      if (!map.has(studentId)) {
+        map.set(studentId, {
+          id: studentId,
+          name: info.name,
+          department: info.department,
+          major: info.major,
+          label: `${info.name || "بدون اسم"} - ${studentId}`,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+  }, [combinedScheduleForStudents, parsed.filteredRows, preciseStudentInfoMap]);
+
+  const selectedStudentInfoForPortal = useMemo(
+    () => studentPortalOptions.find((student) => student.id === selectedStudentIdForPrint) || null,
+    [studentPortalOptions, selectedStudentIdForPrint]
+  );
+
+  const selectedStudentScheduleForPortal = useMemo(() => {
+    if (!selectedStudentIdForPrint) return [];
+
+    return combinedScheduleForStudents
+      .filter((item) =>
+        (Array.isArray(item.students) ? item.students : Array.from(item.students || [])).includes(selectedStudentIdForPrint)
+      )
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
+  }, [combinedScheduleForStudents, selectedStudentIdForPrint]);
+
   const invigilatorTable = useMemo(() => {
     const table = new Map();
 
@@ -3260,8 +3314,197 @@ const headerBtn = (danger = false) => ({
     onChange={(e) => importSavedSession(e.target.files?.[0])}
   />
 </div>
-        
-  
+
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          marginTop: 18,
+          marginBottom: 18,
+        }}
+      >
+        <button
+          onClick={() => {
+            setAppMode("admin");
+            setShowStudentSuggestions(false);
+          }}
+          style={cardButtonStyle({ active: appMode === "admin" })}
+        >
+          الواجهة الإدارية
+        </button>
+        <button
+          onClick={() => {
+            setAppMode("student");
+            setStudentSearchText("");
+            setSelectedStudentIdForPrint("");
+            setShowStudentSuggestions(false);
+          }}
+          style={cardButtonStyle({ active: appMode === "student" })}
+        >
+          بوابة المتدرب
+        </button>
+      </div>
+
+      {appMode === "student" ? (
+        <Card>
+          <SectionHeader
+            title="بوابة المتدرب"
+            description="ابحث برقم المتدرب أو اسمه لعرض جدوله وطباعته، بدون الوصول إلى الصفحات الإدارية."
+          />
+
+          {!combinedScheduleForStudents.length ? (
+            <div
+              style={{
+                borderRadius: 18,
+                padding: 16,
+                background: COLORS.warningBg,
+                border: `1px solid ${COLORS.primaryBorder}`,
+                color: COLORS.charcoal,
+                lineHeight: 1.9,
+              }}
+            >
+              لا يوجد جدول منشور حاليًا. أنشئ الجدول أولًا من الواجهة الإدارية ثم افتح بوابة المتدرب.
+            </div>
+          ) : (
+            <>
+              <div style={{ position: "relative", maxWidth: 620 }}>
+                <input
+                  value={studentSearchText}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setStudentSearchText(value);
+                    setSelectedStudentIdForPrint("");
+                    setShowStudentSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    if (studentSearchText.trim()) setShowStudentSuggestions(true);
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => setShowStudentSuggestions(false), 150);
+                  }}
+                  placeholder="اكتب رقم المتدرب أو اسمه"
+                  style={fieldStyle()}
+                />
+
+                {showStudentSuggestions && studentSearchText.trim() && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      left: 0,
+                      background: "#fff",
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 16,
+                      boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                      zIndex: 3000,
+                    }}
+                  >
+                    {studentPortalOptions
+                      .filter((student) => {
+                        const q = normalizeArabic(studentSearchText.trim());
+                        if (!q) return false;
+
+                        const name = normalizeArabic(student.name || "");
+                        const id = normalizeArabic(student.id || "");
+                        const label = normalizeArabic(student.label || "");
+
+                        return name.includes(q) || id.includes(q) || label.includes(q);
+                      })
+                      .slice(0, 12)
+                      .map((student) => (
+                        <button
+                          key={student.id}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setStudentSearchText(student.label);
+                            setSelectedStudentIdForPrint(student.id);
+                            setShowStudentSuggestions(false);
+                          }}
+                          style={{
+                            width: "100%",
+                            textAlign: "right",
+                            border: "none",
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            background: "#fff",
+                            padding: "12px 14px",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: COLORS.text }}>{student.name}</div>
+                          <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
+                            {student.id} — {student.department} / {student.major}
+                          </div>
+                        </button>
+                      ))}
+
+                    {!studentPortalOptions.some((student) => {
+                      const q = normalizeArabic(studentSearchText.trim());
+                      if (!q) return false;
+
+                      const name = normalizeArabic(student.name || "");
+                      const id = normalizeArabic(student.id || "");
+                      const label = normalizeArabic(student.label || "");
+
+                      return name.includes(q) || id.includes(q) || label.includes(q);
+                    }) && (
+                      <div style={{ padding: "12px 14px", color: COLORS.muted, textAlign: "right" }}>
+                        لا توجد نتائج
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {selectedStudentInfoForPortal ? (
+                <div
+                  style={{
+                    marginTop: 14,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#fff",
+                    lineHeight: 1.9,
+                  }}
+                >
+                  <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{selectedStudentInfoForPortal.name}</div>
+                  <div style={{ color: COLORS.muted, marginTop: 6 }}>
+                    {selectedStudentInfoForPortal.id} — {selectedStudentInfoForPortal.department || "-"} / {selectedStudentInfoForPortal.major || "-"}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                    <button
+                      onClick={() => {
+                        if (!selectedStudentInfoForPortal || !selectedStudentScheduleForPortal.length) {
+                          showToast("لا يوجد جدول", "تعذر العثور على جدول لهذا المتدرب.", "error");
+                          return;
+                        }
+
+                        printSingleStudentSchedule({
+                          collegeName: parsed.collegeName,
+                          student: selectedStudentInfoForPortal,
+                          items: selectedStudentScheduleForPortal,
+                          compactMode: compactPrintMode,
+                        });
+                      }}
+                      style={cardButtonStyle({ active: true, disabled: !selectedStudentIdForPrint })}
+                      disabled={!selectedStudentIdForPrint}
+                    >
+                      طباعة جدول المتدرب
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </Card>
+      ) : (
+        <>
+
         <div
           style={{
             display: "grid",
@@ -3555,7 +3798,6 @@ style={{
               >
                 <div
                   style={{
-                    display: "inline-flex",
                     marginBottom: 12,
                     background: COLORS.warningBg,
                     color: COLORS.warning,
@@ -3571,7 +3813,7 @@ style={{
                 </div>
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
                 <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                  اختر القسم أو التخصص الذي ترغب باستبعاده من التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
+                  اختر القسم أو التخصص الذي لا تريد دخوله في التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
@@ -3894,7 +4136,6 @@ style={{
         {!includeAllDepartmentsAndMajors ? (
           <div
             style={{
-              display: "inline-flex",
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               padding: 14,
@@ -4080,7 +4321,14 @@ style={{
       </div>
     )}
 
-   
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+        السابق
+      </button>
+      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+        التالي: المعاينة
+      </button>
+    </div>
   </Card>
 )}
 
@@ -4200,7 +4448,6 @@ style={{
               >
                 <div
                   style={{
-                    display: "inline-flex",
                     marginBottom: 12,
                     background: COLORS.warningBg,
                     color: COLORS.warning,
@@ -4634,15 +4881,6 @@ style={{
         اختر مقررين لعرض التعارض بينهما.
       </div>
     )}
-     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-        السابق
-      </button>
-      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
-        التالي: المعاينة
-      </button>
-    </div>
-    
   </Card>
 )}
           
@@ -4718,7 +4956,6 @@ style={{
 
                 <div
                   style={{
-                    display: "inline-flex",
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 16,
                     padding: 12,
@@ -5130,7 +5367,6 @@ style={{
 
               <div
                 style={{
-                  display: "inline-flex",
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 16,
                   padding: 12,
@@ -5155,7 +5391,7 @@ style={{
               >
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
 
-                <div style={{ position: "relative", display: "iflex",   minWidth: 220,  width: "fit-content" }}>
+                <div style={{ position: "relative" }}>
                   <input
                     value={studentSearchText}
                     onChange={(e) => {
@@ -5643,6 +5879,8 @@ style={{
     </div>
   </div>
 )}
-      </div>
+        </>
+      )}
+    </div>
   );
 }
