@@ -4248,88 +4248,116 @@ style={{
     </div>
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
-      <div
-        style={{
-          background: COLORS.warningBg,
-          color: COLORS.warning,
-          border: `1px solid #FCD34D`,
-          borderRadius: 16,
-          padding: 14,
-          fontWeight: 700,
-          marginBottom: 16,
-          display: "block",
-        }}
-      >
-        اختر مقررين مختلفين.
-      </div>
-    ) : null}
+     <div
+  style={{
+    background: COLORS.warningBg,
+    color: COLORS.warning,
+    border: `1px solid #FCD34D`,
+    borderRadius: 16,
+    padding: 14,
+    fontWeight: 700,
+    marginBottom: 12,
+    display: "block",
+    width: "fit-content",
+  }}
+>
+  اختر مقررين مختلفين.
+</div>
+  ) : null}
 
     {selectedCourseA && selectedCourseB && courseAKey !== courseBKey ? (
       <>
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
-            marginBottom: 18,
-          }}
-        >
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, max-content))",
+    gap: 12,
+    marginBottom: 18,
+    alignItems: "start",
+    justifyContent: "start",
+  }}
+>
           <div
-            style={{
-              background: "#fff",
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 18,
-              padding: 12,
-              display: "block",
-            }}
-          >
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, whiteSpace: "normal", wordBreak: "break-word", }}>
-              {selectedCourseA.courseName}
-            </div>
-            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-              {selectedCourseA.courseCode}
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "#fff",
+  style={{
+    background: "#fff",
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
-    display: "block",
+    display: "inline-flex",
     flexDirection: "column",
     alignItems: "flex-start",
     width: "fit-content",
-            }}
-          >
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الثاني</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, whiteSpace: "normal", wordBreak: "break-word",}}>
-              {selectedCourseB.courseName}
-            </div>
-            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-              {selectedCourseB.courseCode}
-            </div>
-          </div>
-
+    maxWidth: "100%",
+  }}
+>
+  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+    المقرر الأول
+  </div>
+  <div
+    style={{
+      fontWeight: 900,
+      color: COLORS.charcoal,
+      whiteSpace: "normal",
+      wordBreak: "break-word",
+    }}
+  >
+    {selectedCourseA.courseName}
+  </div>
+  <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+    {selectedCourseA.courseCode}
+  </div>
+</div>
           <div
-            style={{
-              background: COLORS.primaryLight,
-              border: `1px solid ${COLORS.primaryBorder}`,
-              borderRadius: 18,
-              padding: 16,
-              display: "block",
-              width: "fit-content",
-            }}
-          >
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-              عدد المتدربين المشتركين
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
-              {getSelectedPairConflictStudents.length}
-            </div>
-          </div>
+  style={{
+    background: "#fff",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 12,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    width: "fit-content",
+    maxWidth: "100%",
+  }}
+>
+  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+    المقرر الثاني
+  </div>
+  <div
+    style={{
+      fontWeight: 900,
+      color: COLORS.charcoal,
+      whiteSpace: "normal",
+      wordBreak: "break-word",
+    }}
+  >
+    {selectedCourseB.courseName}
+  </div>
+  <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+    {selectedCourseB.courseCode}
+  </div>
+</div>
+
+         <div
+  style={{
+    background: COLORS.primaryLight,
+    border: `1px solid ${COLORS.primaryBorder}`,
+    borderRadius: 18,
+    padding: 16,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    width: "fit-content",
+    maxWidth: "100%",
+  }}
+>
+  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+    عدد المتدربين المشتركين
+  </div>
+  <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
+    {getSelectedPairConflictStudents.length}
+  </div>
+</div>
         </div>
 
         <div
@@ -4468,17 +4496,18 @@ style={{
       </>
     ) : (
       <div
-        style={{
-          background: "#fff",
-          border: `1px dashed ${COLORS.primaryBorder}`,
-          borderRadius: 18,
-          padding: 18,
-          color: COLORS.muted,
-          display: "block",
-        }}
-      >
-        اختر مقررين لعرض التعارض بينهما.
-      </div>
+  style={{
+    background: "#fff",
+    border: `1px dashed ${COLORS.primaryBorder}`,
+    borderRadius: 18,
+    padding: 18,
+    color: COLORS.muted,
+    display: "block",
+    width: "fit-content",
+  }}
+>
+  اختر مقررين لعرض التعارض بينهما.
+</div>
     )}
   </Card>
 )}
