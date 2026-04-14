@@ -4352,7 +4352,7 @@ style={{
               fontWeight: 900,
               color: COLORS.primaryDark,
               width: "100%",
-              borderCollapse: "collapse,
+              borderCollapse: "collapse",
                 overflowX: "auto",
             }}
           >
