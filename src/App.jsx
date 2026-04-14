@@ -4199,7 +4199,6 @@ style={{
             </div>
           </Card>
         )}
-
 {currentStep === 6 && (
   <Card>
     <SectionHeader
@@ -4384,7 +4383,9 @@ style={{
     fontWeight: 900,
     color: COLORS.primaryDark,
     textAlign: "right",
-    width: "auto",
+    width: "fit-content",
+    maxWidth: "100%",
+    display: "inline-block",
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4396,19 +4397,29 @@ style={{
             border: `1px solid ${COLORS.border}`,
             borderRadius: 18,
             padding: 12,
-            display: "block",
-            width: "auto",
+            display: "inline-block",
+            width: "fit-content",
+            maxWidth: "100%",
+            verticalAlign: "top",
           }}
         >
          
 
           {getSelectedPairConflictStudents.length === 0 ? (
-            <div style={{ padding: 18, color: COLORS.muted }}>
+            <div
+              style={{
+                padding: 18,
+                color: COLORS.muted,
+                width: "fit-content",
+                maxWidth: "100%",
+                display: "inline-block",
+              }}
+            >
               لا يوجد متدربون مشتركون بين هذين المقررين.
             </div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{     width: "auto", borderCollapse: "collapse", }}>
+            <div style={{ overflowX: "auto", width: "fit-content", maxWidth: "100%" }}>
+              <table style={{ width: "auto", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#E8E8E8" }}>
                     <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
@@ -4525,6 +4536,7 @@ style={{
     )}
   </Card>
 )}
+
           
         {currentStep === 7 && (
           <>
