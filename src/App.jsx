@@ -2937,21 +2937,37 @@ const selectedStudentScheduleForPrint = useMemo(() => {
 const availableMajorsForPrint = useMemo(() => {
   const map = new Map();
 
-  schedule.forEach((item) => {
-    splitBySlash(item.major).forEach((major) => {
-      const clean = String(major || "").trim();
-      const normalized = normalizeArabic(clean);
+  schedule
+    .filter((item) => {
+      if (printDepartmentFilter === "__all__") return true;
 
-      if (!clean) return;
+      const target = normalizeArabic(printDepartmentFilter);
+      const roots = item.departmentRoots || [];
 
-      if (!map.has(normalized)) {
-        map.set(normalized, clean);
+      if (roots.includes(target)) return true;
+
+      if (isGeneralStudiesCourse(item)) {
+        return roots.some((r) => r.includes(target));
       }
+
+      return false;
+    })
+    .forEach((item) => {
+      splitBySlash(item.major).forEach((major) => {
+        const clean = String(major || "").trim();
+        const normalized = normalizeArabic(clean);
+
+        if (!clean) return;
+        if (normalized === normalizeArabic("الدراسات العامة")) return;
+
+        if (!map.has(normalized)) {
+          map.set(normalized, clean);
+        }
+      });
     });
-  });
 
   return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
-}, [schedule]);
+}, [schedule, printDepartmentFilter]);
   
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
@@ -4019,7 +4035,15 @@ style={{
       </div>
     )}
 
-     </Card>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+        السابق
+      </button>
+      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+        التالي: المعاينة
+      </button>
+    </div>
+  </Card>
 )}
 
 {currentStep === 4 && (
@@ -4571,15 +4595,6 @@ style={{
         اختر مقررين لعرض التعارض بينهما.
       </div>
     )}
-     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-        السابق
-      </button>
-      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
-        التالي: المعاينة
-      </button>
-    </div>
-
   </Card>
 )}
           
@@ -4598,6 +4613,7 @@ style={{
                     value={printDepartmentFilter}
                     onChange={(e) => {
                       setPrintDepartmentFilter(e.target.value);
+                      setPrintMajorFilter("__all__");
                       setPreviewPage(0);
                     }}
                     style={{ ...fieldStyle(), maxWidth: 420 }}
@@ -5029,6 +5045,7 @@ style={{
                   value={printDepartmentFilter}
                   onChange={(e) => {
                     setPrintDepartmentFilter(e.target.value);
+                    setPrintMajorFilter("__all__");
                     setPreviewPage(0);
                   }}
                   style={{ ...fieldStyle(), maxWidth: 420 }}
