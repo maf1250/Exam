@@ -4348,9 +4348,12 @@ style={{
               padding: "14px 16px",
               background: COLORS.primaryLight,
               borderBottom: `1px solid ${COLORS.primaryBorder}`,
-              display: "inline-block",
+              display: "block",
               fontWeight: 900,
               color: COLORS.primaryDark,
+              width: "100%",
+              borderCollapse: "collapse,
+                overflowX: "auto",
             }}
           >
             تفاصيل المتدربين المتعارضين
@@ -4470,7 +4473,7 @@ style={{
           borderRadius: 18,
           padding: 18,
           color: COLORS.muted,
-          display: "inline-block",
+          display: "block",
         }}
       >
         اختر مقررين لعرض التعارض بينهما.
