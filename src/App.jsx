@@ -4257,7 +4257,7 @@ style={{
           padding: 14,
           fontWeight: 700,
           marginBottom: 16,
-          display: "inline-block",
+          display: "block",
         }}
       >
         اختر مقررين مختلفين.
@@ -4280,7 +4280,7 @@ style={{
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               padding: 12,
-              display: "inline-block",
+              display: "block",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
@@ -4298,7 +4298,7 @@ style={{
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
-    display: "inline-flex",
+    display: "block",
     flexDirection: "column",
     alignItems: "flex-start",
     width: "fit-content",
@@ -4320,6 +4320,7 @@ style={{
               borderRadius: 18,
               padding: 16,
               display: "block",
+              width: "fit-content",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
@@ -4337,7 +4338,7 @@ style={{
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
-    display: "inline-flex",
+    display: "block",
     flexDirection: "column",
     alignItems: "flex-start",
     width: "fit-content",
@@ -4345,7 +4346,7 @@ style={{
         >
           <div
             style={{
-              padding: "14px 16px",
+              
               background: COLORS.primaryLight,
               borderBottom: `1px solid ${COLORS.primaryBorder}`,
               display: "block",
@@ -4353,7 +4354,7 @@ style={{
               color: COLORS.primaryDark,
               width: "100%",
               borderCollapse: "collapse",
-                overflowX: "auto",
+              padding: 12, borderBottom: `1px solid ${COLORS.border}`  
             }}
           >
             تفاصيل المتدربين المتعارضين
