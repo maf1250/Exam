@@ -4297,6 +4297,7 @@ style={{
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               padding: 16,
+              display: "inline-block",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الثاني</div>
@@ -4315,6 +4316,7 @@ style={{
               border: `1px solid ${COLORS.primaryBorder}`,
               borderRadius: 18,
               padding: 16,
+              display: "inline-block",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
@@ -4332,6 +4334,7 @@ style={{
             border: `1px solid ${COLORS.border}`,
             borderRadius: 22,
             overflow: "hidden",
+            display: "inline-block",
           }}
         >
           <div
@@ -4355,11 +4358,11 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                 <tr style={{ background: "#F9FAFB" }}>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>القسم</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>التخصص</th>
+  <th style={{background: gray, padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
+  <th style={{background: gray, padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
+  <th style={{background: gray, padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
+  <th style={{background: gray, padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>القسم</th>
+  <th style={{background: gray, padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>التخصص</th>
 </tr>
                 </thead>
                 <tbody>
