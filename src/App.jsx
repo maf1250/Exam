@@ -4383,9 +4383,8 @@ style={{
     padding: "12px 14px",
     fontWeight: 900,
     color: COLORS.primaryDark,
-    width: "100%",
-    boxSizing: "border-box",
     textAlign: "right",
+    width: auto;
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4398,7 +4397,7 @@ style={{
             borderRadius: 18,
             padding: 12,
             display: "block",
-            width: "100%",
+            width: auto;
           }}
         >
          
