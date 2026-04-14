@@ -4078,13 +4078,7 @@ style={{
       </div>
     )}
 
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-        السابق
-      </button>
-      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
-        التالي: المعاينة
-      </button>
+  
     </div>
   </Card>
 )}
@@ -4638,6 +4632,13 @@ style={{
         اختر مقررين لعرض التعارض بينهما.
       </div>
     )}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+        السابق
+      </button>
+      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+        التالي: المعاينة
+      </button>
   </Card>
 )}
           
