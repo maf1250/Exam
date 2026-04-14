@@ -2936,38 +2936,33 @@ const selectedStudentScheduleForPrint = useMemo(() => {
   }, [schedule]);
 const availableMajorsForPrint = useMemo(() => {
   const map = new Map();
+  const targetDepartment = normalizeArabic(printDepartmentFilter);
 
-  schedule
-    .filter((item) => {
-      if (printDepartmentFilter === "__all__") return true;
+  parsed.filteredRows.forEach((row) => {
+    const departments = splitBySlash(String(row["القسم"] ?? "").trim());
+    const majors = splitBySlash(String(row["التخصص"] ?? "").trim());
 
-      const target = normalizeArabic(printDepartmentFilter);
-      const roots = item.departmentRoots || [];
+    const departmentMatches =
+      printDepartmentFilter === "__all__" ||
+      departments.some((department) => normalizeArabic(department) === targetDepartment);
 
-      if (roots.includes(target)) return true;
+    if (!departmentMatches) return;
 
-      if (isGeneralStudiesCourse(item)) {
-        return roots.some((r) => r.includes(target));
+    majors.forEach((major) => {
+      const clean = String(major || "").trim();
+      const normalized = normalizeArabic(clean);
+
+      if (!clean) return;
+      if (normalized === normalizeArabic("الدراسات العامة")) return;
+
+      if (!map.has(normalized)) {
+        map.set(normalized, clean);
       }
-
-      return false;
-    })
-    .forEach((item) => {
-      splitBySlash(item.major).forEach((major) => {
-        const clean = String(major || "").trim();
-        const normalized = normalizeArabic(clean);
-
-        if (!clean) return;
-        if (normalized === normalizeArabic("الدراسات العامة")) return;
-
-        if (!map.has(normalized)) {
-          map.set(normalized, clean);
-        }
-      });
     });
+  });
 
   return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "ar"));
-}, [schedule, printDepartmentFilter]);
+}, [parsed.filteredRows, printDepartmentFilter]);
   
   const toggleExcludedInvigilator = (name) => {
     setExcludedInvigilators((prev) =>
