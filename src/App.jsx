@@ -4630,6 +4630,7 @@ style={{
       >
         اختر مقررين لعرض التعارض بينهما.
       </div>
+    )}
      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
       <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
         السابق
@@ -4638,7 +4639,7 @@ style={{
         التالي: المعاينة
       </button>
     </div>
-    )}
+    
   </Card>
 )}
           
