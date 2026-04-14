@@ -4221,7 +4221,7 @@ style={{
       onChange={(e) => setCourseAKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%",
+        width: "clamp(200px, 100%, 300px)"
         position: "relative",
         zIndex: 2,
       }}
@@ -4242,7 +4242,7 @@ style={{
       onChange={(e) => setCourseBKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%",
+        width: "clamp(200px, 100%, 300px)"
         position: "relative",
         zIndex: 2,
       }}
