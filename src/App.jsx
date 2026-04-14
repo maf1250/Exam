@@ -4674,8 +4674,8 @@ style={{
                     التالي: الطباعة
                   </button>
                 </div>
-
-                
+              </Card>
+            </div>
 
             {previewTab === "sortedCourses" && (
               <div style={{ marginTop: 20 }}>
