@@ -4395,7 +4395,8 @@ style={{
     fontWeight: 900,
     color: COLORS.primaryDark,
     textAlign: "right",
-    
+        display: "flex",
+    width: "fit-content",
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4407,7 +4408,8 @@ style={{
             border: `1px solid ${COLORS.border}`,
             borderRadius: 18,
             padding: 12,
-            display: "block",
+                display: "flex",
+    width: "fit-content",
            
           }}
         >
@@ -4419,7 +4421,7 @@ style={{
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{borderCollapse: "collapse"}}>
+              <table style={{ display: "flex", width: "fit-content", borderCollapse: "collapse"}}>
                 <thead>
                   <tr style={{ background: "#E8E8E8" }}>
                     <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
