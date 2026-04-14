@@ -1198,6 +1198,16 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
     day: "numeric",
   }).format(new Date());
 
+  const instructions = [
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
+    "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+    "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
+    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+  ];
+
   const rowsHtml = items
     .map(
       (item, index) => `
@@ -1351,6 +1361,7 @@ const pendingRestoreRef = useRef(null);
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
   const [currentStep, setCurrentStep] = useState(1);
   const [studentSearchText, setStudentSearchText] = useState("");
+  const [showStudentSuggestions, setShowStudentSuggestions] = useState(false);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -1942,6 +1953,7 @@ const importSavedSession = (file) => {
 
     setFileName(file.name);
     setStudentSearchText("");
+    setShowStudentSuggestions(false);
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -4658,12 +4670,19 @@ style={{
       const value = e.target.value;
       setStudentSearchText(value);
       setSelectedStudentIdForPrint("");
+      setShowStudentSuggestions(true);
+    }}
+    onFocus={() => {
+      if (studentSearchText.trim()) setShowStudentSuggestions(true);
+    }}
+    onBlur={() => {
+      window.setTimeout(() => setShowStudentSuggestions(false), 150);
     }}
     placeholder="ابحث باسم المتدرب أو رقمه"
     style={fieldStyle()}
   />
 
-  {studentSearchText.trim() && (
+  {showStudentSuggestions && studentSearchText.trim() && (
     <div
       style={{
         position: "absolute",
@@ -4699,9 +4718,11 @@ style={{
           <button
             key={student.id}
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               setStudentSearchText(student.label);
               setSelectedStudentIdForPrint(student.id);
+              setShowStudentSuggestions(false);
             }}
             style={{
               width: "100%",
@@ -4714,23 +4735,16 @@ style={{
               fontFamily: "inherit",
             }}
           >
-
-            
-           
-            
-            
             <div style={{ fontWeight: 800, color: COLORS.text }}>
               {student.name}
             </div>
 
-            
             <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
               {student.id} — {student.department} / {student.major}
             </div>
           </button>
         ))}
 
-      
       {!studentOptionsForPrint.some((student) => {
         const q = normalizeArabic(studentSearchText.trim());
         if (!q) return false;
@@ -4745,10 +4759,6 @@ style={{
           label.includes(q)
         );
       }) && (
-
-
-
-      
         <div
           style={{
             padding: "12px 14px",
