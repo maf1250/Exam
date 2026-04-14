@@ -5155,7 +5155,7 @@ style={{
               >
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
 
-                <div style={{ position: "relative", display: "inline-flex", }}>
+                <div style={{ position: "relative", display: "iflex",   minWidth: 220,  width: "fit-content" }}>
                   <input
                     value={studentSearchText}
                     onChange={(e) => {
