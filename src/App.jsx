@@ -794,17 +794,37 @@ function getPrintBaseStyles() {
 
 function getDayTheme(dayName) {
   const themes = {
-    "الأحد": { bg: "#F0FDFA", border: "#99F6E4", text: "#0F766E" },
-    "الاثنين": { bg: "#ECFDF5", border: "#A7F3D0", text: "#047857" },
-    "الثلاثاء": { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
-    "الأربعاء": { bg: "#F5F3FF", border: "#DDD6FE", text: "#6D28D9" },
-    "الخميس": { bg: "#FFF7ED", border: "#FED7AA", text: "#C2410C" },
+    "الأحد": {
+      bg: "#EAF7F6",
+      border: "#1FA7A8",
+      text: "#0F4F53",
+    },
+    "الاثنين": {
+      bg: "#F2FBFA",
+      border: "#147B83",
+      text: "#0F4F53",
+    },
+    "الثلاثاء": {
+      bg: "#E6F4F3",
+      border: "#2A9D9C",
+      text: "#0F4F53",
+    },
+    "الأربعاء": {
+      bg: "#F4FBFB",
+      border: "#3BA7A5",
+      text: "#0F4F53",
+    },
+    "الخميس": {
+      bg: "#EAF8F7",
+      border: "#0F8B8D",
+      text: "#0F4F53",
+    },
   };
 
   return themes[dayName] || {
-    bg: "#F9FAFB",
-    border: "#E5E7EB",
-    text: "#374151",
+    bg: "#F8FAFA",
+    border: "#D7E7E6",
+    text: "#1F2529",
   };
 }
 
@@ -844,24 +864,24 @@ const renderPeriodColumns = (day, periodId, rowIndex) => {
 
   if (!item) {
     return `
-      <td class="num-cell">${rowIndex + 1}</td>
-      <td class="course-cell"></td>
-      <td class="code-cell"></td>
-      <td class="hall-cell"></td>
+      <td class="num-cell" style="background:${dayTheme.bg};">${rowIndex + 1}</td>
+      <td class="course-cell" style="background:${dayTheme.bg};"></td>
+      <td class="code-cell" style="background:${dayTheme.bg};"></td>
+      <td class="hall-cell" style="background:${dayTheme.bg};"></td>
     `;
   }
 
   return `
-    <td class="num-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+    <td class="num-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
       ${rowIndex + 1}
     </td>
-    <td class="course-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+    <td class="course-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
       ${item.courseName || ""}
     </td>
-    <td class="code-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+    <td class="code-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
       ${item.courseCode || ""}
     </td>
-    <td class="hall-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+    <td class="hall-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
       ${item.examHall || defaultExamHall}
     </td>
   `;
@@ -1050,28 +1070,28 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
                   const rowsCount = maxRowsPerDay(day);
 
                   return Array.from({ length: rowsCount })
-                    .map(
-                      (_, rowIndex) => `
-                        <tr>
-                          ${
-                            rowIndex === 0
-                              ? `
-                                <td 
-  class="day-col" 
-  rowspan="${rowsCount}"
-  style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};"
->
-                                  <div style="font-weight:800">${day.dayName}</div>
-                                  <div style="margin-top:4px">${day.hijriNumeric}</div>
-                                </td>
-                              `
-                              : ""
-                          }
-                          ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
-                        </tr>
-                      `
-                    )
-                    .join("");
+  .map(
+    (_, rowIndex) => `
+      <tr style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};">
+        ${
+          rowIndex === 0
+            ? `
+              <td 
+                class="day-col" 
+                rowspan="${rowsCount}"
+                style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};"
+              >
+                <div style="font-weight:800">${day.dayName}</div>
+                <div style="margin-top:4px">${day.hijriNumeric}</div>
+              </td>
+            `
+            : ""
+        }
+        ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
+      </tr>
+    `
+  )
+  .join("");
                 })
                 .join("")}
             </tbody>
@@ -1240,10 +1260,10 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   const rowsHtml = items
   .map(
     (item, index) => `
-      <tr style="
-        border-right: 6px solid ${getDayTheme(item.dayName).border};
-        background: #fff;
-      ">
+     <tr style="
+  background:${getDayTheme(item.dayName).bg};
+  color:${getDayTheme(item.dayName).text};
+">
         <td>${index + 1}</td>
         <td>${item.courseName || ""}</td>
         <td>${item.courseCode || ""}</td>
