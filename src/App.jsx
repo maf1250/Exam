@@ -4384,7 +4384,7 @@ style={{
     fontWeight: 900,
     color: COLORS.primaryDark,
     textAlign: "right",
-    width: auto;
+    width: auto,
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4397,7 +4397,7 @@ style={{
             borderRadius: 18,
             padding: 12,
             display: "block",
-            width: auto;
+            width: auto,
           }}
         >
          
