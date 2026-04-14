@@ -2796,41 +2796,73 @@ const studentOptionsForPrint = useMemo(() => {
       ? schedule
       : [...generalSchedule, ...specializedSchedule];
 
-const scheduledStudentIds = new Set(
-  combinedSchedule.flatMap((item) =>
-    Array.isArray(item.students)
-      ? item.students
-      : Array.from(item.students || [])
-  )
-);
+  const scheduledStudentIds = new Set(
+    combinedSchedule.flatMap((item) =>
+      Array.isArray(item.students)
+        ? item.students
+        : Array.from(item.students || [])
+    )
+  );
 
-    const map = new Map();
+  const selectedDepartmentNormalized =
+    printDepartmentFilter === "__all__" ? "" : normalizeArabic(printDepartmentFilter);
+  const selectedMajorNormalized =
+    printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
 
-    parsed.filteredRows.forEach((row) => {
-      const studentId = String(row["رقم المتدرب"] ?? "").trim();
-      if (!studentId || !scheduledStudentIds.has(studentId)) return;
+  const map = new Map();
 
- const info = preciseStudentInfoMap.get(studentId) || {
-  id: studentId,
-  name: getStudentNameFromRow(row) || "بدون اسم",
-  department: String(row["القسم"] ?? "").trim() || "-",
-  major: String(row["التخصص"] ?? "").trim() || "-",
-};
+  parsed.filteredRows.forEach((row) => {
+    const studentId = String(row["رقم المتدرب"] ?? "").trim();
+    if (!studentId || !scheduledStudentIds.has(studentId)) return;
 
-if (!map.has(studentId)) {
-  map.set(studentId, {
-    id: studentId,
-    name: info.name,
-    department: info.department,
-    major: info.major,
-    label: `${info.name || "بدون اسم"} - ${studentId}`,
+    const departments = splitBySlash(String(row["القسم"] ?? "").trim());
+    const majors = splitBySlash(String(row["التخصص"] ?? "").trim());
+
+    const matchesDepartment =
+      printDepartmentFilter === "__all__" ||
+      departments.some((dep) => normalizeArabic(dep) === selectedDepartmentNormalized);
+
+    const matchesMajor =
+      printMajorFilter === "__all__" ||
+      majors.some((major) => normalizeArabic(major) === selectedMajorNormalized);
+
+    if (!matchesDepartment || !matchesMajor) return;
+
+    const info = preciseStudentInfoMap.get(studentId) || {
+      id: studentId,
+      name: getStudentNameFromRow(row) || "بدون اسم",
+      department: String(row["القسم"] ?? "").trim() || "-",
+      major: String(row["التخصص"] ?? "").trim() || "-",
+    };
+
+    if (!map.has(studentId)) {
+      map.set(studentId, {
+        id: studentId,
+        name: info.name,
+        department: info.department,
+        major: info.major,
+        label: `${info.name || "بدون اسم"} - ${studentId}`,
+      });
+    }
   });
-}
-      
-    });
 
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
-  }, [parsed.filteredRows, schedule, generalSchedule, specializedSchedule, preciseStudentInfoMap]);
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}, [
+  parsed.filteredRows,
+  schedule,
+  generalSchedule,
+  specializedSchedule,
+  preciseStudentInfoMap,
+  printDepartmentFilter,
+  printMajorFilter,
+]);
+
+
+  useEffect(() => {
+    setSelectedStudentIdForPrint("");
+    setStudentSearchText("");
+    setShowStudentSuggestions(false);
+  }, [printDepartmentFilter, printMajorFilter]);
 
   const selectedStudentInfoForPrint = useMemo(
     () => studentOptionsForPrint.find((student) => student.id === selectedStudentIdForPrint) || null,
