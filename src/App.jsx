@@ -1317,7 +1317,13 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
               ${rowsHtml}
             </tbody>
           </table>
-
+ <div class="section-note">
+            <div class="section-note-title">تعليمات مهمة</div>
+            <ol style="margin:0; padding-right:18px;">
+              ${instructions.map((item) => `<li>${item}</li>`).join("")}
+            </ol>
+          </div>
+          
           <div class="footer">${todayText}</div>
         </div>
       </body>
