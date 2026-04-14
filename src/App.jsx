@@ -4205,39 +4205,57 @@ style={{
       description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
     />
 
-    <div style={{ display: "grid", gap: 14, marginBottom: 18 }}>
-      <div>
-        <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
-        <select
-          value={courseAKey}
-          onChange={(e) => setCourseAKey(e.target.value)}
-          style={fieldStyle()}
-        >
-          <option value="">اختر المقرر الأول</option>
-          {parsed.courses.map((course) => (
-            <option key={course.key} value={course.key}>
-              {course.courseName} - {course.courseCode}
-            </option>
-          ))}
-        </select>
-      </div>
+ <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 14,
+    marginBottom: 18,
+    overflow: "visible",
+  }}
+>
+  <div style={{ minWidth: 0, overflow: "visible" }}>
+    <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
+    <select
+      value={courseAKey}
+      onChange={(e) => setCourseAKey(e.target.value)}
+      style={{
+        ...fieldStyle(),
+        width: "100%",
+        position: "relative",
+        zIndex: 2,
+      }}
+    >
+      <option value="">اختر المقرر الأول</option>
+      {parsed.courses.map((course) => (
+        <option key={course.key} value={course.key}>
+          {course.courseName} - {course.courseCode}
+        </option>
+      ))}
+    </select>
+  </div>
 
-      <div>
-        <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الثاني</div>
-        <select
-          value={courseBKey}
-          onChange={(e) => setCourseBKey(e.target.value)}
-          style={fieldStyle()}
-        >
-          <option value="">اختر المقرر الثاني</option>
-          {parsed.courses.map((course) => (
-            <option key={course.key} value={course.key}>
-              {course.courseName} - {course.courseCode}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
+  <div style={{ minWidth: 0, overflow: "visible" }}>
+    <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الثاني</div>
+    <select
+      value={courseBKey}
+      onChange={(e) => setCourseBKey(e.target.value)}
+      style={{
+        ...fieldStyle(),
+        width: "100%",
+        position: "relative",
+        zIndex: 2,
+      }}
+    >
+      <option value="">اختر المقرر الثاني</option>
+      {parsed.courses.map((course) => (
+        <option key={course.key} value={course.key}>
+          {course.courseName} - {course.courseCode}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
       <div
@@ -4362,20 +4380,22 @@ style={{
             width: "100%",
           }}
         >
-          <div
-            style={{
-              background: COLORS.primaryLight,
-              border: `1px solid ${COLORS.primaryBorder}`,
-              display: "inline-block",
-              fontWeight: 900,
-              color: COLORS.primaryDark,
-              padding: "10px 14px",
-              borderRadius: 12,
-              marginBottom: 10,
-            }}
-          >
-            تفاصيل المتدربين المتعارضين
-          </div>
+         <div
+  style={{
+    background: COLORS.primaryLight,
+    border: `1px solid ${COLORS.primaryBorder}`,
+    borderRadius: 12,
+    marginBottom: 10,
+    padding: "12px 14px",
+    fontWeight: 900,
+    color: COLORS.primaryDark,
+    width: "100%",
+    boxSizing: "border-box",
+    textAlign: "right",
+  }}
+>
+  تفاصيل المتدربين المتعارضين
+</div>
 
           {getSelectedPairConflictStudents.length === 0 ? (
             <div style={{ padding: 18, color: COLORS.muted }}>
