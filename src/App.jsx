@@ -792,6 +792,22 @@ function getPrintBaseStyles() {
   `;
 }
 
+function getDayTheme(dayName) {
+  const themes = {
+    "الأحد": { bg: "#F0FDFA", border: "#99F6E4", text: "#0F766E" },
+    "الاثنين": { bg: "#ECFDF5", border: "#A7F3D0", text: "#047857" },
+    "الثلاثاء": { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8" },
+    "الأربعاء": { bg: "#F5F3FF", border: "#DDD6FE", text: "#6D28D9" },
+    "الخميس": { bg: "#FFF7ED", border: "#FED7AA", text: "#C2410C" },
+  };
+
+  return themes[dayName] || {
+    bg: "#F9FAFB",
+    border: "#E5E7EB",
+    text: "#374151",
+  };
+}
+
 function printScheduleOnlyPdf({
   collegeName,
   schedule,
@@ -821,19 +837,36 @@ function printScheduleOnlyPdf({
   const maxRowsPerDay = (day) =>
     Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
 
-  const renderPeriodColumns = (day, periodId, rowIndex) => {
-    const list = day.periods[periodId] || [];
-    const item = list[rowIndex];
+const renderPeriodColumns = (day, periodId, rowIndex) => {
+  const list = day.periods[periodId] || [];
+  const item = list[rowIndex];
+  const dayTheme = getDayTheme(day.dayName);
 
-    if (!item) {
-      return `
-        <td class="num-cell">${rowIndex + 1}</td>
-        <td class="course-cell"></td>
-        <td class="code-cell"></td>
-        <td class="hall-cell"></td>
-      `;
-    }
+  if (!item) {
+    return `
+      <td class="num-cell">${rowIndex + 1}</td>
+      <td class="course-cell"></td>
+      <td class="code-cell"></td>
+      <td class="hall-cell"></td>
+    `;
+  }
 
+  return `
+    <td class="num-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+      ${rowIndex + 1}
+    </td>
+    <td class="course-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+      ${item.courseName || ""}
+    </td>
+    <td class="code-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+      ${item.courseCode || ""}
+    </td>
+    <td class="hall-cell" style="border-right: 4px solid ${dayTheme.border}; background:#fff;">
+      ${item.examHall || defaultExamHall}
+    </td>
+  `;
+};
+  
     return `
       <td class="num-cell">${rowIndex + 1}</td>
       <td class="course-cell">${item.courseName || ""}</td>
@@ -1031,7 +1064,11 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
                           ${
                             rowIndex === 0
                               ? `
-                                <td class="day-col" rowspan="${rowsCount}">
+                                <td 
+  class="day-col" 
+  rowspan="${rowsCount}"
+  style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};"
+>
                                   <div style="font-weight:800">${day.dayName}</div>
                                   <div style="margin-top:4px">${day.hijriNumeric}</div>
                                 </td>
@@ -1209,22 +1246,25 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   ];
 
   const rowsHtml = items
-    .map(
-      (item, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${item.courseName || ""}</td>
-          <td>${item.courseCode || ""}</td>
-          <td>${item.dayName || ""}</td>
-          <td>${item.gregorian || ""}</td>
-          <td>${item.hijriNumeric || ""}</td>
-          <td>${item.period || ""}</td>
-          <td>${item.timeText || ""}</td>
-          <td>${item.examHall || ""}</td>
-        </tr>
-      `
-    )
-    .join("");
+  .map(
+    (item, index) => `
+      <tr style="
+        border-right: 6px solid ${getDayTheme(item.dayName).border};
+        background: #fff;
+      ">
+        <td>${index + 1}</td>
+        <td>${item.courseName || ""}</td>
+        <td>${item.courseCode || ""}</td>
+        <td>${item.dayName || ""}</td>
+        <td>${item.gregorian || ""}</td>
+        <td>${item.hijriNumeric || ""}</td>
+        <td>${item.period || ""}</td>
+        <td>${item.timeText || ""}</td>
+        <td>${item.examHall || ""}</td>
+      </tr>
+    `
+  )
+  .join("");
 
   const html = `
     <html dir="rtl" lang="ar">
@@ -1430,6 +1470,8 @@ const serializeScheduleItem = (item) => ({
     : Array.from(item.students || []),
 });
 
+
+  
  const getTvtcRowTheme = (index) => {
   const themes = [
     {
@@ -5047,6 +5089,16 @@ printScheduleOnlyPdf({
                                     background: periodTheme.bg,
                                   };
 
+                          const theme = getDayTheme(item.dayName);
+
+<tr
+  style={{
+    background: theme.bg,
+    borderBottom: `1px solid ${theme.border}`,
+    color: theme.text,
+  }}
+>
+                          
                                   return (
                                     <tr key={`${item.key}-${item.id}`}>
                                       <td style={{ ...cellStyle, fontWeight: 800 }}>
