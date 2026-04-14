@@ -3555,6 +3555,7 @@ style={{
               >
                 <div
                   style={{
+                    display: "inline-flex",
                     marginBottom: 12,
                     background: COLORS.warningBg,
                     color: COLORS.warning,
@@ -3570,7 +3571,7 @@ style={{
                 </div>
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
                 <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                  اختر القسم أو التخصص الذي لا تريد دخوله في التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
+                  اختر القسم أو التخصص الذي ترغب باستبعاده من التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
@@ -3893,6 +3894,7 @@ style={{
         {!includeAllDepartmentsAndMajors ? (
           <div
             style={{
+              display: "inline-flex",
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               padding: 14,
@@ -4198,6 +4200,7 @@ style={{
               >
                 <div
                   style={{
+                    display: "inline-flex",
                     marginBottom: 12,
                     background: COLORS.warningBg,
                     color: COLORS.warning,
@@ -4715,6 +4718,7 @@ style={{
 
                 <div
                   style={{
+                    display: "inline-flex",
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 16,
                     padding: 12,
@@ -5126,6 +5130,7 @@ style={{
 
               <div
                 style={{
+                  display: "inline-flex",
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 16,
                   padding: 12,
@@ -5150,7 +5155,7 @@ style={{
               >
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>طباعة جدول متدرب واحد</div>
 
-                <div style={{ position: "relative" }}>
+                <div style={{ position: "relative", display: "inline-flex", }}>
                   <input
                     value={studentSearchText}
                     onChange={(e) => {
