@@ -1637,7 +1637,6 @@ const buildPersistedState = () => ({
   unscheduled: unscheduled.map(serializeScheduleItem),
   previewTab,
   previewPage,
-  selectedStudentIdForPrint,
   compactPrintMode,
   courseAKey,
 courseBKey,
@@ -1676,13 +1675,22 @@ const restorePersistedState = (saved) => {
   setUnscheduled((saved.unscheduled || []).map(deserializeScheduleItem));
   setPreviewTab(saved.previewTab || "sortedCourses");
   setPreviewPage(saved.previewPage || 0);
-  setSelectedStudentIdForPrint(saved.selectedStudentIdForPrint || "");
+  setSelectedStudentIdForPrint("");
+  setStudentSearchText("");
+  setShowStudentSuggestions(false);
   setCompactPrintMode(saved.compactPrintMode ?? false);
   setCourseAKey(saved.courseAKey || "");
 setCourseBKey(saved.courseBKey || "");
 };
 
-
+useEffect(() => {
+  if (currentStep === 6) {
+    setSelectedStudentIdForPrint("");
+    setStudentSearchText("");
+    setShowStudentSuggestions(false);
+  }
+}, [currentStep]);
+  
 useEffect(() => {
   let cancelled = false;
 
