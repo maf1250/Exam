@@ -4237,7 +4237,7 @@ style={{
           ))}
         </select>
       </div>
-    </div>
+    
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
      <div
