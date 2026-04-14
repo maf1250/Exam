@@ -4214,15 +4214,7 @@ style={{
     overflow: "visible",
   }}
 >
- <div
-  style={{
-    display: "flex",
-    gap: 12,
-    alignItems: "flex-start",
-    flexWrap: "wrap", // مهم للجوال
-    marginBottom: 18,
-  }}
->
+ 
   <div style={{ minWidth: 0 }}>
     <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
     <select
@@ -4232,6 +4224,11 @@ style={{
         ...fieldStyle(),
         width: "100%",
         maxWidth: 310,
+        display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    flexWrap: "wrap", // مهم للجوال
+    marginBottom: 18,
       }}
     >
       <option value="">اختر المقرر الأول</option>
@@ -4252,6 +4249,11 @@ style={{
         ...fieldStyle(),
         width: "100%",
         maxWidth: 310,
+        display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    flexWrap: "wrap", // مهم للجوال
+    marginBottom: 18,
       }}
     >
       <option value="">اختر المقرر الثاني</option>
@@ -4262,7 +4264,7 @@ style={{
       ))}
     </select>
   </div>
-</div>
+
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
       <div
