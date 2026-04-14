@@ -4373,20 +4373,19 @@ style={{
           }}
         >
           <div
-            style={{
-              
-              background: COLORS.primaryLight,
-              borderBottom: `1px solid ${COLORS.primaryBorder}`,
-              display: "block",
-              fontWeight: 900,
-              color: COLORS.primaryDark,
-              width: "100%",
-              borderCollapse: "collapse",
-              padding: 12, borderBottom: `1px solid ${COLORS.border}`  
-            }}
-          >
-            تفاصيل المتدربين المتعارضين
-          </div>
+  style={{
+    background: COLORS.primaryLight,
+    borderBottom: `1px solid ${COLORS.primaryBorder}`,
+    display: "inline-block",
+    fontWeight: 900,
+    color: COLORS.primaryDark,
+    padding: "10px 14px",
+    borderRadius: 12,
+    marginBottom: 10,
+  }}
+>
+  تفاصيل المتدربين المتعارضين
+</div>
 
           {getSelectedPairConflictStudents.length === 0 ? (
             <div style={{ padding: 18, color: COLORS.muted }}>
