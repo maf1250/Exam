@@ -2713,18 +2713,26 @@ newPlaced.push({
 
   setUnscheduled(notPlaced);
   setPreviewPage(0);
-  return newPlaced;
+  return { placed: newPlaced, notPlaced };
 };
 
 const generateGeneralSchedule = () => {
-  const placed = generateScheduleForCourses(generalCourses, []);
+  const { placed, notPlaced } = generateScheduleForCourses(generalCourses, []);
   setGeneralSchedule(placed);
-  showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+  if (notPlaced.length) {
+    showToast(
+      "تم توزيع الدراسات العامة مع ملاحظات",
+      `تم توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
+      "warning"
+    );
+  } else {
+    showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+  }
   setCurrentStep(5);
 };
 
 const generateSpecializedSchedule = () => {
-  const placed = generateScheduleForCourses(specializedCourses, generalSchedule);
+  const { placed, notPlaced } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
   setPreviewTab("sortedCourses");
 
@@ -2733,7 +2741,15 @@ const generateSpecializedSchedule = () => {
   );
 
   setSchedule(merged);
-  showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+  if (notPlaced.length) {
+    showToast(
+      "تم توزيع مقررات التخصص مع ملاحظات",
+      `تم توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
+      "warning"
+    );
+  } else {
+    showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+  }
   setCurrentStep(6);
 };
 
@@ -4831,6 +4847,37 @@ style={{
                     </div>
                   ) : null}
 
+                  {unscheduled.length ? (
+                    <div
+                      style={{
+                        marginBottom: 18,
+                        borderRadius: 18,
+                        background: COLORS.warningBg,
+                        border: "1px solid #FED7AA",
+                        color: COLORS.warning,
+                        padding: 14,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {unscheduled.map((course) => (
+                          <span
+                            key={course.key}
+                            style={{
+                              background: "#fff",
+                              border: "1px solid #FED7AA",
+                              borderRadius: 999,
+                              padding: "6px 12px",
+                              fontSize: 13,
+                            }}
+                          >
+                            {course.courseName} - {course.courseCode}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {!filteredScheduleForPrint.length ? (
                     <div
                       style={{
@@ -4919,36 +4966,6 @@ style={{
                     </div>
                   )}
 
-                  {unscheduled.length ? (
-                    <div
-                      style={{
-                        marginTop: 18,
-                        borderRadius: 18,
-                        background: COLORS.warningBg,
-                        border: "1px solid #FED7AA",
-                        color: COLORS.warning,
-                        padding: 14,
-                      }}
-                    >
-                      <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {unscheduled.map((course) => (
-                          <span
-                            key={course.key}
-                            style={{
-                              background: "#fff",
-                              border: "1px solid #FED7AA",
-                              borderRadius: 999,
-                              padding: "6px 12px",
-                              fontSize: 13,
-                            }}
-                          >
-                            {course.courseName} - {course.courseCode}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
                 </Card>
               </div>
             )}
