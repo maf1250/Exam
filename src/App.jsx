@@ -1033,9 +1033,8 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
           </div>
-
-          <div class="period-strip" style="--period-count:${periodIds.length}">
-            <div>اليوم / التاريخ</div>
+<div class="period-strip" style="--period-count:${periodIds.length}">
+  <div>&nbsp;</div>
             ${resolvedPeriodLabels
               .map(
                 (p) => `
@@ -1103,8 +1102,6 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
               ${instructions.map((item) => `<li>${item}</li>`).join("")}
             </ol>
           </div>
-
-          <div class="footer">${todayText}</div>
         </div>
       </body>
     </html>
@@ -1226,8 +1223,6 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
                 .join("")}
             </tbody>
           </table>
-
-          <div class="footer">${todayText}</div>
         </div>
       </body>
     </html>
