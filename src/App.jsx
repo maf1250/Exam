@@ -4205,7 +4205,7 @@ style={{
       description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
     />
 
-  
+    <div style={{ display: "grid", gap: 14, marginBottom: 18 }}>
       <div>
         <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
         <select
@@ -4237,157 +4237,145 @@ style={{
           ))}
         </select>
       </div>
-    
+    </div>
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
-     <div
-  style={{
-    background: COLORS.warningBg,
-    color: COLORS.warning,
-    border: `1px solid #FCD34D`,
-    borderRadius: 16,
-    padding: 14,
-    fontWeight: 700,
-    marginBottom: 12,
-    display: "block",
-    width: "fit-content",
-  }}
->
-  اختر مقررين مختلفين.
-</div>
-  ) : null}
+      <div
+        style={{
+          background: COLORS.warningBg,
+          color: COLORS.warning,
+          border: `1px solid #FCD34D`,
+          borderRadius: 16,
+          padding: 14,
+          fontWeight: 700,
+          marginBottom: 12,
+          display: "block",
+          width: "fit-content",
+        }}
+      >
+        اختر مقررين مختلفين.
+      </div>
+    ) : null}
 
     {selectedCourseA && selectedCourseB && courseAKey !== courseBKey ? (
       <>
         <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, max-content))",
-    gap: 12,
-    marginBottom: 18,
-    alignItems: "start",
-    justifyContent: "start",
-  }}
->
-   <div
-  style={{
-    display: "flex",
-    gap: 12,
-    marginBottom: 18,
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-  }}
->
-  <div
-    style={{
-      background: "#fff",
-      border: `1px solid ${COLORS.border}`,
-      borderRadius: 18,
-      padding: 12,
-      display: "inline-flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      width: "fit-content",
-      maxWidth: "100%",
-    }}
-  >
-    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-      المقرر الأول
-    </div>
-    <div
-      style={{
-        fontWeight: 900,
-        color: COLORS.charcoal,
-        whiteSpace: "normal",
-        wordBreak: "break-word",
-      }}
-    >
-      {selectedCourseA.courseName}
-    </div>
-    <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-      {selectedCourseA.courseCode}
-    </div>
-  </div>
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 18,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 12,
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              width: "fit-content",
+              maxWidth: "100%",
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+              المقرر الأول
+            </div>
+            <div
+              style={{
+                fontWeight: 900,
+                color: COLORS.charcoal,
+                whiteSpace: "normal",
+                wordBreak: "break-word",
+              }}
+            >
+              {selectedCourseA.courseName}
+            </div>
+            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+              {selectedCourseA.courseCode}
+            </div>
+          </div>
 
-  <div
-    style={{
-      background: "#fff",
-      border: `1px solid ${COLORS.border}`,
-      borderRadius: 18,
-      padding: 12,
-      display: "inline-flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      width: "fit-content",
-      maxWidth: "100%",
-    }}
-  >
-    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-      المقرر الثاني
-    </div>
-    <div
-      style={{
-        fontWeight: 900,
-        color: COLORS.charcoal,
-        whiteSpace: "normal",
-        wordBreak: "break-word",
-      }}
-    >
-      {selectedCourseB.courseName}
-    </div>
-    <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-      {selectedCourseB.courseCode}
-    </div>
-  </div>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: 12,
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              width: "fit-content",
+              maxWidth: "100%",
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+              المقرر الثاني
+            </div>
+            <div
+              style={{
+                fontWeight: 900,
+                color: COLORS.charcoal,
+                whiteSpace: "normal",
+                wordBreak: "break-word",
+              }}
+            >
+              {selectedCourseB.courseName}
+            </div>
+            <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+              {selectedCourseB.courseCode}
+            </div>
+          </div>
 
-  <div
-    style={{
-      background: COLORS.primaryLight,
-      border: `1px solid ${COLORS.primaryBorder}`,
-      borderRadius: 18,
-      padding: 16,
-      display: "inline-flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      width: "fit-content",
-      maxWidth: "100%",
-    }}
-  >
-    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-      عدد المتدربين المشتركين
-    </div>
-    <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
-      {getSelectedPairConflictStudents.length}
-    </div>
-  </div>
-</div>
+          <div
+            style={{
+              background: COLORS.primaryLight,
+              border: `1px solid ${COLORS.primaryBorder}`,
+              borderRadius: 18,
+              padding: 16,
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              width: "fit-content",
+              maxWidth: "100%",
+            }}
+          >
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+              عدد المتدربين المشتركين
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
+              {getSelectedPairConflictStudents.length}
+            </div>
+          </div>
+        </div>
 
         <div
           style={{
             background: "#fff",
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 12,
-    display: "block",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    width: "fit-content",
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 12,
+            display: "block",
+            width: "100%",
           }}
         >
           <div
-  style={{
-    background: COLORS.primaryLight,
-    borderBottom: `1px solid ${COLORS.primaryBorder}`,
-    display: "inline-block",
-    fontWeight: 900,
-    color: COLORS.primaryDark,
-    padding: "10px 14px",
-    borderRadius: 12,
-    marginBottom: 10,
-  }}
->
-  تفاصيل المتدربين المتعارضين
-</div>
+            style={{
+              background: COLORS.primaryLight,
+              border: `1px solid ${COLORS.primaryBorder}`,
+              display: "inline-block",
+              fontWeight: 900,
+              color: COLORS.primaryDark,
+              padding: "10px 14px",
+              borderRadius: 12,
+              marginBottom: 10,
+            }}
+          >
+            تفاصيل المتدربين المتعارضين
+          </div>
 
           {getSelectedPairConflictStudents.length === 0 ? (
             <div style={{ padding: 18, color: COLORS.muted }}>
@@ -4397,13 +4385,13 @@ style={{
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                <tr style={{ background: "#E8E8E8" }}>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>القسم</th>
-  <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>التخصص</th>
-</tr>
+                  <tr style={{ background: "#E8E8E8" }}>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>رقم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>اسم المتدرب</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>القسم</th>
+                    <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>التخصص</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {getSelectedPairConflictStudents.map((student, index) => {
@@ -4497,18 +4485,18 @@ style={{
       </>
     ) : (
       <div
-  style={{
-    background: "#fff",
-    border: `1px dashed ${COLORS.primaryBorder}`,
-    borderRadius: 18,
-    padding: 18,
-    color: COLORS.muted,
-    display: "block",
-    width: "fit-content",
-  }}
->
-  اختر مقررين لعرض التعارض بينهما.
-</div>
+        style={{
+          background: "#fff",
+          border: `1px dashed ${COLORS.primaryBorder}`,
+          borderRadius: 18,
+          padding: 18,
+          color: COLORS.muted,
+          display: "block",
+          width: "fit-content",
+        }}
+      >
+        اختر مقررين لعرض التعارض بينهما.
+      </div>
     )}
   </Card>
 )}
