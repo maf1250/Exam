@@ -794,35 +794,15 @@ function getPrintBaseStyles() {
 
 function getDayTheme(dayName) {
   const themes = {
-    "الأحد": {
-      bg: "#EAF7F6",
-      border: "#1FA7A8",
-      text: "#0F4F53",
-    },
-    "الاثنين": {
-      bg: "#F2FBFA",
-      border: "#147B83",
-      text: "#0F4F53",
-    },
-    "الثلاثاء": {
-      bg: "#E6F4F3",
-      border: "#2A9D9C",
-      text: "#0F4F53",
-    },
-    "الأربعاء": {
-      bg: "#F4FBFB",
-      border: "#3BA7A5",
-      text: "#0F4F53",
-    },
-    "الخميس": {
-      bg: "#EAF8F7",
-      border: "#0F8B8D",
-      text: "#0F4F53",
-    },
+    "الأحد": { bg: "#F3FBFA", border: "#1FA7A8", text: "#145A5F" },
+    "الاثنين": { bg: "#F6FCFC", border: "#1B8F96", text: "#145A5F" },
+    "الثلاثاء": { bg: "#EEF8F8", border: "#2A9D9C", text: "#145A5F" },
+    "الأربعاء": { bg: "#F8FCFC", border: "#46AFAE", text: "#145A5F" },
+    "الخميس": { bg: "#EFFAFA", border: "#147B83", text: "#145A5F" },
   };
 
   return themes[dayName] || {
-    bg: "#F8FAFA",
+    bg: "#FAFCFC",
     border: "#D7E7E6",
     text: "#1F2529",
   };
@@ -864,10 +844,10 @@ const renderPeriodColumns = (day, periodId, rowIndex) => {
 
   if (!item) {
     return `
-      <td class="num-cell" style="background:${dayTheme.bg};">${rowIndex + 1}</td>
-      <td class="course-cell" style="background:${dayTheme.bg};"></td>
-      <td class="code-cell" style="background:${dayTheme.bg};"></td>
-      <td class="hall-cell" style="background:${dayTheme.bg};"></td>
+      <td class="num-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">${rowIndex + 1}</td>
+      <td class="course-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};"></td>
+      <td class="code-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};"></td>
+      <td class="hall-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};"></td>
     `;
   }
 
@@ -908,16 +888,6 @@ const extractedDepartments = Array.from(
     )
   )
 ).sort((a, b) => a.localeCompare(b, "ar"));
-
-const extractedMajors = Array.from(
-  new Set(
-    schedule.flatMap((item) =>
-      splitBySlash(item.major)
-        .map((major) => String(major || "").trim())
-        .filter(Boolean)
-    )
-  )
-).sort((a, b) => a.localeCompare(b, "ar"));
 let departmentLabel = "";
 let majorLabel = "";
 
@@ -927,45 +897,33 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
 } else {
   if (selectedDepartment !== "__all__") {
     departmentLabel = selectedDepartment;
+  } else if (extractedDepartments.length) {
+    departmentLabel =
+      extractedDepartments.length === 1
+        ? extractedDepartments[0]
+        : extractedDepartments.join(" / ");
   } else {
-    if (extractedDepartments.length) {
-      departmentLabel =
-        extractedDepartments.length === 1
-          ? extractedDepartments[0]
-          : extractedDepartments.join(" / ");
-    } else {
-      const roots = Array.from(
-        new Set(
-          schedule.flatMap((item) =>
-            (item.departmentRoots || []).filter(
-              (r) => r !== normalizeArabic("الدراسات العامة")
-            )
+    const roots = Array.from(
+      new Set(
+        schedule.flatMap((item) =>
+          (item.departmentRoots || []).filter(
+            (r) => r !== normalizeArabic("الدراسات العامة")
           )
         )
-      );
+      )
+    );
 
-      departmentLabel =
-        roots.length === 1
-          ? roots[0]
-          : roots.length
-          ? roots.join(" / ")
-          : "جميع الأقسام";
-    }
+    departmentLabel =
+      roots.length === 1
+        ? roots[0]
+        : roots.length
+        ? roots.join(" / ")
+        : "جميع الأقسام";
   }
 
-  if (selectedMajor !== "__all__") {
-    majorLabel = selectedMajor;
-  } else {
-    majorLabel =
-      extractedMajors.length === 1
-        ? extractedMajors[0]
-        : extractedMajors.length
-        ? extractedMajors.join(" / ")
-        : "جميع التخصصات";
-  }
+  majorLabel = selectedMajor !== "__all__" ? selectedMajor : "جميع التخصصات";
 }
 
-  
   const tableFontSize = compactMode ? "9px" : "11px";
   const tablePadding = compactMode ? "4px 3px" : "6px 5px";
   const pageMargin = compactMode ? "6mm" : "10mm";
@@ -1033,8 +991,9 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
               <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
             </div>
           </div>
-<div class="period-strip" style="--period-count:${periodIds.length}">
-  <div>&nbsp;</div>
+
+          <div class="period-strip" style="--period-count:${periodIds.length}">
+            <div>&nbsp;</div>
             ${resolvedPeriodLabels
               .map(
                 (p) => `
@@ -1069,28 +1028,28 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
                   const rowsCount = maxRowsPerDay(day);
 
                   return Array.from({ length: rowsCount })
-  .map(
-    (_, rowIndex) => `
-      <tr style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};">
-        ${
-          rowIndex === 0
-            ? `
-              <td 
-                class="day-col" 
-                rowspan="${rowsCount}"
-                style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};"
-              >
-                <div style="font-weight:800">${day.dayName}</div>
-                <div style="margin-top:4px">${day.hijriNumeric}</div>
-              </td>
-            `
-            : ""
-        }
-        ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
-      </tr>
-    `
-  )
-  .join("");
+                    .map(
+                      (_, rowIndex) => `
+                        <tr style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};">
+                          ${
+                            rowIndex === 0
+                              ? `
+                                <td 
+  class="day-col" 
+  rowspan="${rowsCount}"
+  style="background:${getDayTheme(day.dayName).bg}; color:${getDayTheme(day.dayName).text};"
+>
+                                  <div style="font-weight:800">${day.dayName}</div>
+                                  <div style="margin-top:4px">${day.hijriNumeric}</div>
+                                </td>
+                              `
+                              : ""
+                          }
+                          ${periodIds.map((periodId) => renderPeriodColumns(day, periodId, rowIndex)).join("")}
+                        </tr>
+                      `
+                    )
+                    .join("");
                 })
                 .join("")}
             </tbody>
@@ -1102,6 +1061,7 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
               ${instructions.map((item) => `<li>${item}</li>`).join("")}
             </ol>
           </div>
+
         </div>
       </body>
     </html>
@@ -1223,6 +1183,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
                 .join("")}
             </tbody>
           </table>
+
         </div>
       </body>
     </html>
@@ -1255,10 +1216,10 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   const rowsHtml = items
   .map(
     (item, index) => `
-     <tr style="
-  background:${getDayTheme(item.dayName).bg};
-  color:${getDayTheme(item.dayName).text};
-">
+      <tr style="
+        background:${getDayTheme(item.dayName).bg};
+        color:${getDayTheme(item.dayName).text};
+      ">
         <td>${index + 1}</td>
         <td>${item.courseName || ""}</td>
         <td>${item.courseCode || ""}</td>
@@ -1381,7 +1342,6 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
             </ol>
           </div>
           
-          <div class="footer">${todayText}</div>
         </div>
       </body>
     </html>
@@ -1683,14 +1643,7 @@ const restorePersistedState = (saved) => {
 setCourseBKey(saved.courseBKey || "");
 };
 
-useEffect(() => {
-  if (currentStep === 6) {
-    setSelectedStudentIdForPrint("");
-    setStudentSearchText("");
-    setShowStudentSuggestions(false);
-  }
-}, [currentStep]);
-  
+
 useEffect(() => {
   let cancelled = false;
 
@@ -1852,7 +1805,6 @@ useEffect(() => {
   unscheduled,
   previewTab,
   previewPage,
-  selectedStudentIdForPrint,
   compactPrintMode,
   courseAKey,
   courseBKey,
