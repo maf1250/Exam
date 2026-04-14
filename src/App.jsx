@@ -4214,21 +4214,16 @@ style={{
     overflow: "visible",
   }}
 >
- 
-  <div style={{ minWidth: 0 }}>
+  <div style={{ minWidth: 0, overflow: "visible" }}>
     <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
     <select
       value={courseAKey}
       onChange={(e) => setCourseAKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%",
-        maxWidth: 310,
-        display: "flex",
-    gap: 12,
-    alignItems: "flex-start",
-    flexWrap: "wrap", // مهم للجوال
-    marginBottom: 18,
+        width: "100%", maxWidth: 310,
+        position: "relative",
+        zIndex: 2,
       }}
     >
       <option value="">اختر المقرر الأول</option>
@@ -4240,20 +4235,16 @@ style={{
     </select>
   </div>
 
-  <div style={{ minWidth: 0 }}>
+  <div style={{ minWidth: 0, overflow: "visible" }}>
     <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الثاني</div>
     <select
       value={courseBKey}
       onChange={(e) => setCourseBKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%",
-        maxWidth: 310,
-        display: "flex",
-    gap: 12,
-    alignItems: "flex-start",
-    flexWrap: "wrap", // مهم للجوال
-    marginBottom: 18,
+        width: "100%", maxWidth: 310,
+        position: "relative",
+        zIndex: 2,
       }}
     >
       <option value="">اختر المقرر الثاني</option>
@@ -4264,6 +4255,8 @@ style={{
       ))}
     </select>
   </div>
+</div>
+
 
 
     {courseAKey && courseBKey && courseAKey === courseBKey ? (
