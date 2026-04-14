@@ -4280,6 +4280,7 @@ style={{
               border: `1px solid ${COLORS.border}`,
               borderRadius: 18,
               padding: 12,
+              display: "inline-block",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
@@ -4343,6 +4344,7 @@ style={{
               padding: "14px 16px",
               background: COLORS.primaryLight,
               borderBottom: `1px solid ${COLORS.primaryBorder}`,
+              display: "inline-block",
               fontWeight: 900,
               color: COLORS.primaryDark,
             }}
@@ -4464,6 +4466,7 @@ style={{
           borderRadius: 18,
           padding: 18,
           color: COLORS.muted,
+          display: "inline-block",
         }}
       >
         اختر مقررين لعرض التعارض بينهما.
