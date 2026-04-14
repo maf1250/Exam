@@ -4257,6 +4257,7 @@ style={{
           padding: 14,
           fontWeight: 700,
           marginBottom: 16,
+          display: "inline-block",
         }}
       >
         اختر مقررين مختلفين.
