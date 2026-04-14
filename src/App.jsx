@@ -4279,7 +4279,7 @@ style={{
 >
           <div
   style={{
-    background: "#fff",
+    background: COLORS.primaryLight,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
@@ -4309,7 +4309,7 @@ style={{
 </div>
           <div
   style={{
-    background: "#fff",
+    background: COLORS.primaryDark,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 12,
@@ -4376,12 +4376,13 @@ style={{
   style={{
     background: COLORS.primaryLight,
     borderBottom: `1px solid ${COLORS.primaryBorder}`,
-    display: "inline-block",
+    display: "block",
     fontWeight: 900,
     color: COLORS.primaryDark,
-    padding: "10px 14px",
-    borderRadius: 12,
-    marginBottom: 10,
+    width: "100%",
+    borderCollapse: "collapse",
+    padding: 12,
+    borderBottom: `1px solid ${COLORS.border}`,
   }}
 >
   تفاصيل المتدربين المتعارضين
