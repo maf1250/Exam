@@ -4214,16 +4214,24 @@ style={{
     overflow: "visible",
   }}
 >
-  <div style={{ minWidth: 0, overflow: "visible" }}>
+ <div
+  style={{
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    flexWrap: "wrap", // مهم للجوال
+    marginBottom: 18,
+  }}
+>
+  <div style={{ minWidth: 0 }}>
     <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الأول</div>
     <select
       value={courseAKey}
       onChange={(e) => setCourseAKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%", maxWidth: 280,
-        position: "relative",
-        zIndex: 2,
+        width: "100%",
+        maxWidth: 310,
       }}
     >
       <option value="">اختر المقرر الأول</option>
@@ -4235,16 +4243,15 @@ style={{
     </select>
   </div>
 
-  <div style={{ minWidth: 0, overflow: "visible" }}>
+  <div style={{ minWidth: 0 }}>
     <div style={{ marginBottom: 8, fontWeight: 800 }}>المقرر الثاني</div>
     <select
       value={courseBKey}
       onChange={(e) => setCourseBKey(e.target.value)}
       style={{
         ...fieldStyle(),
-        width: "100%", maxWidth: 280,
-        position: "relative",
-        zIndex: 2,
+        width: "100%",
+        maxWidth: 310,
       }}
     >
       <option value="">اختر المقرر الثاني</option>
@@ -4371,16 +4378,6 @@ style={{
         </div>
 
         <div
-          style={{
-            background: "#fff",
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 18,
-            padding: 12,
-            display: "block",
-            width: "100%",
-          }}
-        >
-         <div
   style={{
     background: COLORS.primaryLight,
     border: `1px solid ${COLORS.primaryBorder}`,
@@ -4396,6 +4393,18 @@ style={{
 >
   تفاصيل المتدربين المتعارضين
 </div>
+        
+        <div
+          style={{
+            background: "#fff",
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 12,
+            display: "block",
+            width: "100%",
+          }}
+        >
+         
 
           {getSelectedPairConflictStudents.length === 0 ? (
             <div style={{ padding: 18, color: COLORS.muted }}>
@@ -4403,7 +4412,7 @@ style={{
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{     width: "auto", borderCollapse: "collapse", }}>
                 <thead>
                   <tr style={{ background: "#E8E8E8" }}>
                     <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
