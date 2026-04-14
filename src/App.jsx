@@ -4269,96 +4269,98 @@ style={{
     justifyContent: "start",
   }}
 >
-          <div
-  style={{
-    background: COLORS.primaryLight,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 12,
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    width: "fit-content",
-    maxWidth: "100%",
-  }}
->
- <div
+   <div
   style={{
     display: "flex",
     gap: 12,
+    marginBottom: 18,
     alignItems: "flex-start",
-    flexWrap: "wrap", 
+    flexWrap: "wrap",
   }}
 >
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-    المقرر الأول
-  </div>
   <div
     style={{
-      fontWeight: 900,
-      color: COLORS.charcoal,
-      whiteSpace: "normal",
-      wordBreak: "break-word",
+      background: "#fff",
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 18,
+      padding: 12,
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "fit-content",
+      maxWidth: "100%",
     }}
   >
-    {selectedCourseA.courseName}
+    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+      المقرر الأول
+    </div>
+    <div
+      style={{
+        fontWeight: 900,
+        color: COLORS.charcoal,
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+      }}
+    >
+      {selectedCourseA.courseName}
+    </div>
+    <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+      {selectedCourseA.courseCode}
+    </div>
   </div>
-  <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-    {selectedCourseA.courseCode}
-  </div>
-</div>
-          <div
-  style={{
-    background: COLORS.primaryLight,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 12,
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    width: "fit-content",
-    maxWidth: "100%",
-  }}
->
-  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-    المقرر الثاني
-  </div>
-  <div
-    style={{
-      fontWeight: 900,
-      color: COLORS.charcoal,
-      whiteSpace: "normal",
-      wordBreak: "break-word",
-    }}
-  >
-    {selectedCourseB.courseName}
-  </div>
-  <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
-    {selectedCourseB.courseCode}
-  </div>
-</div>
 
-         <div
-  style={{
-    background: COLORS.primaryLight,
-    border: `1px solid ${COLORS.primaryBorder}`,
-    borderRadius: 18,
-    padding: 16,
-    display: "inline-flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    width: "fit-content",
-    maxWidth: "100%",
-  }}
->
-  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
-    عدد المتدربين المشتركين
+  <div
+    style={{
+      background: "#fff",
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 18,
+      padding: 12,
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "fit-content",
+      maxWidth: "100%",
+    }}
+  >
+    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+      المقرر الثاني
+    </div>
+    <div
+      style={{
+        fontWeight: 900,
+        color: COLORS.charcoal,
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+      }}
+    >
+      {selectedCourseB.courseName}
+    </div>
+    <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
+      {selectedCourseB.courseCode}
+    </div>
   </div>
-  <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
-    {getSelectedPairConflictStudents.length}
+
+  <div
+    style={{
+      background: COLORS.primaryLight,
+      border: `1px solid ${COLORS.primaryBorder}`,
+      borderRadius: 18,
+      padding: 16,
+      display: "inline-flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "fit-content",
+      maxWidth: "100%",
+    }}
+  >
+    <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+      عدد المتدربين المشتركين
+    </div>
+    <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>
+      {getSelectedPairConflictStudents.length}
+    </div>
   </div>
 </div>
-        </div>
 
         <div
           style={{
