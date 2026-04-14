@@ -5081,16 +5081,6 @@ printScheduleOnlyPdf({
                                     background: periodTheme.bg,
                                   };
 
-                          const theme = getDayTheme(item.dayName);
-
-<tr
-  style={{
-    background: theme.bg,
-    borderBottom: `1px solid ${theme.border}`,
-    color: theme.text,
-  }}
->
-                          
                                   return (
                                     <tr key={`${item.key}-${item.id}`}>
                                       <td style={{ ...cellStyle, fontWeight: 800 }}>
