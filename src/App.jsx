@@ -3177,7 +3177,7 @@ const headerBtn = (danger = false) => ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, max-content))",
             gap: 16,
             marginTop: 20,
           }}
@@ -4284,8 +4284,7 @@ style={{
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الأول</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", whiteSpace: "nowrap",
-    overflow: "hidden" }}>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal, whiteSpace: "normal", wordBreak: "break-word", }}>
               {selectedCourseA.courseName}
             </div>
             <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
@@ -4296,15 +4295,17 @@ style={{
           <div
             style={{
               background: "#fff",
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 18,
-              padding: 16,
-              display: "inline-block",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 12,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    width: "fit-content",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>المقرر الثاني</div>
-            <div style={{ fontWeight: 900, color: COLORS.charcoal, textOverflow: "ellipsis", whiteSpace: "nowrap",
-    overflow: "hidden"}}>
+            <div style={{ fontWeight: 900, color: COLORS.charcoal, whiteSpace: "normal", wordBreak: "break-word",}}>
               {selectedCourseB.courseName}
             </div>
             <div style={{ marginTop: 4, color: COLORS.primaryDark, fontWeight: 700 }}>
@@ -4318,7 +4319,7 @@ style={{
               border: `1px solid ${COLORS.primaryBorder}`,
               borderRadius: 18,
               padding: 16,
-              display: "inline-block",
+              display: "block",
             }}
           >
             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
@@ -4333,10 +4334,13 @@ style={{
         <div
           style={{
             background: "#fff",
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 22,
-            overflow: "hidden",
-            display: "inline-block",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 12,
+    display: "inline-flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    width: "fit-content",
           }}
         >
           <div
