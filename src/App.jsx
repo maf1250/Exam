@@ -4207,6 +4207,16 @@ style={{
       description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
     />
 
+  <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 18,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+    
  <div
   style={{
     display: "grid",
@@ -4258,6 +4268,7 @@ style={{
     </select>
   </div>
 </div>
+    </div>
 
 
 
@@ -4384,7 +4395,7 @@ style={{
     fontWeight: 900,
     color: COLORS.primaryDark,
     textAlign: "right",
-    width: "auto",
+    
   }}
 >
   تفاصيل المتدربين المتعارضين
@@ -4397,7 +4408,7 @@ style={{
             borderRadius: 18,
             padding: 12,
             display: "block",
-            width: "auto",
+           
           }}
         >
          
@@ -4408,7 +4419,7 @@ style={{
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{     width: "auto", borderCollapse: "collapse", }}>
+              <table style={{borderCollapse: "collapse"}}>
                 <thead>
                   <tr style={{ background: "#E8E8E8" }}>
                     <th style={{ padding: 12, borderBottom: `1px solid ${COLORS.border}`, textAlign: "right" }}>م</th>
