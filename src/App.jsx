@@ -867,14 +867,6 @@ const renderPeriodColumns = (day, periodId, rowIndex) => {
   `;
 };
   
-    return `
-      <td class="num-cell">${rowIndex + 1}</td>
-      <td class="course-cell">${item.courseName || ""}</td>
-      <td class="code-cell">${item.courseCode || ""}</td>
-      <td class="hall-cell">${item.examHall || defaultExamHall}</td>
-    `;
-  };
-
   const todayText = new Intl.DateTimeFormat("ar-SA", {
     year: "numeric",
     month: "long",
