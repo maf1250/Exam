@@ -17,7 +17,7 @@ function openAppDb() {
         db.createObjectStore(STORE_NAME);
       }
     };
-    
+  
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error || new Error("تعذر فتح قاعدة البيانات المحلية"));
   });
@@ -4290,7 +4290,15 @@ style={{
     maxWidth: "100%",
   }}
 >
-  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
+ <div
+  style={{
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    flexWrap: "wrap", 
+  }}
+>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>
     المقرر الأول
   </div>
   <div
@@ -4358,7 +4366,7 @@ style={{
     {getSelectedPairConflictStudents.length}
   </div>
 </div>
-        </div>
+        </div></div>
 
         <div
           style={{
