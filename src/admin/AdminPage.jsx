@@ -3580,7 +3580,7 @@ exportCollegeDataFile({
           <Card>
             <SectionHeader
               title="الصفحة الأولى: رفع الملف والإعدادات العامة"
-              description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع تقرير SF01."
+              description="ثم حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات SF01 ثم ارفع تقرير."
             />
 
             <div
@@ -5928,11 +5928,7 @@ style={{
         </strong>
       </div>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
-          السابق
-        </button>
-      </div>
+     
     </Card>
   )}
 </div>
