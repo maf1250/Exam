@@ -381,5 +381,5 @@ export function generateTraineeLink(traineeId, locationOrCollegeName, gender = "
     return "";
   }
 
-  return `https://exam-tvtc.onrender.com/trainee/${slug}`;
+  return `https://exam-tvtc.onrender.com/#/trainee/${slug}`;
 }
