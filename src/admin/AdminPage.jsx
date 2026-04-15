@@ -5655,8 +5655,7 @@ style={{
     </Card>
 )}
 
-          
-        </div>
+
       
       {selectedConflicts && (
   <div
@@ -5935,7 +5934,8 @@ style={{
     </div>
  </div>
     )}
-    
- </div>
+              
+        </div>          
+       </div>
   );
 }
