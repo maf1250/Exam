@@ -5898,7 +5898,10 @@ style={{
       </button>
     </div>
   </div>
- 
+
+    )}
+      )}
+      
   {currentStep === 9 && (
     <Card>
       <SectionHeader
@@ -5932,8 +5935,7 @@ style={{
         </button>
       </div>
     </Card>
-  )}
-      )}
+
 
     
 
