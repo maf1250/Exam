@@ -1945,12 +1945,14 @@ const detectedCollegeLocation = useMemo(() => {
 }, [parsed?.collegeName, collegeNameInput]);
 
 const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
+
 const effectiveCollegeSlug = useMemo(
   () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
   [effectiveCollegeLocation, detectedGender]
 );
-  
-const allCollegeLocations = useMemo(() => getAllLocations(), []);
+
+
+  const allCollegeLocations = useMemo(() => getAllLocations(), []);
 
   useEffect(() => {
   setAutoDetectedCollegeLocation(detectedCollegeLocation || "");
