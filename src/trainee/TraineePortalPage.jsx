@@ -65,6 +65,10 @@ export default function TraineePortalPage() {
     };
   }, [slug]);
 
+  useEffect(() => {
+  document.title = "جداول الاختبارات النهائية - بوابة المتدرب";
+}, []);
+  
   const suggestions = useMemo(() => {
     if (!collegeData?.students?.length) return [];
     const q = normalizeArabic(searchText);
