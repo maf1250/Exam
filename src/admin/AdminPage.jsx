@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
-import {  generateTraineeLink, getAllLocations, resolveLocationName, resolveLocationCode,} from "../data/collegeRegistry";
+import {
+  generateTraineeLink,
+  getAllLocations,
+  resolveLocationName,
+  resolveLocationSlug,
+} from "../data/collegeRegistry";
 import { exportCollegeDataFile } from "../data/exportCollegeData";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
 const LARGE_STORAGE_KEY = "exam_scheduler_saved_state_large_v1";
@@ -1924,8 +1929,8 @@ const detectedCollegeLocation = useMemo(() => {
 }, [parsed?.collegeName, collegeNameInput]);
 
 const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
-const effectiveCollegeCode = useMemo(
-  () => resolveLocationCode(effectiveCollegeLocation),
+const effectiveCollegeSlug = useMemo(
+  () => resolveLocationSlug(effectiveCollegeLocation),
   [effectiveCollegeLocation]
 );
 
@@ -3353,14 +3358,13 @@ const headerBtn = (danger = false) => ({
       return;
     }
 
-    exportCollegeDataFile({
-      locationName: effectiveCollegeLocation,
-      locationCode: effectiveCollegeCode,
-      collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
-      schedule,
-      selectedDepartment: printDepartmentFilter,
-      selectedMajor: printMajorFilter,
-    });
+   exportCollegeDataFile({
+  slug: effectiveCollegeSlug,
+  collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
+  schedule,
+  selectedDepartment: printDepartmentFilter,
+  selectedMajor: printMajorFilter,
+});
 
     showToast("تم التصدير", "تم تصدير بيانات المتدربين بنجاح.", "success");
   }}
@@ -3408,7 +3412,7 @@ const headerBtn = (danger = false) => ({
   {effectiveCollegeLocation ? (
     <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
       تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
-      {effectiveCollegeCode ? ` (${effectiveCollegeCode})` : ""}
+      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
     </div>
   ) : (
     <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
