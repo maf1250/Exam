@@ -1470,6 +1470,76 @@ const pendingRestoreRef = useRef(null);
 ]);
 
 const [hallWarnings, setHallWarnings] = useState([]);
+
+  function addExamHall() {
+    setExamHalls((prev) => [
+      ...prev,
+      {
+        id: makeHallId(),
+        name: "",
+        capacity: "",
+        allowAllDepartments: true,
+        allowedDepartments: [],
+      },
+    ]);
+  }
+
+  function updateExamHall(id, patch) {
+    setExamHalls((prev) =>
+      prev.map((hall) => (hall.id === id ? { ...hall, ...patch } : hall))
+    );
+  }
+
+  function removeExamHall(id) {
+    setExamHalls((prev) => prev.filter((hall) => hall.id !== id));
+  }
+
+  function toggleHallDepartment(hallId, department) {
+    setExamHalls((prev) =>
+      prev.map((hall) => {
+        if (hall.id !== hallId) return hall;
+
+        const exists = hall.allowedDepartments.includes(department);
+
+        return {
+          ...hall,
+          allowedDepartments: exists
+            ? hall.allowedDepartments.filter((d) => d !== department)
+            : [...hall.allowedDepartments, department],
+        };
+      })
+    );
+  }
+
+  function setHallAllDepartments(hallId, checked) {
+    setExamHalls((prev) =>
+      prev.map((hall) =>
+        hall.id === hallId
+          ? {
+              ...hall,
+              allowAllDepartments: checked,
+              allowedDepartments: checked ? [] : hall.allowedDepartments,
+            }
+          : hall
+      )
+    );
+  }
+
+  const normalizedExamHalls = useMemo(() => {
+    return (examHalls || [])
+      .map((hall) => {
+        const cap = Number(hall.capacity);
+
+        return {
+          ...hall,
+          name: String(hall.name || "").trim(),
+          capacity: Number.isFinite(cap) ? cap : 0,
+          allowedDepartments: normalizeDepartmentList(hall.allowedDepartments),
+        };
+      })
+      .filter((hall) => hall.name && hall.capacity > 0);
+  }, [examHalls]);
+
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
@@ -2872,6 +2942,9 @@ const pickInvigilators = (course, slot) => {
 if (!matchingHallCount) {
   return Number.POSITIVE_INFINITY;
 }
+
+    return score;
+  };
 
   const sortedCoursesForInvigilation = [...coursesList].sort((a, b) => {
   const aNeed = getRequiredInvigilatorsCount(a);
