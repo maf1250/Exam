@@ -8,7 +8,7 @@ const STORAGE_MODE_KEY = "exam_scheduler_storage_mode_v1";
 const DB_NAME = "exam_scheduler_db";
 const DB_VERSION = 1;
 const STORE_NAME = "sessions";
-const ADMIN_GATE_PASSWORD_KEY = "exam_scheduler_admin_password_v1";
+
 
 function openAppDb() {
   return new Promise((resolve, reject) => {
@@ -1412,14 +1412,6 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
-  const [appMode, setAppMode] = useState(() => window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY) ? "student" : "admin");
-  const [adminPasswordStored, setAdminPasswordStored] = useState(() => window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY) || "");
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => !window.localStorage.getItem(ADMIN_GATE_PASSWORD_KEY));
-  const [showAdminAccessCard, setShowAdminAccessCard] = useState(false);
-  const [showAdminLockCard, setShowAdminLockCard] = useState(false);
-  const [adminPasswordInput, setAdminPasswordInput] = useState("");
-  const [newAdminPassword, setNewAdminPassword] = useState("");
-  const [confirmAdminPassword, setConfirmAdminPassword] = useState("");
 
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -1922,87 +1914,6 @@ const importSavedSession = (file) => {
 
 const isAdminLocked = Boolean(adminPasswordStored);
 
-const openAdminMode = () => {
-  if (isAdminLocked && !isAdminUnlocked) {
-    setShowAdminAccessCard(true);
-    setShowAdminLockCard(false);
-    return;
-  }
-
-  setAppMode("admin");
-  setShowStudentSuggestions(false);
-  setShowAdminAccessCard(false);
-};
-
-const openStudentMode = () => {
-  setAppMode("student");
-  setStudentSearchText("");
-  setSelectedStudentIdForPrint("");
-  setShowStudentSuggestions(false);
-  setShowAdminAccessCard(false);
-  if (isAdminLocked) {
-    setIsAdminUnlocked(false);
-  }
-};
-
-const handleAdminLogin = () => {
-  const trimmed = adminPasswordInput.trim();
-  if (!trimmed) {
-    showToast("كلمة المرور مطلوبة", "أدخل كلمة مرور الإدارة للمتابعة.", "warning");
-    return;
-  }
-
-  if (trimmed !== adminPasswordStored) {
-    showToast("تعذر الدخول", "كلمة المرور غير صحيحة.", "error");
-    return;
-  }
-
-  setIsAdminUnlocked(true);
-  setAdminPasswordInput("");
-  setShowAdminAccessCard(false);
-  setAppMode("admin");
-  showToast("تم فتح الإدارة", "تم التحقق من كلمة المرور بنجاح.", "success");
-};
-
-const handleSetAdminPassword = () => {
-  const nextPassword = newAdminPassword.trim();
-  const confirmPassword = confirmAdminPassword.trim();
-
-  if (!nextPassword || !confirmPassword) {
-    showToast("بيانات ناقصة", "أدخل كلمة المرور الجديدة ثم أكدها.", "warning");
-    return;
-  }
-
-  if (nextPassword.length < 4) {
-    showToast("كلمة المرور قصيرة", "اجعل كلمة المرور 4 أحرف أو أرقام على الأقل.", "warning");
-    return;
-  }
-
-  if (nextPassword !== confirmPassword) {
-    showToast("عدم تطابق", "تأكيد كلمة المرور لا يطابق القيمة الجديدة.", "error");
-    return;
-  }
-
-  window.localStorage.setItem(ADMIN_GATE_PASSWORD_KEY, nextPassword);
-  setAdminPasswordStored(nextPassword);
-  setIsAdminUnlocked(true);
-  setShowAdminLockCard(false);
-  setNewAdminPassword("");
-  setConfirmAdminPassword("");
-  showToast("تم حفظ القفل", "تم تعيين كلمة مرور الإدارة بنجاح.", "success");
-};
-
-const handleRemoveAdminPassword = () => {
-  window.localStorage.removeItem(ADMIN_GATE_PASSWORD_KEY);
-  setAdminPasswordStored("");
-  setIsAdminUnlocked(true);
-  setShowAdminAccessCard(false);
-  setShowAdminLockCard(false);
-  setAdminPasswordInput("");
-  setNewAdminPassword("");
-  setConfirmAdminPassword("");
-  showToast("تم إلغاء القفل", "أصبحت الواجهة الإدارية بدون كلمة مرور.", "success");
-};
 
   const departmentMajorOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -3342,26 +3253,55 @@ const headerBtn = (danger = false) => ({
 
 
       {/* الأزرار */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-         gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        <button style={headerBtn()} onClick={exportSavedSession}>
-          تصدير الجدول
-        </button>
+     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+  <button onClick={exportSavedSession}>تصدير البيانات</button>
+  <button onClick={() => importSessionRef.current?.click()}>استيراد البيانات</button>
+  <button onClick={clearSavedState}>حذف البيانات المحلية</button>
 
-        <button style={headerBtn()} onClick={() => importSessionRef.current?.click()}>
-          استيراد الجدول
-        </button>
+  <button
+    type="button"
+    onClick={() =>
+      exportCollegeDataFile({
+        slug: "JDCTM",
+        collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
+        schedule,
+        selectedDepartment: printDepartmentFilter,
+        selectedMajor: printMajorFilter,
+      })
+    }
+    style={{
+      background: COLORS.primaryDark,
+      color: "#fff",
+      border: "none",
+      borderRadius: 16,
+      padding: "10px 14px",
+      fontWeight: 800,
+      cursor: "pointer",
+    }}
+  >
+    تصدير بيانات المتدربين
+  </button>
 
-        <button style={headerBtn(true)} onClick={clearSavedState}>
-          حذف البيانات المحلية
-        </button>
-      </div>
+  <button
+    type="button"
+    onClick={() => {
+      const link = generateTraineeLink("JDCTM");
+      navigator.clipboard.writeText(link);
+      showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
+    }}
+    style={{
+      background: "#fff",
+      color: COLORS.primaryDark,
+      border: `1px solid ${COLORS.primaryBorder}`,
+      borderRadius: 16,
+      padding: "10px 14px",
+      fontWeight: 800,
+      cursor: "pointer",
+    }}
+  >
+    نسخ رابط المتدربين
+  </button>
+</div>
 
 
         {/* الشعار */}
@@ -3410,295 +3350,14 @@ const headerBtn = (danger = false) => ({
   />
 </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "center",
-          marginTop: 18,
-          marginBottom: 18,
-        }}
-      >
-        <button
-          onClick={openAdminMode}
-          style={cardButtonStyle({ active: appMode === "admin" && (!isAdminLocked || isAdminUnlocked) })}
-        >
-          {isAdminLocked ? "دخول الإدارة" : "الواجهة الإدارية"}
-        </button>
-        <button
-          onClick={openStudentMode}
-          style={cardButtonStyle({ active: appMode === "student" })}
-        >
-          بوابة المتدرب
-        </button>
+     
 
-        {appMode === "admin" ? (
-          <>
-            <button
-              onClick={() => {
-                setShowAdminLockCard(true);
-                setShowAdminAccessCard(false);
-                setNewAdminPassword("");
-                setConfirmAdminPassword("");
-              }}
-              style={cardButtonStyle()}
-            >
-              {isAdminLocked ? "تغيير كلمة المرور" : "قفل الإدارة"}
-            </button>
 
-            {isAdminLocked ? (
-              <button
-                onClick={handleRemoveAdminPassword}
-                style={cardButtonStyle({ danger: true })}
-              >
-                إزالة القفل
-              </button>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+       
 
-      {showAdminAccessCard ? (
-        <Card style={{ marginBottom: 18, maxWidth: 520 }}>
-          <SectionHeader
-            title="دخول الإدارة"
-            description="أدخل كلمة المرور الخاصة بهذه الجهة للوصول إلى الواجهة الإدارية."
-          />
+    
 
-          <div style={{ display: "grid", gap: 12 }}>
-            <input
-              type="password"
-              value={adminPasswordInput}
-              onChange={(e) => setAdminPasswordInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdminLogin();
-              }}
-              placeholder="كلمة مرور الإدارة"
-              style={fieldStyle()}
-            />
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={handleAdminLogin} style={cardButtonStyle({ active: true })}>
-                دخول
-              </button>
-              <button
-                onClick={() => {
-                  setShowAdminAccessCard(false);
-                  setAdminPasswordInput("");
-                }}
-                style={cardButtonStyle()}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-
-      {showAdminLockCard ? (
-        <Card style={{ marginBottom: 18, maxWidth: 620 }}>
-          <SectionHeader
-            title={isAdminLocked ? "تغيير كلمة مرور الإدارة" : "تعيين كلمة مرور للإدارة"}
-            description="كل جهة يمكنها تعيين كلمة مرورها الخاصة من داخل المشروع نفسه."
-          />
-
-          <div style={{ display: "grid", gap: 12 }}>
-            <input
-              type="password"
-              value={newAdminPassword}
-              onChange={(e) => setNewAdminPassword(e.target.value)}
-              placeholder="كلمة المرور الجديدة"
-              style={fieldStyle()}
-            />
-            <input
-              type="password"
-              value={confirmAdminPassword}
-              onChange={(e) => setConfirmAdminPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSetAdminPassword();
-              }}
-              placeholder="تأكيد كلمة المرور"
-              style={fieldStyle()}
-            />
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={handleSetAdminPassword} style={cardButtonStyle({ active: true })}>
-                حفظ كلمة المرور
-              </button>
-              <button
-                onClick={() => {
-                  setShowAdminLockCard(false);
-                  setNewAdminPassword("");
-                  setConfirmAdminPassword("");
-                }}
-                style={cardButtonStyle()}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-
-      {appMode === "student" ? (
-        <Card>
-          <SectionHeader
-            title="بوابة المتدرب"
-            description="ابحث برقم المتدرب أو اسمه لعرض جدوله وطباعته، بدون الوصول إلى الصفحات الإدارية."
-          />
-
-          {!combinedScheduleForStudents.length ? (
-            <div
-              style={{
-                borderRadius: 18,
-                padding: 16,
-                background: COLORS.warningBg,
-                border: `1px solid ${COLORS.primaryBorder}`,
-                color: COLORS.charcoal,
-                lineHeight: 1.9,
-              }}
-            >
-              لا يوجد جدول منشور حاليًا. أنشئ الجدول أولًا من الواجهة الإدارية ثم افتح بوابة المتدرب.
-            </div>
-          ) : (
-            <>
-              <div style={{ position: "relative", maxWidth: 620 }}>
-                <input
-                  value={studentSearchText}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setStudentSearchText(value);
-                    setSelectedStudentIdForPrint("");
-                    setShowStudentSuggestions(true);
-                  }}
-                  onFocus={() => {
-                    if (studentSearchText.trim()) setShowStudentSuggestions(true);
-                  }}
-                  onBlur={() => {
-                    window.setTimeout(() => setShowStudentSuggestions(false), 150);
-                  }}
-                  placeholder="اكتب رقم المتدرب أو اسمه"
-                  style={fieldStyle()}
-                />
-
-                {showStudentSuggestions && studentSearchText.trim() && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "calc(100% + 6px)",
-                      right: 0,
-                      left: 0,
-                      background: "#fff",
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 16,
-                      boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-                      maxHeight: 280,
-                      overflowY: "auto",
-                      zIndex: 3000,
-                    }}
-                  >
-                    {studentPortalOptions
-                      .filter((student) => {
-                        const q = normalizeArabic(studentSearchText.trim());
-                        if (!q) return false;
-
-                        const name = normalizeArabic(student.name || "");
-                        const id = normalizeArabic(student.id || "");
-                        const label = normalizeArabic(student.label || "");
-
-                        return name.includes(q) || id.includes(q) || label.includes(q);
-                      })
-                      .slice(0, 12)
-                      .map((student) => (
-                        <button
-                          key={student.id}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setStudentSearchText(student.label);
-                            setSelectedStudentIdForPrint(student.id);
-                            setShowStudentSuggestions(false);
-                          }}
-                          style={{
-                            width: "100%",
-                            textAlign: "right",
-                            border: "none",
-                            borderBottom: `1px solid ${COLORS.border}`,
-                            background: "#fff",
-                            padding: "12px 14px",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, color: COLORS.text }}>{student.name}</div>
-                          <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
-                            {student.id} — {student.department} / {student.major}
-                          </div>
-                        </button>
-                      ))}
-
-                    {!studentPortalOptions.some((student) => {
-                      const q = normalizeArabic(studentSearchText.trim());
-                      if (!q) return false;
-
-                      const name = normalizeArabic(student.name || "");
-                      const id = normalizeArabic(student.id || "");
-                      const label = normalizeArabic(student.label || "");
-
-                      return name.includes(q) || id.includes(q) || label.includes(q);
-                    }) && (
-                      <div style={{ padding: "12px 14px", color: COLORS.muted, textAlign: "right" }}>
-                        لا توجد نتائج
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {selectedStudentInfoForPortal ? (
-                <div
-                  style={{
-                    marginTop: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 18,
-                    padding: 14,
-                    background: "#fff",
-                    lineHeight: 1.9,
-                  }}
-                >
-                  <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{selectedStudentInfoForPortal.name}</div>
-                  <div style={{ color: COLORS.muted, marginTop: 6 }}>
-                    {selectedStudentInfoForPortal.id} — {selectedStudentInfoForPortal.department || "-"} / {selectedStudentInfoForPortal.major || "-"}
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                    <button
-                      onClick={() => {
-                        if (!selectedStudentInfoForPortal || !selectedStudentScheduleForPortal.length) {
-                          showToast("لا يوجد جدول", "تعذر العثور على جدول لهذا المتدرب.", "error");
-                          return;
-                        }
-
-                        printSingleStudentSchedule({
-                          collegeName: parsed.collegeName,
-                          student: selectedStudentInfoForPortal,
-                          items: selectedStudentScheduleForPortal,
-                          compactMode: compactPrintMode,
-                        });
-                      }}
-                      style={cardButtonStyle({ active: true, disabled: !selectedStudentIdForPrint })}
-                      disabled={!selectedStudentIdForPrint}
-                    >
-                      طباعة جدول المتدرب
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </Card>
-      ) : (
-        <>
+  
 
         <div
           style={{
