@@ -5924,9 +5924,9 @@ style={{
                 السابق
               </button>
               </div>
-              
+               </div> 
             )}
-          </Card>
+         </Card> 
         )}
- </div>
+
 }
