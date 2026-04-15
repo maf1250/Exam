@@ -3550,6 +3550,7 @@ exportCollegeDataFile({
   { id: 6, label: "6. تحليل تعارض مقررين" },
   { id: 7, label: "7. المعاينة" },
   { id: 8, label: "8. الطباعة" },
+  { id: 9, label: "9. التصدير وبوابة المتدربين" },
 ].map((step) => {
             const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
 
@@ -4340,14 +4341,6 @@ style={{
       </div>
     )}
 
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-        السابق
-      </button>
-      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
-        التالي: المعاينة
-      </button>
-    </div>
   </Card>
 )}
 
@@ -4899,6 +4892,15 @@ style={{
       >
         اختر مقررين لعرض التعارض بينهما.
       </div>
+     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+        السابق
+      </button>
+      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+        التالي: المعاينة
+      </button>
+    </div>
+  
     )}
   </Card>
 )}
