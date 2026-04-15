@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
-import { generateTraineeLink } from "../data/collegeRegistry";
+import {  generateTraineeLink, getAllLocations, resolveLocationName, resolveLocationCode,} from "../data/collegeRegistry";
 import { exportCollegeDataFile } from "../data/exportCollegeData";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
 const LARGE_STORAGE_KEY = "exam_scheduler_saved_state_large_v1";
@@ -1393,7 +1393,8 @@ const [courseBKey, setCourseBKey] = useState("");
   const [prioritizeTrainer, setPrioritizeTrainer] = useState("");
   const [manualInvigilators, setManualInvigilators] = useState("");
   const [invigilatorsPerPeriod, setInvigilatorsPerPeriod] = useState(4);
-
+  const [manualCollegeLocation, setManualCollegeLocation] = useState("");
+  const [autoDetectedCollegeLocation, setAutoDetectedCollegeLocation] = useState("");
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
@@ -1914,7 +1915,25 @@ const importSavedSession = (file) => {
 };
 
 
+const detectedCollegeLocation = useMemo(() => {
+  const sourceName =
+    String(parsed?.collegeName || "").trim() ||
+    String(collegeNameInput || "").trim();
 
+  return resolveLocationName(sourceName);
+}, [parsed?.collegeName, collegeNameInput]);
+
+const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
+const effectiveCollegeCode = useMemo(
+  () => resolveLocationCode(effectiveCollegeLocation),
+  [effectiveCollegeLocation]
+);
+
+const allCollegeLocations = useMemo(() => getAllLocations(), []);
+
+  useEffect(() => {
+  setAutoDetectedCollegeLocation(detectedCollegeLocation || "");
+}, [detectedCollegeLocation]);
 
 
   const departmentMajorOptions = useMemo(() => {
@@ -3307,56 +3326,123 @@ const headerBtn = (danger = false) => ({
 
 
       {/* الأزرار */}
+
+      <select
+  value={manualCollegeLocation || detectedCollegeLocation || ""}
+  onChange={(e) => setManualCollegeLocation(e.target.value)}
+  style={fieldStyle()}
+>
+  <option value="">اختر الكلية / المدينة</option>
+  {allCollegeLocations.map((location) => (
+    <option key={location} value={location}>
+      {location}
+    </option>
+  ))}
+</select>
+      
      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
   <button onClick={exportSavedSession}>تصدير البيانات</button>
   <button onClick={() => importSessionRef.current?.click()}>استيراد البيانات</button>
   <button onClick={clearSavedState}>حذف البيانات المحلية</button>
 
-  <button
-    type="button"
-    onClick={() =>
-      exportCollegeDataFile({
-        slug: "JDCTM",
-        collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
-        schedule,
-        selectedDepartment: printDepartmentFilter,
-        selectedMajor: printMajorFilter,
-      })
+<button
+  type="button"
+  onClick={() => {
+    if (!effectiveCollegeLocation || !effectiveCollegeCode) {
+      showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
+      return;
     }
-    style={{
-      background: COLORS.primaryDark,
-      color: "#fff",
-      border: "none",
-      borderRadius: 16,
-      padding: "10px 14px",
-      fontWeight: 800,
-      cursor: "pointer",
-    }}
-  >
-    تصدير بيانات المتدربين
-  </button>
+
+    exportCollegeDataFile({
+      locationName: effectiveCollegeLocation,
+      locationCode: effectiveCollegeCode,
+      collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
+      schedule,
+      selectedDepartment: printDepartmentFilter,
+      selectedMajor: printMajorFilter,
+    });
+
+    showToast("تم التصدير", "تم تصدير بيانات المتدربين بنجاح.", "success");
+  }}
+  style={cardButtonStyle({ active: true })}
+>
+  تصدير بيانات المتدربين
+</button>
 
   <button
-    type="button"
-    onClick={() => {
-      const link = generateTraineeLink("JDCTM");
-      navigator.clipboard.writeText(link);
-      showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
-    }}
-    style={{
-      background: "#fff",
-      color: COLORS.primaryDark,
-      border: `1px solid ${COLORS.primaryBorder}`,
-      borderRadius: 16,
-      padding: "10px 14px",
-      fontWeight: 800,
-      cursor: "pointer",
-    }}
-  >
-    نسخ رابط المتدربين
-  </button>
-</div>
+  type="button"
+  onClick={() => {
+    if (!effectiveCollegeLocation) {
+      showToast("تعذر تحديد الكلية", "اختر الكلية أولًا أو عدّل اسم الكلية.", "error");
+      return;
+    }
 
+    const exampleId = "123456789";
+    const baseLink = generateTraineeLink(exampleId, effectiveCollegeLocation);
+
+    if (!baseLink) {
+      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
+      return;
+    }
+
+    const linkTemplate = baseLink.replace(exampleId, "{رقم_المتدرب}");
+    navigator.clipboard.writeText(linkTemplate);
+    showToast("تم النسخ", "تم نسخ قالب رابط بوابة المتدربين.", "success");
+  }}
+  style={cardButtonStyle({ active: true })}
+>
+  نسخ رابط المتدربين
+</button>
+</div>
+<div
+  style={{
+    background: COLORS.bg2,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  }}
+>
+  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+
+  {effectiveCollegeLocation ? (
+    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
+      تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
+      {effectiveCollegeCode ? ` (${effectiveCollegeCode})` : ""}
+    </div>
+  ) : (
+    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
+      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+    </div>
+  )}
+
+  {!detectedCollegeLocation && (
+    <select
+      value={manualCollegeLocation}
+      onChange={(e) => setManualCollegeLocation(e.target.value)}
+      style={fieldStyle()}
+    >
+      <option value="">اختر الكلية / المدينة</option>
+      {allCollegeLocations.map((location) => (
+        <option key={location} value={location}>
+          {location}
+        </option>
+      ))}
+    </select>
+  )}
+
+  {detectedCollegeLocation && (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setManualCollegeLocation("")}
+        style={cardButtonStyle()}
+      >
+        استخدام التعرف التلقائي
+      </button>
+    </div>
+  )}
+</div>
 
         {/* الشعار */}
       <div
