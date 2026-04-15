@@ -5,6 +5,8 @@ import {
   getAllLocations,
   resolveLocationName,
   resolveLocationSlug,
+  detectGenderFromText,
+  detectGenderFromRows,
 } from "../data/collegeRegistry";
 import { exportCollegeDataFile } from "../data/exportCollegeData";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
@@ -1919,7 +1921,24 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
+const detectedGender = useMemo(() => {
+  const fromCollegeName = detectGenderFromText(parsed?.collegeName || "");
+  if (fromCollegeName) return fromCollegeName;
 
+  const fromInput = detectGenderFromText(collegeNameInput || "");
+  if (fromInput) return fromInput;
+
+  const fromRows = detectGenderFromRows(rows);
+  if (fromRows) return fromRows;
+
+  return "male";
+}, [parsed?.collegeName, collegeNameInput, rows]);
+
+const effectiveCollegeSlug = useMemo(
+  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
+  [effectiveCollegeLocation, detectedGender]
+);
+  
 const detectedCollegeLocation = useMemo(() => {
   const sourceName =
     String(parsed?.collegeName || "").trim() ||
