@@ -425,11 +425,11 @@ useEffect(() => {
             </div>
 
             <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 8, lineHeight: 1.4 }}>
-              {collegeData?.collegeName || "بوابة الجداول"}
+              {collegeData?.collegeName || "جدول الاختبارات النهائية"}
             </div>
 
             <div style={{ lineHeight: 1.9, opacity: 0.95, fontSize: 15 }}>
-              ابحث باسمك أو برقمك التدريبي لعرض جدولك النهائي وطباعته بشكل منظم وواضح.
+              ابحث باسمك أو برقمك التدريبي لعرض جدول الاختبارات النهائية الخاص بك وطباعته بشكل منظم وواضح.
             </div>
           </div>
 
