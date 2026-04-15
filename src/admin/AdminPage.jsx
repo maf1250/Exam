@@ -1572,7 +1572,6 @@ const [courseBKey, setCourseBKey] = useState("");
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
-  const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
 
   function addExamHall() {
     setExamHalls((prev) => [
