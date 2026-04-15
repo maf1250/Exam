@@ -122,3 +122,30 @@ export const LOCATION_CODES = {
   "حبونا": "HBN",
   "شرورة": "SR",
 };
+
+function normalizeArabic(str = "") {
+  return str
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .trim();
+}
+
+export function generateTraineeLink(traineeId, locationName) {
+  if (!traineeId || !locationName) return "";
+
+  const normalizedInput = normalizeArabic(locationName);
+
+  const matchKey = Object.keys(LOCATION_CODES).find(
+    (key) => normalizeArabic(key) === normalizedInput
+  );
+
+  if (!matchKey) {
+    console.warn("Location not found:", locationName);
+    return "";
+  }
+
+  const code = LOCATION_CODES[matchKey];
+
+  return `https://exam-tvtc.onrender.com/trainee/${code}/${traineeId}`;
+}
