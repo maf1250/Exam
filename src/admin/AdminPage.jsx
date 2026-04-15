@@ -293,6 +293,77 @@ function splitBySlash(value) {
     .filter(Boolean);
 }
 
+function makeHallId() {
+  return `hall_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeDepartmentList(list) {
+  return Array.from(
+    new Set(
+      (Array.isArray(list) ? list : [])
+        .map((x) => normalizeArabic(x))
+        .filter(Boolean)
+    )
+  );
+}
+
+function isHallAllowedForCourse(hall, course) {
+  if (!hall) return false;
+  if (hall.allowAllDepartments) return true;
+
+  const allowed = normalizeDepartmentList(hall.allowedDepartments || []);
+  if (!allowed.length) return true;
+
+  const roots = Array.isArray(course?.departmentRoots)
+    ? normalizeDepartmentList(course.departmentRoots)
+    : normalizeDepartmentList(getCourseDepartmentRoots(course));
+
+  return roots.some((root) => allowed.includes(root));
+}
+
+function isHallValidForCourse(hall, course) {
+  if (!hall || !course) return false;
+
+  const capacity = Number(hall.capacity);
+  const students = Number(course.studentCount);
+
+  if (!Number.isFinite(capacity) || capacity <= 0) return false;
+  if (!Number.isFinite(students) || students <= 0) return false;
+  if (capacity < students) return false;
+
+  return isHallAllowedForCourse(hall, course);
+}
+
+function getMaxAllowedHallCapacity(halls, course) {
+  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
+    isHallAllowedForCourse(hall, course)
+  );
+
+  if (!allowedHalls.length) return 0;
+
+  return Math.max(
+    ...allowedHalls.map((hall) => {
+      const cap = Number(hall.capacity);
+      return Number.isFinite(cap) ? cap : 0;
+    })
+  );
+}
+
+function normalizeExamHallsInput(examHalls) {
+  return (examHalls || [])
+    .map((hall) => {
+      const cap = Number(hall.capacity);
+
+      return {
+        ...hall,
+        name: String(hall.name || "").trim(),
+        capacity: Number.isFinite(cap) ? cap : 0,
+        allowedDepartments: normalizeDepartmentList(hall.allowedDepartments),
+      };
+    })
+    .filter((hall) => hall.name && hall.capacity > 0);
+}
+
 function fieldStyle() {
   return {
     width: "100%",
@@ -1388,7 +1459,17 @@ const pendingRestoreRef = useRef(null);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
-  const [examHallsText, setExamHallsText] = useState("قاعة النشاط|120");
+  const [examHalls, setExamHalls] = useState([
+  {
+    id: makeHallId(),
+    name: "",
+    capacity: "",
+    allowAllDepartments: true,
+    allowedDepartments: [],
+  },
+]);
+
+const [hallWarnings, setHallWarnings] = useState([]);
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
@@ -1420,6 +1501,62 @@ const [courseBKey, setCourseBKey] = useState("");
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
+
+  const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
+
+  function addExamHall() {
+    setExamHalls((prev) => [
+      ...prev,
+      {
+        id: makeHallId(),
+        name: "",
+        capacity: "",
+        allowAllDepartments: true,
+        allowedDepartments: [],
+      },
+    ]);
+  }
+
+  function updateExamHall(id, patch) {
+    setExamHalls((prev) =>
+      prev.map((hall) => (hall.id === id ? { ...hall, ...patch } : hall))
+    );
+  }
+
+  function removeExamHall(id) {
+    setExamHalls((prev) => prev.filter((hall) => hall.id !== id));
+  }
+
+  function toggleHallDepartment(hallId, department) {
+    setExamHalls((prev) =>
+      prev.map((hall) => {
+        if (hall.id !== hallId) return hall;
+
+        const exists = hall.allowedDepartments.includes(department);
+
+        return {
+          ...hall,
+          allowedDepartments: exists
+            ? hall.allowedDepartments.filter((d) => d !== department)
+            : [...hall.allowedDepartments, department],
+        };
+      })
+    );
+  }
+
+  function setHallAllDepartments(hallId, checked) {
+    setExamHalls((prev) =>
+      prev.map((hall) =>
+        hall.id === hallId
+          ? {
+              ...hall,
+              allowAllDepartments: checked,
+              allowedDepartments: checked ? [] : hall.allowedDepartments,
+            }
+          : hall
+      )
+    );
+  }
 
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -1583,7 +1720,8 @@ const buildPersistedState = () => ({
   numberOfDays,
   selectedDays,
   periodsText,
-  examHallsText,
+  examHalls,
+  hallWarnings,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -1621,7 +1759,20 @@ const restorePersistedState = (saved) => {
   setNumberOfDays(saved.numberOfDays || 8);
   setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
-  setExamHallsText(saved.examHallsText || "قاعة النشاط|120");
+  setExamHalls(
+    Array.isArray(saved.examHalls) && saved.examHalls.length
+      ? saved.examHalls
+      : [
+          {
+            id: makeHallId(),
+            name: "",
+            capacity: "",
+            allowAllDepartments: true,
+            allowedDepartments: [],
+          },
+        ]
+  );
+  setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
   setExcludedInvigilators(saved.excludedInvigilators || []);
   setExcludeInactive(saved.excludeInactive ?? true);
@@ -1794,7 +1945,8 @@ useEffect(() => {
   numberOfDays,
   selectedDays,
   periodsText,
-  examHallsText,
+  examHalls,
+  hallWarnings,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -2237,7 +2389,27 @@ const detectedGender = useMemo(() => {
   return "male";
 }, [parsed?.collegeName, collegeNameInput, rows]);
 
+const availableDepartments = useMemo(() => {
+  if (!parsed?.courses?.length) return [];
 
+  return Array.from(
+    new Set(
+      parsed.courses.flatMap((course) => {
+        const roots = Array.isArray(course.departmentRoots)
+          ? course.departmentRoots
+          : getCourseDepartmentRoots(course);
+
+        return (roots || [])
+          .map((d) => String(d || "").trim())
+          .filter(Boolean);
+      })
+    )
+  )
+    .filter(
+      (d) => normalizeArabic(d) !== normalizeArabic("الدراسات العامة")
+    )
+    .sort((a, b) => a.localeCompare(b, "ar"));
+}, [parsed]);
   
 const detectedCollegeLocation = useMemo(() => {
   const sourceName =
@@ -2332,6 +2504,7 @@ const effectiveCollegeSlug = useMemo(
         setGeneralSchedule([]);
         setSpecializedSchedule([]);
         setUnscheduled([]);
+        setHallWarnings([]);
         setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
         setIncludeAllDepartmentsAndMajors(true);
         setExcludedDepartmentMajors([]);
@@ -2416,27 +2589,6 @@ const selectedCourseB = useMemo(
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
 
-  const examHalls = useMemo(() => {
-    return String(examHallsText || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [namePart, capacityPart] = line.split("|").map((x) => x.trim());
-        const capacity = Number(capacityPart);
-        return {
-          name: namePart || line,
-          capacity: Number.isFinite(capacity) ? capacity : null,
-        };
-      })
-      .filter((hall) => hall.name)
-      .sort((a, b) => {
-        const aCap = a.capacity ?? Number.MAX_SAFE_INTEGER;
-        const bCap = b.capacity ?? Number.MAX_SAFE_INTEGER;
-        return aCap - bCap;
-      });
-  }, [examHallsText]);
-
   const slots = useMemo(
     () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
     [startDate, numberOfDays, selectedDays, parsedPeriods]
@@ -2498,7 +2650,15 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
     return [];
   }
 
-  const hallsPool = examHalls.length ? examHalls : [{ name: "قاعة النشاط", capacity: null }];
+  const hallsPool = normalizedExamHalls.length
+    ? normalizedExamHalls
+    : [{
+        id: "default-hall",
+        name: "قاعة النشاط",
+        capacity: Number.MAX_SAFE_INTEGER,
+        allowAllDepartments: true,
+        allowedDepartments: [],
+      }];
 
   const baseInvigilators = manualInvigilators
     ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
@@ -2531,6 +2691,7 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
   const notPlaced = [];
+  const hallWarningItems = [];
 
   basePlaced.forEach((item) => {
   const slotId = item.id || `${item.dateISO}-${item.period}`;
@@ -2702,27 +2863,15 @@ const pickInvigilators = (course, slot) => {
       .map((item) => item.examHall)
       .filter(Boolean);
 
-    const matchingHallCount = hallsPool.filter(
-      (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
-    ).length;
+   const matchingHallCount = hallsPool.filter(
+  (hall) =>
+    !usedHallNamesInSlot.includes(hall.name) &&
+    isHallValidForCourse(hall, course)
+).length;
 
-    if (!matchingHallCount) {
-      score += 25;
-    }
-
-    if (course.conflictDegree > 10 && slot.period > 1) score += 1;
-
-    if (prioritizeTrainer.trim()) {
-      const normalizedTargetTrainer = normalizeArabic(prioritizeTrainer);
-      const hasPriorityTrainer = course.trainerText
-        .split("/")
-        .some((name) => normalizeArabic(name.trim()).includes(normalizedTargetTrainer));
-
-      if (hasPriorityTrainer) score -= 3;
-    }
-
-    return score;
-  };
+if (!matchingHallCount) {
+  return Number.POSITIVE_INFINITY;
+}
 
   const sortedCoursesForInvigilation = [...coursesList].sort((a, b) => {
   const aNeed = getRequiredInvigilatorsCount(a);
@@ -2767,16 +2916,28 @@ sortedCoursesForInvigilation.forEach((course) => {
       .filter(Boolean);
 
     const fittingHalls = hallsPool.filter(
-      (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
-    );
+  (hall) =>
+    !usedHallNamesInSlot.includes(hall.name) &&
+    isHallValidForCourse(hall, course)
+);
 
-    const remainingHalls = hallsPool.filter((hall) => !usedHallNamesInSlot.includes(hall.name));
+let assignedHall = null;
 
-    let assignedHall = null;
-    if (fittingHalls.length) assignedHall = fittingHalls[0].name;
-    else if (remainingHalls.length) assignedHall = remainingHalls[remainingHalls.length - 1].name;
-    else assignedHall = hallsPool[hallsPool.length - 1]?.name || "قاعة النشاط";
+if (fittingHalls.length) {
+  assignedHall = fittingHalls[0].name;
+} else {
+  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
 
+  hallWarningItems.push({
+    courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+    required: Number(course.studentCount) || 0,
+    maxAvailable,
+  });
+  notPlaced.push(course);
+
+  return;
+}
+  
     slotCoursesMap.get(bestSlot.id).push(course.key);
 newPlaced.push({
   ...course,
@@ -2809,12 +2970,13 @@ newPlaced.push({
 
   setUnscheduled(notPlaced);
   setPreviewPage(0);
-  return { placed: newPlaced, notPlaced };
+  return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
 };
 
 const generateGeneralSchedule = () => {
-  const { placed, notPlaced } = generateScheduleForCourses(generalCourses, []);
+  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
   setGeneralSchedule(placed);
+  setHallWarnings(nextHallWarnings || []);
   if (notPlaced.length) {
     showToast(
       "تم توزيع الدراسات العامة مع ملاحظات",
@@ -2828,8 +2990,9 @@ const generateGeneralSchedule = () => {
 };
 
 const generateSpecializedSchedule = () => {
-  const { placed, notPlaced } = generateScheduleForCourses(specializedCourses, generalSchedule);
+  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
+  setHallWarnings((prev) => [...prev, ...(nextHallWarnings || [])]);
   setPreviewTab("sortedCourses");
 
   const merged = [...generalSchedule, ...placed].sort(
@@ -3708,16 +3871,169 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 8, fontWeight: 800 }}>قاعات الاختبار</div>
-              <textarea
-                value={examHallsText}
-                onChange={(e) => setExamHallsText(e.target.value)}
-                style={{ ...fieldStyle(), minHeight: 100, resize: "vertical" }}
-                placeholder={"قاعة النشاط|120\nالمعمل 1|40\nالمعمل 2|25"}
-              />
-              <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
-                اكتب كل قاعة في سطر مستقل بهذه الصيغة: اسم القاعة|السعة
+            <Card>
+  <SectionHeader
+    title="قاعات الاختبار"
+    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. إذا لم يتم تحديد قسم، تعتبر القاعة متاحة لجميع الأقسام."
+  />
+
+  <div style={{ display: "grid", gap: 14 }}>
+    {examHalls.map((hall, index) => (
+      <div
+        key={hall.id}
+        style={{
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 14,
+          background: "#fff",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+            القاعة {index + 1}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => removeExamHall(hall.id)}
+            style={cardButtonStyle({ danger: true })}
+          >
+            حذف القاعة
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(220px,1fr) minmax(120px,180px)",
+            gap: 12,
+          }}
+        >
+          <input
+            value={hall.name}
+            onChange={(e) => updateExamHall(hall.id, { name: e.target.value })}
+            placeholder="اسم القاعة"
+            style={fieldStyle()}
+          />
+
+          <input
+            type="number"
+            min="1"
+            value={hall.capacity}
+            onChange={(e) =>
+              updateExamHall(hall.id, { capacity: e.target.value })
+            }
+            placeholder="السعة"
+            style={fieldStyle()}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontWeight: 800,
+              color: COLORS.charcoal,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={hall.allowAllDepartments}
+              onChange={(e) =>
+                setHallAllDepartments(hall.id, e.target.checked)
+              }
+            />
+            متاحة لجميع الأقسام
+          </label>
+        </div>
+
+        {!hall.allowAllDepartments && (
+          <div
+            style={{
+              marginTop: 12,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 14,
+              padding: 12,
+              background: COLORS.bg2,
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 800,
+                color: COLORS.charcoal,
+                marginBottom: 10,
+              }}
+            >
+              الأقسام المسموح لها
+            </div>
+
+            {availableDepartments.length ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {availableDepartments.map((dep) => {
+                  const checked = hall.allowedDepartments.includes(dep);
+
+                  return (
+                    <label
+                      key={dep}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                        background: checked ? COLORS.primaryLight : "#fff",
+                        borderRadius: 12,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleHallDepartment(hall.id, dep)}
+                      />
+                      <span>{dep}</span>
+                    </label>
+                  );
+                })}
               </div>
+            ) : (
+              <div style={{ color: COLORS.muted }}>
+                لم يتم العثور على أقسام بعد. ارفع الملف أولًا ليتم جلب الأقسام تلقائيًا.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    ))}
+
+    <div>
+      <button
+        type="button"
+        onClick={addExamHall}
+        style={cardButtonStyle({ active: true })}
+      >
+        + إضافة قاعة
+      </button>
+    </div>
+  </div>
+</Card>
             </div>
 
             <div style={{ marginTop: 18 }}>
@@ -4987,7 +5303,38 @@ style={{
                   عند اختيار قسم رئيسي محدد، ستتم فلترة المعاينة والطباعة والتصدير وفق هذا القسم،
                   مع ضم مقررات الدراسات العامة المرتبطة به.
                 </div>
+{hallWarnings.length > 0 && (
+  <Card
+    style={{
+      border: `1px solid #FECACA`,
+      background: COLORS.dangerBg,
+    }}
+  >
+    <SectionHeader
+      title="تنبيهات القاعات"
+      description="بعض المقررات لم يتم توزيعها بسبب عدم توفر قاعات بسعة كافية أو مسموحة لنفس القسم."
+    />
 
+    <div style={{ display: "grid", gap: 10 }}>
+      {hallWarnings.map((item, index) => (
+        <div
+          key={`${item.courseName}-${index}`}
+          style={{
+            border: "1px solid #FECACA",
+            background: "#fff",
+            borderRadius: 14,
+            padding: "12px 14px",
+            color: COLORS.danger,
+            fontWeight: 800,
+            lineHeight: 1.9,
+          }}
+        >
+          {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر قاعة متاحة {item.maxAvailable}
+        </div>
+      ))}
+    </div>
+  </Card>
+)}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                   <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
