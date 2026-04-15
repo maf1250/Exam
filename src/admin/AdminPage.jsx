@@ -4417,7 +4417,7 @@ style={{
 
         {currentStep === 5 && (
           <Card>
-            <SectionHeader title="الصفحة الخامسة: توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع الآن مقررات التخصص." />
+            <SectionHeader title="الصفحة الخامسة: توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع مقررات التخصص." />
 
             <div style={{ marginTop: 4 }}>
               <label
@@ -5634,35 +5634,80 @@ style={{
         description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن لرئيس القسم تصدير بيانات المتدربين للبوابة الخاصة بالوحدة"
       />
 
-      <div
-  style={{
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 16,
-    padding: 12,
-    background: "#F8FEFE",
-    color: COLORS.muted,
-    lineHeight: 1.9,
-  }}
->
-  <strong style={{ display: "block", marginBottom: 12 }}>
-    يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها
-    لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم
-    الضغط على زر استيراد البيانات.
-  </strong>
+<div style={{ display: "grid", gap: 12 }}>
 
-  <strong style={{ display: "block", marginBottom: 12 }}>
-    لتفعيل بوابة المتدربين، يجب على المستخدم التأكد من أن الوحدة الخاصة به
-    موجودة في المربع الخاص بالتعرف على الوحدة تلقائيًا، وفي حال عدم التعرف
-    عليها يمكن اختيار المحافظة من القائمة المنسدلة.
-  </strong>
+  {/* 🔹 تصدير واستيراد */}
+  <div
+    style={{
+      border: `1px solid ${COLORS.primaryBorder}`,
+      borderRadius: 16,
+      padding: "12px 14px",
+      background: COLORS.primaryLight,
+      display: "flex",
+      gap: 10,
+      alignItems: "flex-start",
+    }}
+  >
+    <div style={{ fontSize: 18 }}>📤</div>
+    <div style={{ lineHeight: 1.9 }}>
+      <strong>تصدير واستيراد البيانات</strong>
+      <div>
+        يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها
+        لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم
+        الضغط على زر استيراد البيانات.
+      </div>
+    </div>
+  </div>
 
-  <strong style={{ display: "block" }}>
-    بعد عملية تصدير البيانات لبوابة المتدربين، سيتم تحميل ملف خاص بالوحدة،
-    وليتم تحديث بيانات بوابة المتدربين لديكم نأمل منكم إرساله إلينا في كل مرة
-    يتم توزيع الجدول بها على هذا البريد:
-    <br />
-    m.alfayez@tvtc.gov.sa
-  </strong>
+  {/* 🔹 تفعيل البوابة */}
+  <div
+    style={{
+      border: `1px solid ${COLORS.secondaryBorder}`,
+      borderRadius: 16,
+      padding: "12px 14px",
+      background: "#F0FDFB",
+      display: "flex",
+      gap: 10,
+      alignItems: "flex-start",
+    }}
+  >
+    <div style={{ fontSize: 18 }}>🧭</div>
+    <div style={{ lineHeight: 1.9 }}>
+      <strong>تفعيل بوابة المتدربين</strong>
+      <div>
+        يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
+        الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار المحافظة من
+        القائمة المنسدلة.
+      </div>
+    </div>
+  </div>
+
+  {/* 🔹 إرسال الملف */}
+  <div
+    style={{
+      border: `1px solid ${COLORS.warningBorder || "#FACC15"}`,
+      borderRadius: 16,
+      padding: "12px 14px",
+      background: "#FFFBEB",
+      display: "flex",
+      gap: 10,
+      alignItems: "flex-start",
+    }}
+  >
+    <div style={{ fontSize: 18 }}>📩</div>
+    <div style={{ lineHeight: 1.9 }}>
+      <strong>إرسال ملف البوابة</strong>
+      <div>
+        بعد تصدير البيانات، سيتم تحميل ملف خاص بالوحدة. لتحديث بيانات بوابة
+        المتدربين نأمل إرسال الملف بعد كل عملية توزيع على البريد التالي:
+        <br />
+        <span style={{ fontWeight: 700 }}>
+          m.alfayez@tvtc.gov.sa
+        </span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
