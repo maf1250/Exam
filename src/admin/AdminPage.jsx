@@ -5900,5 +5900,76 @@ style={{
   </div>
 )}
     </div>
+
+    {currentStep === 4 && (
+          <Card>
+            <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
+
+            {lockGeneralStudiesStep ? (
+              <div
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: 18,
+                  background: COLORS.warningBg,
+                  color: COLORS.warning,
+                  lineHeight: 1.9,
+                }}
+              >
+                هذه الصفحة مقفلة لأنك اخترت توزيع قسم/تخصص محدد فقط.
+                مقررات الدراسات العامة مستقلة، لذلك لا يمكن تعديلها من هذه النسخة المخصصة للأقسام.
+              </div>
+            ) : (
+              <>
+            <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
+              عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: 18 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: COLORS.primaryLight }}>
+                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                      <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {generalCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!generalCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع الدراسات العامة
+              </button>
+              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                التالي
+              </button>
+            </div>
+              </>
+            )}
+          </Card>
+        )}
   );
 }
