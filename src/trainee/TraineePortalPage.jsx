@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
+const { slug } = useParams();
+const normalizedSlug = slug?.toUpperCase();
 const COLORS = {
   primary: "#1FA7A8",
   primaryDark: "#147B83",
