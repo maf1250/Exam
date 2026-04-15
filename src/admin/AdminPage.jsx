@@ -5622,7 +5622,47 @@ style={{
 
         </div>
       
-      {selectedConflicts && (
+     
+
+  {currentStep === 9 && (
+    <Card>
+      <SectionHeader
+        title="الصفحة التاسعة: تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
+        description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن لرئيس القسم تصدير بيانات المتدربين للبوابة الخاصة بالوحدة"
+      />
+
+      <div style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 16,
+                    padding: 12,
+                    background: "#F8FEFE",
+                    color: COLORS.muted,
+                    lineHeight: 1.9,
+                  }}
+        <strong>
+          يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم الضغط على زر استيراد البيانات.
+        </strong>
+     
+        <strong>
+          لتفعيل بوابة المتدربين، يجب على المستخدم التأكد من أن الوحدة الخاصة به موجودة في المربع الخاص بالتعرف على الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار المحافظة من القائمة المنسدلة.
+        </strong>
+    
+        <strong>
+        بعد عملية تصدير البيانات لبوابة المتدربين، سيتم تحميل ملف خاص بالوحدة، وليتم تحديث بيانات بوابة المتدربين لديكم نأمل منكم إرساله إلينا في كل مرة يتم توزيع الجدول بها على هذا البريد:
+          <br />
+          m.alfayez@tvtc.gov.sa
+        </strong>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+          السابق
+        </button>
+      </div>
+    </Card>
+  )}
+
+       {selectedConflicts && (
   <div
     style={{
       position: "fixed",
@@ -5773,41 +5813,6 @@ style={{
     </div>
   </div>
 )}
-
-  {currentStep === 9 && (
-    <Card>
-      <SectionHeader
-        title="الصفحة التاسعة: تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
-        description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن لرئيس القسم تصدير بيانات المتدربين للبوابة الخاصة بالوحدة"
-      />
-
-      <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
-        <strong>
-          يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم الضغط على زر استيراد البيانات.
-        </strong>
-      </div>
-
-      <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
-        <strong>
-          لتفعيل بوابة المتدربين، يجب على المستخدم التأكد من أن الوحدة الخاصة به موجودة في المربع الخاص بالتعرف على الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار المحافظة من القائمة المنسدلة.
-        </strong>
-      </div>
-
-      <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
-        <strong>
-        بعد عملية تصدير البيانات لبوابة المتدربين، سيتم تحميل ملف خاص بالوحدة، وليتم تحديث بيانات بوابة المتدربين لديكم نأمل منكم إرساله إلينا في كل مرة يتم توزيع الجدول بها على هذا البريد:
-          <br />
-          m.alfayez@tvtc.gov.sa
-        </strong>
-      </div>
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
-          السابق
-        </button>
-      </div>
-    </Card>
-  )}
       
 {selectedConflictStudents && (
   <div
