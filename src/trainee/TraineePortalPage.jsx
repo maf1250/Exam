@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
-const { slug } = useParams();
-const normalizedSlug = slug?.toUpperCase();
 const COLORS = {
   primary: "#1FA7A8",
   primaryDark: "#147B83",
@@ -29,6 +27,8 @@ function normalizeArabic(value) {
 
 export default function TraineePortalPage() {
   const { slug } = useParams();
+  const normalizedSlug = String(slug || "").toUpperCase();
+
   const [collegeData, setCollegeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -44,7 +44,7 @@ export default function TraineePortalPage() {
         setError("");
         setSelectedStudent(null);
 
-        const res = await fetch(`/colleges/${slug}.json`);
+        const res = await fetch(`/colleges/${normalizedSlug}.json`);
         if (!res.ok) {
           throw new Error("تعذر تحميل بيانات الكلية");
         }
@@ -65,7 +65,8 @@ export default function TraineePortalPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [normalizedSlug]);
+
 
 useEffect(() => {
   if (collegeData?.collegeName) {
