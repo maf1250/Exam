@@ -13,12 +13,20 @@ export function exportCollegeDataFile({
   collegeName,
   schedule,
   parsed,
+  studentInfoMap,
   selectedDepartment = "__all__",
   selectedMajor = "__all__",
 }) {
   const studentMap = new Map();
 
-  const filteredSchedule = schedule.filter((item) => {
+  const effectiveStudentInfoMap =
+    studentInfoMap instanceof Map
+      ? studentInfoMap
+      : parsed?.studentInfoMap instanceof Map
+      ? parsed.studentInfoMap
+      : new Map();
+
+  const filteredSchedule = (Array.isArray(schedule) ? schedule : []).filter((item) => {
     const depOk =
       selectedDepartment === "__all__" ||
       normalizeArabic(item.department || "").includes(normalizeArabic(selectedDepartment));
@@ -34,21 +42,27 @@ export function exportCollegeDataFile({
     const students = Array.isArray(item.students) ? item.students : [];
 
     students.forEach((studentId) => {
-      const info = parsed.studentInfoMap?.get(studentId);
+      const key = String(studentId ?? "").trim();
+      if (!key) return;
 
-      if (!info) return;
+      const info = effectiveStudentInfoMap.get(key) || {
+        id: key,
+        name: "",
+        department: item.department || "",
+        major: item.major || "",
+      };
 
-      if (!studentMap.has(studentId)) {
-        studentMap.set(studentId, {
-          id: studentId,
+      if (!studentMap.has(key)) {
+        studentMap.set(key, {
+          id: info.id || key,
           name: info.name || "",
-          department: info.department || "",
-          major: info.major || "",
+          department: info.department || item.department || "",
+          major: info.major || item.major || "",
           schedule: [],
         });
       }
 
-      studentMap.get(studentId).schedule.push({
+      studentMap.get(key).schedule.push({
         courseName: item.courseName || "",
         courseCode: item.courseCode || "",
         dayName: item.dayName || "",
@@ -65,7 +79,7 @@ export function exportCollegeDataFile({
     slug,
     collegeName,
     students: Array.from(studentMap.values()).filter(
-      (student) => student.schedule.length > 0
+      (student) => Array.isArray(student.schedule) && student.schedule.length > 0
     ),
   };
 
@@ -73,9 +87,12 @@ export function exportCollegeDataFile({
     type: "application/json;charset=utf-8",
   });
 
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = `${slug}.json`;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
+  a.remove();
+  URL.revokeObjectURL(url);
 }
