@@ -276,20 +276,119 @@ useEffect(() => {
         </style>
       </head>
       <body>
-        <div class="page">
-          <div class="header">
-            <div class="header-inner">
-              <div>
-                <div class="badge">بوابة المتدرب</div>
-                <div class="college-name">${collegeData.collegeName || "الكلية التقنية"}</div>
-                <div class="doc-title">الجدول النهائي للمتدرب</div>
-              </div>
+ 
 
-              <div class="logo-box">
-                <img src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-              </div>
-            </div>
-          </div>
+{/* ===================== PROFESSIONAL HEADER ===================== */}
+<div
+  style={{
+    marginBottom: 28,
+    borderRadius: 28,
+    overflow: "hidden",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.15)",
+  }}
+>
+  {/* Top Strip */}
+  <div
+    style={{
+      background: "#0f172a",
+      color: "#cbd5f5",
+      fontSize: 13,
+      padding: "6px 18px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}
+  >
+    <div>📅 {new Date().toLocaleDateString("ar-SA")}</div>
+    <div>بوابة المتدرب</div>
+  </div>
+
+  {/* Main Header */}
+  <div
+    style={{
+      position: "relative",
+      padding: "26px 22px",
+      background:
+        "linear-gradient(135deg, #0f766e 0%, #159e9c 50%, #1fb7b5 100%)",
+      display: "flex",
+      gap: 20,
+      alignItems: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    {/* Glow Effect */}
+    <div
+      style={{
+        position: "absolute",
+        top: -60,
+        right: -60,
+        width: 200,
+        height: 200,
+        background: "rgba(255,255,255,0.08)",
+        borderRadius: "50%",
+        filter: "blur(30px)",
+      }}
+    />
+
+    {/* Logo */}
+    <div
+      style={{
+        width: 95,
+        height: 95,
+        borderRadius: 22,
+        background: "rgba(255,255,255,0.15)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      <img
+        src="/tvtc-logo.png"
+        alt="logo"
+        style={{
+          width: 70,
+          height: 70,
+          objectFit: "contain",
+        }}
+      />
+    </div>
+
+    {/* Titles */}
+    <div style={{ flex: 1, minWidth: 250 }}>
+      <div
+        style={{
+          fontSize: 14,
+          color: "rgba(255,255,255,0.8)",
+          marginBottom: 6,
+          letterSpacing: 0.5,
+        }}
+      >
+        الجداول النهائية - بوابة المتدرب
+      </div>
+
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 900,
+          color: "#fff",
+          marginBottom: 6,
+        }}
+      >
+        {collegeName || "الكلية التقنية"}
+      </div>
+
+      <div
+        style={{
+          fontSize: 14,
+          color: "rgba(255,255,255,0.85)",
+        }}
+      >
+        عرض جدول الاختبارات النهائي الخاص بالمتدرب
+      </div>
+    </div>
+  </div>
+</div>
 
           <div class="meta-grid">
             <div class="meta-box">
