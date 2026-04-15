@@ -1368,7 +1368,7 @@ const pendingRestoreRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewTab, setPreviewTab] = useState("sortedCourses");
   const [invigilationMode, setInvigilationMode] = useState("ratio");
-  const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(17);
+  const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(20);
   const [currentStep, setCurrentStep] = useState(1);
   const [studentSearchText, setStudentSearchText] = useState("");
   const [showStudentSuggestions, setShowStudentSuggestions] = useState(false);
@@ -1622,7 +1622,7 @@ const restorePersistedState = (saved) => {
   setManualInvigilators(saved.manualInvigilators || "");
   setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
   setInvigilationMode(saved.invigilationMode || "ratio");
-  setStudentsPerInvigilator(saved.studentsPerInvigilator || 17);
+  setStudentsPerInvigilator(saved.studentsPerInvigilator || 20);
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
@@ -1912,7 +1912,7 @@ const importSavedSession = (file) => {
 };
 
 
-const isAdminLocked = Boolean(adminPasswordStored);
+
 
 
   const departmentMajorOptions = useMemo(() => {
@@ -2420,7 +2420,7 @@ const selectedCourseB = useMemo(
 
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
-      const ratio = Math.max(1, Number(studentsPerInvigilator) || 17);
+      const ratio = Math.max(1, Number(studentsPerInvigilator) || 20);
       return Math.max(1, Math.ceil((course.studentCount || 0) / ratio));
     }
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
@@ -4084,7 +4084,7 @@ style={{
                   min="1"
                   max="200"
                   value={studentsPerInvigilator}
-                  onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 17))}
+                  onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 20))}
                   style={fieldStyle()}
                 />
               </div>
