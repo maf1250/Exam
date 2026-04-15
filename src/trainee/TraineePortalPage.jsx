@@ -303,7 +303,7 @@ export default function TraineePortalPage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gridTemplateColumns: "repeat(2, 1fr)",
                       gap: 12,
                       marginBottom: 18,
                     }}
@@ -350,7 +350,113 @@ export default function TraineePortalPage() {
                       </tbody>
                     </table>
                   </div>
+<div
+  style={{
+    marginTop: 22,
+    border: `1px solid ${COLORS.primaryBorder}`,
+    borderRadius: 24,
+    padding: 18,
+    background: "linear-gradient(180deg, #F9FEFE 0%, #F2FBFB 100%)",
+    boxShadow: "0 10px 28px rgba(20,123,131,0.08)",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 14,
+      color: COLORS.primaryDark,
+      fontWeight: 900,
+      fontSize: 18,
+    }}
+  >
+    <span
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: COLORS.primaryLight,
+        border: `1px solid ${COLORS.primaryBorder}`,
+        fontSize: 18,
+      }}
+    >
+      📋
+    </span>
+    <span>تعليمات مهمة</span>
+  </div>
 
+  <div style={{ display: "grid", gap: 10 }}>
+    {[
+      "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+      "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
+      "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+      "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+      "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
+      "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+      "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+    ].map((item, index) => {
+      const rowThemes = [
+        { bg: "#F0FDFA", border: "#99F6E4", iconBg: "#CCFBF1" },
+        { bg: "#ECFEFF", border: "#A5F3FC", iconBg: "#CFFAFE" },
+        { bg: "#F5F3FF", border: "#DDD6FE", iconBg: "#EDE9FE" },
+        { bg: "#FFF7ED", border: "#FED7AA", iconBg: "#FFEDD5" },
+        { bg: "#FEFCE8", border: "#FDE68A", iconBg: "#FEF3C7" },
+        { bg: "#F0FDF4", border: "#BBF7D0", iconBg: "#DCFCE7" },
+        { bg: "#FEF2F2", border: "#FECACA", iconBg: "#FEE2E2" },
+      ];
+
+      const icons = ["⏰", "🚪", "🚫", "📵", "🧥", "📈", "⛔"];
+      const theme = rowThemes[index % rowThemes.length];
+
+      return (
+        <div
+          key={index}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            background: theme.bg,
+            border: `1px solid ${theme.border}`,
+            borderRadius: 18,
+            padding: "12px 14px",
+          }}
+        >
+          <span
+            style={{
+              minWidth: 34,
+              width: 34,
+              height: 34,
+              borderRadius: 12,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: theme.iconBg,
+              fontSize: 17,
+              lineHeight: 1,
+            }}
+          >
+            {icons[index % icons.length]}
+          </span>
+
+          <div
+            style={{
+              color: COLORS.text,
+              lineHeight: 1.9,
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {item}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
                     <button
                       type="button"
