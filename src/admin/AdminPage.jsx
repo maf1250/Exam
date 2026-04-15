@@ -1542,7 +1542,7 @@ const getPeriodTheme = (period) => {
     })
     .sort((a, b) => b.sharedCount - a.sharedCount || a.name.localeCompare(b.name, "ar"));
 };
-
+ const studentInfoMap = preciseStudentInfoMap;
 const getConflictStudentsDetails = (courseKey, conflictKey) => {
   const sourceCourse = parsed.courses.find((c) => c.key === courseKey);
   const conflictCourse = parsed.courses.find((c) => c.key === conflictKey);
@@ -1551,7 +1551,7 @@ const getConflictStudentsDetails = (courseKey, conflictKey) => {
   const sourceStudents = Array.from(sourceCourse.students || []);
   const conflictStudentsSet = new Set(Array.from(conflictCourse.students || []));
 
- const studentInfoMap = preciseStudentInfoMap;
+
 
   return sourceStudents
     .filter((studentId) => conflictStudentsSet.has(studentId))
