@@ -13,6 +13,8 @@ const COLORS = {
   border: "#D7E7E6",
 };
 
+const LOGO_SRC = "/tvtc-logo.png";
+
 function normalizeArabic(value) {
   return String(value ?? "")
     .trim()
@@ -78,67 +80,223 @@ export default function TraineePortalPage() {
   }, [collegeData, searchText]);
 
   const handlePrint = () => {
-    if (!selectedStudent) return;
+  if (!selectedStudent) return;
 
-    const rowsHtml = selectedStudent.schedule
-      .map(
-        (item, index) => `
-          <tr>
-            <td>${index + 1}</td>
-            <td>${item.courseName || ""}</td>
-            <td>${item.courseCode || ""}</td>
-            <td>${item.dayName || ""}</td>
-            <td>${item.gregorian || ""}</td>
-            <td>${item.hijriNumeric || ""}</td>
-            <td>${item.period || ""}</td>
-            <td>${item.timeText || ""}</td>
-            <td>${item.examHall || ""}</td>
-          </tr>
-        `
-      )
-      .join("");
+  const rowsHtml = selectedStudent.schedule
+    .map(
+      (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${item.courseName || ""}</td>
+          <td>${item.courseCode || ""}</td>
+          <td>${item.dayName || ""}</td>
+          <td>${item.gregorian || ""}</td>
+          <td>${item.hijriNumeric || ""}</td>
+          <td>${item.period || ""}</td>
+          <td>${item.timeText || ""}</td>
+          <td>${item.examHall || ""}</td>
+        </tr>
+      `
+    )
+    .join("");
 
-    const html = `
-      <html dir="rtl" lang="ar">
-        <head>
-          <title>جدول المتدرب</title>
-          <style>
-            body {
-              font-family: Tahoma, Arial, sans-serif;
-              direction: rtl;
-              padding: 24px;
-              color: #111827;
-            }
-            h1 {
-              color: #147B83;
-              margin-bottom: 8px;
-            }
-            .meta {
-              margin-bottom: 18px;
-              line-height: 1.9;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-            th, td {
-              border: 1px solid #d1d5db;
-              padding: 8px;
-              text-align: center;
-              font-size: 14px;
-            }
-            th {
-              background: #E7F8F7;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>${collegeData.collegeName}</h1>
-          <div class="meta">
-            <div><strong>اسم المتدرب:</strong> ${selectedStudent.name || "-"}</div>
-            <div><strong>رقم المتدرب:</strong> ${selectedStudent.id || "-"}</div>
-            <div><strong>القسم:</strong> ${selectedStudent.department || "-"}</div>
-            <div><strong>التخصص:</strong> ${selectedStudent.major || "-"}</div>
+  const instructions = [
+    "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+    "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
+    "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+    "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+    "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
+    "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+    "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+  ];
+
+  const html = `
+    <html dir="rtl" lang="ar">
+      <head>
+        <title>جدول المتدرب</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: Tahoma, Arial, sans-serif;
+            direction: rtl;
+            margin: 0;
+            padding: 0;
+            color: #111827;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .page {
+            padding: 18px;
+          }
+
+          .header {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0F766E 0%, #147B83 38%, #1FA7A8 100%);
+            border-radius: 24px;
+            padding: 18px 20px;
+            color: #fff;
+            margin-bottom: 16px;
+          }
+
+          .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+          }
+
+          .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            margin-bottom: 10px;
+          }
+
+          .college-name {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 4px;
+          }
+
+          .doc-title {
+            font-size: 15px;
+            opacity: 0.96;
+          }
+
+          .logo-box {
+            width: 76px;
+            height: 76px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .logo-box img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+          }
+
+          .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 14px 0 16px;
+          }
+
+          .meta-box {
+            border: 1px solid #D7E7E6;
+            border-radius: 16px;
+            padding: 12px 14px;
+            background: #F8FCFC;
+          }
+
+          .meta-label {
+            color: #6B7280;
+            font-size: 12px;
+            margin-bottom: 4px;
+          }
+
+          .meta-value {
+            color: #1F2529;
+            font-weight: 800;
+            font-size: 14px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+          }
+
+          th, td {
+            border: 1px solid #D7E7E6;
+            padding: 8px 6px;
+            text-align: center;
+            font-size: 12px;
+          }
+
+          th {
+            background: #E7F8F7;
+            color: #147B83;
+            font-weight: 900;
+          }
+
+          .instructions {
+            margin-top: 16px;
+            border: 1px solid #A8DDDA;
+            border-radius: 20px;
+            padding: 14px;
+            background: linear-gradient(180deg, #F9FEFE 0%, #F2FBFB 100%);
+          }
+
+          .instructions-title {
+            font-size: 16px;
+            font-weight: 900;
+            color: #147B83;
+            margin-bottom: 10px;
+          }
+
+          .instructions ol {
+            margin: 0;
+            padding-right: 18px;
+            line-height: 1.9;
+            font-size: 12px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="header-inner">
+              <div>
+                <div class="badge">بوابة المتدرب</div>
+                <div class="college-name">${collegeData.collegeName || "الكلية التقنية"}</div>
+                <div class="doc-title">الجدول النهائي للمتدرب</div>
+              </div>
+
+              <div class="logo-box">
+                <img src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-box">
+              <div class="meta-label">اسم المتدرب</div>
+              <div class="meta-value">${selectedStudent.name || "-"}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">رقم المتدرب</div>
+              <div class="meta-value">${selectedStudent.id || "-"}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">القسم</div>
+              <div class="meta-value">${selectedStudent.department || "-"}</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-label">التخصص</div>
+              <div class="meta-value">${selectedStudent.major || "-"}</div>
+            </div>
           </div>
 
           <table>
@@ -159,49 +317,130 @@ export default function TraineePortalPage() {
               ${rowsHtml}
             </tbody>
           </table>
-        </body>
-      </html>
-    `;
 
-    const w = window.open("", "_blank", "width=1200,height=800");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
-  };
-
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: `linear-gradient(180deg, ${COLORS.bg} 0%, #ffffff 100%)`,
-        padding: "32px 16px",
-      }}
-    >
-      <div style={{ maxWidth: 920, margin: "0 auto" }}>
-        <div
-          style={{
-            background: "linear-gradient(135deg, #147B83 0%, #1FA7A8 100%)",
-            borderRadius: 28,
-            padding: 28,
-            color: "#fff",
-            boxShadow: "0 20px 50px rgba(20,123,131,0.18)",
-            marginBottom: 22,
-          }}
-        >
-          <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>
-            بوابة المتدرب
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>
-            {collegeData?.collegeName || "بوابة الجداول"}
-          </div>
-          <div style={{ lineHeight: 1.9, opacity: 0.95 }}>
-            ابحث باسمك أو برقمك التدريبي لعرض جدولك وطباعته.
+          <div class="instructions">
+            <div class="instructions-title">تعليمات مهمة</div>
+            <ol>
+              ${instructions.map((item) => `<li>${item}</li>`).join("")}
+            </ol>
           </div>
         </div>
+      </body>
+    </html>
+  `;
 
+  const w = window.open("", "_blank", "width=1200,height=800");
+  if (!w) return;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+};
+  return (
+    
+    <div
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    background: "linear-gradient(135deg, #0F766E 0%, #147B83 38%, #1FA7A8 100%)",
+    borderRadius: 32,
+    padding: 24,
+    color: "#fff",
+    boxShadow: "0 22px 55px rgba(20,123,131,0.20)",
+    marginBottom: 22,
+  }}
+>
+  <div
+    style={{
+      position: "absolute",
+      top: -90,
+      left: -90,
+      width: 220,
+      height: 220,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.08)",
+      filter: "blur(8px)",
+    }}
+  />
+  <div
+    style={{
+      position: "absolute",
+      bottom: -70,
+      right: -70,
+      width: 180,
+      height: 180,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.06)",
+      filter: "blur(8px)",
+    }}
+  />
+
+  <div
+    style={{
+      position: "relative",
+      zIndex: 1,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 18,
+      flexWrap: "wrap",
+    }}
+  >
+    <div style={{ flex: "1 1 320px", minWidth: 260 }}>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(255,255,255,0.14)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          borderRadius: 999,
+          padding: "8px 14px",
+          fontSize: 13,
+          fontWeight: 800,
+          marginBottom: 14,
+        }}
+      >
+        <span>بوابة المتدرب</span>
+      </div>
+
+      <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 8, lineHeight: 1.4 }}>
+        {collegeData?.collegeName || "بوابة الجداول"}
+      </div>
+
+      <div style={{ lineHeight: 1.9, opacity: 0.95, fontSize: 15 }}>
+        ابحث باسمك أو برقمك التدريبي لعرض جدولك النهائي وطباعته بشكل منظم وواضح.
+      </div>
+    </div>
+
+    <div
+      style={{
+        width: 92,
+        height: 92,
+        borderRadius: 24,
+        background: "rgba(255,255,255,0.14)",
+        border: "1px solid rgba(255,255,255,0.18)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(4px)",
+        flexShrink: 0,
+      }}
+    >
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{
+          width: 62,
+          height: 62,
+          objectFit: "contain",
+        }}
+      />
+    </div>
+  </div>
+</div>
+    
         <div
           style={{
             background: COLORS.card,
