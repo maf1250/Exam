@@ -1562,8 +1562,7 @@ const hasMeaningfulSessionData = (data) => {
     (Array.isArray(data?.schedule) && data.schedule.length > 0) ||
     (Array.isArray(data?.generalSchedule) && data.generalSchedule.length > 0) ||
     (Array.isArray(data?.specializedSchedule) && data.specializedSchedule.length > 0) ||
-    (Array.isArray(data?.unscheduled) && data.unscheduled.length > 0) ||
-    Boolean(data?.fileName)
+    (Array.isArray(data?.unscheduled) && data.unscheduled.length > 0)
   );
 };
 
@@ -1739,40 +1738,43 @@ useEffect(() => {
 
   let cancelled = false;
 
-  const persistState = async () => {
-    try {
-      const data = buildPersistedState();
-
-      if (!hasMeaningfulSessionData(data)) {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_MODE_KEY);
-        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
-        if (!cancelled) setStorageMode("localStorage");
-        return;
-      }
-
-      const serialized = JSON.stringify(data);
-
+  const timer = window.setTimeout(() => {
+    const persistState = async () => {
       try {
-        localStorage.setItem(STORAGE_KEY, serialized);
-        localStorage.setItem(STORAGE_MODE_KEY, "localStorage");
-        await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
-        if (!cancelled) setStorageMode("localStorage");
-      } catch (storageError) {
-        await saveStateToIndexedDb(LARGE_STORAGE_KEY, data);
-        localStorage.setItem(STORAGE_MODE_KEY, "indexedDB");
-        localStorage.removeItem(STORAGE_KEY);
-        if (!cancelled) setStorageMode("indexedDB");
-      }
-    } catch (error) {
-      console.error("Failed to persist state:", error);
-    }
-  };
+        const data = buildPersistedState();
 
-  persistState();
+        if (!hasMeaningfulSessionData(data)) {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(STORAGE_MODE_KEY);
+          await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+          if (!cancelled) setStorageMode("localStorage");
+          return;
+        }
+
+        const serialized = JSON.stringify(data);
+
+        try {
+          localStorage.setItem(STORAGE_KEY, serialized);
+          localStorage.setItem(STORAGE_MODE_KEY, "localStorage");
+          await removeStateFromIndexedDb(LARGE_STORAGE_KEY).catch(() => {});
+          if (!cancelled) setStorageMode("localStorage");
+        } catch (storageError) {
+          await saveStateToIndexedDb(LARGE_STORAGE_KEY, data);
+          localStorage.setItem(STORAGE_MODE_KEY, "indexedDB");
+          localStorage.removeItem(STORAGE_KEY);
+          if (!cancelled) setStorageMode("indexedDB");
+        }
+      } catch (error) {
+        console.error("Failed to persist state:", error);
+      }
+    };
+
+    persistState();
+  }, 700);
 
   return () => {
     cancelled = true;
+    window.clearTimeout(timer);
   };
 }, [
   didRestore,
@@ -1995,6 +1997,10 @@ const importSavedSession = (file) => {
         setSelectedStudentIdForPrint("");
         setCompactPrintMode(false);
         setCurrentStep(1);
+        pendingRestoreRef.current = null;
+        setPendingRestore(null);
+        setDidRestore(true);
+        setToast(null);
 
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
@@ -2426,6 +2432,8 @@ const selectedCourseB = useMemo(
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
   };
 
+const resolveScheduledSlotId = (item) => item?.id || `${item?.dateISO}-${item?.period}`;
+
 const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   if (!rows.length) {
     showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
@@ -2611,6 +2619,8 @@ const pickInvigilators = (course, slot) => {
     let sameDayPenalty = 0;
     const courseLevel = courseLevels[course.key] || "";
     const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
+    const periodKey = getSlotPeriodKey(slot);
+    const requiredInvigilators = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
     course.students.forEach((studentId) => {
       const usedSlots = studentSlotMap.get(studentId) || new Set();
@@ -2633,6 +2643,29 @@ const pickInvigilators = (course, slot) => {
     if (hardConflict) return Number.POSITIVE_INFINITY;
 
     let score = slotLoadPenalty + sameDayPenalty;
+
+    if (includeInvigilators) {
+      const availableInvigilatorsCount = invigilatorPool.filter(
+        (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+      ).length;
+
+      if (availableInvigilatorsCount < requiredInvigilators) {
+        score += (requiredInvigilators - availableInvigilatorsCount) * 50;
+      }
+    }
+
+    const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
+      .filter((item) => resolveScheduledSlotId(item) === slot.id)
+      .map((item) => item.examHall)
+      .filter(Boolean);
+
+    const matchingHallCount = hallsPool.filter(
+      (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
+    ).length;
+
+    if (!matchingHallCount) {
+      score += 25;
+    }
 
     if (course.conflictDegree > 10 && slot.period > 1) score += 1;
 
@@ -2686,8 +2719,9 @@ sortedCoursesForInvigilation.forEach((course) => {
     });
 
     const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
-      .filter((item) => item.id === bestSlot.id)
-      .map((item) => item.examHall);
+      .filter((item) => resolveScheduledSlotId(item) === bestSlot.id)
+      .map((item) => item.examHall)
+      .filter(Boolean);
 
     const fittingHalls = hallsPool.filter(
       (hall) => !usedHallNamesInSlot.includes(hall.name) && (hall.capacity === null || hall.capacity >= course.studentCount)
@@ -2717,6 +2751,18 @@ newPlaced.push({
   });
 
   newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
+
+  const underCoveredCoursesCount = includeInvigilators
+    ? newPlaced.filter((item) => (item.invigilators?.length || 0) < getRequiredInvigilatorsCount(item)).length
+    : 0;
+
+  if (includeInvigilators && underCoveredCoursesCount > 0) {
+    showToast(
+      "ملاحظة على توزيع المراقبين",
+      `تمت جدولة ${underCoveredCoursesCount} مقرر بعدد مراقبين أقل من المطلوب بسبب محدودية التوفر في بعض الفترات.`,
+      "warning"
+    );
+  }
 
   setUnscheduled(notPlaced);
   setPreviewPage(0);
@@ -2787,12 +2833,20 @@ const filteredScheduleForPrint = useMemo(() => {
   });
 }, [schedule, printDepartmentFilter, printMajorFilter]);
 const filteredSortedCourses = useMemo(() => {
-  if (printDepartmentFilter === "__all__") return parsed.courses;
   return parsed.courses.filter((item) => {
-    const roots = item.departmentRoots || [];
-    return roots.includes(normalizeArabic(printDepartmentFilter));
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
   });
-}, [parsed.courses, printDepartmentFilter]);
+}, [parsed.courses, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
