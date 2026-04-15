@@ -12,10 +12,13 @@ export function exportCollegeDataFile({
   slug,
   collegeName,
   schedule,
+  parsed,
   selectedDepartment = "__all__",
   selectedMajor = "__all__",
 }) {
-  const filtered = schedule.filter((item) => {
+  const studentMap = new Map();
+
+  const filteredSchedule = schedule.filter((item) => {
     const depOk =
       selectedDepartment === "__all__" ||
       normalizeArabic(item.department || "").includes(normalizeArabic(selectedDepartment));
@@ -27,42 +30,43 @@ export function exportCollegeDataFile({
     return depOk && majorOk;
   });
 
-  const map = new Map();
+  filteredSchedule.forEach((item) => {
+    const students = Array.isArray(item.students) ? item.students : [];
 
-  filtered.forEach((item) => {
-    const studentId = String(item.studentId || item["رقم المتدرب"] || "").trim();
-    const studentName = String(item.studentName || item["اسم المتدرب"] || "").trim();
+    students.forEach((studentId) => {
+      const info = parsed.studentInfoMap?.get(studentId);
 
-    if (!studentId && !studentName) return;
+      if (!info) return;
 
-    const key = studentId || studentName;
+      if (!studentMap.has(studentId)) {
+        studentMap.set(studentId, {
+          id: studentId,
+          name: info.name || "",
+          department: info.department || "",
+          major: info.major || "",
+          schedule: [],
+        });
+      }
 
-    if (!map.has(key)) {
-      map.set(key, {
-        id: studentId,
-        name: studentName,
-        department: item.department || "",
-        major: item.major || "",
-        schedule: [],
+      studentMap.get(studentId).schedule.push({
+        courseName: item.courseName || "",
+        courseCode: item.courseCode || "",
+        dayName: item.dayName || "",
+        gregorian: item.gregorian || "",
+        hijriNumeric: item.hijriNumeric || "",
+        period: item.period || "",
+        timeText: item.timeText || "",
+        examHall: item.examHall || "",
       });
-    }
-
-    map.get(key).schedule.push({
-      courseName: item.courseName || "",
-      courseCode: item.courseCode || "",
-      dayName: item.dayName || "",
-      gregorian: item.gregorian || "",
-      hijriNumeric: item.hijriNumeric || "",
-      period: item.period || "",
-      timeText: item.timeText || "",
-      examHall: item.examHall || "",
     });
   });
 
   const output = {
     slug,
     collegeName,
-    students: Array.from(map.values()),
+    students: Array.from(studentMap.values()).filter(
+      (student) => student.schedule.length > 0
+    ),
   };
 
   const blob = new Blob([JSON.stringify(output, null, 2)], {
