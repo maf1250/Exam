@@ -187,8 +187,8 @@ useEffect(() => {
           }
 
           .logo-box {
-            width: 76px;
-            height: 76px;
+            width: 135px;
+            height: 135px;
             border-radius: 20px;
             background: rgba(255,255,255,0.14);
             border: 1px solid rgba(255,255,255,0.18);
@@ -199,8 +199,8 @@ useEffect(() => {
           }
 
           .logo-box img {
-            width: 52px;
-            height: 52px;
+            width: 100px;
+            height: 100px;
             object-fit: contain;
           }
 
