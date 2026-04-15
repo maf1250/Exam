@@ -3377,11 +3377,12 @@ const headerBtn = (danger = false) => ({
       return;
     }
 
-   exportCollegeDataFile({
+exportCollegeDataFile({
   slug: effectiveCollegeSlug,
   collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
   schedule,
-      parsed,
+  parsed,
+  studentInfoMap: preciseStudentInfoMap,
   selectedDepartment: printDepartmentFilter,
   selectedMajor: printMajorFilter,
 });
