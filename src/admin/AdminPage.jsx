@@ -3381,6 +3381,7 @@ const headerBtn = (danger = false) => ({
   slug: effectiveCollegeSlug,
   collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
   schedule,
+      parsed,
   selectedDepartment: printDepartmentFilter,
   selectedMajor: printMajorFilter,
 });
