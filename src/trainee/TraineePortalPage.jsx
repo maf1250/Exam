@@ -337,390 +337,401 @@ export default function TraineePortalPage() {
   w.focus();
   setTimeout(() => w.print(), 300);
 };
-  return (
-    
-    <div
-  style={{
-    position: "relative",
-    overflow: "hidden",
-    background: "linear-gradient(135deg, #0F766E 0%, #147B83 38%, #1FA7A8 100%)",
-    borderRadius: 32,
-    padding: 24,
-    color: "#fff",
-    boxShadow: "0 22px 55px rgba(20,123,131,0.20)",
-    marginBottom: 22,
-  }}
->
-  <div
-    style={{
-      position: "absolute",
-      top: -90,
-      left: -90,
-      width: 220,
-      height: 220,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.08)",
-      filter: "blur(8px)",
-    }}
-  />
-  <div
-    style={{
-      position: "absolute",
-      bottom: -70,
-      right: -70,
-      width: 180,
-      height: 180,
-      borderRadius: "50%",
-      background: "rgba(255,255,255,0.06)",
-      filter: "blur(8px)",
-    }}
-  />
 
+  return (
   <div
     style={{
-      position: "relative",
-      zIndex: 1,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 18,
-      flexWrap: "wrap",
+      minHeight: "100vh",
+      background: `linear-gradient(180deg, ${COLORS.bg} 0%, #ffffff 100%)`,
+      padding: "32px 16px",
     }}
   >
-    <div style={{ flex: "1 1 320px", minWidth: 260 }}>
+    <div style={{ maxWidth: 920, margin: "0 auto" }}>
       <div
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          background: "rgba(255,255,255,0.14)",
-          border: "1px solid rgba(255,255,255,0.18)",
-          borderRadius: 999,
-          padding: "8px 14px",
-          fontSize: 13,
-          fontWeight: 800,
-          marginBottom: 14,
+          position: "relative",
+          overflow: "hidden",
+          background: "linear-gradient(135deg, #0F766E 0%, #147B83 38%, #1FA7A8 100%)",
+          borderRadius: 32,
+          padding: 24,
+          color: "#fff",
+          boxShadow: "0 22px 55px rgba(20,123,131,0.20)",
+          marginBottom: 22,
         }}
       >
-        <span>بوابة المتدرب</span>
-      </div>
-
-      <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 8, lineHeight: 1.4 }}>
-        {collegeData?.collegeName || "بوابة الجداول"}
-      </div>
-
-      <div style={{ lineHeight: 1.9, opacity: 0.95, fontSize: 15 }}>
-        ابحث باسمك أو برقمك التدريبي لعرض جدولك النهائي وطباعته بشكل منظم وواضح.
-      </div>
-    </div>
-
-    <div
-      style={{
-        width: 92,
-        height: 92,
-        borderRadius: 24,
-        background: "rgba(255,255,255,0.14)",
-        border: "1px solid rgba(255,255,255,0.18)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(4px)",
-        flexShrink: 0,
-      }}
-    >
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{
-          width: 62,
-          height: 62,
-          objectFit: "contain",
-        }}
-      />
-    </div>
-  </div>
-</div>
-    
         <div
           style={{
-            background: COLORS.card,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 28,
-            padding: 24,
-            boxShadow: "0 14px 34px rgba(20,123,131,0.08)",
+            position: "absolute",
+            top: -90,
+            left: -90,
+            width: 220,
+            height: 220,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.08)",
+            filter: "blur(8px)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -70,
+            right: -70,
+            width: 180,
+            height: 180,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)",
+            filter: "blur(8px)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 18,
+            flexWrap: "wrap",
           }}
         >
-          {loading ? (
-            <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>
-              جاري تحميل البيانات...
+          <div style={{ flex: "1 1 320px", minWidth: 260 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "rgba(255,255,255,0.14)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                borderRadius: 999,
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 800,
+                marginBottom: 14,
+              }}
+            >
+              <span>بوابة المتدرب</span>
             </div>
-          ) : error ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#B42318" }}>
-              {error}
-            </div>
-          ) : (
-            <>
-              <div style={{ marginBottom: 18 }}>
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 800,
-                    color: COLORS.text,
-                    marginBottom: 10,
-                  }}
-                >
-                  البحث عن المتدرب
-                </div>
 
-                <input
-                  value={searchText}
-                  onChange={(e) => {
-                    setSearchText(e.target.value);
-                    setSelectedStudent(null);
-                  }}
-                  placeholder="اكتب الاسم أو الرقم التدريبي"
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 18,
-                    padding: "14px 16px",
-                    fontSize: 16,
-                    outline: "none",
-                    background: "#fff",
-                  }}
-                />
+            <div style={{ fontSize: 30, fontWeight: 900, marginBottom: 8, lineHeight: 1.4 }}>
+              {collegeData?.collegeName || "بوابة الجداول"}
+            </div>
+
+            <div style={{ lineHeight: 1.9, opacity: 0.95, fontSize: 15 }}>
+              ابحث باسمك أو برقمك التدريبي لعرض جدولك النهائي وطباعته بشكل منظم وواضح.
+            </div>
+          </div>
+
+          <div
+            style={{
+              width: 92,
+              height: 92,
+              borderRadius: 24,
+              background: "rgba(255,255,255,0.14)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backdropFilter: "blur(4px)",
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src={LOGO_SRC}
+              alt="TVTC Logo"
+              style={{
+                width: 62,
+                height: 62,
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: COLORS.card,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 28,
+          padding: 24,
+          boxShadow: "0 14px 34px rgba(20,123,131,0.08)",
+        }}
+      >
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>
+            جاري تحميل البيانات...
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: "center", padding: 40, color: "#B42318" }}>
+            {error}
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 18 }}>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: COLORS.text,
+                  marginBottom: 10,
+                }}
+              >
+                البحث عن المتدرب
               </div>
 
-              {!!suggestions.length && !selectedStudent && (
+              <input
+                value={searchText}
+                onChange={(e) => {
+                  setSearchText(e.target.value);
+                  setSelectedStudent(null);
+                }}
+                placeholder="اكتب الاسم أو الرقم التدريبي"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 18,
+                  padding: "14px 16px",
+                  fontSize: 16,
+                  outline: "none",
+                  background: "#fff",
+                }}
+              />
+            </div>
+
+            {!!suggestions.length && !selectedStudent && (
+              <div
+                style={{
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  marginBottom: 18,
+                }}
+              >
+                {suggestions.map((student) => (
+                  <button
+                    key={`${student.id}-${student.name}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setSearchText(student.name || student.id || "");
+                    }}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      textAlign: "right",
+                      padding: "14px 16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: COLORS.text }}>
+                      {student.name || "بدون اسم"}
+                    </div>
+                    <div style={{ color: COLORS.muted, marginTop: 4, fontSize: 14 }}>
+                      {student.id || "-"} — {student.department || "-"} / {student.major || "-"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedStudent && (
+              <div
+                style={{
+                  background: "#fff",
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 24,
+                  padding: 20,
+                }}
+              >
                 <div
                   style={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 20,
-                    overflow: "hidden",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: 12,
                     marginBottom: 18,
                   }}
                 >
-                  {suggestions.map((student) => (
-                    <button
-                      key={`${student.id}-${student.name}`}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStudent(student);
-                        setSearchText(student.name || student.id || "");
-                      }}
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        borderBottom: `1px solid ${COLORS.border}`,
-                        background: "#fff",
-                        textAlign: "right",
-                        padding: "14px 16px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: COLORS.text }}>
-                        {student.name || "بدون اسم"}
-                      </div>
-                      <div style={{ color: COLORS.muted, marginTop: 4, fontSize: 14 }}>
-                        {student.id || "-"} — {student.department || "-"} / {student.major || "-"}
-                      </div>
-                    </button>
-                  ))}
+                  <InfoBox label="اسم المتدرب" value={selectedStudent.name || "-"} />
+                  <InfoBox label="رقم المتدرب" value={selectedStudent.id || "-"} />
+                  <InfoBox label="القسم" value={selectedStudent.department || "-"} />
+                  <InfoBox label="التخصص" value={selectedStudent.major || "-"} />
                 </div>
-              )}
 
-              {selectedStudent && (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        {["م", "المقرر", "الرمز", "اليوم", "التاريخ الميلادي", "التاريخ الهجري", "الفترة", "الوقت", "المقر"].map((head) => (
+                          <th
+                            key={head}
+                            style={{
+                              background: COLORS.primaryLight,
+                              border: `1px solid ${COLORS.primaryBorder}`,
+                              padding: 10,
+                              fontSize: 14,
+                            }}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedStudent.schedule.map((item, index) => (
+                        <tr key={`${item.courseCode}-${index}`}>
+                          <Cell>{index + 1}</Cell>
+                          <Cell>{item.courseName}</Cell>
+                          <Cell>{item.courseCode}</Cell>
+                          <Cell>{item.dayName}</Cell>
+                          <Cell>{item.gregorian}</Cell>
+                          <Cell>{item.hijriNumeric}</Cell>
+                          <Cell>{item.period}</Cell>
+                          <Cell>{item.timeText}</Cell>
+                          <Cell>{item.examHall}</Cell>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
                 <div
                   style={{
-                    background: "#fff",
-                    border: `1px solid ${COLORS.border}`,
+                    marginTop: 22,
+                    border: `1px solid ${COLORS.primaryBorder}`,
                     borderRadius: 24,
-                    padding: 20,
+                    padding: 18,
+                    background: "linear-gradient(180deg, #F9FEFE 0%, #F2FBFB 100%)",
+                    boxShadow: "0 10px 28px rgba(20,123,131,0.08)",
                   }}
                 >
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, 1fr)",
-                      gap: 12,
-                      marginBottom: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 14,
+                      color: COLORS.primaryDark,
+                      fontWeight: 900,
+                      fontSize: 18,
                     }}
                   >
-                    <InfoBox label="اسم المتدرب" value={selectedStudent.name || "-"} />
-                    <InfoBox label="رقم المتدرب" value={selectedStudent.id || "-"} />
-                    <InfoBox label="القسم" value={selectedStudent.department || "-"} />
-                    <InfoBox label="التخصص" value={selectedStudent.major || "-"} />
-                  </div>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr>
-                          {["م", "المقرر", "الرمز", "اليوم", "التاريخ الميلادي", "التاريخ الهجري", "الفترة", "الوقت", "المقر"].map((head) => (
-                            <th
-                              key={head}
-                              style={{
-                                background: COLORS.primaryLight,
-                                border: `1px solid ${COLORS.primaryBorder}`,
-                                padding: 10,
-                                fontSize: 14,
-                              }}
-                            >
-                              {head}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedStudent.schedule.map((item, index) => (
-                          <tr key={`${item.courseCode}-${index}`}>
-                            <Cell>{index + 1}</Cell>
-                            <Cell>{item.courseName}</Cell>
-                            <Cell>{item.courseCode}</Cell>
-                            <Cell>{item.dayName}</Cell>
-                            <Cell>{item.gregorian}</Cell>
-                            <Cell>{item.hijriNumeric}</Cell>
-                            <Cell>{item.period}</Cell>
-                            <Cell>{item.timeText}</Cell>
-                            <Cell>{item.examHall}</Cell>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-<div
-  style={{
-    marginTop: 22,
-    border: `1px solid ${COLORS.primaryBorder}`,
-    borderRadius: 24,
-    padding: 18,
-    background: "linear-gradient(180deg, #F9FEFE 0%, #F2FBFB 100%)",
-    boxShadow: "0 10px 28px rgba(20,123,131,0.08)",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: 14,
-      color: COLORS.primaryDark,
-      fontWeight: 900,
-      fontSize: 18,
-    }}
-  >
-    <span
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: COLORS.primaryLight,
-        border: `1px solid ${COLORS.primaryBorder}`,
-        fontSize: 18,
-      }}
-    >
-      📋
-    </span>
-    <span>تعليمات مهمة</span>
-  </div>
-
-  <div style={{ display: "grid", gap: 10 }}>
-    {[
-      "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
-      "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
-      "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
-      "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
-      "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
-      "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
-      "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
-    ].map((item, index) => {
-      const rowThemes = [
-        { bg: "#F0FDFA", border: "#99F6E4", iconBg: "#CCFBF1" },
-        { bg: "#ECFEFF", border: "#A5F3FC", iconBg: "#CFFAFE" },
-        { bg: "#F5F3FF", border: "#DDD6FE", iconBg: "#EDE9FE" },
-        { bg: "#FFF7ED", border: "#FED7AA", iconBg: "#FFEDD5" },
-        { bg: "#FEFCE8", border: "#FDE68A", iconBg: "#FEF3C7" },
-        { bg: "#F0FDF4", border: "#BBF7D0", iconBg: "#DCFCE7" },
-        { bg: "#FEF2F2", border: "#FECACA", iconBg: "#FEE2E2" },
-      ];
-
-      const icons = ["⏰", "🚪", "🚫", "📵", "🧥", "📈", "⛔"];
-      const theme = rowThemes[index % rowThemes.length];
-
-      return (
-        <div
-          key={index}
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-            background: theme.bg,
-            border: `1px solid ${theme.border}`,
-            borderRadius: 18,
-            padding: "12px 14px",
-          }}
-        >
-          <span
-            style={{
-              minWidth: 34,
-              width: 34,
-              height: 34,
-              borderRadius: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: theme.iconBg,
-              fontSize: 17,
-              lineHeight: 1,
-            }}
-          >
-            {icons[index % icons.length]}
-          </span>
-
-          <div
-            style={{
-              color: COLORS.text,
-              lineHeight: 1.9,
-              fontSize: 14,
-              fontWeight: 700,
-            }}
-          >
-            {item}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
-                    <button
-                      type="button"
-                      onClick={handlePrint}
+                    <span
                       style={{
-                        background: COLORS.primaryDark,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 18,
-                        padding: "12px 18px",
-                        fontWeight: 800,
-                        cursor: "pointer",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: COLORS.primaryLight,
+                        border: `1px solid ${COLORS.primaryBorder}`,
+                        fontSize: 18,
                       }}
                     >
-                      طباعة الجدول
-                    </button>
+                      📋
+                    </span>
+                    <span>تعليمات مهمة</span>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {[
+                      "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
+                      "لا يسمح للمتدرب بدخول الاختبار بعد مضي نصف ساعة من بدايته، ولا يسمح له بالخروج قبل مضي نصف ساعة.",
+                      "قيام المتدرب بالغش أو محاولة الغش يعتبر مخالفة لتعليمات وقواعد إجراء الاختبارات، وترصد له درجة (صفر) في اختبار ذلك المقرر.",
+                      "وجود الجوال أو أي أوراق تخص المقرر في حوزة المتدرب تعتبر شروعًا في الغش وتطبق عليه قواعد إجراءات الاختبارات.",
+                      "يجب على المتدرب التقيد بالزي التدريبي والتزام الهدوء داخل قاعة الاختبار.",
+                      "يتطلب حصول المتدرب على 25% من درجة الاختبار النهائي حتى يجتاز المقرر التدريبي بالكليات التقنية.",
+                      "لا يسمح للمتدرب المحروم بدخول الاختبارات النهائية.",
+                    ].map((item, index) => {
+                      const rowThemes = [
+                        { bg: "#F0FDFA", border: "#99F6E4", iconBg: "#CCFBF1" },
+                        { bg: "#ECFEFF", border: "#A5F3FC", iconBg: "#CFFAFE" },
+                        { bg: "#F5F3FF", border: "#DDD6FE", iconBg: "#EDE9FE" },
+                        { bg: "#FFF7ED", border: "#FED7AA", iconBg: "#FFEDD5" },
+                        { bg: "#FEFCE8", border: "#FDE68A", iconBg: "#FEF3C7" },
+                        { bg: "#F0FDF4", border: "#BBF7D0", iconBg: "#DCFCE7" },
+                        { bg: "#FEF2F2", border: "#FECACA", iconBg: "#FEE2E2" },
+                      ];
+
+                      const icons = ["⏰", "🚪", "🚫", "📵", "🧥", "📈", "⛔"];
+                      const theme = rowThemes[index % rowThemes.length];
+
+                      return (
+                        <div
+                          key={index}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            background: theme.bg,
+                            border: `1px solid ${theme.border}`,
+                            borderRadius: 18,
+                            padding: "12px 14px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              minWidth: 34,
+                              width: 34,
+                              height: 34,
+                              borderRadius: 12,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: theme.iconBg,
+                              fontSize: 17,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {icons[index % icons.length]}
+                          </span>
+
+                          <div
+                            style={{
+                              color: COLORS.text,
+                              lineHeight: 1.9,
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {item}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    style={{
+                      background: COLORS.primaryDark,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 18,
+                      padding: "12px 18px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    طباعة الجدول
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
+  
 }
 
 function InfoBox({ label, value }) {
