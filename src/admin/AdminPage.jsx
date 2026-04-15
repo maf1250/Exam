@@ -1921,137 +1921,6 @@ const importSavedSession = (file) => {
   reader.readAsText(file, "utf-8");
 };
 
-const detectedGender = useMemo(() => {
-  const fromCollegeName = detectGenderFromText(parsed?.collegeName || "");
-  if (fromCollegeName) return fromCollegeName;
-
-  const fromInput = detectGenderFromText(collegeNameInput || "");
-  if (fromInput) return fromInput;
-
-  const fromRows = detectGenderFromRows(rows);
-  if (fromRows) return fromRows;
-
-  return "male";
-}, [parsed?.collegeName, collegeNameInput, rows]);
-
-
-  
-const detectedCollegeLocation = useMemo(() => {
-  const sourceName =
-    String(parsed?.collegeName || "").trim() ||
-    String(collegeNameInput || "").trim();
-
-  return resolveLocationName(sourceName);
-}, [parsed?.collegeName, collegeNameInput]);
-
-const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
-
-const effectiveCollegeSlug = useMemo(
-  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
-  [effectiveCollegeLocation, detectedGender]
-);
-
-
-  const allCollegeLocations = useMemo(() => getAllLocations(), []);
-
-  useEffect(() => {
-  setAutoDetectedCollegeLocation(detectedCollegeLocation || "");
-}, [detectedCollegeLocation]);
-
-
-  const departmentMajorOptions = useMemo(() => {
-    if (!rows.length) return [];
-
-    const map = new Map();
-
-    rows.forEach((row) => {
-      const department = String(row["القسم"] ?? "").trim();
-      const major = String(row["التخصص"] ?? "").trim();
-
-      splitBySlash(department || "-").forEach((dep) => {
-        splitBySlash(major || "-").forEach((maj) => {
-          const cleanDepartment = String(dep || "").trim() || "-";
-          const cleanMajor = String(maj || "").trim() || "-";
-          const key = `${normalizeArabic(cleanDepartment)}|${normalizeArabic(cleanMajor)}`;
-
-          if (
-            normalizeArabic(cleanDepartment) === normalizeArabic("الدراسات العامة") ||
-            normalizeArabic(cleanMajor) === normalizeArabic("الدراسات العامة")
-          ) {
-            return;
-          }
-
-          if (!map.has(key)) {
-            map.set(key, {
-              key,
-              department: cleanDepartment,
-              major: cleanMajor,
-              label: `${cleanDepartment} / ${cleanMajor}`,
-            });
-          }
-        });
-      });
-    });
-
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
-  }, [rows]);
-
-  const toggleExcludedDepartmentMajor = (itemKey) => {
-    setExcludedDepartmentMajors((prev) =>
-      prev.includes(itemKey)
-        ? prev.filter((key) => key !== itemKey)
-        : [...prev, itemKey]
-    );
-  };
-
-  useEffect(() => {
-    setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
-  }, [includeAllDepartmentsAndMajors]);
-
-  const handleUpload = (file) => {
-    if (!file) return;
-
-    setFileName(file.name);
-    setStudentSearchText("");
-    setShowStudentSuggestions(false);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      encoding: "UTF-8",
-      complete: (result) => {
-        const cleanRows = (result.data || []).filter((row) =>
-          Object.values(row).some((v) => String(v ?? "").trim() !== "")
-        );
-
-        setRows(cleanRows);
-        setCollegeNameInput(cleanRows[0]?.["الوحدة"] || "");
-        setSchedule([]);
-        setGeneralSchedule([]);
-        setSpecializedSchedule([]);
-        setUnscheduled([]);
-        setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
-        setIncludeAllDepartmentsAndMajors(true);
-        setExcludedDepartmentMajors([]);
-        setLockGeneralStudiesStep(false);
-        setCourseLevels({});
-        setPreviewPage(0);
-        setPreviewTab("sortedCourses");
-        setSelectedStudentIdForPrint("");
-        setCompactPrintMode(false);
-        setCurrentStep(1);
-        pendingRestoreRef.current = null;
-        setPendingRestore(null);
-        setDidRestore(true);
-        setToast(null);
-
-        showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
-      },
-      error: (err) => {
-        showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
-      },
-    });
-  };
-
   const parsed = useMemo(() => {
     if (!rows.length) {
       return {
@@ -2354,6 +2223,138 @@ const preciseStudentInfoMap = useMemo(() => {
   return map;
 }, [parsed.filteredRows]);
   
+
+const detectedGender = useMemo(() => {
+  const fromCollegeName = detectGenderFromText(parsed?.collegeName || "");
+  if (fromCollegeName) return fromCollegeName;
+
+  const fromInput = detectGenderFromText(collegeNameInput || "");
+  if (fromInput) return fromInput;
+
+  const fromRows = detectGenderFromRows(rows);
+  if (fromRows) return fromRows;
+
+  return "male";
+}, [parsed?.collegeName, collegeNameInput, rows]);
+
+
+  
+const detectedCollegeLocation = useMemo(() => {
+  const sourceName =
+    String(parsed?.collegeName || "").trim() ||
+    String(collegeNameInput || "").trim();
+
+  return resolveLocationName(sourceName);
+}, [parsed?.collegeName, collegeNameInput]);
+
+const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
+
+const effectiveCollegeSlug = useMemo(
+  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
+  [effectiveCollegeLocation, detectedGender]
+);
+
+
+  const allCollegeLocations = useMemo(() => getAllLocations(), []);
+
+  useEffect(() => {
+  setAutoDetectedCollegeLocation(detectedCollegeLocation || "");
+}, [detectedCollegeLocation]);
+
+
+  const departmentMajorOptions = useMemo(() => {
+    if (!rows.length) return [];
+
+    const map = new Map();
+
+    rows.forEach((row) => {
+      const department = String(row["القسم"] ?? "").trim();
+      const major = String(row["التخصص"] ?? "").trim();
+
+      splitBySlash(department || "-").forEach((dep) => {
+        splitBySlash(major || "-").forEach((maj) => {
+          const cleanDepartment = String(dep || "").trim() || "-";
+          const cleanMajor = String(maj || "").trim() || "-";
+          const key = `${normalizeArabic(cleanDepartment)}|${normalizeArabic(cleanMajor)}`;
+
+          if (
+            normalizeArabic(cleanDepartment) === normalizeArabic("الدراسات العامة") ||
+            normalizeArabic(cleanMajor) === normalizeArabic("الدراسات العامة")
+          ) {
+            return;
+          }
+
+          if (!map.has(key)) {
+            map.set(key, {
+              key,
+              department: cleanDepartment,
+              major: cleanMajor,
+              label: `${cleanDepartment} / ${cleanMajor}`,
+            });
+          }
+        });
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
+  }, [rows]);
+
+  const toggleExcludedDepartmentMajor = (itemKey) => {
+    setExcludedDepartmentMajors((prev) =>
+      prev.includes(itemKey)
+        ? prev.filter((key) => key !== itemKey)
+        : [...prev, itemKey]
+    );
+  };
+
+  useEffect(() => {
+    setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
+  }, [includeAllDepartmentsAndMajors]);
+
+  const handleUpload = (file) => {
+    if (!file) return;
+
+    setFileName(file.name);
+    setStudentSearchText("");
+    setShowStudentSuggestions(false);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: "UTF-8",
+      complete: (result) => {
+        const cleanRows = (result.data || []).filter((row) =>
+          Object.values(row).some((v) => String(v ?? "").trim() !== "")
+        );
+
+        setRows(cleanRows);
+        setCollegeNameInput(cleanRows[0]?.["الوحدة"] || "");
+        setSchedule([]);
+        setGeneralSchedule([]);
+        setSpecializedSchedule([]);
+        setUnscheduled([]);
+        setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
+        setIncludeAllDepartmentsAndMajors(true);
+        setExcludedDepartmentMajors([]);
+        setLockGeneralStudiesStep(false);
+        setCourseLevels({});
+        setPreviewPage(0);
+        setPreviewTab("sortedCourses");
+        setSelectedStudentIdForPrint("");
+        setCompactPrintMode(false);
+        setCurrentStep(1);
+        pendingRestoreRef.current = null;
+        setPendingRestore(null);
+        setDidRestore(true);
+        setToast(null);
+
+        showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
+      },
+      error: (err) => {
+        showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
+      },
+    });
+  };
+
 const getSelectedPairConflictStudents = useMemo(() => {
   if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
 
