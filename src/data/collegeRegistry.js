@@ -373,7 +373,7 @@ export function resolveLocationSlug(locationOrCollegeName = "", gender = "") {
 }
 
 export function generateTraineeLink(traineeId, locationOrCollegeName, gender = "") {
-  if (!traineeId || !locationOrCollegeName) return "";
+  if (!locationOrCollegeName) return "";
 
   const slug = resolveLocationSlug(locationOrCollegeName, gender);
   if (!slug) {
@@ -381,5 +381,5 @@ export function generateTraineeLink(traineeId, locationOrCollegeName, gender = "
     return "";
   }
 
-  return `https://exam-tvtc.onrender.com/trainee/${slug}/${traineeId}`;
+  return `https://exam-tvtc.onrender.com/trainee/${slug}`;
 }
