@@ -1934,10 +1934,7 @@ const detectedGender = useMemo(() => {
   return "male";
 }, [parsed?.collegeName, collegeNameInput, rows]);
 
-const effectiveCollegeSlug = useMemo(
-  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
-  [effectiveCollegeLocation, detectedGender]
-);
+
   
 const detectedCollegeLocation = useMemo(() => {
   const sourceName =
@@ -1949,10 +1946,10 @@ const detectedCollegeLocation = useMemo(() => {
 
 const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
 const effectiveCollegeSlug = useMemo(
-  () => resolveLocationSlug(effectiveCollegeLocation),
-  [effectiveCollegeLocation]
+  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
+  [effectiveCollegeLocation, detectedGender]
 );
-
+  
 const allCollegeLocations = useMemo(() => getAllLocations(), []);
 
   useEffect(() => {
