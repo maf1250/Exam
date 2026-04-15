@@ -5922,7 +5922,8 @@ style={{
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
                 السابق
-                  </div>
+              </button>
+              </div>
               </>
             )}
           </Card>
