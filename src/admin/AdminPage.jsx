@@ -3351,8 +3351,8 @@ const headerBtn = (danger = false) => ({
 
       {/* الأزرار */}
 
-      <select
-  value={manualCollegeLocation || detectedCollegeLocation || ""}
+  <select
+  value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
   onChange={(e) => setManualCollegeLocation(e.target.value)}
   style={fieldStyle()}
 >
@@ -3394,7 +3394,7 @@ exportCollegeDataFile({
   تصدير بيانات المتدربين
 </button>
 
-  <button
+ <button
   type="button"
   onClick={() => {
     if (!effectiveCollegeLocation) {
@@ -3402,22 +3402,22 @@ exportCollegeDataFile({
       return;
     }
 
-    const exampleId = "123456789";
-    const baseLink = generateTraineeLink(exampleId, effectiveCollegeLocation);
+    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
 
     if (!baseLink) {
       showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
       return;
     }
 
-    const linkTemplate = baseLink.replace(exampleId, "{رقم_المتدرب}");
-    navigator.clipboard.writeText(linkTemplate);
-    showToast("تم النسخ", "تم نسخ قالب رابط بوابة المتدربين.", "success");
+    navigator.clipboard.writeText(baseLink);
+    showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
   }}
   style={cardButtonStyle({ active: true })}
 >
   نسخ رابط المتدربين
 </button>
+
+   
 </div>
 <div
   style={{
