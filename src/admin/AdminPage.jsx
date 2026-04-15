@@ -3371,7 +3371,7 @@ const headerBtn = (danger = false) => ({
 <button
   type="button"
   onClick={() => {
-    if (!effectiveCollegeLocation || !effectiveCollegeCode) {
+    if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
       showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
       return;
     }
