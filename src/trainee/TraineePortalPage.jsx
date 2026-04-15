@@ -198,11 +198,11 @@ useEffect(() => {
             flex-shrink: 0;
           }
 
-          .logo-box img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-          }
+         .logo-box img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
 
           .meta-grid {
             display: grid;
