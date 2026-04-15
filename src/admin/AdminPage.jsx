@@ -5900,6 +5900,7 @@ style={{
   </div>
 )}
     </div>
+     );
 
     {currentStep === 4 && (
           <Card>
@@ -5971,5 +5972,5 @@ style={{
             )}
           </Card>
         )}
-  );
+ 
 }
