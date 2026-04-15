@@ -5900,7 +5900,7 @@ style={{
   </div>
 
     )}
-      )}
+      
       
   {currentStep === 9 && (
     <Card>
