@@ -5598,7 +5598,7 @@ style={{
                       compactMode: compactPrintMode,
                     })
                   }
-                  style={cardButtonStyle({ active: true })}
+                  style={cardButtonStyle()}
                 >
                   طباعة جدول الاختبارات
                 </button>
