@@ -3356,7 +3356,7 @@ const headerBtn = (danger = false) => ({
   onChange={(e) => setManualCollegeLocation(e.target.value)}
   style={fieldStyle()}
 >
-  <option value="">اختر الكلية / المدينة</option>
+  <option value="">اختر اسم الوحدة</option>
   {allCollegeLocations.map((location) => (
     <option key={location} value={location}>
       {location}
@@ -3373,7 +3373,7 @@ const headerBtn = (danger = false) => ({
   type="button"
   onClick={() => {
     if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
-      showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
+      showToast("تعذر التصدير", "اختر الوحدة أولًا أو تأكد من اسمها.", "error");
       return;
     }
 
@@ -3428,16 +3428,16 @@ exportCollegeDataFile({
     marginBottom: 14,
   }}
 >
-  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الوحدة</div>
 
   {effectiveCollegeLocation ? (
     <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
+      تم التعرف على الوحدة تلقائيًا: {effectiveCollegeLocation}
       {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
     </div>
   ) : (
     <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+      تعذر التعرف على الوحدة تلقائيًا. اختر الوحدة يدويًا.
     </div>
   )}
 
@@ -3447,7 +3447,7 @@ exportCollegeDataFile({
       onChange={(e) => setManualCollegeLocation(e.target.value)}
       style={fieldStyle()}
     >
-      <option value="">اختر الكلية / المدينة</option>
+      <option value="">اختر الوحدة</option>
       {allCollegeLocations.map((location) => (
         <option key={location} value={location}>
           {location}
@@ -5938,4 +5938,4 @@ style={{
 
 )}
  </div>
-);
+)
