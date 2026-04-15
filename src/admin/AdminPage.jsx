@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
+import { generateTraineeLink } from "../data/collegeRegistry";
+import { exportCollegeDataFile } from "../data/exportCollegeData";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
 const LARGE_STORAGE_KEY = "exam_scheduler_saved_state_large_v1";
 const STORAGE_MODE_KEY = "exam_scheduler_storage_mode_v1";
@@ -1351,7 +1353,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   openPrintWindow("طباعة جدول متدرب", html);
 }
 
-export default function App() {
+export default function AdminPage() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
 const pendingRestoreRef = useRef(null);
