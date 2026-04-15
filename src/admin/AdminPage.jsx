@@ -5897,9 +5897,10 @@ style={{
         إغلاق
       </button>
     </div>
-  
+ </div>
     )}
-      
+     
+     
       
   {currentStep === 9 && (
     <Card>
@@ -5939,7 +5940,7 @@ style={{
  </div> 
 
 // ===== نهاية الصفحة (IMPORTANT) =====
-</div>
+
 );
 
     
