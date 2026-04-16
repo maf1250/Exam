@@ -571,6 +571,7 @@ function StatBox({ label, value }) {
         padding: 18,
         width: 130,
         background: "#fff",
+        flexWrap: "wrap",
         boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
       }}
     >
@@ -3728,7 +3729,8 @@ const headerBtn = (danger = false) => ({
 
             <div
           style={{
-           display: "grid",
+           display: "flex",
+            flexWrap: "wrap",
           gridTemplateColumns: "repeat(auto-fit, 130px)",
     Gap: 20,
     marginTop: 20,
@@ -6191,7 +6193,7 @@ style={{
               ))}
             </select>
           </div>
-
+<br></br>
           <div
             style={{
               display: "flex",
