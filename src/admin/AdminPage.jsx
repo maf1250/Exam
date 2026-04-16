@@ -3630,127 +3630,7 @@ const headerBtn = (danger = false) => ({
     >
 
 
-      {/* الأزرار */}
-
-  <select
-  value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
-  onChange={(e) => setManualCollegeLocation(e.target.value)}
-  style={fieldStyle()}
->
-  <option value="">اختر الكلية / المدينة</option>
-  {allCollegeLocations.map((location) => (
-    <option key={location} value={location}>
-      {location}
-    </option>
-  ))}
-</select>
-      
-     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-  <button onClick={exportSavedSession}>تصدير البيانات</button>
-  <button onClick={() => importSessionRef.current?.click()}>استيراد البيانات</button>
-  <button onClick={clearSavedState}>حذف البيانات المحلية</button>
-
-<button
-  type="button"
-  onClick={() => {
-    if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
-      showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
-      return;
-    }
-
-exportCollegeDataFile({
-  slug: effectiveCollegeSlug,
-  collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
-  schedule,
-  parsed,
-  studentInfoMap: preciseStudentInfoMap,
-  selectedDepartment: printDepartmentFilter,
-  selectedMajor: printMajorFilter,
-});
-
-    showToast("تم التصدير", "تم تصدير بيانات المتدربين بنجاح.", "success");
-  }}
-  style={cardButtonStyle({ active: true })}
->
-  تصدير بيانات المتدربين
-</button>
-
- <button
-  type="button"
-  onClick={() => {
-    if (!effectiveCollegeLocation) {
-      showToast("تعذر تحديد الكلية", "اختر الكلية أولًا أو عدّل اسم الكلية.", "error");
-      return;
-    }
-
-    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
-
-    if (!baseLink) {
-      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
-      return;
-    }
-
-    navigator.clipboard.writeText(baseLink);
-    showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
-  }}
-  style={cardButtonStyle({ active: true })}
->
-  نسخ رابط المتدربين
-</button>
-
-   
-</div>
-<div
-  style={{
-    background: COLORS.bg2,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-  }}
->
-  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
-
-  {effectiveCollegeLocation ? (
-    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
-      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-    </div>
-  ) : (
-    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
-    </div>
-  )}
-
-  {!detectedCollegeLocation && (
-    <select
-      value={manualCollegeLocation}
-      onChange={(e) => setManualCollegeLocation(e.target.value)}
-      style={fieldStyle()}
-    >
-      <option value="">اختر الكلية / المدينة</option>
-      {allCollegeLocations.map((location) => (
-        <option key={location} value={location}>
-          {location}
-        </option>
-      ))}
-    </select>
-  )}
-
-  {detectedCollegeLocation && (
-    <div style={{ marginTop: 10 }}>
-      <button
-        type="button"
-        onClick={() => setManualCollegeLocation("")}
-        style={cardButtonStyle()}
-      >
-        استخدام التعرف التلقائي
-      </button>
-    </div>
-  )}
-</div>
-
-        {/* الشعار */}
+            {/* الشعار */}
       <div
         style={{
           background: "rgba(255,255,255,0.15)",
@@ -6108,8 +5988,7 @@ style={{
         )}
 
         </div>
-      
-     
+  
 
   {currentStep === 9 && (
     <Card>
@@ -6141,6 +6020,18 @@ style={{
         لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم
         الضغط على زر استيراد البيانات.
       </div>
+      <br></br>
+           <div
+  style={{
+    ...cardButtonStyle({ active: true }),
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  }}
+>
+  <button onClick={exportSavedSession}>تصدير البيانات</button>
+  <button onClick={() => importSessionRef.current?.click()}>استيراد البيانات</button>
+  <button onClick={clearSavedState}>حذف البيانات المحلية</button>
     </div>
   </div>
 
@@ -6165,7 +6056,125 @@ style={{
         الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن الاختيار من
         القائمة المنسدلة.
       </div>
+        <select
+  value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
+  onChange={(e) => setManualCollegeLocation(e.target.value)}
+  style={fieldStyle(), maxwidth:200px}
+>
+  <option value="">اختر الكلية / المدينة</option>
+  {allCollegeLocations.map((location) => (
+    <option key={location} value={location}>
+      {location}
+    </option>
+  ))}
+</select>
+    <button
+  type="button"
+  onClick={() => {
+    if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
+      showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
+      return;
+    }
+
+exportCollegeDataFile({
+  slug: effectiveCollegeSlug,
+  collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
+  schedule,
+  parsed,
+  studentInfoMap: preciseStudentInfoMap,
+  selectedDepartment: printDepartmentFilter,
+  selectedMajor: printMajorFilter,
+});
+
+    showToast("تم التصدير", "تم تصدير بيانات المتدربين بنجاح.", "success");
+  }}
+  style={cardButtonStyle({ active: true })}
+>
+  تصدير بيانات المتدربين
+</button>
+
+ <button
+  type="button"
+  onClick={() => {
+    if (!effectiveCollegeLocation) {
+      showToast("تعذر تحديد الكلية", "اختر الكلية أولًا أو عدّل اسم الكلية.", "error");
+      return;
+    }
+
+    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
+
+    if (!baseLink) {
+      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
+      return;
+    }
+
+    navigator.clipboard.writeText(baseLink);
+    showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
+  }}
+  style={cardButtonStyle({ active: true })}
+>
+  نسخ رابط المتدربين
+</button>
+
     </div>
+            {/* الأزرار */}
+
+
+      
+
+
+
+   
+</div>
+<div
+  style={{
+    background: COLORS.bg2,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  }}
+>
+  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+
+  {effectiveCollegeLocation ? (
+    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
+      تم التعرف على الكلية: {effectiveCollegeLocation}
+      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+    </div>
+  ) : (
+    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
+      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+    </div>
+  )}
+
+  {!detectedCollegeLocation && (
+    <select
+      value={manualCollegeLocation}
+      onChange={(e) => setManualCollegeLocation(e.target.value)}
+      style={fieldStyle()}
+    >
+      <option value="">اختر الكلية / المدينة</option>
+      {allCollegeLocations.map((location) => (
+        <option key={location} value={location}>
+          {location}
+        </option>
+      ))}
+    </select>
+  )}
+
+  {detectedCollegeLocation && (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setManualCollegeLocation("")}
+        style={cardButtonStyle()}
+      >
+        استخدام التعرف التلقائي
+      </button>
+    </div>
+  )}
+</div>
   </div>
 
   {/* 🔹 إرسال الملف */}
