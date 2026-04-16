@@ -443,10 +443,9 @@ export default function TraineePortalPage() {
                   border: "1px solid rgba(255,255,255,0.16)",
                 
     justifyContent: "center", // توسيط أفقي
-    alignItems: "center",     // توسيط عمودي
     textAlign: "center",      // توسيط النص نفسه
     flexDirection: "column",  // يخلي النص تحت بعض
-    width: "100%",
+   // width: "100%",
                 }}
               >
                 <span>الجداول النهائية</span>
