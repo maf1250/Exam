@@ -3985,8 +3985,8 @@ style={{
 
         <div
           style={{
-            display: "flex",
-            gridTemplateColumns: "minmax(120px,1fr) minmax(120px,80px)",
+            display: "grid",
+            gridTemplateColumns: "1fr 110px",
             gap: 12,
           }}
         >
