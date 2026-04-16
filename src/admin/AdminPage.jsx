@@ -3660,7 +3660,7 @@ const headerBtn = (danger = false) => ({
     borderRadius: 32,
     boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
     border: "1px solid rgba(168,221,218,0.9)",
-    marginBottom: 28,
+    marginBottom: 10,
     background: "#fff",
   }}
 >
@@ -3688,8 +3688,7 @@ const headerBtn = (danger = false) => ({
     style={{
       position: "relative",
       padding: "32px 28px",
-      background:
-        "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
+      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
