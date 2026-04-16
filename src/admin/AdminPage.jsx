@@ -3661,7 +3661,7 @@ const headerBtn = (danger = false) => ({
     onChange={(e) => importSavedSession(e.target.files?.[0])}
   />
 </div>
-    ))
+    );
             <div style={{
           display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
