@@ -3651,15 +3651,7 @@ const headerBtn = (danger = false) => ({
         onRestore={restoreSavedSession}
       />
 
-<div
-  style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
-    color: "#fff",
-    borderRadius: 28,
-    padding: "28px 32px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
-  }}
->
+
  
 
   {/* input مخفي */}
@@ -3670,7 +3662,7 @@ const headerBtn = (danger = false) => ({
     style={{ display: "none" }}
     onChange={(e) => importSavedSession(e.target.files?.[0])}
   />
-</div>
+
 
             <div
           style={{
