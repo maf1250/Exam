@@ -3751,7 +3751,7 @@ const headerBtn = (danger = false) => ({
  
   {effectiveCollegeLocation ? (
     <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الوحدة تلقائيًا: {effectiveCollegeLocation}
+      تم التعرف على الوحدة: {effectiveCollegeLocation}
       {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
     </div>
   ) : (
