@@ -2970,6 +2970,14 @@ sortedCoursesForInvigilation.forEach((course) => {
     });
 
     if (!bestSlot || !Number.isFinite(bestScore)) {
+      const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+      if ((Number(course.studentCount) || 0) > 0) {
+        hallWarningItems.push({
+          courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+          required: Number(course.studentCount) || 0,
+          maxAvailable,
+        });
+      }
       notPlaced.push(course);
       return;
     }
@@ -3066,7 +3074,17 @@ const generateGeneralSchedule = () => {
 const generateSpecializedSchedule = () => {
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
-  setHallWarnings((prev) => [...prev, ...(nextHallWarnings || [])]);
+  setHallWarnings((prev) => {
+    const combined = [...(prev || []), ...(nextHallWarnings || [])];
+    const map = new Map();
+    combined.forEach((item) => {
+      const key = `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      if (!map.has(key)) {
+        map.set(key, item);
+      }
+    });
+    return Array.from(map.values());
+  });
   setPreviewTab("schedule");
 
   const merged = [...generalSchedule, ...placed].sort(
