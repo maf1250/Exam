@@ -1591,7 +1591,7 @@ const stepNineCardStyle = {
   gap: 10,
   alignItems: "flex-start",
   width: "100%",
-  maxWidth: 500,
+  maxWidth: 700,
 };
 const [hallWarnings, setHallWarnings] = useState([]);
 
@@ -3732,7 +3732,8 @@ const headerBtn = (danger = false) => ({
            display: "flex",
             flexWrap: "wrap",
           gridTemplateColumns: "repeat(auto-fit, 130px)",
-    Gap: 20,
+    gap: 20,
+            padding: 25,
     marginTop: 20,
     
            
@@ -6193,7 +6194,7 @@ style={{
               ))}
             </select>
           </div>
-<br></br>
+
           <div
             style={{
               display: "flex",
