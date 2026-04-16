@@ -2042,6 +2042,7 @@ useEffect(() => {
   compactPrintMode,
   courseAKey,
   courseBKey,
+  
 ]);
 
 const restoreSavedSession = async () => {
@@ -2588,7 +2589,7 @@ const effectiveCollegeSlug = useMemo(
         setPendingRestore(null);
         setDidRestore(true);
         setToast(null);
-
+        setHallWarnings(nextHallWarnings);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
