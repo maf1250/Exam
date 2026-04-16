@@ -525,19 +525,7 @@ export default function TraineePortalPage() {
                     وعرض جدوله النهائي.
                   </div>
                 </div>
-                <div
-                  style={{
-                    padding: "9px 14px",
-                    borderRadius: 999,
-                    background: COLORS.primaryLight,
-                    color: COLORS.primaryDeep,
-                    border: `1px solid ${COLORS.primaryBorder}`,
-                    fontWeight: 800,
-                    fontSize: 13,
-                  }}
-                >
-                  بحث ذكي وسريع
-                </div>
+               
               </div>
 
               <div style={{ position: "relative" }}>
