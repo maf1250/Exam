@@ -3930,7 +3930,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 8, fontWeight: 800 }}>أوقات الفترات</div>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الفترات وأوقاتها</div>
               <textarea
                 value={periodsText}
                 onChange={(e) => setPeriodsText(e.target.value)}
@@ -3985,8 +3985,8 @@ style={{
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(220px,1fr) minmax(120px,180px)",
+            display: "flex",
+            gridTemplateColumns: "minmax(120px,1fr) minmax(120px,80px)",
             gap: 12,
           }}
         >
@@ -4012,7 +4012,7 @@ style={{
         <div style={{ marginTop: 14 }}>
           <label
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
               gap: 8,
               fontWeight: 800,
