@@ -4634,7 +4634,7 @@ style={{
             </div>
 
             {invigilationMode === "fixed" ? (
-              <div style={{ width: "100%", maxWidth: 80 }}>
+              <div style={{ width: "100%" }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
                 <input
                   type="number"
@@ -4642,11 +4642,11 @@ style={{
                   max="20"
                   value={invigilatorsPerPeriod}
                   onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
-                  style={fieldStyle()}
+                  style={{ ...fieldStyle(), maxWidth: 80 }}
                 />
               </div>
             ) : (
-              <div style={{ width: "100%", maxWidth: 80 }}>
+              <div style={{ width: "100%" }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
                 <input
                   type="number"
@@ -4654,7 +4654,7 @@ style={{
                   max="50"
                   value={studentsPerInvigilator}
                   onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 20))}
-                  style={fieldStyle()}
+                  style={{ ...fieldStyle(), maxWidth: 80 }}
                 />
               </div>
             )}
@@ -5176,7 +5176,7 @@ style={{
          
 
           {getSelectedPairConflictStudents.length === 0 ? (
-            <div style={{ padding: 18, color: COLORS.muted }}>
+            <div style={{ padding: 9, color: COLORS.muted }}>
               لا يوجد متدربون مشتركون بين هذين المقررين.
             </div>
           ) : (
