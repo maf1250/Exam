@@ -6046,6 +6046,7 @@ style={{
     <div
       style={{
         display: "flex",
+        flexWrap: "wrap",
         gap: 18,
         justifyItems: "start",
       }}
@@ -6108,7 +6109,7 @@ style={{
       >
         <div style={{ fontSize: 18 }}>🏫</div>
 
-        <div style={{ width: "100%" }}>
+        <div style={{ width: "100%", flexWrap: "wrap", display:"flex" }}>
           <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
 
           {effectiveCollegeLocation ? (
