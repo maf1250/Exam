@@ -1564,20 +1564,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
     );
   }
 
-  const normalizedExamHalls = useMemo(() => {
-    return (examHalls || [])
-      .map((hall) => {
-        const cap = Number(hall.capacity);
-
-        return {
-          ...hall,
-          name: String(hall.name || "").trim(),
-          capacity: Number.isFinite(cap) ? cap : 0,
-          allowedDepartments: normalizeDepartmentList(hall.allowedDepartments),
-        };
-      })
-      .filter((hall) => hall.name && hall.capacity > 0);
-  }, [examHalls]);
+  const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
 
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
@@ -1612,59 +1599,62 @@ const [courseBKey, setCourseBKey] = useState("");
   const [pageVisible, setPageVisible] = useState(true);
 
 
-  function addExamHall() {
-    setExamHalls((prev) => [
-      ...prev,
-      {
-        id: makeHallId(),
-        name: "",
-        capacity: "",
-        allowAllDepartments: true,
-        allowedDepartments: [],
-      },
-    ]);
-  }
+const handleUpload = (file) => {
+  if (!file) return;
 
-  function updateExamHall(id, patch) {
-    setExamHalls((prev) =>
-      prev.map((hall) => (hall.id === id ? { ...hall, ...patch } : hall))
-    );
-  }
+  setFileName(file.name);
+  setStudentSearchText("");
+  setShowStudentSuggestions(false);
 
-  function removeExamHall(id) {
-    setExamHalls((prev) => prev.filter((hall) => hall.id !== id));
-  }
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    encoding: "UTF-8",
+    complete: (result) => {
+      const cleanRows = (result.data || []).filter((row) =>
+        Object.values(row).some((v) => String(v ?? "").trim() !== "")
+      );
 
-  function toggleHallDepartment(hallId, department) {
-    setExamHalls((prev) =>
-      prev.map((hall) => {
-        if (hall.id !== hallId) return hall;
+      const extractedCollegeName = String(cleanRows[0]?.["الوحدة"] || "").trim();
 
-        const exists = hall.allowedDepartments.includes(department);
+      setRows(cleanRows);
+      setCollegeNameInput((prev) => {
+        const manualName = String(prev || "").trim();
+        const fileNameFromRow = extractedCollegeName;
 
-        return {
-          ...hall,
-          allowedDepartments: exists
-            ? hall.allowedDepartments.filter((d) => d !== department)
-            : [...hall.allowedDepartments, department],
-        };
-      })
-    );
-  }
+        if (!fileNameFromRow) return prev;
+        if (!manualName) return fileNameFromRow;
 
-  function setHallAllDepartments(hallId, checked) {
-    setExamHalls((prev) =>
-      prev.map((hall) =>
-        hall.id === hallId
-          ? {
-              ...hall,
-              allowAllDepartments: checked,
-              allowedDepartments: checked ? [] : hall.allowedDepartments,
-            }
-          : hall
-      )
-    );
-  }
+        return areCollegeNamesClose(manualName, fileNameFromRow) ? prev : fileNameFromRow;
+      });
+
+      setSchedule([]);
+      setGeneralSchedule([]);
+      setSpecializedSchedule([]);
+      setUnscheduled([]);
+      setHallWarnings([]);
+      setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
+      setIncludeAllDepartmentsAndMajors(true);
+      setExcludedDepartmentMajors([]);
+      setLockGeneralStudiesStep(false);
+      setCourseLevels({});
+      setPreviewPage(0);
+      setPreviewTab("sortedCourses");
+      setSelectedStudentIdForPrint("");
+      setCompactPrintMode(false);
+      setCurrentStep(1);
+      pendingRestoreRef.current = null;
+      setPendingRestore(null);
+      setDidRestore(true);
+      setToast(null);
+
+      showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
+    },
+    error: (err) => {
+      showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
+    },
+  });
+};
 
 const showToast = (title, description, type = "success", options = {}) => {
   const nextToast = { title, description, type, ...options };
@@ -2592,43 +2582,6 @@ const effectiveCollegeSlug = useMemo(
     setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
   }, [includeAllDepartmentsAndMajors]);
 
- function normalizeArabicText(value) {
-  return String(value ?? "")
-    .trim()
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/أ|إ|آ/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/ؤ/g, "و")
-    .replace(/ئ/g, "ي")
-    .replace(/\bالكلية\b/g, "")
-    .replace(/\bكليه\b/g, "")
-    .replace(/\bكلية\b/g, "")
-    .replace(/\bالتقنية\b/g, "")
-    .replace(/\bتقنيه\b/g, "")
-    .replace(/\bبنين\b|\bبنات\b/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function simplifyCollegeName(value) {
-  return normalizeArabicText(value)
-    .replace(/^في\s+/, "")
-    .replace(/^ب(?=\S)/, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function areCollegeNamesClose(manualName, fileName) {
-  const a = simplifyCollegeName(manualName);
-  const b = simplifyCollegeName(fileName);
-
-  if (!a || !b) return false;
-  if (a === b) return true;
-  if (a.includes(b) || b.includes(a)) return true;
-
-  return false;
-}
 
 const getSelectedPairConflictStudents = useMemo(() => {
   if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
