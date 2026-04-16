@@ -3734,7 +3734,7 @@ const headerBtn = (danger = false) => ({
       />
     </div>
 
-    {/* التعرف التلقائي*/}
+    {/* التعرف التلقائي
    <div
   style={{
     maxWidth: 150,
@@ -3748,7 +3748,8 @@ const headerBtn = (danger = false) => ({
     marginBottom: 14,
   }}
 >
- 
+
+    
   {effectiveCollegeLocation ? (
     <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
       تم التعرف على الوحدة: {effectiveCollegeLocation}
@@ -3787,7 +3788,7 @@ const headerBtn = (danger = false) => ({
     </div>
   )}
 </div>
-
+ */}
     
     {/* ===== النص ===== */}
     <div
@@ -3899,7 +3900,7 @@ const headerBtn = (danger = false) => ({
           color: "#fff",
         }}
       >
-         حذف البيانات
+         حذف البيانات المحلية
       </button>
     </div>
   </div>
@@ -3975,7 +3976,7 @@ const headerBtn = (danger = false) => ({
         {currentStep === 1 && (
           <Card>
             <SectionHeader
-              title="الصفحة الأولى: رفع الملف والإعدادات العامة"
+              title="رفع الملف والإعدادات العامة"
               description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع تقرير SF01."
             />
 
@@ -4337,7 +4338,7 @@ style={{
         {currentStep === 2 && (
           <Card>
             <SectionHeader
-              title="الصفحة الثانية: تعديل المقررات"
+              title="تعديل المقررات"
               description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الجدولة في نفس اليوم."
             />
 
@@ -4618,7 +4619,7 @@ style={{
   {currentStep === 3 && (
   <Card>
     <SectionHeader
-      title="الصفحة الثالثة: المراقبون"
+      title="المراقبون"
       description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
     />
 
@@ -4910,7 +4911,7 @@ style={{
 
 {currentStep === 4 && (
           <Card>
-            <SectionHeader title="الصفحة الرابعة: توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
+            <SectionHeader title="توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
             {lockGeneralStudiesStep ? (
               <div
@@ -4924,7 +4925,7 @@ style={{
                 }}
               >
                 هذه الصفحة مقفلة لأنك اخترت توزيع قسم/تخصص محدد فقط.
-                مقررات الدراسات العامة مستقلة، لذلك لا يمكن تعديلها من هذه النسخة المخصصة للأقسام.
+                مقررات الدراسات العامة مستقلة، لذلك لا يمكن تعديلها في هذه النسخة المخصصة للأقسام.
               </div>
             ) : (
               <>
@@ -4981,7 +4982,7 @@ style={{
 
         {currentStep === 5 && (
           <Card>
-            <SectionHeader title="الصفحة الخامسة: توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع مقررات التخصص." />
+            <SectionHeader title="توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع مقررات التخصص." />
 
             <div style={{ marginTop: 4 }}>
               <label
@@ -6227,7 +6228,7 @@ style={{
 {currentStep === 9 && (
   <Card>
     <SectionHeader
-      title="الصفحة التاسعة: تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
+      title="تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
       description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن تصدير بيانات المتدربين لبوابة المتدربين الخاصة بالوحدة"
     />
 
