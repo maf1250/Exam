@@ -393,6 +393,10 @@ function makeHallId() {
   return `hall_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function makeCourseGroupId() {
+  return `course_group_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function normalizeDepartmentList(list) {
   return Array.from(
     new Set(
@@ -1621,6 +1625,9 @@ const pendingRestoreRef = useRef(null);
     allowSharedAssignments: false,
   },
 ]);
+const [enableSamePeriodGroups, setEnableSamePeriodGroups] = useState(false);
+const [samePeriodGroups, setSamePeriodGroups] = useState([]);
+const [draggingSamePeriodCourseKey, setDraggingSamePeriodCourseKey] = useState("");
 const stepNineCardStyle = {
   borderRadius: 16,
   padding: "12px 14px",
@@ -1684,6 +1691,65 @@ const [hallWarnings, setHallWarnings] = useState([]);
             }
           : hall
       )
+    );
+  }
+
+  function addSamePeriodGroup() {
+    setSamePeriodGroups((prev) => [
+      ...prev,
+      {
+        id: makeCourseGroupId(),
+        title: `مجموعة ${prev.length + 1}`,
+        courseKeys: [],
+      },
+    ]);
+  }
+
+  function removeSamePeriodGroup(groupId) {
+    setSamePeriodGroups((prev) => prev.filter((group) => group.id !== groupId));
+  }
+
+  function updateSamePeriodGroupTitle(groupId, title) {
+    setSamePeriodGroups((prev) =>
+      prev.map((group) => (group.id === groupId ? { ...group, title } : group))
+    );
+  }
+
+  function assignCourseToSamePeriodGroup(courseKey, targetGroupId) {
+    if (!courseKey) return;
+
+    setSamePeriodGroups((prev) => {
+      let alreadyInTarget = false;
+
+      const next = prev.map((group) => {
+        const filteredKeys = group.courseKeys.filter((key) => key !== courseKey);
+
+        if (group.id === targetGroupId) {
+          alreadyInTarget = group.courseKeys.includes(courseKey);
+          return {
+            ...group,
+            courseKeys: alreadyInTarget ? filteredKeys : [...filteredKeys, courseKey],
+          };
+        }
+
+        return {
+          ...group,
+          courseKeys: filteredKeys,
+        };
+      });
+
+      return next;
+    });
+  }
+
+  function removeCourseFromSamePeriodGroups(courseKey) {
+    if (!courseKey) return;
+
+    setSamePeriodGroups((prev) =>
+      prev.map((group) => ({
+        ...group,
+        courseKeys: group.courseKeys.filter((key) => key !== courseKey),
+      }))
     );
   }
 
@@ -1756,6 +1822,9 @@ const handleUpload = (file) => {
       setSpecializedSchedule([]);
       setUnscheduled([]);
       setHallWarnings([]);
+      setEnableSamePeriodGroups(false);
+      setSamePeriodGroups([]);
+      setDraggingSamePeriodCourseKey("");
       setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
       setIncludeAllDepartmentsAndMajors(true);
       setExcludedDepartmentMajors([]);
@@ -1942,6 +2011,8 @@ const buildPersistedState = () => ({
   selectedDays,
   periodsText,
   examHalls,
+  enableSamePeriodGroups,
+  samePeriodGroups,
   hallWarnings,
   includeInvigilators,
   excludedInvigilators,
@@ -1996,6 +2067,16 @@ const restorePersistedState = (saved) => {
             allowSharedAssignments: false,
           },
         ]
+  );
+  setEnableSamePeriodGroups(saved.enableSamePeriodGroups ?? false);
+  setSamePeriodGroups(
+    Array.isArray(saved.samePeriodGroups)
+      ? saved.samePeriodGroups.map((group, index) => ({
+          id: group.id || makeCourseGroupId(),
+          title: String(group.title || `مجموعة ${index + 1}`).trim() || `مجموعة ${index + 1}`,
+          courseKeys: Array.isArray(group.courseKeys) ? group.courseKeys : [],
+        }))
+      : []
   );
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
@@ -2171,6 +2252,8 @@ useEffect(() => {
   selectedDays,
   periodsText,
   examHalls,
+  enableSamePeriodGroups,
+  samePeriodGroups,
   hallWarnings,
   includeInvigilators,
   excludedInvigilators,
@@ -2529,7 +2612,7 @@ courseMap.forEach((course) => {
       sections: Array.from(sectionSet).sort((a, b) => a.localeCompare(b, "ar")),
       conflictDetailsMap,
     };
-  }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors]);
+  }, [rows, excludeInactive, excludedCourses, collegeNameInput, includeAllDepartmentsAndMajors, excludedDepartmentMajors, enableSamePeriodGroups, samePeriodGroups]);
 
 const getStudentNameFromRow = (row) =>
   String(
@@ -2793,6 +2876,63 @@ const selectedCourseB = useMemo(
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
 
+  const normalizedSamePeriodGroups = useMemo(() => {
+    const validKeys = new Set(
+      parsed.courses
+        .map((course) => course.key)
+        .filter((key) => !excludedCourses.includes(key))
+    );
+
+    return (samePeriodGroups || [])
+      .map((group, index) => ({
+        id: group.id || makeCourseGroupId(),
+        title: String(group.title || `مجموعة ${index + 1}`).trim() || `مجموعة ${index + 1}`,
+        courseKeys: Array.from(
+          new Set((group.courseKeys || []).filter((key) => validKeys.has(key)))
+        ),
+      }))
+      .filter((group) => group.courseKeys.length >= 2);
+  }, [samePeriodGroups, parsed.courses, excludedCourses]);
+
+  const samePeriodGroupedCourseKeys = useMemo(
+    () => new Set(normalizedSamePeriodGroups.flatMap((group) => group.courseKeys)),
+    [normalizedSamePeriodGroups]
+  );
+
+  const samePeriodUngroupedCourses = useMemo(
+    () =>
+      allCourseOptions.filter(
+        (course) =>
+          !excludedCourses.includes(course.key) &&
+          !samePeriodGroupedCourseKeys.has(course.key)
+      ),
+    [allCourseOptions, excludedCourses, samePeriodGroupedCourseKeys]
+  );
+
+  const samePeriodGroupLookup = useMemo(() => {
+    const map = new Map();
+
+    normalizedSamePeriodGroups.forEach((group) => {
+      group.courseKeys.forEach((courseKey) => {
+        map.set(courseKey, group.id);
+      });
+    });
+
+    return map;
+  }, [normalizedSamePeriodGroups]);
+
+  const samePeriodGroupSizeLookup = useMemo(() => {
+    const map = new Map();
+
+    normalizedSamePeriodGroups.forEach((group) => {
+      group.courseKeys.forEach((courseKey) => {
+        map.set(courseKey, group.courseKeys.length);
+      });
+    });
+
+    return map;
+  }, [normalizedSamePeriodGroups]);
+
   const unassignedLevelCourses = useMemo(
     () =>
       allCourseOptions.filter(
@@ -2800,6 +2940,32 @@ const selectedCourseB = useMemo(
       ),
     [allCourseOptions, courseLevels, excludedCourses]
   );
+
+  useEffect(() => {
+    if (!enableSamePeriodGroups && samePeriodGroups.length) {
+      setSamePeriodGroups([]);
+      return;
+    }
+
+    if (!enableSamePeriodGroups) return;
+
+    const sanitized = (samePeriodGroups || [])
+      .map((group, index) => ({
+        id: group.id || makeCourseGroupId(),
+        title: String(group.title || `مجموعة ${index + 1}`).trim() || `مجموعة ${index + 1}`,
+        courseKeys: Array.from(
+          new Set((group.courseKeys || []).filter((key) => !excludedCourses.includes(key)))
+        ),
+      }))
+      .filter((group) => group.courseKeys.length > 0 || (samePeriodGroups || []).length === 1);
+
+    const currentJson = JSON.stringify(samePeriodGroups || []);
+    const nextJson = JSON.stringify(sanitized);
+
+    if (currentJson !== nextJson) {
+      setSamePeriodGroups(sanitized);
+    }
+  }, [enableSamePeriodGroups, samePeriodGroups, excludedCourses]);
 
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
@@ -3008,6 +3174,7 @@ const pickInvigilators = (course, slot) => {
     const slotLoadPenalty = (slotCoursesMap.get(slot.id)?.length || 0) * 6;
     const periodKey = getSlotPeriodKey(slot);
     const requiredInvigilators = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
+    const samePeriodGroupId = enableSamePeriodGroups ? samePeriodGroupLookup.get(course.key) : "";
 
     course.students.forEach((studentId) => {
       const usedSlots = studentSlotMap.get(studentId) || new Set();
@@ -3049,6 +3216,26 @@ const pickInvigilators = (course, slot) => {
       return Number.POSITIVE_INFINITY;
     }
 
+    if (samePeriodGroupId) {
+      const placedGroupMates = [...basePlaced, ...newPlaced].filter(
+        (item) =>
+          item.key !== course.key &&
+          samePeriodGroupLookup.get(item.key) === samePeriodGroupId
+      );
+
+      if (placedGroupMates.length) {
+        const sameSlotMatches = placedGroupMates.filter(
+          (item) => item.dateISO === slot.dateISO && item.period === slot.period
+        ).length;
+
+        if (sameSlotMatches > 0) {
+          score -= sameSlotMatches * 1000;
+        } else {
+          score += placedGroupMates.length * 180;
+        }
+      }
+    }
+
     return score;
   };
 
@@ -3056,7 +3243,14 @@ const pickInvigilators = (course, slot) => {
   const aNeed = getRequiredInvigilatorsCount(a);
   const bNeed = getRequiredInvigilatorsCount(b);
 
+  const aGrouped = enableSamePeriodGroups && samePeriodGroupLookup.has(a.key);
+  const bGrouped = enableSamePeriodGroups && samePeriodGroupLookup.has(b.key);
+  const aGroupSize = samePeriodGroupSizeLookup.get(a.key) || 0;
+  const bGroupSize = samePeriodGroupSizeLookup.get(b.key) || 0;
+
   return (
+    Number(bGrouped) - Number(aGrouped) ||
+    bGroupSize - aGroupSize ||
     bNeed - aNeed ||
     b.studentCount - a.studentCount ||
     b.conflictDegree - a.conflictDegree
@@ -4558,6 +4752,198 @@ style={{
                   <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
                 )}
               </div>
+            </div>
+
+            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#fff",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={enableSamePeriodGroups}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEnableSamePeriodGroups(checked);
+                      if (checked && !samePeriodGroups.length) {
+                        setSamePeriodGroups([
+                          {
+                            id: makeCourseGroupId(),
+                            title: "مجموعة 1",
+                            courseKeys: [],
+                          },
+                        ]);
+                      }
+                    }}
+                  />
+                  محاولة إدراج مقررات محددة في نفس الفترة
+                </label>
+
+                {enableSamePeriodGroups ? (
+                  <button
+                    type="button"
+                    onClick={addSamePeriodGroup}
+                    style={cardButtonStyle()}
+                  >
+                    إضافة مجموعة جديدة
+                  </button>
+                ) : null}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  background: "#fff",
+                  border: `1px solid ${COLORS.primaryBorder}`,
+                  borderRadius: 16,
+                  padding: "12px 14px",
+                  color: COLORS.muted,
+                  lineHeight: 1.9,
+                  fontSize: 14,
+                }}
+              >
+                فعّل هذا الخيار إذا كنت تريد أن يحاول النظام وضع مقررات معينة في نفس الفترة. اسحب المقررات من القائمة إلى المربعات في الأسفل، وسيتم تطبيق ذلك حسب الإمكان مع مراعاة التعارضات وسعة القاعات وتوفر المراقبين.
+              </div>
+
+              {enableSamePeriodGroups ? (
+                <div style={{ marginTop: 16 }}>
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggingSamePeriodCourseKey) {
+                        removeCourseFromSamePeriodGroups(draggingSamePeriodCourseKey);
+                        setDraggingSamePeriodCourseKey("");
+                      }
+                    }}
+                    style={{
+                      border: `1px dashed ${COLORS.primaryBorder}`,
+                      borderRadius: 18,
+                      padding: 14,
+                      background: "#fff",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, marginBottom: 10 }}>المقررات غير المضافة لأي مجموعة</div>
+                    <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+                      اسحب أي مقرر إلى إحدى المجموعات في الأسفل. ويمكنك أيضًا سحبه إلى هنا لإزالته من المجموعة.
+                    </div>
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 220, overflow: "auto" }}>
+                      {samePeriodUngroupedCourses.length ? (
+                        samePeriodUngroupedCourses.map((course) => (
+                          <button
+                            key={course.key}
+                            type="button"
+                            draggable
+                            onDragStart={() => setDraggingSamePeriodCourseKey(course.key)}
+                            onDragEnd={() => setDraggingSamePeriodCourseKey("")}
+                            style={{
+                              border: `1px solid ${COLORS.border}`,
+                              background: "#fff",
+                              color: COLORS.charcoalSoft,
+                              borderRadius: 999,
+                              padding: "8px 14px",
+                              cursor: "grab",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {course.label}
+                          </button>
+                        ))
+                      ) : (
+                        <span style={{ color: "#94A3B8" }}>لا توجد مقررات متاحة حاليًا</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+                    {samePeriodGroups.map((group, index) => {
+                      const groupCourses = group.courseKeys
+                        .map((courseKey) => allCourseOptions.find((course) => course.key === courseKey))
+                        .filter(Boolean);
+
+                      return (
+                        <div
+                          key={group.id}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggingSamePeriodCourseKey) {
+                              assignCourseToSamePeriodGroup(draggingSamePeriodCourseKey, group.id);
+                              setDraggingSamePeriodCourseKey("");
+                            }
+                          }}
+                          style={{
+                            border: `1px solid ${COLORS.primaryBorder}`,
+                            borderRadius: 20,
+                            padding: 14,
+                            background: "#fff",
+                            minHeight: 180,
+                          }}
+                        >
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                            <input
+                              value={group.title}
+                              onChange={(e) => updateSamePeriodGroupTitle(group.id, e.target.value)}
+                              placeholder={`مجموعة ${index + 1}`}
+                              style={{ ...fieldStyle(), maxWidth: 180, padding: "10px 12px" }}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => removeSamePeriodGroup(group.id)}
+                              style={cardButtonStyle({ danger: true })}
+                            >
+                              حذف
+                            </button>
+                          </div>
+
+                          <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 10, lineHeight: 1.8 }}>
+                            ضع هنا المقررات التي تريد أن يحاول النظام جدولتها في نفس الفترة.
+                          </div>
+
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                            {groupCourses.length ? (
+                              groupCourses.map((course) => (
+                                <button
+                                  key={course.key}
+                                  type="button"
+                                  draggable
+                                  onDragStart={() => setDraggingSamePeriodCourseKey(course.key)}
+                                  onDragEnd={() => setDraggingSamePeriodCourseKey("")}
+                                  onClick={() => removeCourseFromSamePeriodGroups(course.key)}
+                                  style={{
+                                    border: `1px solid ${COLORS.primaryBorder}`,
+                                    background: COLORS.primaryLight,
+                                    color: COLORS.primaryDark,
+                                    borderRadius: 999,
+                                    padding: "8px 14px",
+                                    cursor: "grab",
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {course.label}
+                                </button>
+                              ))
+                            ) : (
+                              <span style={{ color: "#94A3B8" }}>اسحب المقررات إلى هذا المربع</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div style={{ marginTop: 18 }}>
