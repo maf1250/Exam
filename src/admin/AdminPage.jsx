@@ -6116,9 +6116,9 @@ style={{
           <div>
             يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
             الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار مدينة الوحدة من
-            القائمة المنسدلة.
+            القائمة المنسدلة في مربع تحديد الكلية.
           </div>
-
+        {/*
           <div style={{ marginTop: 12 }}>
             <select
               value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
@@ -6133,7 +6133,7 @@ style={{
               ))}
             </select>
           </div>
-
+*/}
           <div
             style={{
               display: "flex",
