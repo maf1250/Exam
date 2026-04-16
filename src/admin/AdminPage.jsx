@@ -568,8 +568,8 @@ function StatBox({ label, value }) {
   return (
     <div
       style={{
-        borderRadius: 16,
-        padding: "12px 14px",
+        borderRadius: 22,
+        padding: 18,
         width: "100%",
         maxWidth: 300,
         background: "#fff",
