@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+الimport React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import {
   generateTraineeLink,
@@ -3696,7 +3696,7 @@ const headerBtn = (danger = false) => ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, max-content))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, max-content))",
             gap: 16,
             marginTop: 20,
           }}
@@ -3704,7 +3704,7 @@ const headerBtn = (danger = false) => ({
           <StatBox label="السجلات" value={stats.rows} />
           <StatBox label="عدد المتدربين" value={stats.students} />
           <StatBox label="عدد المقررات" value={stats.courses} />
-          <StatBox label="مقررات الدراسات العامة" value={stats.generalCourses} />
+          <StatBox label="الدراسات العامة" value={stats.generalCourses} />
           <StatBox label="مقررات التخصص" value={stats.specializedCourses} />
           <StatBox label="المراقبون" value={stats.invigilators} />
         </div>
