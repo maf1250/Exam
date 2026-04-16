@@ -3730,11 +3730,12 @@ const headerBtn = (danger = false) => ({
 
             <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-    gap: 25,
-    marginTop: 20,
-             
+           display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, max-content))",
+            gap: 16,
+            marginTop: 20,
+              maxWidth: 300, 
+            margin: "0 auto",
            
           }}
         >
