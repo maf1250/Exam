@@ -3651,8 +3651,204 @@ const headerBtn = (danger = false) => ({
         onRestore={restoreSavedSession}
       />
 
+{/* الهيدر*/}
 
- 
+      <div
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 32,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+    border: "1px solid rgba(168,221,218,0.9)",
+    marginBottom: 28,
+    background: "#fff",
+  }}
+>
+  {/* ===== الشريط العلوي ===== */}
+  <div
+    style={{
+      background: "#0E2730",
+      color: "#D7F6F1",
+      padding: "10px 18px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap",
+      fontSize: 13,
+    }}
+  >
+    <span>📅 {new Date().toLocaleDateString("ar-SA")}</span>
+    <span>المؤسسة العامة للتدريب التقني والمهني</span>
+    <span>لوحة التحكم</span>
+  </div>
+
+  {/* ===== الهيدر الرئيسي ===== */}
+  <div
+    style={{
+      position: "relative",
+      padding: "32px 28px",
+      background:
+        "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 24,
+      flexWrap: "wrap",
+      flexDirection: "row-reverse",
+    }}
+  >
+    {/* Glow */}
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background:
+          "radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 20%), radial-gradient(circle at bottom right, rgba(255,255,255,0.10), transparent 26%)",
+        pointerEvents: "none",
+      }}
+    />
+
+    {/* ===== الشعار ===== */}
+    <div
+      style={{
+        width: 120,
+        height: 120,
+        borderRadius: 30,
+        background: "rgba(255,255,255,0.15)",
+        border: "1px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(10px)",
+        flexShrink: 0,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 92, height: 92, objectFit: "contain" }}
+      />
+    </div>
+
+    {/* ===== النص ===== */}
+    <div
+      style={{
+        flex: 1,
+        minWidth: 260,
+        position: "relative",
+        zIndex: 1,
+        textAlign: "right",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 16px",
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+      >
+        <span>لوحة التحكم</span>
+        <span style={{ opacity: 0.7 }}>•</span>
+        <span>إدارة الاختبارات النهائية</span>
+      </div>
+
+      <h1
+        style={{
+          margin: 0,
+          color: "#fff",
+          fontSize: "clamp(30px, 4vw, 42px)",
+          fontWeight: 900,
+        }}
+      >
+        منصة إدارة جداول الاختبارات
+      </h1>
+
+      <p
+        style={{
+          marginTop: 10,
+          color: "rgba(255,255,255,0.95)",
+          fontSize: 15,
+          lineHeight: 1.9,
+          maxWidth: 720,
+        }}
+      >
+        نظام احترافي لإنشاء جداول الاختبارات النهائية، توزيع القاعات
+        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
+      </p>
+    </div>
+
+    {/* ===== الأزرار (Premium) ===== */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        minWidth: 200,
+        alignItems: "stretch",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <button
+        onClick={exportSavedSession}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "#ffffff",
+          color: "#0F5F68",
+        }}
+      >
+        📤 تصدير البيانات
+      </button>
+
+      <button
+        onClick={() => importSessionRef.current?.click()}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(255,255,255,0.2)",
+          color: "#fff",
+          border: "1px solid rgba(255,255,255,0.3)",
+        }}
+      >
+        📥 استيراد البيانات
+      </button>
+
+      <button
+        onClick={clearSavedState}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(0,0,0,0.25)",
+          color: "#fff",
+        }}
+      >
+        🗑 حذف البيانات
+      </button>
+    </div>
+  </div>
+</div>
 
   {/* input مخفي */}
   <input
@@ -3672,7 +3868,7 @@ const headerBtn = (danger = false) => ({
           
     gap: 20,
             padding: 25,
-    marginTop: 20,
+    marginTop: 10,
     
            
           }}
@@ -3685,7 +3881,7 @@ const headerBtn = (danger = false) => ({
           <StatBox label="المراقبون" value={stats.invigilators} />
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10, marginBottom: 20 }}>
           {[
   { id: 1, label: "1. رفع الملف" },
   { id: 2, label: "2. المقررات" },
