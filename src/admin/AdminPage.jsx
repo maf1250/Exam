@@ -2589,7 +2589,7 @@ const effectiveCollegeSlug = useMemo(
         setPendingRestore(null);
         setDidRestore(true);
         setToast(null);
-        setHallWarnings(nextHallWarnings);
+        setHallWarnings([]);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
@@ -5408,38 +5408,6 @@ style={{
 
             {previewTab === "sortedCourses" && (
               <div style={{ marginTop: 20 }}>
-                {hallWarnings.length > 0 && (
-  <Card
-    style={{
-      border: `1px solid #FECACA`,
-      background: COLORS.dangerBg,
-    }}
-  >
-    <SectionHeader
-      title="تنبيهات القاعات"
-      description="بعض المقررات لم يتم توزيعها بسبب عدم توفر قاعات بسعة كافية أو مسموحة لنفس القسم."
-    />
-
-    <div style={{ display: "grid", gap: 10 }}>
-      {hallWarnings.map((item, index) => (
-        <div
-          key={`${item.courseName}-${index}`}
-          style={{
-            border: "1px solid #FECACA",
-            background: "#fff",
-            borderRadius: 14,
-            padding: "12px 14px",
-            color: COLORS.danger,
-            fontWeight: 800,
-            lineHeight: 1.9,
-          }}
-        >
-          {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر قاعة متاحة {item.maxAvailable}
-        </div>
-      ))}
-    </div>
-  </Card>
-)}
                 <Card>
                   <SectionHeader
                     title="المقررات مرتبة حسب عدد المتدربين والتعارضات"
@@ -5509,6 +5477,39 @@ style={{
 
             {previewTab === "schedule" && (
               <div style={{ marginTop: 20 }}>
+                {hallWarnings.length > 0 && (
+                  <Card
+                    style={{
+                      marginBottom: 16,
+                      border: `1px solid #FECACA`,
+                      background: COLORS.dangerBg,
+                    }}
+                  >
+                    <SectionHeader
+                      title="تنبيهات القاعات"
+                      description="بعض المقررات لم يتم توزيعها بسبب عدم توفر قاعات بسعة كافية أو مسموحة لنفس القسم."
+                    />
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {hallWarnings.map((item, index) => (
+                        <div
+                          key={`${item.courseName}-${index}`}
+                          style={{
+                            border: "1px solid #FECACA",
+                            background: "#fff",
+                            borderRadius: 14,
+                            padding: "12px 14px",
+                            color: COLORS.danger,
+                            fontWeight: 800,
+                            lineHeight: 1.9,
+                          }}
+                        >
+                          {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر قاعة متاحة {item.maxAvailable}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
                 <Card>
                   <SectionHeader
                     title="جدول الاختبارات النهائي"
