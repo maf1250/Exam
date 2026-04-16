@@ -4034,7 +4034,10 @@ style={{
                      <button
             type="button"
             onClick={() => removeExamHall(hall.id)}
-            style={cardButtonStyle({ danger: true })}
+           style={{
+    ...cardButtonStyle({ danger: true }),
+    marginInlineStart: 20, 
+  }}
           >
             حذف القاعة
           </button>
