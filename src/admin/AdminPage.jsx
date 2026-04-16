@@ -3737,7 +3737,7 @@ const headerBtn = (danger = false) => ({
     {/* التعرف التلقائي*/}
    <div
   style={{
-    maxWidth: 170,
+    maxWidth: 150,
     minWidth: 150,
     minHeight: 150,
     display: "inline",
