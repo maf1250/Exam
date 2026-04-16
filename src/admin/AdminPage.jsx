@@ -16,6 +16,33 @@ const DB_NAME = "exam_scheduler_db";
 const DB_VERSION = 1;
 const STORE_NAME = "sessions";
 
+
+function CountUp({ end, duration = 1000 }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime = null;
+
+    function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const currentValue = Math.floor(progress * end);
+
+      setCount(currentValue);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }, [end, duration]);
+
+  return <span>{count.toLocaleString("ar-SA")}</span>;
+}
 function normalizeArabicLetters(value) {
   return String(value ?? "")
     .trim()
