@@ -4030,14 +4030,16 @@ style={{
               }
             />
             متاحة لجميع الأقسام
-          </label>
-           <button
+          
+                     <button
             type="button"
             onClick={() => removeExamHall(hall.id)}
             style={cardButtonStyle({ danger: true })}
           >
             حذف القاعة
           </button>
+          </label>
+
         </div>
 
         {!hall.allowAllDepartments && (
