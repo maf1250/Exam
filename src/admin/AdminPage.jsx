@@ -3729,9 +3729,10 @@ const headerBtn = (danger = false) => ({
 
             <div
           style={{
-           display: "flex",
+          display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
             flexWrap: "wrap",
-          gridTemplateColumns: "repeat(auto-fit, 130px)",
+          
     gap: 20,
             padding: 25,
     marginTop: 20,
@@ -6129,7 +6130,7 @@ style={{
                 marginBottom: 8,
               }}
             >
-              تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+              تعذر التعرف على الكلية تلقائيًا. اختر المدينة يدويًا.
             </div>
           )}
 
