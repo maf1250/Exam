@@ -41,7 +41,6 @@ function CountUp({ end, duration = 1000 }) {
     requestAnimationFrame(animate);
   }, [end, duration]);
 
-  return <span>{count.toLocaleString("ar-SA")}</span>;
 }
 function normalizeArabicLetters(value) {
   return String(value ?? "")
@@ -3730,21 +3729,14 @@ const headerBtn = (danger = false) => ({
   />
 </div>
 
-     
-
-
-       
-
-    
-
-  
-
-        <div
+            <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
-            gap: 16,
-            marginTop: 20,
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: 16,
+    marginTop: 20,
+    alignItems: "stretch",         
+           
           }}
         >
           <StatBox label="السجلات" value={stats.rows} />
