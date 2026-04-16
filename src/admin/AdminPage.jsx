@@ -40,7 +40,7 @@ function CountUp({ end, duration = 1000 }) {
 
     requestAnimationFrame(animate);
   }, [end, duration]);
-
+return <span>{count)}</span>;
 }
 function normalizeArabicLetters(value) {
   return String(value ?? "")
