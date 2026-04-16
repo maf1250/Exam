@@ -3726,9 +3726,16 @@ const headerBtn = (danger = false) => ({
         position: "relative",
         zIndex: 1,
       }}
-    >
+    >    
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 130, height: 130, objectFit: "contain" }}
+      />
+    </div>
 
-      <div
+    {/* التعرف التلقائي*/}
+   <div
   style={{
     background: COLORS.bg2,
     border: `1px solid ${COLORS.border}`,
@@ -3778,14 +3785,7 @@ const headerBtn = (danger = false) => ({
   )}
 </div>
 
-      
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{ width: 130, height: 130, objectFit: "contain" }}
-      />
-    </div>
-
+    
     {/* ===== النص ===== */}
     <div
       style={{
