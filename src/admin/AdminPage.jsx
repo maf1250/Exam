@@ -4634,24 +4634,24 @@ style={{
             </div>
 
             {invigilationMode === "fixed" ? (
-              <div style={{ width: "100%", maxWidth: 280 }}>
+              <div style={{ width: "100%", maxWidth: 80 }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max="20"
                   value={invigilatorsPerPeriod}
                   onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
                   style={fieldStyle()}
                 />
               </div>
             ) : (
-              <div style={{ width: "100%", maxWidth: 280 }}>
+              <div style={{ width: "100%", maxWidth: 80 }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
                 <input
                   type="number"
                   min="1"
-                  max="200"
+                  max="50"
                   value={studentsPerInvigilator}
                   onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 20))}
                   style={fieldStyle()}
@@ -5379,6 +5379,8 @@ style={{
 
                 <div
                   style={{
+                        display: "flex",
+                    width: "fit-content",
                     border: `1px solid ${COLORS.border}`,
                     borderRadius: 16,
                     padding: 12,
@@ -5821,6 +5823,8 @@ style={{
 
               <div
                 style={{
+                       display: "flex",
+                  width: "fit-content",
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 16,
                   padding: 12,
@@ -6078,6 +6082,7 @@ style={{
       padding: "12px 14px",
       background: COLORS.primaryLight,
       display: "flex",
+       width: "fit-content",
       gap: 10,
       alignItems: "flex-start",
     }}
@@ -6100,9 +6105,10 @@ style={{
       borderRadius: 16,
       padding: "12px 14px",
       background: "#F0FDFB",
-      display: "flex",
-      gap: 10,
+            gap: 10,
       alignItems: "flex-start",
+           display: "flex",
+    width: "fit-content",
     }}
   >
     <div style={{ fontSize: 18 }}>🧭</div>
@@ -6123,9 +6129,10 @@ style={{
       borderRadius: 16,
       padding: "12px 14px",
       background: "#FFFBEB",
-      display: "flex",
-      gap: 10,
+            gap: 10,
       alignItems: "flex-start",
+           display: "flex",
+    width: "fit-content",
     }}
   >
     <div style={{ fontSize: 18 }}>📩</div>
@@ -6143,7 +6150,7 @@ style={{
   </div>
 
 </div>
-
+<br></br>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
           السابق
