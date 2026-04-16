@@ -3732,9 +3732,9 @@ const headerBtn = (danger = false) => ({
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-    gap: 16,
+    gap: 25,
     marginTop: 20,
-    alignItems: "stretch",         
+             
            
           }}
         >
