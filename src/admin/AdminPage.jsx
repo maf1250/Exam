@@ -6136,7 +6136,7 @@ style={{
               onChange={(e) => setManualCollegeLocation(e.target.value)}
               style={{ ...fieldStyle(), maxWidth: 220 }}
             >
-              <option value="">اختر الكلية / المدينة</option>
+              <option value="">اختر المدينة</option>
               {allCollegeLocations.map((location) => (
                 <option key={location} value={location}>
                   {location}
@@ -6173,7 +6173,7 @@ style={{
 
           <div>
             يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
-            الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن الاختيار من
+            الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار مدينة الوحدة من
             القائمة المنسدلة.
           </div>
 
@@ -6183,7 +6183,7 @@ style={{
               onChange={(e) => setManualCollegeLocation(e.target.value)}
               style={{ ...fieldStyle(), maxWidth: 220 }}
             >
-              <option value="">اختر الكلية / المدينة</option>
+              <option value="">اختر المدينة</option>
               {allCollegeLocations.map((location) => (
                 <option key={location} value={location}>
                   {location}
@@ -6206,7 +6206,7 @@ style={{
                 if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
                   showToast(
                     "تعذر التصدير",
-                    "اختر الكلية أولًا أو تأكد من اسمها.",
+                    "اختر المدينة أولًا أو تأكد من اسم الوحدة.",
                     "error"
                   );
                   return;
@@ -6233,7 +6233,28 @@ style={{
             >
               تصدير بيانات المتدربين
             </button>
+<button
+  type="button"
+  onClick={() => {
+    if (!effectiveCollegeLocation) {
+      showToast("تعذر تحديد الكلية", "اختر المدينة أولًا أو عدّل اسم الوحدة.", "error");
+      return;
+    }
 
+    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
+
+    if (!baseLink) {
+      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
+      return;
+    }
+
+    navigator.clipboard.writeText(baseLink);
+    showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
+  }}
+  style={cardButtonStyle({ active: true })}
+>
+  نسخ رابط المتدربين
+</button>
            
           </div>
         </div>
