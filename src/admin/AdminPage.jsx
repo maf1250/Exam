@@ -3712,8 +3712,8 @@ const headerBtn = (danger = false) => ({
     {/* ===== الشعار ===== */}
     <div
       style={{
-        width: 120,
-        height: 120,
+        width: 150,
+        height: 150,
         borderRadius: 30,
         background: "rgba(255,255,255,0.15)",
         border: "1px solid rgba(255,255,255,0.25)",
@@ -3737,23 +3737,24 @@ const headerBtn = (danger = false) => ({
     {/* التعرف التلقائي*/}
    <div
   style={{
-    background: COLORS.bg2,
+    maxWidth: 160,
+    display: "inline",
+    background: "rgba(0,0,0,0.25)",
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 14,
     marginBottom: 14,
   }}
 >
-  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
-
+ 
   {effectiveCollegeLocation ? (
     <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
+      تم التعرف على الوحدة تلقائيًا: {effectiveCollegeLocation}
       {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
     </div>
   ) : (
     <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+      تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
     </div>
   )}
 
@@ -3763,7 +3764,7 @@ const headerBtn = (danger = false) => ({
       onChange={(e) => setManualCollegeLocation(e.target.value)}
       style={fieldStyle()}
     >
-      <option value="">اختر الكلية / المدينة</option>
+      <option value="">اختر المدينة</option>
       {allCollegeLocations.map((location) => (
         <option key={location} value={location}>
           {location}
