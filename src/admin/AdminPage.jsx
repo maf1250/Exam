@@ -3661,9 +3661,8 @@ const headerBtn = (danger = false) => ({
     onChange={(e) => importSavedSession(e.target.files?.[0])}
   />
 </div>
-
-            <div
-          style={{
+    };
+            <div style={{
           display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
             flexWrap: "wrap",
@@ -3672,7 +3671,7 @@ const headerBtn = (danger = false) => ({
             padding: 25,
     marginTop: 20,
     
-           
+         
           }}
         >
           <StatBox label="السجلات" value={stats.rows} />
@@ -3682,7 +3681,7 @@ const headerBtn = (danger = false) => ({
           <StatBox label="مقررات التخصص" value={stats.specializedCourses} />
           <StatBox label="المراقبون" value={stats.invigilators} />
         </div>
-
+   
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20, marginBottom: 20 }}>
           {[
   { id: 1, label: "1. رفع الملف" },
