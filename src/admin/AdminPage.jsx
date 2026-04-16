@@ -3737,9 +3737,11 @@ const headerBtn = (danger = false) => ({
     {/* التعرف التلقائي*/}
    <div
   style={{
-    maxWidth: 160,
+    maxWidth: 170,
+    minWidth: 150,
+    minHeight: 150,
     display: "inline",
-    background: "rgba(0,0,0,0.25)",
+    background: "rgba(255,255,255,0.15)",
     border: `1px solid ${COLORS.border}`,
     borderRadius: 18,
     padding: 14,
