@@ -3650,73 +3650,204 @@ const headerBtn = (danger = false) => ({
         }}
         onRestore={restoreSavedSession}
       />
-
+ {/* الهيدر  */}
 <div
   style={{
-    background: `linear-gradient(135deg, ${COLORS.primaryDark}, ${COLORS.primary})`,
-    color: "#fff",
-    borderRadius: 28,
-    padding: "28px 32px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 32,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+    border: "1px solid rgba(168,221,218,0.9)",
+    marginBottom: 28,
+    background: "#fff",
   }}
 >
+  {/* ===== الشريط العلوي ===== */}
   <div
     style={{
-      flexDirection: "row-reverse",
+      background: "#0E2730",
+      color: "#D7F6F1",
+      padding: "10px 18px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap",
+      fontSize: 13,
+    }}
+  >
+    <span>📅 {new Date().toLocaleDateString("ar-SA")}</span>
+    <span>المؤسسة العامة للتدريب التقني والمهني</span>
+    <span>لوحة التحكم</span>
+  </div>
+
+  {/* ===== الهيدر الرئيسي ===== */}
+  <div
+    style={{
+      position: "relative",
+      padding: "32px 28px",
+      background:
+        "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 20,
+      gap: 24,
       flexWrap: "wrap",
+      flexDirection: "row-reverse",
     }}
   >
+    {/* Glow */}
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background:
+          "radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 20%), radial-gradient(circle at bottom right, rgba(255,255,255,0.10), transparent 26%)",
+        pointerEvents: "none",
+      }}
+    />
 
-  
+    {/* ===== الشعار ===== */}
+    <div
+      style={{
+        width: 120,
+        height: 120,
+        borderRadius: 30,
+        background: "rgba(255,255,255,0.15)",
+        border: "1px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(10px)",
+        flexShrink: 0,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 92, height: 92, objectFit: "contain" }}
+      />
+    </div>
+
+    {/* ===== النص ===== */}
+    <div
+      style={{
+        flex: 1,
+        minWidth: 260,
+        position: "relative",
+        zIndex: 1,
+        textAlign: "right",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 16px",
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+      >
+        <span>لوحة التحكم</span>
+        <span style={{ opacity: 0.7 }}>•</span>
+        <span>إدارة الاختبارات النهائية</span>
+      </div>
+
+      <h1
+        style={{
+          margin: 0,
+          color: "#fff",
+          fontSize: "clamp(30px, 4vw, 42px)",
+          fontWeight: 900,
+        }}
+      >
+        منصة إدارة جداول الاختبارات النهائية
+      </h1>
+
+      <p
+        style={{
+          marginTop: 10,
+          color: "rgba(255,255,255,0.95)",
+          fontSize: 15,
+          lineHeight: 1.9,
+          maxWidth: 720,
+        }}
+      >
+        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
+        والمراقبين مع أدوات متقدمة للمعاينة والطباعة والتصدير.
+      </p>
+    </div>
+
+    {/* ===== الأزرار (Premium) ===== */}
     <div
       style={{
         display: "flex",
-        alignItems: "center",
-        gap: 14,
+        flexDirection: "column",
+        gap: 10,
+        minWidth: 200,
+        alignItems: "stretch",
+        position: "relative",
+        zIndex: 1,
       }}
     >
-
-
-            {/* الشعار */}
-      <div
+      <button
+        onClick={exportSavedSession}
         style={{
-          background: "rgba(255,255,255,0.15)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 18,
-          padding: 10,
-          backdropFilter: "blur(6px)",
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "#ffffff",
+          color: "#0F5F68",
         }}
       >
-        <img
-          src={LOGO_SRC}
-          alt="logo"
-          style={{ width: 160, display: "block" }}
-        />
-      </div>   
-    </div>
-    <div style={{ textAlign: "right", maxWidth: 500 }}>
-      <div style={{ fontSize: 28, fontWeight: 800 }}>
-        نظام بناء جدول الاختبارات
-      </div>
+        📤 تصدير البيانات
+      </button>
 
-      <div
+      <button
+        onClick={() => importSessionRef.current?.click()}
         style={{
-          marginTop: 6,
-          fontSize: 14,
-          opacity: 0.9,
-          lineHeight: 1.8,
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(255,255,255,0.2)",
+          color: "#fff",
+          border: "1px solid rgba(255,255,255,0.3)",
         }}
       >
-        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
-      </div>
-    </div>
+        📥 استيراد البيانات
+      </button>
 
+      <button
+        onClick={clearSavedState}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(0,0,0,0.25)",
+          color: "#fff",
+        }}
+      >
+        🗑  حذف البيانات المحلية
+      </button>
+    </div>
   </div>
-
+</div>
+      
   {/* input مخفي */}
   <input
     ref={importSessionRef}
