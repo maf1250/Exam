@@ -336,7 +336,7 @@ export default function TraineePortalPage() {
     return {
       students: collegeData?.students?.length || 0,
       exams: selectedStudent?.schedule?.length || 0,
-      college: collegeData?.collegeName || "الكلية التقنية",
+      college: collegeData?.collegeName || "جداول المتدربين النهائية",
       today: new Date().toLocaleDateString("ar-SA"),
     };
   }, [collegeData, selectedStudent]);
