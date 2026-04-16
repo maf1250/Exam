@@ -427,7 +427,7 @@ export default function TraineePortalPage() {
               />
             </div>
 
-            <div style={{ flex: 1, minWidth: 260, position: "relative", zIndex: 1 }}>
+            <div style={{  minWidth: 260, position: "relative", zIndex: 1, justifyContent: "center", }}>
               <div
                 style={{
                   display: "inline-flex",
@@ -441,11 +441,8 @@ export default function TraineePortalPage() {
                   fontWeight: 700,
                   marginBottom: 12,
                   border: "1px solid rgba(255,255,255,0.16)",
-                
-    justifyContent: "center", // توسيط أفقي
-    textAlign: "center",      // توسيط النص نفسه
-    flexDirection: "column",  // يخلي النص تحت بعض
-   // width: "100%",
+                  textAlign: "center",
+                  // width: "100%",
                 }}
               >
                 <span>الجداول النهائية</span>
