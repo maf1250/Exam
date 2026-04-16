@@ -3734,8 +3734,7 @@ const headerBtn = (danger = false) => ({
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: 20,
             marginTop: 20,
-              maxWidth: 300, 
-            margin: "0 auto",
+            width: "100%",
            
           }}
         >
