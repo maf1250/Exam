@@ -16,7 +16,43 @@ const DB_NAME = "exam_scheduler_db";
 const DB_VERSION = 1;
 const STORE_NAME = "sessions";
 
+function normalizeArabicText(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/أ|إ|آ/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/\bالكلية\b/g, "")
+    .replace(/\bكليه\b/g, "")
+    .replace(/\bكلية\b/g, "")
+    .replace(/\bالتقنية\b/g, "")
+    .replace(/\bتقنيه\b/g, "")
+    .replace(/\bالتقنيہ\b/g, "")
+    .replace(/\bبنين\b|\bبنات\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function simplifyCollegeName(value) {
+  return normalizeArabicText(value)
+    .replace(/^ب(?=[^\s])/, "")   // ببريدة -> بريدة
+    .replace(/^في\s+/, "")        // في بريدة -> بريدة
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function areCollegeNamesClose(manualName, fileName) {
+  const a = simplifyCollegeName(manualName);
+  const b = simplifyCollegeName(fileName);
 
+  if (!a || !b) return false;
+
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+
+  return false;
+}
 function openAppDb() {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open(DB_NAME, DB_VERSION);
@@ -2556,50 +2592,43 @@ const effectiveCollegeSlug = useMemo(
     setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
   }, [includeAllDepartmentsAndMajors]);
 
-  const handleUpload = (file) => {
-    if (!file) return;
+ function normalizeArabicText(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/أ|إ|آ/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/\bالكلية\b/g, "")
+    .replace(/\bكليه\b/g, "")
+    .replace(/\bكلية\b/g, "")
+    .replace(/\bالتقنية\b/g, "")
+    .replace(/\bتقنيه\b/g, "")
+    .replace(/\bبنين\b|\bبنات\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-    setFileName(file.name);
-    setStudentSearchText("");
-    setShowStudentSuggestions(false);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      encoding: "UTF-8",
-      complete: (result) => {
-        const cleanRows = (result.data || []).filter((row) =>
-          Object.values(row).some((v) => String(v ?? "").trim() !== "")
-        );
+function simplifyCollegeName(value) {
+  return normalizeArabicText(value)
+    .replace(/^في\s+/, "")
+    .replace(/^ب(?=\S)/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-        setRows(cleanRows);
-        setCollegeNameInput(cleanRows[0]?.["الوحدة"] || "");
-        setSchedule([]);
-        setGeneralSchedule([]);
-        setSpecializedSchedule([]);
-        setUnscheduled([]);
-        setHallWarnings([]);
-        setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
-        setIncludeAllDepartmentsAndMajors(true);
-        setExcludedDepartmentMajors([]);
-        setLockGeneralStudiesStep(false);
-        setCourseLevels({});
-        setPreviewPage(0);
-        setPreviewTab("sortedCourses");
-        setSelectedStudentIdForPrint("");
-        setCompactPrintMode(false);
-        setCurrentStep(1);
-        pendingRestoreRef.current = null;
-        setPendingRestore(null);
-        setDidRestore(true);
-        setToast(null);
-        setHallWarnings(nextHallWarnings);
-        showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
-      },
-      error: (err) => {
-        showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
-      },
-    });
-  };
+function areCollegeNamesClose(manualName, fileName) {
+  const a = simplifyCollegeName(manualName);
+  const b = simplifyCollegeName(fileName);
+
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+
+  return false;
+}
 
 const getSelectedPairConflictStudents = useMemo(() => {
   if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
