@@ -94,76 +94,86 @@ function openPrintWindow({ collegeName, selectedStudent }) {
       <title>جدول المتدرب</title>
       <style>
         * { box-sizing: border-box; }
+        @page {
+          size: A4 landscape;
+          margin: 7mm;
+        }
         body {
           margin: 0;
           font-family: Tahoma, Arial, sans-serif;
           color: #17313a;
           background: #ffffff;
-          padding: 24px;
+          padding: 0;
+          font-size: 11px;
+          line-height: 1.35;
         }
         .header {
-          border-radius: 24px;
+          border-radius: 14px;
           overflow: hidden;
           border: 1px solid #d5e9e7;
-          margin-bottom: 18px;
+          margin-bottom: 8px;
         }
         .topbar {
           background: #0f2e35;
           color: #dff6f4;
-          padding: 10px 18px;
+          padding: 5px 10px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 13px;
+          font-size: 10px;
         }
         .hero {
           background: linear-gradient(135deg, #0f5f68 0%, #1fa7a8 50%, #63cfc4 100%);
           color: white;
-          padding: 22px 20px;
+          padding: 10px 12px;
         }
-        .hero small { opacity: 0.92; font-size: 13px; }
-        .hero h1 { margin: 8px 0 6px; font-size: 28px; }
-        .hero p { margin: 0; font-size: 14px; opacity: 0.95; }
+        .hero small { opacity: 0.92; font-size: 10px; }
+        .hero h1 { margin: 4px 0 3px; font-size: 18px; line-height: 1.2; }
+        .hero p { margin: 0; font-size: 10px; opacity: 0.95; line-height: 1.45; }
         .meta {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          margin: 18px 0;
+          gap: 6px;
+          margin: 8px 0;
         }
         .box {
           border: 1px solid #d5e9e7;
-          border-radius: 16px;
-          padding: 12px 14px;
+          border-radius: 10px;
+          padding: 7px 9px;
           background: #f9fefe;
         }
         .box .label {
           color: #5f7077;
-          font-size: 12px;
-          margin-bottom: 6px;
+          font-size: 10px;
+          margin-bottom: 3px;
         }
         .box .value {
-          font-size: 15px;
+          font-size: 11px;
           font-weight: 700;
+          line-height: 1.35;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 10px;
-          font-size: 13px;
+          margin-top: 4px;
+          font-size: 10px;
+          table-layout: fixed;
         }
         th {
           background: #effafa;
           color: #154a51;
+          font-weight: 700;
         }
         th, td {
           border: 1px solid #d8ecea;
-          padding: 10px 8px;
+          padding: 4px 3px;
           text-align: center;
+          word-break: break-word;
         }
         .section-title {
-          font-size: 18px;
+          font-size: 13px;
           font-weight: 800;
-          margin: 20px 0 12px;
+          margin: 8px 0 5px;
           color: #114952;
         }
         .instructions {
@@ -171,18 +181,29 @@ function openPrintWindow({ collegeName, selectedStudent }) {
           padding: 0;
           list-style: none;
           display: grid;
-          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4px 6px;
         }
         .instructions li {
           border: 1px solid #d5e9e7;
-          border-radius: 14px;
-          padding: 12px 14px;
+          border-radius: 8px;
+          padding: 5px 7px;
           background: #fbfefe;
-          line-height: 1.8;
+          line-height: 1.45;
+          font-size: 9.5px;
         }
         @media print {
-          body { padding: 0; }
-          .header { break-inside: avoid; }
+          html, body {
+            width: 100%;
+            height: auto;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .header, .meta, table, .instructions, .instructions li {
+            break-inside: avoid;
+          }
         }
       </style>
     </head>
@@ -447,9 +468,9 @@ export default function TraineePortalPage() {
                   lineHeight: 1.9,
                   maxWidth: 760,
                 }}
-              >
-                منصة رسمية لعرض جدول الاختبارات النهائي للمتدرب بطريقة واضحة ومنظمة، مع
-                البحث السريع والطباعة بتنسيق احترافي متوافق مع الهوية المؤسسية.
+                           >
+                منصة لعرض جدول الاختبارات النهائي للمتدرب بطريقة واضحة ومنظمة، مع
+                البحث السريع والطباعة بتنسيق احترافي.
               </p>
             </div>
           </div>
