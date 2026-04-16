@@ -6059,6 +6059,70 @@ style={{
         </div>
       </div>
 
+      {/* تحديد الكلية */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.border}`,
+          background: COLORS.bg2,
+        }}
+      >
+        <div style={{ fontSize: 18 }}>🏫</div>
+
+        <div style={{ width: "100%" }}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+
+          {effectiveCollegeLocation ? (
+            <div
+              style={{
+                color: COLORS.success,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تم التعرف على الكلية: {effectiveCollegeLocation}
+              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+            </div>
+          ) : (
+            <div
+              style={{
+                color: COLORS.warning,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+            </div>
+          )}
+
+          {!detectedCollegeLocation && (
+            <select
+              value={manualCollegeLocation}
+              onChange={(e) => setManualCollegeLocation(e.target.value)}
+              style={{ ...fieldStyle(), maxWidth: 220 }}
+            >
+              <option value="">اختر الكلية / المدينة</option>
+              {allCollegeLocations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {detectedCollegeLocation && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setManualCollegeLocation("")}
+                style={cardButtonStyle()}
+              >
+                استخدام التعرف التلقائي
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       {/* تفعيل بوابة المتدربين */}
       <div
         style={{
@@ -6135,111 +6199,11 @@ style={{
               تصدير بيانات المتدربين
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (!effectiveCollegeLocation) {
-                  showToast(
-                    "تعذر تحديد الكلية",
-                    "اختر الكلية أولًا أو عدّل اسم الكلية.",
-                    "error"
-                  );
-                  return;
-                }
-
-                const baseLink = generateTraineeLink(
-                  "",
-                  effectiveCollegeLocation
-                );
-
-                if (!baseLink) {
-                  showToast(
-                    "تعذر إنشاء الرابط",
-                    "تعذر تحديد رمز الكلية.",
-                    "error"
-                  );
-                  return;
-                }
-
-                navigator.clipboard.writeText(baseLink);
-                showToast(
-                  "تم النسخ",
-                  "تم نسخ رابط بوابة المتدربين.",
-                  "success"
-                );
-              }}
-              style={cardButtonStyle({ active: true })}
-            >
-              نسخ رابط المتدربين
-            </button>
+           
           </div>
         </div>
       </div>
 
-      {/* تحديد الكلية */}
-      <div
-        style={{
-          ...stepNineCardStyle,
-          border: `1px solid ${COLORS.border}`,
-          background: COLORS.bg2,
-        }}
-      >
-        <div style={{ fontSize: 18 }}>🏫</div>
-
-        <div style={{ width: "100%" }}>
-          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
-
-          {effectiveCollegeLocation ? (
-            <div
-              style={{
-                color: COLORS.success,
-                fontWeight: 700,
-                marginBottom: 8,
-              }}
-            >
-              تم التعرف على الكلية: {effectiveCollegeLocation}
-              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-            </div>
-          ) : (
-            <div
-              style={{
-                color: COLORS.warning,
-                fontWeight: 700,
-                marginBottom: 8,
-              }}
-            >
-              تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
-            </div>
-          )}
-
-          {!detectedCollegeLocation && (
-            <select
-              value={manualCollegeLocation}
-              onChange={(e) => setManualCollegeLocation(e.target.value)}
-              style={{ ...fieldStyle(), maxWidth: 220 }}
-            >
-              <option value="">اختر الكلية / المدينة</option>
-              {allCollegeLocations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {detectedCollegeLocation && (
-            <div style={{ marginTop: 10 }}>
-              <button
-                type="button"
-                onClick={() => setManualCollegeLocation("")}
-                style={cardButtonStyle()}
-              >
-                استخدام التعرف التلقائي
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* إرسال الملف */}
       <div
