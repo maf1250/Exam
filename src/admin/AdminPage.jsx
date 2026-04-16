@@ -563,7 +563,6 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-
 function StatBox({ label, value }) {
   return (
     <div
@@ -571,7 +570,6 @@ function StatBox({ label, value }) {
         borderRadius: 22,
         padding: 18,
         width: "100%",
-        maxWidth: 300,
         background: "#fff",
         boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
       }}
