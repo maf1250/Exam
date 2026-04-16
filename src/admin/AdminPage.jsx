@@ -6171,7 +6171,7 @@ style={{
                   "success"
                 );
               }}
-              style={cardButtonStyle({ active: true })}
+              style={cardButtonStyle()}
             >
               تصدير بيانات المتدربين
             </button>
@@ -6193,7 +6193,7 @@ style={{
     navigator.clipboard.writeText(baseLink);
     showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
   }}
-  style={cardButtonStyle({ active: true })}
+  style={cardButtonStyle()}
 >
   نسخ رابط المتدربين
 </button>
