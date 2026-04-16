@@ -457,9 +457,45 @@ function normalizeExamHallsInput(examHalls) {
         name: String(hall.name || "").trim(),
         capacity: Number.isFinite(cap) ? cap : 0,
         allowedDepartments: normalizeDepartmentList(hall.allowedDepartments),
+        allowSharedAssignments: Boolean(hall.allowSharedAssignments),
       };
     })
     .filter((hall) => hall.name && hall.capacity > 0);
+}
+
+function getHallUsageKey(slotOrItem, hallName) {
+  return `${getSlotPeriodKey(slotOrItem)}__${normalizeArabic(hallName)}`;
+}
+
+function getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap) {
+  const hallCapacity = Number(hall?.capacity);
+  if (!Number.isFinite(hallCapacity) || hallCapacity <= 0) return 0;
+
+  const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0;
+  return Math.max(0, hallCapacity - used);
+}
+
+function canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
+  if (!hall || !course) return false;
+  if (!isHallAllowedForCourse(hall, course)) return false;
+
+  const students = Number(course.studentCount);
+  if (!Number.isFinite(students) || students <= 0) return false;
+
+  if (hall.allowSharedAssignments) {
+    return getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap) >= students;
+  }
+
+  const alreadyUsed = (hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0) > 0;
+  if (alreadyUsed) return false;
+
+  return Number(hall.capacity) >= students;
+}
+
+function reserveHallForCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
+  const students = Number(course?.studentCount) || 0;
+  const key = getHallUsageKey(slotOrItem, hall.name);
+  hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + students);
 }
 
 function fieldStyle() {
@@ -1582,6 +1618,7 @@ const pendingRestoreRef = useRef(null);
     capacity: "",
     allowAllDepartments: true,
     allowedDepartments: [],
+    allowSharedAssignments: false,
   },
 ]);
 const stepNineCardStyle = {
@@ -1604,6 +1641,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
         capacity: "",
         allowAllDepartments: true,
         allowedDepartments: [],
+        allowSharedAssignments: false,
       },
     ]);
   }
@@ -1944,7 +1982,10 @@ const restorePersistedState = (saved) => {
   setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
   setExamHalls(
     Array.isArray(saved.examHalls) && saved.examHalls.length
-      ? saved.examHalls
+      ? saved.examHalls.map((hall) => ({
+          ...hall,
+          allowSharedAssignments: Boolean(hall.allowSharedAssignments),
+        }))
       : [
           {
             id: makeHallId(),
@@ -1952,6 +1993,7 @@ const restorePersistedState = (saved) => {
             capacity: "",
             allowAllDepartments: true,
             allowedDepartments: [],
+            allowSharedAssignments: false,
           },
         ]
   );
@@ -2818,6 +2860,7 @@ const hallsPool = normalizedExamHalls;
   const studentSlotMap = new Map();
   const studentDayMap = new Map();
   const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
+  const hallUsageMap = new Map();
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
   const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
@@ -2842,6 +2885,13 @@ const periodKey = getSlotPeriodKey(item);
       slotCoursesMap.set(slotId, []);
     }
     slotCoursesMap.get(slotId).push(item.key);
+
+    const existingHall = hallsPool.find(
+      (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
+    );
+    if (existingHall && Number(item.studentCount) > 0) {
+      reserveHallForCourseInSlot(existingHall, item, item, hallUsageMap);
+    }
 
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
@@ -2991,20 +3041,13 @@ const pickInvigilators = (course, slot) => {
       }
     }
 
-    const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
-      .filter((item) => resolveScheduledSlotId(item) === slot.id)
-      .map((item) => item.examHall)
-      .filter(Boolean);
+    const matchingHallCount = hallsPool.filter((hall) =>
+      canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
+    ).length;
 
-   const matchingHallCount = hallsPool.filter(
-  (hall) =>
-    !usedHallNamesInSlot.includes(hall.name) &&
-    isHallValidForCourse(hall, course)
-).length;
-
-if (!matchingHallCount) {
-  return Number.POSITIVE_INFINITY;
-}
+    if (!matchingHallCount) {
+      return Number.POSITIVE_INFINITY;
+    }
 
     return score;
   };
@@ -3058,33 +3101,33 @@ sortedCoursesForInvigilation.forEach((course) => {
       dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
     });
 
-    const usedHallNamesInSlot = [...basePlaced, ...newPlaced]
-      .filter((item) => resolveScheduledSlotId(item) === bestSlot.id)
-      .map((item) => item.examHall)
-      .filter(Boolean);
+    const fittingHalls = hallsPool
+      .filter((hall) => canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap))
+      .sort((a, b) => {
+        const aRemaining = getRemainingHallCapacityForSlot(a, bestSlot, hallUsageMap);
+        const bRemaining = getRemainingHallCapacityForSlot(b, bestSlot, hallUsageMap);
+        return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
+      });
 
-    const fittingHalls = hallsPool.filter(
-  (hall) =>
-    !usedHallNamesInSlot.includes(hall.name) &&
-    isHallValidForCourse(hall, course)
-);
+    let assignedHall = null;
+    let assignedHallObj = null;
 
-let assignedHall = null;
+    if (fittingHalls.length) {
+      assignedHallObj = fittingHalls[0];
+      assignedHall = assignedHallObj.name;
+      reserveHallForCourseInSlot(assignedHallObj, course, bestSlot, hallUsageMap);
+    } else {
+      const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
 
-if (fittingHalls.length) {
-  assignedHall = fittingHalls[0].name;
-} else {
-  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+      hallWarningItems.push({
+        courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+        required: Number(course.studentCount) || 0,
+        maxAvailable,
+      });
+      notPlaced.push(course);
 
-  hallWarningItems.push({
-    courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
-    required: Number(course.studentCount) || 0,
-    maxAvailable,
-  });
-  notPlaced.push(course);
-
-  return;
-}
+      return;
+    }
   
     slotCoursesMap.get(bestSlot.id).push(course.key);
 newPlaced.push({
@@ -4107,7 +4150,7 @@ style={{
             <Card>
   <SectionHeader
     title="قاعات الاختبار"
-    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. إذا لم يتم تحديد قسم، تعتبر القاعة متاحة لجميع الأقسام."
+    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
   />
 
   <div style={{ display: "grid", gap: 14 }}>
@@ -4204,6 +4247,60 @@ style={{
           </button>
           </label>
 
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontWeight: 800,
+                color: COLORS.charcoal,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!!hall.allowSharedAssignments}
+                onChange={(e) =>
+                  updateExamHall(hall.id, {
+                    allowSharedAssignments: e.target.checked,
+                  })
+                }
+              />
+              السماح بإسناد أكثر من مقرر لهذه القاعة
+            </label>
+
+            <div
+              title="عند تفعيل هذا الخيار يمكن إسناد أكثر من مقرر لنفس القاعة في نفس الفترة، بشرط أن يكون مجموع عدد المتدربين أقل من سعة القاعة. مثال: قاعة سعتها 100 يمكن أن تحتوي مقررين عددهم 40 و50."
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "#EEF6F6",
+                border: "1px solid #A8DDDA",
+                color: "#0E2730",
+                fontWeight: 900,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "help",
+                userSelect: "none",
+              }}
+            >
+              ?
+            </div>
+          </div>
         </div>
 
         {!hall.allowAllDepartments && (
