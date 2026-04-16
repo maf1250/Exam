@@ -3660,62 +3660,7 @@ const headerBtn = (danger = false) => ({
     boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
   }}
 >
-  <div
-    style={{
-      flexDirection: "row-reverse",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
-      flexWrap: "wrap",
-    }}
-  >
-
-  
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-      }}
-    >
-
-
-            {/* الشعار */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.15)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 18,
-          padding: 10,
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        <img
-          src={LOGO_SRC}
-          alt="logo"
-          style={{ width: 160, display: "block" }}
-        />
-      </div>   
-    </div>
-    <div style={{ textAlign: "right", maxWidth: 500 }}>
-      <div style={{ fontSize: 28, fontWeight: 800 }}>
-        نظام بناء جدول الاختبارات
-      </div>
-
-      <div
-        style={{
-          marginTop: 6,
-          fontSize: 14,
-          opacity: 0.9,
-          lineHeight: 1.8,
-        }}
-      >
-        أداة احترافية لإنشاء جداول الاختبارات للكليات التقنية بكفاءة عالية
-      </div>
-    </div>
-
-  </div>
+ 
 
   {/* input مخفي */}
   <input
