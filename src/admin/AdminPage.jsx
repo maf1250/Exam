@@ -2589,7 +2589,7 @@ const effectiveCollegeSlug = useMemo(
         setPendingRestore(null);
         setDidRestore(true);
         setToast(null);
-        setHallWarnings([]);
+        setHallWarnings(nextHallWarnings);
         showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
       },
       error: (err) => {
@@ -3041,7 +3041,6 @@ newPlaced.push({
     );
   }
 
-  setUnscheduled(notPlaced);
   setPreviewPage(0);
   return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
 };
@@ -3049,7 +3048,9 @@ newPlaced.push({
 const generateGeneralSchedule = () => {
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
   setGeneralSchedule(placed);
+  setUnscheduled(notPlaced || []);
   setHallWarnings(nextHallWarnings || []);
+  setPreviewTab("schedule");
   if (notPlaced.length) {
     showToast(
       "تم توزيع الدراسات العامة مع ملاحظات",
@@ -3066,13 +3067,23 @@ const generateSpecializedSchedule = () => {
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
   setHallWarnings((prev) => [...prev, ...(nextHallWarnings || [])]);
-  setPreviewTab("sortedCourses");
+  setPreviewTab("schedule");
 
   const merged = [...generalSchedule, ...placed].sort(
     (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
   );
 
   setSchedule(merged);
+  setUnscheduled((prev) => {
+    const combined = [...(prev || []), ...(notPlaced || [])];
+    const map = new Map();
+    combined.forEach((course) => {
+      if (course?.key && !map.has(course.key)) {
+        map.set(course.key, course);
+      }
+    });
+    return Array.from(map.values());
+  });
   if (notPlaced.length) {
     showToast(
       "تم توزيع مقررات التخصص مع ملاحظات",
@@ -5477,39 +5488,6 @@ style={{
 
             {previewTab === "schedule" && (
               <div style={{ marginTop: 20 }}>
-                {hallWarnings.length > 0 && (
-                  <Card
-                    style={{
-                      marginBottom: 16,
-                      border: `1px solid #FECACA`,
-                      background: COLORS.dangerBg,
-                    }}
-                  >
-                    <SectionHeader
-                      title="تنبيهات القاعات"
-                      description="بعض المقررات لم يتم توزيعها بسبب عدم توفر قاعات بسعة كافية أو مسموحة لنفس القسم."
-                    />
-
-                    <div style={{ display: "grid", gap: 10 }}>
-                      {hallWarnings.map((item, index) => (
-                        <div
-                          key={`${item.courseName}-${index}`}
-                          style={{
-                            border: "1px solid #FECACA",
-                            background: "#fff",
-                            borderRadius: 14,
-                            padding: "12px 14px",
-                            color: COLORS.danger,
-                            fontWeight: 800,
-                            lineHeight: 1.9,
-                          }}
-                        >
-                          {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر قاعة متاحة {item.maxAvailable}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
                 <Card>
                   <SectionHeader
                     title="جدول الاختبارات النهائي"
@@ -5546,6 +5524,37 @@ style={{
                       >
                         التالي
                       </button>
+                    </div>
+                  ) : null}
+
+                  {hallWarnings.length ? (
+                    <div
+                      style={{
+                        marginBottom: 18,
+                        borderRadius: 18,
+                        background: COLORS.dangerBg,
+                        border: "1px solid #FECACA",
+                        color: COLORS.danger,
+                        padding: 14,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>تنبيهات القاعات</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {hallWarnings.map((item, index) => (
+                          <span
+                            key={`${item.courseName}-${index}`}
+                            style={{
+                              background: "#fff",
+                              border: "1px solid #FECACA",
+                              borderRadius: 999,
+                              padding: "6px 12px",
+                              fontSize: 13,
+                            }}
+                          >
+                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر قاعة متاحة {item.maxAvailable}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
 
