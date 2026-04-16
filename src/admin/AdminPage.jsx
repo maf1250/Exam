@@ -16,7 +16,7 @@ const DB_NAME = "exam_scheduler_db";
 const DB_VERSION = 1;
 const STORE_NAME = "sessions";
 
-function normalizeArabicText(value) {
+function normalizeArabicLetters(value) {
   return String(value ?? "")
     .trim()
     .replace(/[\u064B-\u065F\u0670]/g, "")
@@ -25,34 +25,68 @@ function normalizeArabicText(value) {
     .replace(/ى/g, "ي")
     .replace(/ؤ/g, "و")
     .replace(/ئ/g, "ي")
-    .replace(/\bالكلية\b/g, "")
-    .replace(/\bكليه\b/g, "")
-    .replace(/\bكلية\b/g, "")
-    .replace(/\bالتقنية\b/g, "")
-    .replace(/\bتقنيه\b/g, "")
-    .replace(/\bالتقنيہ\b/g, "")
-    .replace(/\bبنين\b|\bبنات\b/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
-function simplifyCollegeName(value) {
-  return normalizeArabicText(value)
-    .replace(/^ب(?=[^\s])/, "")   // ببريدة -> بريدة
-    .replace(/^في\s+/, "")        // في بريدة -> بريدة
-    .replace(/\s+/g, " ")
-    .trim();
-}
-function areCollegeNamesClose(manualName, fileName) {
-  const a = simplifyCollegeName(manualName);
-  const b = simplifyCollegeName(fileName);
 
-  if (!a || !b) return false;
+function tokenizeCollegeName(value) {
+  const stopWords = new Set([
+    "الكليه",
+    "كليه",
+    "كلية",
+    "الكلية",
+    "التقنيه",
+    "تقنيه",
+    "التقنية",
+    "تقنية",
+    "للبنين",
+    "للبنات",
+    "بنين",
+    "بنات",
+  ]);
+
+  return normalizeArabicLetters(value)
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean)
+    .map((word) => {
+      // بعنيزة -> عنيزه
+      if (word.startsWith("ب") && word.length > 2) {
+        const stripped = word.slice(1);
+        if (stripped) return stripped;
+      }
+      return word;
+    })
+    .filter((word) => !stopWords.has(word));
+}
+
+function simplifyCollegeName(value) {
+  return tokenizeCollegeName(value).join(" ");
+}
+
+function areCollegeNamesClose(manualName, fileName) {
+  const manualTokens = tokenizeCollegeName(manualName);
+  const fileTokens = tokenizeCollegeName(fileName);
+
+  if (!manualTokens.length || !fileTokens.length) return false;
+
+  const a = manualTokens.join(" ");
+  const b = fileTokens.join(" ");
 
   if (a === b) return true;
   if (a.includes(b) || b.includes(a)) return true;
 
-  return false;
+  const setA = new Set(manualTokens);
+  const setB = new Set(fileTokens);
+
+  let overlap = 0;
+  for (const token of setA) {
+    if (setB.has(token)) overlap += 1;
+  }
+
+  return overlap > 0;
 }
+
 function openAppDb() {
   return new Promise((resolve, reject) => {
     const request = window.indexedDB.open(DB_NAME, DB_VERSION);
