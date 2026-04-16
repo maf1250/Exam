@@ -215,7 +215,7 @@ function openPrintWindow({ collegeName, selectedStudent }) {
         </div>
         <div class="hero">
           <small>المؤسسة العامة للتدريب التقني والمهني</small>
-          <h1>${escapeHtml(collegeName || "الكلية التقنية")}</h1>
+          <h1>${escapeHtml(collegeName || "جداول المتدربين النهائية")}</h1>
           <p>عرض جدول الاختبارات النهائي الخاص بالمتدرب بشكل رسمي ومنظم.</p>
         </div>
       </div>
