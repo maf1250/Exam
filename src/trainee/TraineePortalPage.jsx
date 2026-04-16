@@ -441,6 +441,12 @@ export default function TraineePortalPage() {
                   fontWeight: 700,
                   marginBottom: 12,
                   border: "1px solid rgba(255,255,255,0.16)",
+                
+    justifyContent: "center", // توسيط أفقي
+    alignItems: "center",     // توسيط عمودي
+    textAlign: "center",      // توسيط النص نفسه
+    flexDirection: "column",  // يخلي النص تحت بعض
+    width: "100%",
                 }}
               >
                 <span>الجداول النهائية</span>
@@ -467,6 +473,12 @@ export default function TraineePortalPage() {
                   fontSize: 15,
                   lineHeight: 1.9,
                   maxWidth: 760,
+                  display: "flex",
+    justifyContent: "center", // توسيط أفقي
+    alignItems: "center",     // توسيط عمودي
+    textAlign: "center",      // توسيط النص نفسه
+    flexDirection: "column", 
+    width: "100%",
                 }}
                            >
                 منصة لعرض جدول الاختبارات النهائي للمتدرب بطريقة واضحة ومنظمة، مع
