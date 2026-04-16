@@ -540,18 +540,32 @@ function SectionHeader({ title, description }) {
 
 function StatBox({ label, value }) {
   return (
-    <div
+        <div
+
       style={{
+
+        borderRadius: 16,
+
+        padding: "12px 14px",
+
+        width: "100%",
+
+        maxWidth: 500,
+
         background: "#fff",
-        borderRadius: 22,
-        padding: 18,
-        border: `1px solid ${COLORS.border}`,
-        boxShadow: "0 8px 24px rgba(20, 123, 131, 0.06)",
+
+        boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+
       }}
+
     >
-      <div style={{ fontSize: 14, color: COLORS.charcoalSoft, marginBottom: 8 }}>{label}</div>
+
+
+
+      <div style={{ fontSize: 14, opacity: 0.7, color: COLORS.charcoalSoft, marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.primaryDark }}>{value}</div>
-    </div>
+  
+        <CountUp end={value} />  </div>
   );
 }
 
