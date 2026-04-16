@@ -569,7 +569,7 @@ function StatBox({ label, value }) {
       style={{
         borderRadius: 22,
         padding: 18,
-        width: "100%",
+        width: 160,
         background: "#fff",
         boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
       }}
@@ -3729,10 +3729,10 @@ const headerBtn = (danger = false) => ({
             <div
           style={{
            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 20,
-            marginTop: 20,
-            width: "100%",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, max-content))",
+    gap: 12,
+    marginTop: 20,
+    justifyContent: "center",
            
           }}
         >
