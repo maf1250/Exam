@@ -1541,7 +1541,15 @@ const pendingRestoreRef = useRef(null);
     allowedDepartments: [],
   },
 ]);
-
+const stepNineCardStyle = {
+  borderRadius: 16,
+  padding: "12px 14px",
+  display: "flex",
+  gap: 10,
+  alignItems: "flex-start",
+  width: "100%",
+  maxWidth: 500,
+};
 const [hallWarnings, setHallWarnings] = useState([]);
 
   function addExamHall() {
@@ -5989,231 +5997,284 @@ style={{
 
         </div>
   
+{currentStep === 9 && (
+  <Card>
+    <SectionHeader
+      title="الصفحة التاسعة: تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
+      description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن لرئيس القسم تصدير بيانات المتدربين للبوابة الخاصة بالوحدة"
+    />
 
-  {currentStep === 9 && (
-    <Card>
-      <SectionHeader
-        title="الصفحة التاسعة: تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
-        description="يمكنك هنا تصدير عملك وإرساله للزملاء، كما يمكن لرئيس القسم تصدير بيانات المتدربين للبوابة الخاصة بالوحدة"
-      />
-
-<div style={{ display: "grid", gap: 12 }}>
-
-  {/* 🔹 تصدير واستيراد */}
-  <div
-    style={{
-      border: `1px solid ${COLORS.primaryBorder}`,
-      borderRadius: 16,
-      padding: "12px 14px",
-      background: COLORS.primaryLight,
-      display: "flex",
-       width: "fit-content",
-      gap: 10,
-      alignItems: "flex-start",
-    }}
-  >
-    <div style={{ fontSize: 18 }}>📤</div>
-    <div style={{ lineHeight: 1.9 }}>
-      <strong>تصدير واستيراد البيانات</strong>
-      <div>
-        يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها
-        لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم
-        الضغط على زر استيراد البيانات.
-      </div>
-      <br></br>
-           <div
-  style={{
-    ...cardButtonStyle({ active: true }),
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-  }}
->
-  <button onClick={exportSavedSession}>تصدير البيانات</button>
-  <button onClick={() => importSessionRef.current?.click()}>استيراد البيانات</button>
-  <button onClick={clearSavedState}>حذف البيانات المحلية</button>
-    </div>
-  </div>
-
-  {/* 🔹 تفعيل البوابة */}
-  <div
-    style={{
-      border: `1px solid ${COLORS.secondaryBorder}`,
-      borderRadius: 16,
-      padding: "12px 14px",
-      background: "#F0FDFB",
-            gap: 10,
-      alignItems: "flex-start",
-           display: "flex",
-    width: "fit-content",
-    }}
-  >
-    <div style={{ fontSize: 18 }}>🧭</div>
-    <div style={{ lineHeight: 1.9 }}>
-      <strong>تفعيل بوابة المتدربين</strong>
-      <div>
-        يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
-        الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن الاختيار من
-        القائمة المنسدلة.
-      </div>
-        <select
-  value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
-  onChange={(e) => setManualCollegeLocation(e.target.value)}
-  style={fieldStyle(), maxwidth:200px}
->
-  <option value="">اختر الكلية / المدينة</option>
-  {allCollegeLocations.map((location) => (
-    <option key={location} value={location}>
-      {location}
-    </option>
-  ))}
-</select>
-    <button
-  type="button"
-  onClick={() => {
-    if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
-      showToast("تعذر التصدير", "اختر الكلية أولًا أو تأكد من اسمها.", "error");
-      return;
-    }
-
-exportCollegeDataFile({
-  slug: effectiveCollegeSlug,
-  collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
-  schedule,
-  parsed,
-  studentInfoMap: preciseStudentInfoMap,
-  selectedDepartment: printDepartmentFilter,
-  selectedMajor: printMajorFilter,
-});
-
-    showToast("تم التصدير", "تم تصدير بيانات المتدربين بنجاح.", "success");
-  }}
-  style={cardButtonStyle({ active: true })}
->
-  تصدير بيانات المتدربين
-</button>
-
- <button
-  type="button"
-  onClick={() => {
-    if (!effectiveCollegeLocation) {
-      showToast("تعذر تحديد الكلية", "اختر الكلية أولًا أو عدّل اسم الكلية.", "error");
-      return;
-    }
-
-    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
-
-    if (!baseLink) {
-      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
-      return;
-    }
-
-    navigator.clipboard.writeText(baseLink);
-    showToast("تم النسخ", "تم نسخ رابط بوابة المتدربين.", "success");
-  }}
-  style={cardButtonStyle({ active: true })}
->
-  نسخ رابط المتدربين
-</button>
-
-    </div>
-            {/* الأزرار */}
-
-
-      
-
-
-
-   
-</div>
-<div
-  style={{
-    background: COLORS.bg2,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-  }}
->
-  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
-
-  {effectiveCollegeLocation ? (
-    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الكلية: {effectiveCollegeLocation}
-      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-    </div>
-  ) : (
-    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
-    </div>
-  )}
-
-  {!detectedCollegeLocation && (
-    <select
-      value={manualCollegeLocation}
-      onChange={(e) => setManualCollegeLocation(e.target.value)}
-      style={fieldStyle()}
+    <div
+      style={{
+        display: "grid",
+        gap: 12,
+        justifyItems: "start",
+      }}
     >
-      <option value="">اختر الكلية / المدينة</option>
-      {allCollegeLocations.map((location) => (
-        <option key={location} value={location}>
-          {location}
-        </option>
-      ))}
-    </select>
-  )}
-
-  {detectedCollegeLocation && (
-    <div style={{ marginTop: 10 }}>
-      <button
-        type="button"
-        onClick={() => setManualCollegeLocation("")}
-        style={cardButtonStyle()}
+      {/* تصدير واستيراد */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.primaryBorder}`,
+          background: COLORS.primaryLight,
+        }}
       >
-        استخدام التعرف التلقائي
+        <div style={{ fontSize: 18 }}>📤</div>
+
+        <div style={{ lineHeight: 1.9, width: "100%" }}>
+          <strong>تصدير واستيراد البيانات</strong>
+
+          <div>
+            يمكن للمستخدم تصدير البيانات بالكامل واستخدامها في جهاز آخر أو إرسالها
+            لزميل في الوحدة عن طريق الضغط على خيار تصدير البيانات، ولاستيرادها يتم
+            الضغط على زر استيراد البيانات.
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
+            <button style={cardButtonStyle()} onClick={exportSavedSession}>
+              تصدير البيانات
+            </button>
+
+            <button
+              style={cardButtonStyle()}
+              onClick={() => importSessionRef.current?.click()}
+            >
+              استيراد البيانات
+            </button>
+
+            <button
+              style={cardButtonStyle({ danger: true })}
+              onClick={clearSavedState}
+            >
+              حذف البيانات المحلية
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* تفعيل بوابة المتدربين */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.primaryBorder}`,
+          background: "#F0FDFB",
+        }}
+      >
+        <div style={{ fontSize: 18 }}>🧭</div>
+
+        <div style={{ lineHeight: 1.9, width: "100%" }}>
+          <strong>تفعيل بوابة المتدربين</strong>
+
+          <div>
+            يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
+            الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن الاختيار من
+            القائمة المنسدلة.
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <select
+              value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
+              onChange={(e) => setManualCollegeLocation(e.target.value)}
+              style={{ ...fieldStyle(), maxWidth: 220 }}
+            >
+              <option value="">اختر الكلية / المدينة</option>
+              {allCollegeLocations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
+                  showToast(
+                    "تعذر التصدير",
+                    "اختر الكلية أولًا أو تأكد من اسمها.",
+                    "error"
+                  );
+                  return;
+                }
+
+                exportCollegeDataFile({
+                  slug: effectiveCollegeSlug,
+                  collegeName:
+                    parsed.collegeName || collegeNameInput || "الكلية التقنية",
+                  schedule,
+                  parsed,
+                  studentInfoMap: preciseStudentInfoMap,
+                  selectedDepartment: printDepartmentFilter,
+                  selectedMajor: printMajorFilter,
+                });
+
+                showToast(
+                  "تم التصدير",
+                  "تم تصدير بيانات المتدربين بنجاح.",
+                  "success"
+                );
+              }}
+              style={cardButtonStyle({ active: true })}
+            >
+              تصدير بيانات المتدربين
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!effectiveCollegeLocation) {
+                  showToast(
+                    "تعذر تحديد الكلية",
+                    "اختر الكلية أولًا أو عدّل اسم الكلية.",
+                    "error"
+                  );
+                  return;
+                }
+
+                const baseLink = generateTraineeLink(
+                  "",
+                  effectiveCollegeLocation
+                );
+
+                if (!baseLink) {
+                  showToast(
+                    "تعذر إنشاء الرابط",
+                    "تعذر تحديد رمز الكلية.",
+                    "error"
+                  );
+                  return;
+                }
+
+                navigator.clipboard.writeText(baseLink);
+                showToast(
+                  "تم النسخ",
+                  "تم نسخ رابط بوابة المتدربين.",
+                  "success"
+                );
+              }}
+              style={cardButtonStyle({ active: true })}
+            >
+              نسخ رابط المتدربين
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* تحديد الكلية */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.border}`,
+          background: COLORS.bg2,
+        }}
+      >
+        <div style={{ fontSize: 18 }}>🏫</div>
+
+        <div style={{ width: "100%" }}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+
+          {effectiveCollegeLocation ? (
+            <div
+              style={{
+                color: COLORS.success,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تم التعرف على الكلية: {effectiveCollegeLocation}
+              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+            </div>
+          ) : (
+            <div
+              style={{
+                color: COLORS.warning,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+            </div>
+          )}
+
+          {!detectedCollegeLocation && (
+            <select
+              value={manualCollegeLocation}
+              onChange={(e) => setManualCollegeLocation(e.target.value)}
+              style={{ ...fieldStyle(), maxWidth: 220 }}
+            >
+              <option value="">اختر الكلية / المدينة</option>
+              {allCollegeLocations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {detectedCollegeLocation && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setManualCollegeLocation("")}
+                style={cardButtonStyle()}
+              >
+                استخدام التعرف التلقائي
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* إرسال الملف */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.warningBorder || "#FACC15"}`,
+          background: "#FFFBEB",
+        }}
+      >
+        <div style={{ fontSize: 18 }}>📩</div>
+
+        <div style={{ lineHeight: 1.9, width: "100%" }}>
+          <strong>إرسال ملف البوابة</strong>
+
+          <div>
+            بعد تصدير البيانات، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
+            المتدربين وتحديث بياناتها، نأمل إرسال الملف بعد كل عملية توزيع على
+            البريد التالي:
+            <br />
+            <span style={{ fontWeight: 700 }}>m.alfayez@tvtc.gov.sa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <br />
+
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+        السابق
       </button>
     </div>
-  )}
-</div>
-  </div>
-
-  {/* 🔹 إرسال الملف */}
-  <div
-    style={{
-      border: `1px solid ${COLORS.warningBorder || "#FACC15"}`,
-      borderRadius: 16,
-      padding: "12px 14px",
-      background: "#FFFBEB",
-            gap: 10,
-      alignItems: "flex-start",
-           display: "flex",
-    width: "fit-content",
-    }}
-  >
-    <div style={{ fontSize: 18 }}>📩</div>
-    <div style={{ lineHeight: 1.9 }}>
-      <strong>إرسال ملف البوابة</strong>
-      <div>
-        بعد تصدير البيانات، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
-        المتدربين وتحديث بياناتها، نأمل إرسال الملف بعد كل عملية توزيع على البريد التالي:
-        <br />
-        <span style={{ fontWeight: 700 }}>
-          m.alfayez@tvtc.gov.sa
-        </span>
-      </div>
-    </div>
-  </div>
-
-</div>
-<br></br>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
-          السابق
-        </button>
-      </div>
-    </Card>
-  )}
-
+  </Card>
+)}
+ 
        {selectedConflicts && (
   <div
     style={{
