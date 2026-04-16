@@ -341,12 +341,14 @@ function getMaxAllowedHallCapacity(halls, course) {
 
   if (!allowedHalls.length) return 0;
 
-  return Math.max(
+  const maxCapacity = Math.max(
     ...allowedHalls.map((hall) => {
       const cap = Number(hall.capacity);
       return Number.isFinite(cap) ? cap : 0;
     })
   );
+
+  return Number.isFinite(maxCapacity) ? maxCapacity : 0;
 }
 
 function normalizeExamHallsInput(examHalls) {
@@ -893,7 +895,7 @@ function printScheduleOnlyPdf({
   collegeName,
   schedule,
   periodLabels = [],
-  defaultExamHall = "قاعة النشاط",
+  defaultExamHall: examHalls[0]?.name || "غير محدد"
   selectedDepartment = "__all__",
   selectedMajor = "__all__",
   compactMode = false,
@@ -2720,15 +2722,8 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
     return [];
   }
 
-  const hallsPool = normalizedExamHalls.length
-    ? normalizedExamHalls
-    : [{
-        id: "default-hall",
-        name: "قاعة النشاط",
-        capacity: Number.MAX_SAFE_INTEGER,
-        allowAllDepartments: true,
-        allowedDepartments: [],
-      }];
+
+const hallsPool = normalizedExamHalls;
 
   const baseInvigilators = manualInvigilators
     ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
@@ -2969,18 +2964,22 @@ sortedCoursesForInvigilation.forEach((course) => {
       }
     });
 
-    if (!bestSlot || !Number.isFinite(bestScore)) {
-      const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
-      if ((Number(course.studentCount) || 0) > 0) {
-        hallWarningItems.push({
-          courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
-          required: Number(course.studentCount) || 0,
-          maxAvailable,
-        });
-      }
-      notPlaced.push(course);
-      return;
-    }
+  
+      if (!bestSlot || !Number.isFinite(bestScore)) {
+  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+  if ((Number(course.studentCount) || 0) > 0) {
+    hallWarningItems.push({
+      courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+      required: Number(course.studentCount) || 0,
+      maxAvailable:
+        Number.isFinite(maxAvailable) && maxAvailable < Number.MAX_SAFE_INTEGER
+          ? maxAvailable
+          : 0,
+    });
+  }
+  notPlaced.push(course);
+  return;
+}
 
     course.students.forEach((studentId) => {
       if (!studentSlotMap.has(studentId)) studentSlotMap.set(studentId, new Set());
@@ -6060,7 +6059,7 @@ style={{
                               : `الفترة ${index + 1}`,
                           timeText: p.timeText,
                         })),
-                      defaultExamHall: examHalls[0]?.name || "قاعة النشاط",
+                      defaultExamHall: examHalls[0]?.name || "غير محدد"
                       selectedDepartment: printDepartmentFilter,
                       selectedMajor: printMajorFilter,
                       compactMode: compactPrintMode,
