@@ -536,7 +536,7 @@ export default function TraineePortalPage() {
                     setSelectedStudent(null);
                   }}
                   placeholder="اكتب الاسم أو الرقم التدريبي"
-                  style={fieldStyle()}
+                  style={{ ...fieldStyle(), maxWidth: 300 }}
                 />
 
                 {!!suggestions.length && !selectedStudent && (
