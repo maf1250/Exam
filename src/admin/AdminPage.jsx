@@ -3994,7 +3994,10 @@ style={{
             value={hall.name}
             onChange={(e) => updateExamHall(hall.id, { name: e.target.value })}
             placeholder="اسم القاعة"
-            style={fieldStyle()}
+                      style={{
+            ...fieldStyle(),
+            width: "100%",
+            fontWeight: 600,}}
           />
 
           <input
@@ -4005,7 +4008,14 @@ style={{
               updateExamHall(hall.id, { capacity: e.target.value })
             }
             placeholder="السعة"
-            style={fieldStyle()}
+             style={{
+            ...fieldStyle(),
+            width: "100%",
+            textAlign: "center",
+            fontWeight: 800,
+            background: "#F9FAFB",
+            maxWidth: 110,
+          }}
           />
         </div>
 
