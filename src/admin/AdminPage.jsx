@@ -5392,7 +5392,22 @@ style={{
                   عند اختيار قسم رئيسي محدد، ستتم فلترة المعاينة والطباعة والتصدير وفق هذا القسم،
                   مع ضم مقررات الدراسات العامة المرتبطة به.
                 </div>
-{hallWarnings.length > 0 && (
+
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                    السابق
+                  </button>
+                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
+                    التالي: الطباعة
+                  </button>
+                </div>
+              </Card>
+            </div>
+
+            {previewTab === "sortedCourses" && (
+              <div style={{ marginTop: 20 }}>
+                {hallWarnings.length > 0 && (
   <Card
     style={{
       border: `1px solid #FECACA`,
@@ -5424,20 +5439,6 @@ style={{
     </div>
   </Card>
 )}
-
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
-                    السابق
-                  </button>
-                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
-                    التالي: الطباعة
-                  </button>
-                </div>
-              </Card>
-            </div>
-
-            {previewTab === "sortedCourses" && (
-              <div style={{ marginTop: 20 }}>
                 <Card>
                   <SectionHeader
                     title="المقررات مرتبة حسب عدد المتدربين والتعارضات"
