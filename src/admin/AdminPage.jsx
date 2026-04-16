@@ -3985,7 +3985,7 @@ style={{
 
         <div
           style={{
-            display: "grid",
+            display: "flex",
             gridTemplateColumns: "1fr 110px",
             gap: 12,
           }}
@@ -3997,7 +3997,7 @@ style={{
                       style={{
             ...fieldStyle(),
             width: "100%",
-            fontWeight: 600,}}
+            fontWeight: 600,maxWidth: 310,}}
           />
 
           <input
@@ -4013,8 +4013,7 @@ style={{
             width: "100%",
             textAlign: "center",
             fontWeight: 800,
-            background: "#F9FAFB",
-            maxWidth: 110,
+              maxWidth: 110,
           }}
           />
         </div>
