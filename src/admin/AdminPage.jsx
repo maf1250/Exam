@@ -3729,8 +3729,9 @@ const headerBtn = (danger = false) => ({
             <div
           style={{
            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(130px, max-content))",
-    gap: 25,
+          gridTemplateColumns: "repeat(auto-fit, 160px)",
+    columnGap: 28,
+    rowGap: 20,
     marginTop: 20,
     justifyContent: "center",
            
