@@ -895,11 +895,12 @@ function printScheduleOnlyPdf({
   collegeName,
   schedule,
   periodLabels = [],
-  defaultExamHall: examHalls[0]?.name || "غير محدد"
+  defaultExamHall,
   selectedDepartment = "__all__",
   selectedMajor = "__all__",
   compactMode = false,
 }) {
+  const safeDefaultHall = defaultExamHall || "غير محدد";
   if (!schedule?.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
@@ -6059,7 +6060,7 @@ style={{
                               : `الفترة ${index + 1}`,
                           timeText: p.timeText,
                         })),
-                      defaultExamHall: examHalls[0]?.name || "غير محدد"
+                      defaultExamHall: examHalls[0]?.name || "غير محدد",
                       selectedDepartment: printDepartmentFilter,
                       selectedMajor: printMajorFilter,
                       compactMode: compactPrintMode,
