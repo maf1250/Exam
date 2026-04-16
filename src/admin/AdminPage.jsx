@@ -3727,10 +3727,62 @@ const headerBtn = (danger = false) => ({
         zIndex: 1,
       }}
     >
+
+      <div
+  style={{
+    background: COLORS.bg2,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  }}
+>
+  <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+
+  {effectiveCollegeLocation ? (
+    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
+      تم التعرف على الكلية تلقائيًا: {effectiveCollegeLocation}
+      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+    </div>
+  ) : (
+    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
+      تعذر التعرف على الكلية تلقائيًا. اختر الكلية يدويًا.
+    </div>
+  )}
+
+  {!detectedCollegeLocation && (
+    <select
+      value={manualCollegeLocation}
+      onChange={(e) => setManualCollegeLocation(e.target.value)}
+      style={fieldStyle()}
+    >
+      <option value="">اختر الكلية / المدينة</option>
+      {allCollegeLocations.map((location) => (
+        <option key={location} value={location}>
+          {location}
+        </option>
+      ))}
+    </select>
+  )}
+
+  {detectedCollegeLocation && (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setManualCollegeLocation("")}
+        style={cardButtonStyle()}
+      >
+        استخدام التعرف التلقائي
+      </button>
+    </div>
+  )}
+</div>
+
+      
       <img
         src={LOGO_SRC}
         alt="TVTC Logo"
-        style={{ width: 92, height: 92, objectFit: "contain" }}
+        style={{ width: 130, height: 130, objectFit: "contain" }}
       />
     </div>
 
@@ -3772,7 +3824,7 @@ const headerBtn = (danger = false) => ({
           fontWeight: 900,
         }}
       >
-        منصة إدارة جداول الاختبارات
+         منصة إدارة جداول الاختبارات النهائية
       </h1>
 
       <p
@@ -3784,7 +3836,7 @@ const headerBtn = (danger = false) => ({
           maxWidth: 720,
         }}
       >
-        نظام احترافي لإنشاء جداول الاختبارات النهائية، توزيع القاعات
+        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
         والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
       </p>
     </div>
@@ -3795,7 +3847,7 @@ const headerBtn = (danger = false) => ({
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        minWidth: 200,
+        maxWidth: 200,
         alignItems: "stretch",
         position: "relative",
         zIndex: 1,
@@ -3813,7 +3865,7 @@ const headerBtn = (danger = false) => ({
           color: "#0F5F68",
         }}
       >
-        📤 تصدير البيانات
+         تصدير البيانات
       </button>
 
       <button
@@ -3829,7 +3881,7 @@ const headerBtn = (danger = false) => ({
           border: "1px solid rgba(255,255,255,0.3)",
         }}
       >
-        📥 استيراد البيانات
+         استيراد البيانات
       </button>
 
       <button
@@ -3844,7 +3896,7 @@ const headerBtn = (danger = false) => ({
           color: "#fff",
         }}
       >
-        🗑 حذف البيانات
+         حذف البيانات
       </button>
     </div>
   </div>
