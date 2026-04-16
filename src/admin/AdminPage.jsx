@@ -1,4 +1,4 @@
-الimport React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import {
   generateTraineeLink,
