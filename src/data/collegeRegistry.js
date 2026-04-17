@@ -125,7 +125,7 @@ export const LOCATION_CODES = {
 
 export const LOCATION_SLUGS = {
   // القصيم
-  "القصيم": { male: "QSCTM", female: "QSCTF" },
+  "القصيم": { male: "QSCTM", female: "QSCTF"},
 
   // الباحة
   "الباحة": { male: "BACTM", female: "BACTF" },
@@ -297,6 +297,42 @@ export function detectGenderFromText(text = "") {
     return "male";
   }
 
+    if (
+    normalized.includes("التطبيقية") ||
+    normalized.includes("تطبيقية")
+  ) {
+    return "applied";
+  }
+
+    if (
+   
+  ) {
+    return "TT";
+  }
+
+  if (
+    normalized.includes("السياحة") ||
+    normalized.includes("الفندقة")  ||
+    normalized.includes("سياحة") ||
+    normalized.includes("فندقة") 
+  ) {
+    return "TO";
+  }
+
+  if (
+    normalized.includes("الاتصالات") ||
+    normalized.includes("اتصالات")  ||
+    normalized.includes("المعلومات") ||
+    normalized.includes("الإلكترونيات") ||
+    normalized.includes("معلومات")   ||
+        normalized.includes("إلكترونيات") ||
+    normalized.includes("الرقمية")   ||
+    normalized.includes("رقمية")
+  ) {
+    return "IT";
+  }
+  
+  
   return "";
 }
 
