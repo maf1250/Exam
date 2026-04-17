@@ -3490,6 +3490,9 @@ const hallsPool = normalizedExamHalls;
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
   const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
   const scheduledTypeByDate = new Map();
+  const orderedDateIndexMap = new Map(
+    Array.from(new Set(slots.map((slot) => slot.dateISO))).map((dateISO, index) => [dateISO, index])
+  );
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
@@ -3527,6 +3530,11 @@ if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set(
 invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
 invigilatorBusyPeriods.get(name).add(periodKey);
     });
+
+    const itemTypeKey = isGeneralStudiesCourse(item) ? "general" : "specialized";
+    const currentDayTypeCounts = scheduledTypeByDate.get(item.dateISO) || { general: 0, specialized: 0 };
+    currentDayTypeCounts[itemTypeKey] = (currentDayTypeCounts[itemTypeKey] || 0) + 1;
+    scheduledTypeByDate.set(item.dateISO, currentDayTypeCounts);
   });
 
 
@@ -3712,12 +3720,21 @@ const pickInvigilators = (course, slot) => {
       const sameTypeCount = dayTypeCounts[currentTypeKey] || 0;
       const oppositeTypeCount = dayTypeCounts[oppositeTypeKey] || 0;
       const strongMode = generalSpecializedDaySeparationMode === "strong";
+      const dateIndex = orderedDateIndexMap.get(slot.dateISO) || 0;
+      const preferredParity = currentTypeKey === "general" ? 0 : 1;
+      const matchesPreferredDayTrack = dateIndex % 2 === preferredParity;
+
+      if (matchesPreferredDayTrack) {
+        score -= strongMode ? 180 : 70;
+      } else {
+        score += strongMode ? 260 : 95;
+      }
 
       if (sameTypeCount > 0) {
-        score -= strongMode ? sameTypeCount * 90 : sameTypeCount * 35;
+        score -= strongMode ? sameTypeCount * 110 : sameTypeCount * 45;
       }
       if (oppositeTypeCount > 0) {
-        score += strongMode ? oppositeTypeCount * 220 : oppositeTypeCount * 80;
+        score += strongMode ? oppositeTypeCount * 260 : oppositeTypeCount * 95;
       }
     }
 
@@ -3818,7 +3835,7 @@ sortedCoursesForInvigilation.forEach((course) => {
     }
   
     slotCoursesMap.get(bestSlot.id).push(course.key);
-newPlaced.push({
+const placedItem = {
   ...course,
   ...bestSlot,
   instanceId: makeScheduledInstanceId(),
@@ -3833,7 +3850,12 @@ newPlaced.push({
   invigilators: pickInvigilators(course, bestSlot),
   manualEdited: false,
   isPinned: false,
-});
+};
+newPlaced.push(placedItem);
+const placedTypeKey = isGeneralStudiesCourse(placedItem) ? "general" : "specialized";
+const placedDayTypeCounts = scheduledTypeByDate.get(bestSlot.dateISO) || { general: 0, specialized: 0 };
+placedDayTypeCounts[placedTypeKey] = (placedDayTypeCounts[placedTypeKey] || 0) + 1;
+scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
   });
 
   newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
