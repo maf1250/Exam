@@ -309,15 +309,16 @@ const PERIOD_TIME_OPTIONS = generatePeriodTimeOptions();
 
 function getDefaultPeriodConfigs() {
   return [
-    { start: "07:45", duration: 75 },
-    { start: "09:15", duration: 105 },
-    { start: "11:15", duration: 105 },
+    { start: "07:45", duration: 75, enabled: true },
+    { start: "09:15", duration: 105, enabled: true },
+    { start: "11:15", duration: 105, enabled: false },
   ];
 }
 
 function serializePeriodConfigsToText(periodConfigs) {
   return (Array.isArray(periodConfigs) ? periodConfigs : [])
     .map((item) => {
+      if (item?.enabled === false) return "";
       const startMinutes = parseTimeToMinutes(item?.start);
       const duration = Number(item?.duration);
       if (startMinutes === null || !Number.isFinite(duration) || duration <= 0) return "";
@@ -328,12 +329,18 @@ function serializePeriodConfigsToText(periodConfigs) {
 }
 
 function parsePeriodsTextToConfigs(periodsText) {
+  const defaults = getDefaultPeriodConfigs();
   const parsed = parsePeriodsText(periodsText).filter((item) => item.valid);
-  if (!parsed.length) return getDefaultPeriodConfigs();
-  return parsed.slice(0, 3).map((item) => ({
-    start: minutesToTimeText(item.startMinutes),
-    duration: item.endMinutes - item.startMinutes,
-  }));
+  if (!parsed.length) return defaults;
+  return defaults.map((item, index) => {
+    const parsedItem = parsed[index];
+    if (!parsedItem) return { ...item, enabled: false };
+    return {
+      start: minutesToTimeText(parsedItem.startMinutes),
+      duration: parsedItem.endMinutes - parsedItem.startMinutes,
+      enabled: true,
+    };
+  });
 }
 
 function parsePeriodsText(periodsText) {
@@ -1749,21 +1756,33 @@ const [hallWarnings, setHallWarnings] = useState([]);
 const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
 const updatePeriodConfig = (index, patch) => {
-  setPeriodConfigs((prev) =>
-    prev.map((item, itemIndex) =>
+  setPeriodConfigs((prev) => {
+    const next = prev.map((item, itemIndex) =>
       itemIndex === index
         ? {
             ...item,
             ...patch,
           }
         : item
-    )
-  );
+    );
+
+    return next.map((item, itemIndex) => {
+      if (itemIndex === 0) return { ...item, enabled: true };
+      return item;
+    });
+  });
 };
 
 const periodOverlapWarning = useMemo(() => {
   const normalized = periodConfigs
     .map((item, index) => {
+      if (item?.enabled === false) {
+        return {
+          index,
+          startMinutes: null,
+          endMinutes: null,
+        };
+      }
       const startMinutes = parseTimeToMinutes(item?.start);
       const duration = Number(item?.duration);
       const endMinutes = startMinutes === null || !Number.isFinite(duration) ? null : startMinutes + duration;
@@ -2570,9 +2589,15 @@ const restorePersistedState = (saved) => {
   setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   setPeriodConfigs(
     Array.isArray(saved.periodConfigs) && saved.periodConfigs.length
-      ? saved.periodConfigs.slice(0, 3).map((item, index) => ({
-          start: String(item?.start || getDefaultPeriodConfigs()[index]?.start || "07:45"),
-          duration: Number(item?.duration) || getDefaultPeriodConfigs()[index]?.duration || 90,
+      ? getDefaultPeriodConfigs().map((defaultItem, index) => ({
+          start: String(saved.periodConfigs[index]?.start || defaultItem.start || "07:45"),
+          duration: Number(saved.periodConfigs[index]?.duration) || defaultItem.duration || 90,
+          enabled:
+            index === 0
+              ? true
+              : saved.periodConfigs[index]?.enabled !== undefined
+              ? Boolean(saved.periodConfigs[index]?.enabled)
+              : Boolean(saved.periodConfigs[index]),
         }))
       : parsePeriodsTextToConfigs(saved.periodsText || "07:45-09:00\n09:15-11:00")
   );
@@ -5007,39 +5032,54 @@ style={{
               </div>
             </div>
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار الثلاث</div>
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
+              <div style={{ display: "grid", gap: 10 }}>
                 {periodConfigs.map((periodConfig, index) => {
                   const startMinutes = parseTimeToMinutes(periodConfig.start);
                   const endText =
-                    startMinutes === null
+                    periodConfig.enabled === false || startMinutes === null
                       ? "--:--"
                       : minutesToTimeText(startMinutes + Number(periodConfig.duration || 0));
+                  const isRequired = index === 0;
 
                   return (
                     <div
                       key={`period-config-${index}`}
                       style={{
                         border: `1px solid ${COLORS.border}`,
-                        borderRadius: 16,
-                        padding: 12,
-                        background: "#fff",
+                        borderRadius: 14,
+                        padding: 10,
+                        background: periodConfig.enabled ? "#fff" : COLORS.bg2,
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 12,
+                        gridTemplateColumns: "120px minmax(110px, 150px) minmax(110px, 150px) minmax(90px, 120px)",
+                        gap: 8,
                         alignItems: "end",
+                        maxWidth: 640,
+                        opacity: periodConfig.enabled ? 1 : 0.78,
                       }}
                     >
-                      <div style={{ fontWeight: 800, color: COLORS.charcoal, alignSelf: "center" }}>
-                        الفترة {index + 1}
+                      <div>
+                        <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 8 }}>
+                          الفترة {index + 1}
+                        </div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: isRequired ? COLORS.muted : COLORS.text }}>
+                          <input
+                            type="checkbox"
+                            checked={isRequired ? true : periodConfig.enabled !== false}
+                            disabled={isRequired}
+                            onChange={(e) => updatePeriodConfig(index, { enabled: e.target.checked })}
+                          />
+                          {isRequired ? "إلزامية" : "تفعيل الفترة"}
+                        </label>
                       </div>
 
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 700 }}>وقت البداية</div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>البداية</div>
                         <select
                           value={periodConfig.start}
+                          disabled={periodConfig.enabled === false}
                           onChange={(e) => updatePeriodConfig(index, { start: e.target.value })}
-                          style={fieldStyle()}
+                          style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
                         >
                           {PERIOD_TIME_OPTIONS.map((timeValue) => (
                             <option key={timeValue} value={timeValue}>
@@ -5050,28 +5090,33 @@ style={{
                       </div>
 
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 700 }}>المدة</div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>المدة</div>
                         <select
                           value={periodConfig.duration}
+                          disabled={periodConfig.enabled === false}
                           onChange={(e) => updatePeriodConfig(index, { duration: Number(e.target.value) })}
-                          style={fieldStyle()}
+                          style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
                         >
                           {PERIOD_DURATION_OPTIONS.map((durationValue) => (
                             <option key={durationValue} value={durationValue}>
-                              {durationValue} دقيقة
+                              {durationValue} د
                             </option>
                           ))}
                         </select>
                       </div>
 
                       <div>
-                        <div style={{ marginBottom: 8, fontWeight: 700 }}>وقت النهاية</div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>النهاية</div>
                         <div
                           style={{
                             ...fieldStyle(),
+                            padding: "10px 12px",
+                            borderRadius: 12,
                             background: COLORS.bg2,
                             fontWeight: 800,
                             color: COLORS.primaryDark,
+                            fontSize: 14,
+                            textAlign: "center",
                           }}
                         >
                           {endText}
@@ -5082,8 +5127,8 @@ style={{
                 })}
               </div>
 
-              <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>
-                اختر وقت البداية والمدة لكل فترة. المدة المسموحة من ساعة إلى ثلاث ساعات.
+              <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13, maxWidth: 640 }}>
+                الفترة الأولى إلزامية، ويمكنك إيقاف الفترة الثانية أو الثالثة عند عدم الحاجة. المدة المسموحة من ساعة إلى ثلاث ساعات.
               </div>
 
               {periodOverlapWarning ? (
