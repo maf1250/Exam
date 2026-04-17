@@ -397,6 +397,10 @@ function makeCourseGroupId() {
   return `course_group_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function makeScheduledInstanceId() {
+  return `scheduled_${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function normalizeDepartmentList(list) {
   return Array.from(
     new Set(
@@ -1663,6 +1667,7 @@ const [draggingSamePeriodCourseKey, setDraggingSamePeriodCourseKey] = useState("
 const [maxExamsPerStudentPerDay, setMaxExamsPerStudentPerDay] = useState(2);
 const [courseConstraints, setCourseConstraints] = useState({});
 const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
+const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
 const stepNineCardStyle = {
@@ -1837,7 +1842,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
     if (manualScheduleLocked) return;
 
     setSchedule((prev) => {
-      const sourceItem = prev.find((item) => item.id === itemId);
+      const sourceItem = prev.find((item) => item.instanceId === itemId);
       const targetSlot = slots.find((slot) => slot.id === targetSlotId);
 
       if (!sourceItem || !targetSlot || sourceItem.id === targetSlotId) {
@@ -1847,7 +1852,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
       const sourceStudents = new Set(sourceItem.students || []);
       const hasConflict = prev.some((item) => {
         if (item.id !== targetSlotId) return false;
-        if (item.id === itemId) return false;
+        if (item.instanceId === itemId) return false;
         return (item.students || []).some((studentId) => sourceStudents.has(studentId));
       });
 
@@ -1857,7 +1862,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
       }
 
       return prev.map((item) =>
-        item.id === itemId
+        item.instanceId === itemId
           ? {
               ...item,
               ...targetSlot,
@@ -1871,7 +1876,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
   function togglePinScheduledCourse(itemId) {
     setSchedule((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, isPinned: !item.isPinned } : item
+        item.instanceId === itemId ? { ...item, isPinned: !item.isPinned } : item
       )
     );
   }
@@ -1882,7 +1887,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
     let removedItem = null;
 
     setSchedule((prev) => {
-      removedItem = prev.find((item) => item.id === itemId) || null;
+      removedItem = prev.find((item) => item.instanceId === itemId) || null;
       return prev.filter((item) => item.id !== itemId);
     });
 
@@ -2125,6 +2130,7 @@ const serializeScheduleItem = (item) => ({
   
 const deserializeScheduleItem = (item) => ({
   ...item,
+  instanceId: item.instanceId || makeScheduledInstanceId(),
   students: Array.isArray(item.students) ? item.students : [],
 });
 
@@ -3201,8 +3207,7 @@ const selectedCourseB = useMemo(
         courseKeys: Array.from(
           new Set((group.courseKeys || []).filter((key) => !excludedCourses.includes(key)))
         ),
-      }))
-      .filter((group) => group.courseKeys.length > 0 || (samePeriodGroups || []).length === 1);
+      }));
 
     const currentJson = JSON.stringify(samePeriodGroups || []);
     const nextJson = JSON.stringify(sanitized);
@@ -3600,6 +3605,7 @@ sortedCoursesForInvigilation.forEach((course) => {
 newPlaced.push({
   ...course,
   ...bestSlot,
+  instanceId: makeScheduledInstanceId(),
   students: Array.from(course.students || []),
   trainers: Array.from(course.trainers || []),
   departments: Array.from(course.departments || []),
@@ -5238,20 +5244,72 @@ style={{
                 هذه الخيارات ليست إلزامية؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
               </div>
 
-              <div style={{ maxWidth: 520, marginBottom: 14 }}>
-                <select
-                  value={selectedConstraintCourseKey}
-                  onChange={(e) => setSelectedConstraintCourseKey(e.target.value)}
-                  style={fieldStyle()}
-                >
-                  <option value="">اختر المقرر</option>
-                  {courseConstraintOptions.map((course) => (
-                    <option key={course.key} value={course.key}>
-                      {course.label}
-                    </option>
-                  ))}
-                </select>
+              <div style={{ maxWidth: 700, marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ flex: "1 1 320px" }}>
+                    <select
+                      value={selectedConstraintCourseKey}
+                      onChange={(e) => setSelectedConstraintCourseKey(e.target.value)}
+                      style={fieldStyle()}
+                    >
+                      <option value="">اختر المقرر</option>
+                      {courseConstraintOptions.map((course) => (
+                        <option key={course.key} value={course.key}>
+                          {course.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addConstraintCourseToList(selectedConstraintCourseKey)}
+                    style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
+                    disabled={!selectedConstraintCourseKey}
+                  >
+                    إضافة مقرر آخر
+                  </button>
+                </div>
               </div>
+
+              {selectedConstraintCourseKeys.length ? (
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                  {selectedConstraintCourseKeys.map((courseKey) => {
+                    const course = courseConstraintOptions.find((item) => item.key === courseKey);
+                    if (!course) return null;
+
+                    return (
+                      <div
+                        key={courseKey}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          border: `1px solid ${selectedConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                          background: selectedConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                          borderRadius: 999,
+                          padding: "8px 12px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedConstraintCourseKey(courseKey)}
+                          style={{ border: "none", background: "transparent", cursor: "pointer", fontWeight: 800, color: COLORS.charcoal }}
+                        >
+                          {course.label}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeConstraintCourseFromList(courseKey)}
+                          style={{ border: "none", background: "transparent", cursor: "pointer", color: COLORS.danger, fontWeight: 900 }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
 
               {selectedConstraintCourseKey ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -6430,9 +6488,9 @@ style={{
                         {slot.items.length ? (
                           slot.items.map((item) => (
                             <div
-                              key={`${item.key}-${item.id}`}
+                              key={item.instanceId}
                               draggable={!manualScheduleLocked}
-                              onDragStart={() => setDraggingScheduleItemId(item.id)}
+                              onDragStart={() => setDraggingScheduleItemId(item.instanceId)}
                               onDragEnd={() => setDraggingScheduleItemId("")}
                               style={{
                                 border: `1px solid ${item.isPinned ? COLORS.primaryDark : COLORS.primaryBorder}`,
@@ -6446,11 +6504,11 @@ style={{
                             >
                               <div style={{ fontWeight: 900 }}>{item.courseName}</div>
                               <div style={{ fontSize: 13, marginTop: 4 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                                <button type="button" onClick={() => togglePinScheduledCourse(item.id)} style={cardButtonStyle({ active: !!item.isPinned })}>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
+                                <button type="button" onClick={() => togglePinScheduledCourse(item.instanceId)} style={{ ...cardButtonStyle({ active: !!item.isPinned }), padding: "8px 12px", borderRadius: 12 }}>
                                   {item.isPinned ? "إلغاء التثبيت" : "تثبيت"}
                                 </button>
-                                <button type="button" onClick={() => unscheduleCourseManually(item.id)} style={cardButtonStyle({ danger: true, disabled: manualScheduleLocked })} disabled={manualScheduleLocked}>
+                                <button type="button" onClick={() => unscheduleCourseManually(item.instanceId)} style={{ ...cardButtonStyle({ danger: true, disabled: manualScheduleLocked }), padding: "8px 12px", borderRadius: 12 }} disabled={manualScheduleLocked}>
                                   نقل إلى غير المجدول
                                 </button>
                               </div>
@@ -6830,7 +6888,7 @@ style={{
                                   };
 
                                   return (
-                                    <tr key={`${item.key}-${item.id}`}>
+                                    <tr key={item.instanceId}>
                                       <td style={{ ...cellStyle, fontWeight: 800 }}>
                                         <span
                                           style={{
