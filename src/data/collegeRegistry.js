@@ -301,12 +301,7 @@ export function detectGenderFromText(text = "") {
     normalized.includes("التطبيقية") ||
     normalized.includes("تطبيقية")
   ) {
-    return "applied";
-  }
 
-    if (
-   
-  ) {
     return "TT";
   }
 
