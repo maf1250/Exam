@@ -1703,6 +1703,7 @@ const stepNineCardStyle = {
 };
 const [hallWarnings, setHallWarnings] = useState([]);
 
+
   function addExamHall() {
     setExamHalls((prev) => [
       ...prev,
@@ -1933,6 +1934,10 @@ const [hallWarnings, setHallWarnings] = useState([]);
     if (manualScheduleLocked) return;
 
     const course = parsed.courses.find((item) => item.key === courseKey) || unscheduled.find((item) => item.key === courseKey);
+    if (!canEditManualCourse(course)) {
+      showGeneralStudiesManualLockToast();
+      return;
+    }
     const targetSlot = slots.find((slot) => slot.id === targetSlotId);
     if (!course || !targetSlot) return;
 
@@ -2007,6 +2012,10 @@ const [hallWarnings, setHallWarnings] = useState([]);
 
     setSchedule((prev) => {
       const sourceItem = prev.find((item) => item.instanceId === itemId);
+      if (!canEditManualCourse(sourceItem)) {
+        showGeneralStudiesManualLockToast();
+        return prev;
+      }
       const targetSlot = slots.find((slot) => slot.id === targetSlotId);
 
       if (!sourceItem || !targetSlot || sourceItem.id === targetSlotId) {
@@ -2034,15 +2043,26 @@ const [hallWarnings, setHallWarnings] = useState([]);
 
 
   function togglePinScheduledCourse(itemId) {
-    setSchedule((prev) =>
-      prev.map((item) =>
+    setSchedule((prev) => {
+      const targetItem = prev.find((item) => item.instanceId === itemId);
+      if (!canEditManualCourse(targetItem)) {
+        showGeneralStudiesManualLockToast();
+        return prev;
+      }
+      return prev.map((item) =>
         item.instanceId === itemId ? { ...item, isPinned: !item.isPinned } : item
-      )
-    );
+      );
+    });
   }
 
   function unscheduleCourseManually(itemId) {
     if (manualScheduleLocked) return;
+
+    const currentItem = schedule.find((item) => item.instanceId === itemId);
+    if (!canEditManualCourse(currentItem)) {
+      showGeneralStudiesManualLockToast();
+      return;
+    }
 
     let removedItem = null;
 
@@ -2066,6 +2086,10 @@ const [hallWarnings, setHallWarnings] = useState([]);
     if (manualScheduleLocked) return;
 
     const course = parsed.courses.find((item) => item.key === courseKey);
+    if (!canEditManualCourse(course)) {
+      showGeneralStudiesManualLockToast();
+      return;
+    }
     if (!course) return;
 
     const result = generateScheduleForCourses([course], schedule);
@@ -2147,6 +2171,22 @@ const [courseBKey, setCourseBKey] = useState("");
   const [autoDetectedCollegeLocation, setAutoDetectedCollegeLocation] = useState("");
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
+
+  const isGeneralStudiesManualEditLocked = !includeAllDepartmentsAndMajors;
+
+  function canEditManualCourse(courseLike) {
+    if (!courseLike) return false;
+    if (!isGeneralStudiesManualEditLocked) return true;
+    return !isGeneralStudiesCourse(courseLike);
+  }
+
+  function showGeneralStudiesManualLockToast() {
+    showToast(
+      "الدراسات العامة مقفلة",
+      "لا يمكن تعديل مقررات الدراسات العامة يدويًا عند تفعيل توزيع التخصصات والأقسام بشكل مستقل.",
+      "warning"
+    );
+  }
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
   const [lockGeneralStudiesStep, setLockGeneralStudiesStep] = useState(false);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
@@ -6673,6 +6713,23 @@ style={{
                 description="اسحب المقررات بين الفترات يدويًا، ويمكنك قفل الجدول أو تثبيت بعض المقررات حتى لا تتغير لاحقًا."
               />
 
+              {isGeneralStudiesManualEditLocked ? (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    border: `1px solid ${COLORS.warning}`,
+                    background: COLORS.warningBg,
+                    color: COLORS.warning,
+                    borderRadius: 16,
+                    padding: "12px 14px",
+                    lineHeight: 1.8,
+                    fontWeight: 700,
+                  }}
+                >
+                  عند تفعيل توزيع التخصصات والأقسام بشكل مستقل، يتم قفل مقررات الدراسات العامة في التعديل اليدوي ولا يمكن نقلها أو تثبيتها أو إعادتها من غير المجدول.
+                </div>
+              ) : null}
+
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
                 <button
                   type="button"
@@ -6804,7 +6861,7 @@ style={{
                           slot.items.map((item) => (
                             <div
                               key={item.instanceId}
-                              draggable={!manualScheduleLocked}
+                              draggable={!manualScheduleLocked && canEditManualCourse(item)}
                               onDragStart={() => {
                                 setDraggingScheduleItemId(item.instanceId);
                                 setDraggingUnscheduledCourseKey("");
@@ -6820,16 +6877,20 @@ style={{
                                 borderRadius: 18,
                                 padding: 12,
                                 minWidth: 220,
-                                cursor: manualScheduleLocked ? "default" : "grab",
+                                cursor: manualScheduleLocked || !canEditManualCourse(item) ? "default" : "grab",
+                                opacity: !canEditManualCourse(item) ? 0.72 : 1,
                               }}
                             >
                               <div style={{ fontWeight: 900 }}>{item.courseName}</div>
                               <div style={{ fontSize: 13, marginTop: 4 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
                               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
-                                <button type="button" onClick={() => togglePinScheduledCourse(item.instanceId)} style={{ ...cardButtonStyle({ active: !!item.isPinned }), padding: "8px 12px", borderRadius: 12 }}>
+                                {!canEditManualCourse(item) ? (
+                                  <span style={{ fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</span>
+                                ) : null}
+                                <button type="button" onClick={() => togglePinScheduledCourse(item.instanceId)} disabled={!canEditManualCourse(item)} style={{ ...cardButtonStyle({ active: !!item.isPinned, disabled: !canEditManualCourse(item) }), padding: "8px 12px", borderRadius: 12 }}>
                                   {item.isPinned ? "إلغاء التثبيت" : "تثبيت"}
                                 </button>
-                                <button type="button" onClick={() => unscheduleCourseManually(item.instanceId)} style={{ ...cardButtonStyle({ danger: true, disabled: manualScheduleLocked }), padding: "8px 12px", borderRadius: 12 }} disabled={manualScheduleLocked}>
+                                <button type="button" onClick={() => unscheduleCourseManually(item.instanceId)} style={{ ...cardButtonStyle({ danger: true, disabled: manualScheduleLocked || !canEditManualCourse(item) }), padding: "8px 12px", borderRadius: 12 }} disabled={manualScheduleLocked || !canEditManualCourse(item)}>
                                   نقل إلى غير المجدول
                                 </button>
                               </div>
@@ -6858,19 +6919,22 @@ style={{
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {unscheduled.length ? (
                     unscheduled.map((course, index) => (
-                      <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked} onDragStart={() => {
+                      <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={() => {
                         setDraggingUnscheduledCourseKey(course.key);
                         setDraggingScheduleItemId("");
                       }} onDragEnd={() => {
                         setDraggingUnscheduledCourseKey("");
                         setActiveDropSlotId("");
-                      }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked ? "default" : "grab", opacity: draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1 }}>
+                      }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked || !canEditManualCourse(course) ? "default" : "grab", opacity: !canEditManualCourse(course) ? 0.72 : (draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1) }}>
                         <div style={{ fontWeight: 800 }}>{course.courseName}</div>
                         <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
                           {course.unscheduledReason || "تعذر العثور على فترة مناسبة."}
                         </div>
+                        {!canEditManualCourse(course) ? (
+                          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
+                        ) : null}
                         <div style={{ marginTop: 8 }}>
-                          <button type="button" onClick={() => restoreUnscheduledCourse(course.key)} style={cardButtonStyle({ disabled: manualScheduleLocked })} disabled={manualScheduleLocked}>
+                          <button type="button" onClick={() => restoreUnscheduledCourse(course.key)} style={cardButtonStyle({ disabled: manualScheduleLocked || !canEditManualCourse(course) })} disabled={manualScheduleLocked || !canEditManualCourse(course)}>
                             محاولة إعادة الجدولة
                           </button>
                         </div>
