@@ -320,14 +320,21 @@ export function detectGenderFromText(text = "") {
     normalized.includes("المعلومات") ||
     normalized.includes("الإلكترونيات") ||
     normalized.includes("معلومات")   ||
-        normalized.includes("إلكترونيات") ||
+    normalized.includes("إلكترونيات") ||
     normalized.includes("الرقمية")   ||
     normalized.includes("رقمية")
   ) {
     return "IT";
   }
   
-  
+   if (
+    normalized.includes("الغذاء") ||
+    normalized.includes("البيئة")  ||
+    normalized.includes("غذاء") ||
+    normalized.includes("بيئة") 
+  ) {
+    return "FE";
+  }
   return "";
 }
 
