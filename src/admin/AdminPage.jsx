@@ -669,7 +669,7 @@ function Toast({ item, onClose, onRestore }) {
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
       <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
         {item.type === "warning" && item.action === "restore_session" && onRestore ? (
           <button
             onClick={onRestore}
@@ -684,6 +684,24 @@ function Toast({ item, onClose, onRestore }) {
             استرجاع
           </button>
         ) : null}
+
+        {Array.isArray(item.actions)
+          ? item.actions.map((action, index) => (
+              <button
+                key={`${action.label || "action"}-${index}`}
+                onClick={action.onClick}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {action.label}
+              </button>
+            ))
+          : null}
 
         <button
           onClick={onClose}
@@ -1631,6 +1649,7 @@ const pendingRestoreRef = useRef(null);
   
   const [selectedConflicts, setSelectedConflicts] = useState(null);
   const [selectedConflictStudents, setSelectedConflictStudents] = useState(null);
+  const [selectedManualMoveConflicts, setSelectedManualMoveConflicts] = useState(null);
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [collegeNameInput, setCollegeNameInput] = useState("");
@@ -1867,14 +1886,66 @@ const [hallWarnings, setHallWarnings] = useState([]);
       }
 
       const sourceStudents = new Set(sourceItem.students || []);
-      const hasConflict = prev.some((item) => {
-        if (item.id !== targetSlotId) return false;
-        if (item.instanceId === itemId) return false;
-        return (item.students || []).some((studentId) => sourceStudents.has(studentId));
-      });
+      const conflictingItems = prev
+        .filter((item) => item.id === targetSlotId && item.instanceId !== itemId)
+        .map((item) => {
+          const sharedStudentIds = (item.students || []).filter((studentId) => sourceStudents.has(studentId));
+          if (!sharedStudentIds.length) return null;
 
-      if (hasConflict) {
-        showToast("تعذر النقل", "يوجد متدرب مشترك في هذه الفترة، لذلك لم يتم النقل.", "error");
+          const students = sharedStudentIds
+            .map((studentId) =>
+              preciseStudentInfoMap.get(studentId) || {
+                id: studentId,
+                name: "بدون اسم",
+                department: "-",
+                major: "-",
+              }
+            )
+            .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
+
+          return {
+            courseKey: item.key,
+            courseName: item.courseName || "-",
+            courseCode: item.courseCode || "-",
+            examHall: item.examHall || "غير محدد",
+            sharedCount: students.length,
+            students,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.sharedCount - a.sharedCount || a.courseName.localeCompare(b.courseName, "ar"));
+
+      if (conflictingItems.length) {
+        const totalShared = conflictingItems.reduce((sum, item) => sum + item.sharedCount, 0);
+        setSelectedManualMoveConflicts({
+          sourceCourseName: sourceItem.courseName || "-",
+          sourceCourseCode: sourceItem.courseCode || "-",
+          targetSlot,
+          conflicts: conflictingItems,
+          totalShared,
+        });
+        showToast(
+          "تعذر النقل",
+          `يوجد ${totalShared} ${formatTrainees(totalShared)} متعارضين موزعين على ${conflictingItems.length} مقرر في هذه الفترة.`,
+          "error",
+          {
+            persistent: true,
+            actions: [
+              {
+                label: "عرض المتعارضين",
+                onClick: () => {
+                  setSelectedManualMoveConflicts({
+                    sourceCourseName: sourceItem.courseName || "-",
+                    sourceCourseCode: sourceItem.courseCode || "-",
+                    targetSlot,
+                    conflicts: conflictingItems,
+                    totalShared,
+                  });
+                },
+              },
+            ],
+          }
+        );
         return prev;
       }
 
@@ -1889,6 +1960,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
       );
     });
   }
+
 
   function togglePinScheduledCourse(itemId) {
     setSchedule((prev) =>
@@ -7766,6 +7838,115 @@ style={{
   </div>
 )}
       
+{selectedManualMoveConflicts && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(20,123,131,0.18)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      zIndex: 10000,
+    }}
+    onClick={() => setSelectedManualMoveConflicts(null)}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 20,
+        padding: 22,
+        width: "min(900px, 100%)",
+        maxHeight: "78vh",
+        overflowY: "auto",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        boxShadow: "0 20px 50px rgba(20,123,131,0.18)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h4 style={{ margin: "0 0 8px", color: COLORS.primaryDark, fontWeight: 900, fontSize: 18 }}>
+        تفاصيل تعذر النقل
+      </h4>
+      <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
+        <div><strong>المقرر المراد نقله:</strong> {selectedManualMoveConflicts.sourceCourseName} {selectedManualMoveConflicts.sourceCourseCode ? `- ${selectedManualMoveConflicts.sourceCourseCode}` : ""}</div>
+        <div><strong>الفترة المستهدفة:</strong> {selectedManualMoveConflicts.targetSlot.dayName} — الفترة {selectedManualMoveConflicts.targetSlot.period}</div>
+        <div><strong>إجمالي المتدربين المتعارضين:</strong> {selectedManualMoveConflicts.totalShared} {formatTrainees(selectedManualMoveConflicts.totalShared)}</div>
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        {selectedManualMoveConflicts.conflicts.map((conflict, index) => {
+          const rowTheme = getTvtcRowTheme(index);
+          return (
+            <div
+              key={`${conflict.courseKey}-${index}`}
+              style={{
+                background: rowTheme.bg,
+                border: `1px solid ${rowTheme.border}`,
+                borderRadius: 16,
+                padding: 14,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 900, color: COLORS.primaryDark }}>{conflict.courseName}</div>
+                  <div style={{ color: COLORS.muted, marginTop: 4 }}>
+                    {conflict.courseCode ? `الرمز: ${conflict.courseCode}` : ""}
+                    {conflict.examHall ? `${conflict.courseCode ? " — " : ""}القاعة: ${conflict.examHall}` : ""}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      background: "rgba(255,255,255,0.72)",
+                      border: `1px solid ${rowTheme.border}`,
+                      color: COLORS.primaryDark,
+                      borderRadius: 999,
+                      padding: "6px 12px",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {conflict.sharedCount} {formatTrainees(conflict.sharedCount)}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setSelectedConflictStudents({
+                        courseName: selectedManualMoveConflicts.sourceCourseName,
+                        conflictName: `${conflict.courseName}${conflict.courseCode ? ` - ${conflict.courseCode}` : ""}`,
+                        students: conflict.students,
+                      })
+                    }
+                    style={{ ...cardButtonStyle({ active: true }), padding: "8px 14px" }}
+                  >
+                    عرض البيانات
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => setSelectedManualMoveConflicts(null)}
+        style={{
+          marginTop: 14,
+          padding: "8px 14px",
+          borderRadius: 10,
+          border: "none",
+          background: COLORS.primaryDark,
+          color: "#fff",
+          cursor: "pointer",
+          fontWeight: 700,
+          width: "100%",
+        }}
+      >
+        إغلاق
+      </button>
+    </div>
+  </div>
+)}
+
 {selectedConflictStudents && (
   <div
     style={{
