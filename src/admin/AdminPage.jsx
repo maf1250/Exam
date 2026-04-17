@@ -1838,6 +1838,23 @@ const [hallWarnings, setHallWarnings] = useState([]);
     });
   }
 
+  function addConstraintCourseToList(courseKey) {
+    if (!courseKey) return;
+    setSelectedConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
+    setSelectedConstraintCourseKey(courseKey);
+  }
+
+  function removeConstraintCourseFromList(courseKey) {
+    if (!courseKey) return;
+    setSelectedConstraintCourseKeys((prev) => {
+      const next = prev.filter((key) => key !== courseKey);
+      if (selectedConstraintCourseKey === courseKey) {
+        setSelectedConstraintCourseKey(next[0] || "");
+      }
+      return next;
+    });
+  }
+
   function moveScheduledCourseToSlot(itemId, targetSlotId) {
     if (manualScheduleLocked) return;
 
@@ -1888,7 +1905,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
 
     setSchedule((prev) => {
       removedItem = prev.find((item) => item.instanceId === itemId) || null;
-      return prev.filter((item) => item.id !== itemId);
+      return prev.filter((item) => item.instanceId !== itemId);
     });
 
     if (removedItem) {
@@ -2045,6 +2062,7 @@ const handleUpload = (file) => {
       setMaxExamsPerStudentPerDay(2);
       setCourseConstraints({});
       setSelectedConstraintCourseKey("");
+      setSelectedConstraintCourseKeys([]);
       setManualScheduleLocked(false);
       setDraggingScheduleItemId("");
       setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
@@ -3218,6 +3236,12 @@ const selectedCourseB = useMemo(
   }, [enableSamePeriodGroups, samePeriodGroups, excludedCourses]);
 
   useEffect(() => {
+    const validKeys = new Set(parsed.courses.map((course) => course.key));
+    setSelectedConstraintCourseKeys((prev) => prev.filter((key) => validKeys.has(key)));
+    setSelectedConstraintCourseKey((prev) => (prev && validKeys.has(prev) ? prev : ""));
+  }, [parsed.courses]);
+
+  useEffect(() => {
     const validKeys = parsed.courses.map((course) => course.key);
     const sanitized = sanitizeCourseConstraintsMap(courseConstraints, validKeys);
     const currentJson = JSON.stringify(courseConstraints || {});
@@ -3756,13 +3780,12 @@ const filteredSortedCourses = useMemo(() => {
 
   const groupedScheduleEntries = useMemo(() => Object.entries(groupedSchedule), [groupedSchedule]);
 
-  const daysPerPage = 5;
-  const totalPreviewPages = Math.max(1, Math.ceil(groupedScheduleEntries.length / daysPerPage));
+  const daysPerPage = Math.max(1, groupedScheduleEntries.length || 1);
+  const totalPreviewPages = 1;
 
   const paginatedGroupedSchedule = useMemo(() => {
-    const start = previewPage * daysPerPage;
-    return groupedScheduleEntries.slice(start, start + daysPerPage);
-  }, [groupedScheduleEntries, previewPage]);
+    return groupedScheduleEntries;
+  }, [groupedScheduleEntries]);
 
 
 const studentOptionsForPrint = useMemo(() => {
