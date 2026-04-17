@@ -5810,7 +5810,7 @@ style={{
                     onClick={() => addConstraintCourseToList(selectedConstraintCourseKey)}
                     style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
                     disabled={!selectedConstraintCourseKey}
-                    setSelectedConstraintCourseKey("");
+                   onClick={() => setSelectedConstraintCourseKey("")}
                   >
                     إضافة مقرر آخر
                   </button>
