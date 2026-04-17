@@ -162,7 +162,42 @@ export function detectGenderFromText(text = "") {
 
   return "";
 }
+export function detectGenderFromRows(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) return "";
 
+  const textPool = rows
+    .slice(0, 50)
+    .map((row) =>
+      [
+        row?.["الوحدة"],
+        row?.["القسم"],
+        row?.["التخصص"],
+      ]
+        .filter(Boolean)
+        .join(" ")
+    )
+    .join(" ");
+
+  return detectGenderFromText(textPool);
+}
+export function detectCollegeTrackFromRows(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) return "";
+
+  const textPool = rows
+    .slice(0, 50)
+    .map((row) =>
+      [
+        row?.["الوحدة"],
+        row?.["القسم"],
+        row?.["التخصص"],
+      ]
+        .filter(Boolean)
+        .join(" ")
+    )
+    .join(" ");
+
+  return detectCollegeTrackFromText(textPool);
+}
 // =======================
 // TRACK DETECTION
 // =======================
