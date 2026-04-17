@@ -3187,6 +3187,25 @@ const effectiveCollegeSlug = useMemo(
     setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
   }, [includeAllDepartmentsAndMajors]);
 
+  const handleIncludeAllDepartmentsAndMajorsChange = (checked) => {
+    if (!checked && !generalSchedule.length) {
+      showToast(
+        "يجب توزيع الدراسات العامة أولًا",
+        "لا يمكن تفعيل التوزيع الخاص بالأقسام والتخصصات قبل توزيع مقررات الدراسات العامة.",
+        "warning"
+      );
+      return;
+    }
+
+    setIncludeAllDepartmentsAndMajors(checked);
+    if (checked) {
+      setExcludedDepartmentMajors([]);
+      setLockGeneralStudiesStep(false);
+    } else {
+      setLockGeneralStudiesStep(true);
+    }
+  };
+
 
 const getSelectedPairConflictStudents = useMemo(() => {
   if (!courseAKey || !courseBKey || courseAKey === courseBKey) return [];
@@ -5173,15 +5192,7 @@ style={{
                 <input
                   type="checkbox"
                   checked={includeAllDepartmentsAndMajors}
-                  onChange={(e) => {
-                    setIncludeAllDepartmentsAndMajors(e.target.checked);
-                    if (e.target.checked) {
-                      setExcludedDepartmentMajors([]);
-                      setLockGeneralStudiesStep(false);
-                    } else {
-                      setLockGeneralStudiesStep(true);
-                    }
-                  }}
+                  onChange={(e) => handleIncludeAllDepartmentsAndMajorsChange(e.target.checked)}
                 />
                 توزيع جميع التخصصات والأقسام
               </label>
@@ -6192,15 +6203,7 @@ style={{
                 <input
                   type="checkbox"
                   checked={includeAllDepartmentsAndMajors}
-                  onChange={(e) => {
-                    setIncludeAllDepartmentsAndMajors(e.target.checked);
-                    if (e.target.checked) {
-                      setExcludedDepartmentMajors([]);
-                      setLockGeneralStudiesStep(false);
-                    } else {
-                      setLockGeneralStudiesStep(true);
-                    }
-                  }}
+                  onChange={(e) => handleIncludeAllDepartmentsAndMajorsChange(e.target.checked)}
                 />
                 توزيع جميع التخصصات والأقسام
               </label>
