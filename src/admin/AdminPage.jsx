@@ -5785,7 +5785,7 @@ style={{
             >
               <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)</div>
               <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
-                هذه الخيارات ليست إلزامية؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
+                هذه الخيارات ليست مؤكدة؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
               </div>
 
               <div style={{ maxWidth: 700, marginBottom: 14 }}>
