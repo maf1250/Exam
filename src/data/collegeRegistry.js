@@ -149,13 +149,15 @@ export const LOCATION_SLUGS = Object.fromEntries(
     name,
     {
       male: {
-        TT: `${code}CTM`,
+        CT: `${code}CTM`,
+        TT: `${code}TTM`,
         TO: `${code}TOM`,
         IT: `${code}ITM`,
         FE: `${code}FEM`,
       },
       female: {
-        TT: `${code}CTF`,
+        CT: `${code}CTF`,
+        TT: `${code}TTF`,
         TO: `${code}TOF`,
         IT: `${code}ITF`,
         FE: `${code}FEF`,
@@ -296,7 +298,7 @@ export function detectCollegeTrackFromText(text = "") {
     return "FE";
   }
 
-  return "";
+  return "CT";
 }
 
 export function detectCollegeTrackFromRows(rows = []) {
