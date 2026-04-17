@@ -5627,6 +5627,7 @@ style={{
 
               <div
                 style={{
+                  display: "inline-flex",
                   marginTop: 12,
                   background: "#fff",
                   border: `1px solid ${COLORS.primaryBorder}`,
@@ -5809,6 +5810,7 @@ style={{
                     onClick={() => addConstraintCourseToList(selectedConstraintCourseKey)}
                     style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
                     disabled={!selectedConstraintCourseKey}
+                    setSelectedConstraintCourseKey("");
                   >
                     إضافة مقرر آخر
                   </button>
