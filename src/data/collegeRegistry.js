@@ -2,23 +2,28 @@
 // LOCATION CODES
 // =======================
 export const LOCATION_CODES = {
+  // القصيم
   "القصيم": "QS",
 
+  // الباحة
   "الباحة": "BA",
   "المخواة": "MW",
   "المندق": "MN",
   "بلجرشي": "BJ",
 
+  // الجوف
   "الجوف": "JF",
   "دومة الجندل": "DJ",
   "طبرجل": "TJ",
   "القريات": "QR",
 
+  // الحدود الشمالية
   "رفحاء": "RF",
   "عرعر": "AR",
   "طريف": "TR",
 
-  "الرياض": "RD",
+  // الرياض
+  "الرياض": "RY",
   "الأفلاج": "FL",
   "الارطاوية": "AT",
   "الخرج": "KH",
@@ -36,11 +41,13 @@ export const LOCATION_CODES = {
   "شقراء": "SH",
   "ثادق": "TH",
 
+  // الشرقية
   "الأحساء": "AH",
   "الدمام": "DM",
   "القطيف": "QT",
   "حفر الباطن": "HF",
 
+  // القصيم
   "بريدة": "BR",
   "الأسياح": "AY",
   "الرس": "RS",
@@ -49,6 +56,7 @@ export const LOCATION_CODES = {
   "البدائع": "BD",
   "رياض الخبراء": "RK",
 
+  // المدينة المنورة
   "المدينة المنورة": "MD",
   "الحناكية": "HK",
   "العلا": "UL",
@@ -58,6 +66,7 @@ export const LOCATION_CODES = {
   "خيبر": "KB",
   "ينبع": "YN",
 
+  // تبوك
   "تبوك": "TB",
   "أملج": "AM",
   "حقل": "HQ",
@@ -65,6 +74,7 @@ export const LOCATION_CODES = {
   "تيماء": "TM",
   "ضباء": "DB",
 
+  // جازان
   "جازان": "JZ",
   "أبو عريش": "ABR",
   "الدرب": "DR",
@@ -74,11 +84,13 @@ export const LOCATION_CODES = {
   "العيدابي": "ED",
   "فرسان": "FR",
 
+  // حائل
   "حائل": "HL",
   "الحائط": "HT",
   "الشنان": "SN",
   "بقعاء": "BQ",
 
+  // عسير
   "أبها": "AB",
   "أحد رفيدة": "AHR",
   "النماص": "NM",
@@ -93,6 +105,7 @@ export const LOCATION_CODES = {
   "الفرشة": "FS",
   "تثليث": "TTS",
 
+  // مكة المكرمة
   "مكة": "MK",
   "مكة المكرمة": "MK",
   "أضم": "ADH",
@@ -106,6 +119,7 @@ export const LOCATION_CODES = {
   "ميسان": "MS",
   "الجموم": "JM",
 
+  // نجران
   "نجران": "NJ",
   "يدمه": "YD",
   "حبونا": "HBN",
@@ -113,14 +127,39 @@ export const LOCATION_CODES = {
 };
 
 // =======================
+// TRACK CODES
+// =======================
+export const TRACK_CODES = {
+  TT: "CT", // الكلية التطبيقية
+  TO: "TO", // السياحة والفندقة
+  IT: "IT", // الاتصالات والمعلومات والإلكترونيات
+  FE: "FE", // علوم الغذاء والبيئة
+};
+
+// =======================
 // LOCATION SLUGS
+// صيغة السلق:
+// - التطبيقية: RYCTM / RYCTF
+// - السياحة والفندقة: RYTOM / RYTOF
+// - الاتصالات والمعلومات والإلكترونيات: RYITM / RYITF
+// - الغذاء والبيئة: RYFEM / RYFEF
 // =======================
 export const LOCATION_SLUGS = Object.fromEntries(
   Object.entries(LOCATION_CODES).map(([name, code]) => [
     name,
     {
-      male: `${code}CTM`,
-      female: `${code}CTF`,
+      male: {
+        TT: `${code}CTM`,
+        TO: `${code}TOM`,
+        IT: `${code}ITM`,
+        FE: `${code}FEM`,
+      },
+      female: {
+        TT: `${code}CTF`,
+        TO: `${code}TOF`,
+        IT: `${code}ITF`,
+        FE: `${code}FEF`,
+      },
     },
   ])
 );
@@ -129,24 +168,36 @@ export const LOCATION_SLUGS = Object.fromEntries(
 // NORMALIZE
 // =======================
 export function normalizeArabic(str = "") {
-  return String(str)
+  return String(str ?? "")
+    .trim()
     .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/[أإآ]/g, "ا")
+    .replace(/أ|إ|آ/g, "ا")
     .replace(/ة/g, "ه")
     .replace(/ى/g, "ي")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/\s+/g, " ");
 }
 
 // =======================
-// STRIP WORDS
+// STRIP COMMON WORDS
 // =======================
 function stripCollegeWords(str = "") {
   return normalizeArabic(str)
-    .replace(/الكليه|التقنيه|التقنية/g, "")
-    .replace(/للبنين|للبنات|بنين|بنات/g, "")
-    .replace(/المتقدمه|العالميه|الدوليه/g, "")
-    .replace(/بمنطقه|بمنطقة|بمحافظه|بمحافظة|بمدينه|بمدينة/g, "")
+    .replace(/الكليه/g, "")
+    .replace(/التقنيه/g, "")
+    .replace(/التقنية/g, "")
+    .replace(/للبنين/g, "")
+    .replace(/للبنات/g, "")
+    .replace(/بنين/g, "")
+    .replace(/بنات/g, "")
+    .replace(/المتقدمه/g, "")
+    .replace(/العالميه/g, "")
+    .replace(/الدوليه/g, "")
+    .replace(/بمنطقه/g, "")
+    .replace(/بمنطقة/g, "")
+    .replace(/بمحافظه/g, "")
+    .replace(/بمحافظة/g, "")
+    .replace(/بمدينه/g, "")
+    .replace(/بمدينة/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -157,11 +208,23 @@ function stripCollegeWords(str = "") {
 export function detectGenderFromText(text = "") {
   const normalized = normalizeArabic(text);
 
-  if (normalized.includes("بنات")) return "female";
-  if (normalized.includes("بنين")) return "male";
+  if (
+    normalized.includes("للبنات") ||
+    normalized.includes("بنات")
+  ) {
+    return "female";
+  }
+
+  if (
+    normalized.includes("للبنين") ||
+    normalized.includes("بنين")
+  ) {
+    return "male";
+  }
 
   return "";
 }
+
 export function detectGenderFromRows(rows = []) {
   if (!Array.isArray(rows) || !rows.length) return "";
 
@@ -180,6 +243,62 @@ export function detectGenderFromRows(rows = []) {
 
   return detectGenderFromText(textPool);
 }
+
+// =======================
+// TRACK DETECTION
+// =======================
+export function detectCollegeTrackFromText(text = "") {
+  const normalized = normalizeArabic(text);
+
+  if (
+    normalized.includes("التطبيقية") ||
+    normalized.includes("تطبيقية") ||
+    normalized.includes("التطبيقيه") ||
+    normalized.includes("تطبيقيه")
+  ) {
+    return "TT";
+  }
+
+  if (
+    normalized.includes("السياحة") ||
+    normalized.includes("الفندقة") ||
+    normalized.includes("سياحه") ||
+    normalized.includes("فندقه")
+  ) {
+    return "TO";
+  }
+
+  if (
+    normalized.includes("الاتصالات") ||
+    normalized.includes("اتصالات") ||
+    normalized.includes("المعلومات") ||
+    normalized.includes("معلومات") ||
+    normalized.includes("الإلكترونيات") ||
+    normalized.includes("الالكترونيات") ||
+    normalized.includes("إلكترونيات") ||
+    normalized.includes("الكترونيات") ||
+    normalized.includes("الرقمية") ||
+    normalized.includes("الرقميه") ||
+    normalized.includes("رقمية") ||
+    normalized.includes("رقميه")
+  ) {
+    return "IT";
+  }
+
+  if (
+    normalized.includes("الغذاء") ||
+    normalized.includes("غذاء") ||
+    normalized.includes("البيئة") ||
+    normalized.includes("البيئه") ||
+    normalized.includes("بيئة") ||
+    normalized.includes("بيئه")
+  ) {
+    return "FE";
+  }
+
+  return "";
+}
+
 export function detectCollegeTrackFromRows(rows = []) {
   if (!Array.isArray(rows) || !rows.length) return "";
 
@@ -198,77 +317,96 @@ export function detectCollegeTrackFromRows(rows = []) {
 
   return detectCollegeTrackFromText(textPool);
 }
-// =======================
-// TRACK DETECTION
-// =======================
-export function detectCollegeTrackFromText(text = "") {
-  const n = normalizeArabic(text);
-
-  if (n.includes("تطبيق")) return "TT";
-  if (n.includes("سياحه") || n.includes("فندقه")) return "TO";
-  if (n.includes("اتصالات") || n.includes("الكترون") || n.includes("رقمي"))
-    return "IT";
-  if (n.includes("غذاء") || n.includes("بيئه")) return "FE";
-
-  return "";
-}
 
 // =======================
-// RESOLVE LOCATION
+// LIST LOCATIONS
 // =======================
-export function resolveLocationName(input = "") {
-  const raw = String(input || "").trim();
-  if (!raw) return "";
-
-  const normalized = normalizeArabic(raw);
-  const simplified = stripCollegeWords(raw);
-
-  const keys = Object.keys(LOCATION_CODES);
-
-  return (
-    keys.find((k) => normalizeArabic(k) === normalized) ||
-    keys.find((k) => normalizeArabic(k) === simplified) ||
-    keys.find((k) => normalized.includes(normalizeArabic(k))) ||
-    ""
-  );
-}
 export function getAllLocations() {
   return Object.keys(LOCATION_CODES).sort((a, b) =>
     a.localeCompare(b, "ar", { sensitivity: "base" })
   );
 }
+
 // =======================
-// RESOLVE CODE
+// RESOLVE LOCATION NAME
 // =======================
-export function resolveLocationCode(input = "") {
-  const key = resolveLocationName(input);
-  return key ? LOCATION_CODES[key] : "";
+export function resolveLocationName(locationOrCollegeName = "") {
+  const raw = String(locationOrCollegeName || "").trim();
+  if (!raw) return "";
+
+  const normalizedRaw = normalizeArabic(raw);
+  const simplifiedRaw = stripCollegeWords(raw);
+
+  const exactMatch = Object.keys(LOCATION_CODES).find(
+    (key) => normalizeArabic(key) === normalizedRaw
+  );
+  if (exactMatch) return exactMatch;
+
+  const simplifiedMatch = Object.keys(LOCATION_CODES).find(
+    (key) => normalizeArabic(key) === simplifiedRaw
+  );
+  if (simplifiedMatch) return simplifiedMatch;
+
+  const containsMatch = Object.keys(LOCATION_CODES).find((key) => {
+    const normalizedKey = normalizeArabic(key);
+    return (
+      normalizedRaw.includes(normalizedKey) ||
+      simplifiedRaw.includes(normalizedKey)
+    );
+  });
+  if (containsMatch) return containsMatch;
+
+  return "";
 }
 
 // =======================
-// RESOLVE SLUG
+// RESOLVE LOCATION CODE
 // =======================
-export function resolveLocationSlug(input = "", gender = "") {
-  const key = resolveLocationName(input);
-  if (!key) return "";
+export function resolveLocationCode(locationOrCollegeName = "") {
+  const matchKey = resolveLocationName(locationOrCollegeName);
+  return matchKey ? LOCATION_CODES[matchKey] || "" : "";
+}
 
-  const slugEntry = LOCATION_SLUGS[key];
+// =======================
+// RESOLVE TRACK CODE
+// =======================
+export function resolveTrackCode(text = "", track = "") {
+  const resolvedTrack = track || detectCollegeTrackFromText(text) || "TT";
+  return TRACK_CODES[resolvedTrack] || TRACK_CODES.TT;
+}
+
+// =======================
+// RESOLVE LOCATION SLUG
+// =======================
+export function resolveLocationSlug(locationOrCollegeName = "", gender = "", track = "") {
+  const matchKey = resolveLocationName(locationOrCollegeName);
+  if (!matchKey) return "";
+
+  const slugEntry = LOCATION_SLUGS[matchKey];
   if (!slugEntry) return "";
 
   const resolvedGender =
-    gender || detectGenderFromText(input) || "male";
+    gender || detectGenderFromText(locationOrCollegeName) || "male";
 
-  return slugEntry[resolvedGender] || slugEntry.male;
+  const resolvedTrack =
+    track || detectCollegeTrackFromText(locationOrCollegeName) || "TT";
+
+  return (
+    slugEntry?.[resolvedGender]?.[resolvedTrack] ||
+    slugEntry?.male?.TT ||
+    ""
+  );
 }
 
 // =======================
-// GENERATE LINK
+// GENERATE TRAINEE LINK
 // =======================
-export function generateTraineeLink(locationName = "", gender = "") {
-  const slug = resolveLocationSlug(locationName, gender);
+export function generateTraineeLink(locationOrCollegeName, gender = "", track = "") {
+  if (!locationOrCollegeName) return "";
 
+  const slug = resolveLocationSlug(locationOrCollegeName, gender, track);
   if (!slug) {
-    console.warn("Slug not found:", locationName);
+    console.warn("Location slug not found:", locationOrCollegeName, gender, track);
     return "";
   }
 
