@@ -5806,14 +5806,16 @@ style={{
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => addConstraintCourseToList(selectedConstraintCourseKey)}
-                    style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
-                    disabled={!selectedConstraintCourseKey}
-                   onClick={() => setSelectedConstraintCourseKey("")}
-                  >
-                    إضافة مقرر آخر
-                  </button>
+  type="button"
+  onClick={() => {
+    addConstraintCourseToList(selectedConstraintCourseKey);
+    setSelectedConstraintCourseKey("");  
+  }}
+  style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
+  disabled={!selectedConstraintCourseKey}
+>
+  إضافة مقرر آخر
+</button>
                 </div>
               </div>
 
