@@ -298,25 +298,24 @@ export function detectGenderFromRows(rows = []) {
 export function detectCollegeTrackFromText(text = "") {
   const normalized = normalizeArabic(text);
 
-  // مهم: التطبيقية قبل التقنية
+  // التطبيقية
   if (
-    normalized.includes("التطبيقية") ||
-    normalized.includes("تطبيقية") ||
-    normalized.includes("التطبيقيه") ||
-    normalized.includes("تطبيقيه")
+    /(^|\s)(التطبيقية|التطبيقيه|تطبيقية|تطبيقيه)(\s|$)/.test(normalized)
   ) {
     return "TT";
   }
 
+  // السياحة والفندقة
   if (
     normalized.includes("السياحة") ||
-    normalized.includes("الفندقة") ||
     normalized.includes("سياحه") ||
+    normalized.includes("الفندقة") ||
     normalized.includes("فندقه")
   ) {
     return "TO";
   }
 
+  // الاتصالات والمعلومات والإلكترونيات
   if (
     normalized.includes("الاتصالات") ||
     normalized.includes("اتصالات") ||
@@ -334,6 +333,7 @@ export function detectCollegeTrackFromText(text = "") {
     return "IT";
   }
 
+  // الغذاء والبيئة
   if (
     normalized.includes("الغذاء") ||
     normalized.includes("غذاء") ||
@@ -345,16 +345,14 @@ export function detectCollegeTrackFromText(text = "") {
     return "FE";
   }
 
+  // التقنية
   if (
-    normalized.includes("التقنية") ||
-    normalized.includes("التقنيه") ||
-    normalized.includes("تقنية") ||
-    normalized.includes("تقنيه")
+    /(^|\s)(التقنية|التقنيه|تقنية|تقنيه|فرع)(\s|$)/.test(normalized)
   ) {
     return "CT";
   }
 
-  return "CT";
+  return "";
 }
 
 export function detectCollegeTrackFromRows(rows = []) {
@@ -445,8 +443,19 @@ export function resolveLocationCode(locationOrCollegeName = "") {
 // RESOLVE TRACK CODE
 // =======================
 export function resolveTrackCode(text = "", track = "") {
-  const resolvedTrack = track || detectCollegeTrackFromText(text) || "CT";
-  return TRACK_CODES[resolvedTrack] || TRACK_CODES.CT;
+  const detectedFromText = detectCollegeTrackFromText(text);
+
+  // إذا النص واضح، خذ نتيجته أولًا
+  if (detectedFromText && TRACK_CODES[detectedFromText]) {
+    return TRACK_CODES[detectedFromText];
+  }
+
+  // وإلا استخدم track فقط إذا كان صالحًا
+  if (track && TRACK_CODES[track]) {
+    return TRACK_CODES[track];
+  }
+
+  return TRACK_CODES.CT;
 }
 
 // =======================
@@ -462,8 +471,7 @@ export function resolveLocationSlug(locationOrCollegeName = "", gender = "", tra
   const resolvedGender =
     gender || detectGenderFromText(locationOrCollegeName) || "male";
 
-  const resolvedTrack =
-    resolveTrackCode(locationOrCollegeName, track) || "CT";
+  const resolvedTrack = resolveTrackCode(locationOrCollegeName, track);
 
   return (
     slugEntry?.[resolvedGender]?.[resolvedTrack] ||
