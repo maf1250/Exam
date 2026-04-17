@@ -1689,6 +1689,8 @@ const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("
 const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
+const [draggingUnscheduledCourseKey, setDraggingUnscheduledCourseKey] = useState("");
+const [activeDropSlotId, setActiveDropSlotId] = useState("");
 const stepNineCardStyle = {
   borderRadius: 16,
   padding: "12px 14px",
@@ -1857,6 +1859,131 @@ const [hallWarnings, setHallWarnings] = useState([]);
     });
   }
 
+
+  function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
+    if (!course || !targetSlotId) return [];
+
+    const sourceStudents = new Set(Array.from(course.students || []));
+
+    return schedule
+      .filter((item) => item.id === targetSlotId && (!ignoredInstanceId || item.instanceId !== ignoredInstanceId))
+      .map((item) => {
+        const sharedStudentIds = (item.students || []).filter((studentId) => sourceStudents.has(studentId));
+        if (!sharedStudentIds.length) return null;
+
+        const students = sharedStudentIds
+          .map((studentId) =>
+            preciseStudentInfoMap.get(studentId) || {
+              id: studentId,
+              name: "بدون اسم",
+              department: "-",
+              major: "-",
+            }
+          )
+          .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
+
+        return {
+          courseKey: item.key,
+          courseName: item.courseName || "-",
+          courseCode: item.courseCode || "-",
+          examHall: item.examHall || "غير محدد",
+          sharedCount: students.length,
+          students,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.sharedCount - a.sharedCount || a.courseName.localeCompare(b.courseName, "ar"));
+  }
+
+  function openManualConflictToast(course, targetSlot, conflictingItems) {
+    const totalShared = conflictingItems.reduce((sum, item) => sum + item.sharedCount, 0);
+    setSelectedManualMoveConflicts({
+      sourceCourseName: course.courseName || "-",
+      sourceCourseCode: course.courseCode || "-",
+      targetSlot,
+      conflicts: conflictingItems,
+      totalShared,
+    });
+    showToast(
+      "تعذر النقل",
+      `يوجد ${totalShared} ${formatTrainees(totalShared)} متعارضين موزعين على ${conflictingItems.length} مقرر في هذه الفترة.`,
+      "error",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "عرض المتعارضين",
+            onClick: () => {
+              setSelectedManualMoveConflicts({
+                sourceCourseName: course.courseName || "-",
+                sourceCourseCode: course.courseCode || "-",
+                targetSlot,
+                conflicts: conflictingItems,
+                totalShared,
+              });
+            },
+          },
+        ],
+      }
+    );
+  }
+
+  function placeUnscheduledCourseInSlot(courseKey, targetSlotId) {
+    if (manualScheduleLocked) return;
+
+    const course = parsed.courses.find((item) => item.key === courseKey) || unscheduled.find((item) => item.key === courseKey);
+    const targetSlot = slots.find((slot) => slot.id === targetSlotId);
+    if (!course || !targetSlot) return;
+
+    const conflictingItems = getManualMoveConflictItems(course, targetSlotId);
+    if (conflictingItems.length) {
+      openManualConflictToast(course, targetSlot, conflictingItems);
+      return;
+    }
+
+    const hallUsageMap = new Map();
+    schedule
+      .filter((item) => item.id === targetSlotId && item.examHall)
+      .forEach((item) => {
+        const key = getHallUsageKey(targetSlot, item.examHall);
+        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
+      });
+
+    const fittingHalls = normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap));
+    let assignedHall = "";
+    if (fittingHalls.length) {
+      assignedHall = fittingHalls[0].name;
+      reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
+    }
+
+    const placedItem = {
+      ...course,
+      ...targetSlot,
+      instanceId: makeScheduledInstanceId(),
+      students: Array.from(course.students || []),
+      trainers: Array.from(course.trainers || []),
+      departments: Array.from(course.departments || []),
+      majors: Array.from(course.majors || []),
+      sectionNames: Array.from(course.sectionNames || []),
+      scheduleTypes: Array.from(course.scheduleTypes || []),
+      departmentRoots: Array.from(course.departmentRoots || []),
+      examHall: assignedHall,
+      invigilators: [],
+      manualEdited: true,
+      isPinned: false,
+    };
+
+    setSchedule((prev) =>
+      [...prev, placedItem].sort(
+        (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+      )
+    );
+    setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
+    setDraggingUnscheduledCourseKey("");
+    setActiveDropSlotId("");
+    showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
+  }
+
   function addConstraintCourseToList(courseKey) {
     if (!courseKey) return;
     setSelectedConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
@@ -1885,67 +2012,10 @@ const [hallWarnings, setHallWarnings] = useState([]);
         return prev;
       }
 
-      const sourceStudents = new Set(sourceItem.students || []);
-      const conflictingItems = prev
-        .filter((item) => item.id === targetSlotId && item.instanceId !== itemId)
-        .map((item) => {
-          const sharedStudentIds = (item.students || []).filter((studentId) => sourceStudents.has(studentId));
-          if (!sharedStudentIds.length) return null;
-
-          const students = sharedStudentIds
-            .map((studentId) =>
-              preciseStudentInfoMap.get(studentId) || {
-                id: studentId,
-                name: "بدون اسم",
-                department: "-",
-                major: "-",
-              }
-            )
-            .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id.localeCompare(b.id, "ar"));
-
-          return {
-            courseKey: item.key,
-            courseName: item.courseName || "-",
-            courseCode: item.courseCode || "-",
-            examHall: item.examHall || "غير محدد",
-            sharedCount: students.length,
-            students,
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.sharedCount - a.sharedCount || a.courseName.localeCompare(b.courseName, "ar"));
+      const conflictingItems = getManualMoveConflictItems(sourceItem, targetSlotId, itemId);
 
       if (conflictingItems.length) {
-        const totalShared = conflictingItems.reduce((sum, item) => sum + item.sharedCount, 0);
-        setSelectedManualMoveConflicts({
-          sourceCourseName: sourceItem.courseName || "-",
-          sourceCourseCode: sourceItem.courseCode || "-",
-          targetSlot,
-          conflicts: conflictingItems,
-          totalShared,
-        });
-        showToast(
-          "تعذر النقل",
-          `يوجد ${totalShared} ${formatTrainees(totalShared)} متعارضين موزعين على ${conflictingItems.length} مقرر في هذه الفترة.`,
-          "error",
-          {
-            persistent: true,
-            actions: [
-              {
-                label: "عرض المتعارضين",
-                onClick: () => {
-                  setSelectedManualMoveConflicts({
-                    sourceCourseName: sourceItem.courseName || "-",
-                    sourceCourseCode: sourceItem.courseCode || "-",
-                    targetSlot,
-                    conflicts: conflictingItems,
-                    totalShared,
-                  });
-                },
-              },
-            ],
-          }
-        );
+        openManualConflictToast(sourceItem, targetSlot, conflictingItems);
         return prev;
       }
 
@@ -2137,6 +2207,8 @@ const handleUpload = (file) => {
       setSelectedConstraintCourseKeys([]);
       setManualScheduleLocked(false);
       setDraggingScheduleItemId("");
+      setDraggingUnscheduledCourseKey("");
+      setActiveDropSlotId("");
       setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
       setIncludeAllDepartmentsAndMajors(true);
       setExcludedDepartmentMajors([]);
@@ -3186,6 +3258,33 @@ const selectedCourseB = useMemo(
       })),
     [slots, schedule]
   );
+
+
+  const activeDraggedManualCourse = useMemo(() => {
+    if (draggingScheduleItemId) {
+      return schedule.find((item) => item.instanceId === draggingScheduleItemId) || null;
+    }
+    if (draggingUnscheduledCourseKey) {
+      return parsed.courses.find((item) => item.key === draggingUnscheduledCourseKey) || unscheduled.find((item) => item.key === draggingUnscheduledCourseKey) || null;
+    }
+    return null;
+  }, [draggingScheduleItemId, draggingUnscheduledCourseKey, schedule, parsed.courses, unscheduled]);
+
+  const manualDropSlotStatusMap = useMemo(() => {
+    const map = new Map();
+    if (!activeDraggedManualCourse) return map;
+
+    editableScheduleSlots.forEach((slot) => {
+      const ignoredInstanceId = draggingScheduleItemId || "";
+      const conflicts = getManualMoveConflictItems(activeDraggedManualCourse, slot.id, ignoredInstanceId);
+      map.set(slot.id, {
+        canDrop: conflicts.length === 0,
+        conflictCount: conflicts.reduce((sum, item) => sum + item.sharedCount, 0),
+      });
+    });
+
+    return map;
+  }, [activeDraggedManualCourse, editableScheduleSlots, draggingScheduleItemId, schedule]);
 
   const allCourseOptions = useMemo(() => {
     if (!rows.length) return [];
@@ -6561,20 +6660,49 @@ style={{
                     <div
                       key={slot.id}
                       onDragOver={(e) => {
-                        if (!manualScheduleLocked) e.preventDefault();
+                        if (!manualScheduleLocked && activeDraggedManualCourse) {
+                          e.preventDefault();
+                          setActiveDropSlotId(slot.id);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (activeDropSlotId === slot.id) setActiveDropSlotId("");
                       }}
                       onDrop={(e) => {
                         e.preventDefault();
                         if (draggingScheduleItemId) {
                           moveScheduledCourseToSlot(draggingScheduleItemId, slot.id);
                           setDraggingScheduleItemId("");
+                        } else if (draggingUnscheduledCourseKey) {
+                          placeUnscheduledCourseInSlot(draggingUnscheduledCourseKey, slot.id);
                         }
+                        setActiveDropSlotId("");
                       }}
                       style={{
-                        border: `1px solid ${COLORS.border}`,
+                        border: activeDraggedManualCourse
+                          ? manualDropSlotStatusMap.get(slot.id)?.canDrop
+                            ? `2px solid ${COLORS.success}`
+                            : `2px dashed ${COLORS.danger}`
+                          : `1px solid ${COLORS.border}`,
                         borderRadius: 22,
                         overflow: "hidden",
-                        background: "#fff",
+                        background:
+                          activeDropSlotId === slot.id
+                            ? manualDropSlotStatusMap.get(slot.id)?.canDrop
+                              ? "#F0FDF4"
+                              : "#FEF2F2"
+                            : activeDraggedManualCourse
+                            ? manualDropSlotStatusMap.get(slot.id)?.canDrop
+                              ? "#FAFFFC"
+                              : "#FFF9F9"
+                            : "#fff",
+                        boxShadow:
+                          activeDropSlotId === slot.id
+                            ? manualDropSlotStatusMap.get(slot.id)?.canDrop
+                              ? "0 0 0 4px rgba(6, 118, 71, 0.12)"
+                              : "0 0 0 4px rgba(180, 35, 24, 0.12)"
+                            : "none",
+                        transition: "all 0.18s ease",
                       }}
                     >
                       <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
@@ -6582,6 +6710,20 @@ style={{
                           {slot.gregorian} — الفترة {slot.period}
                         </div>
                         <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
+                        {activeDraggedManualCourse ? (
+                          <div
+                            style={{
+                              marginTop: 8,
+                              fontWeight: 800,
+                              color: manualDropSlotStatusMap.get(slot.id)?.canDrop ? COLORS.success : COLORS.danger,
+                              fontSize: 13,
+                            }}
+                          >
+                            {manualDropSlotStatusMap.get(slot.id)?.canDrop
+                              ? "يمكن إسقاط المقرر هنا"
+                              : `يوجد ${manualDropSlotStatusMap.get(slot.id)?.conflictCount || 0} ${formatTrainees(manualDropSlotStatusMap.get(slot.id)?.conflictCount || 0)} متعارضين`}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div style={{ padding: 14, display: "flex", gap: 10, flexWrap: "wrap", minHeight: 82 }}>
@@ -6590,8 +6732,14 @@ style={{
                             <div
                               key={item.instanceId}
                               draggable={!manualScheduleLocked}
-                              onDragStart={() => setDraggingScheduleItemId(item.instanceId)}
-                              onDragEnd={() => setDraggingScheduleItemId("")}
+                              onDragStart={() => {
+                                setDraggingScheduleItemId(item.instanceId);
+                                setDraggingUnscheduledCourseKey("");
+                              }}
+                              onDragEnd={() => {
+                                setDraggingScheduleItemId("");
+                                setActiveDropSlotId("");
+                              }}
                               style={{
                                 border: `1px solid ${item.isPinned ? COLORS.primaryDark : COLORS.primaryBorder}`,
                                 background: item.isPinned ? "#DFF7F5" : COLORS.primaryLight,
@@ -6633,10 +6781,17 @@ style={{
                 }}
               >
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
+                <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {unscheduled.length ? (
                     unscheduled.map((course, index) => (
-                      <div key={`${course.key}-${index}`} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: "#F8FEFE", minWidth: 220 }}>
+                      <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked} onDragStart={() => {
+                        setDraggingUnscheduledCourseKey(course.key);
+                        setDraggingScheduleItemId("");
+                      }} onDragEnd={() => {
+                        setDraggingUnscheduledCourseKey("");
+                        setActiveDropSlotId("");
+                      }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked ? "default" : "grab", opacity: draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1 }}>
                         <div style={{ fontWeight: 800 }}>{course.courseName}</div>
                         <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
                           {course.unscheduledReason || "تعذر العثور على فترة مناسبة."}
