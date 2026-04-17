@@ -3285,10 +3285,13 @@ const detectedCollegeLocation = useMemo(() => {
 
 const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
 
-const effectiveCollegeSlug = useMemo(
-  () => resolveLocationSlug(effectiveCollegeLocation, detectedGender),
-  [effectiveCollegeLocation, detectedGender]
-);
+const effectiveCollegeSlug = useMemo(() => {
+  return resolveLocationSlug(effectiveCollegeLocation, detectedGender);
+}, [effectiveCollegeLocation, detectedGender]);
+
+const baseLink = useMemo(() => {
+  return generateTraineeLink(effectiveCollegeLocation, detectedGender);
+}, [effectiveCollegeLocation, detectedGender]);
 
 
   const allCollegeLocations = useMemo(() => getAllLocations(), []);
@@ -8087,8 +8090,6 @@ style={{
       showToast("تعذر تحديد الكلية", "اختر المدينة أولًا أو عدّل اسم الوحدة.", "error");
       return;
     }
-
-    const baseLink = generateTraineeLink("", effectiveCollegeLocation);
 
     if (!baseLink) {
       showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
