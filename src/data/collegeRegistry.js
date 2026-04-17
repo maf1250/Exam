@@ -232,7 +232,11 @@ export function resolveLocationName(input = "") {
     ""
   );
 }
-
+export function getAllLocations() {
+  return Object.keys(LOCATION_CODES).sort((a, b) =>
+    a.localeCompare(b, "ar", { sensitivity: "base" })
+  );
+}
 // =======================
 // RESOLVE CODE
 // =======================
