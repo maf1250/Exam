@@ -4,7 +4,7 @@ import {
   generateTraineeLink,
   getAllLocations,
   resolveLocationName,
-  resolveLocationSlug,
+  resolve
   detectGenderFromText,
   detectGenderFromRows,
 } from "../data/collegeRegistry";
