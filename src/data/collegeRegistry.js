@@ -130,7 +130,8 @@ export const LOCATION_CODES = {
 // TRACK CODES
 // =======================
 export const TRACK_CODES = {
-  TT: "CT", // الكلية التطبيقية
+  CT: "CT", // الكلية التقنية
+  TT: "TT", // الكلية التطبيقية
   TO: "TO", // السياحة والفندقة
   IT: "IT", // الاتصالات والمعلومات والإلكترونيات
   FE: "FE", // علوم الغذاء والبيئة
@@ -139,7 +140,8 @@ export const TRACK_CODES = {
 // =======================
 // LOCATION SLUGS
 // صيغة السلق:
-// - التطبيقية: RYCTM / RYCTF
+// - التقنية: RYCTM / RYCTF
+// - التطبيقية: RYTTM / RYTTF
 // - السياحة والفندقة: RYTOM / RYTOF
 // - الاتصالات والمعلومات والإلكترونيات: RYITM / RYITF
 // - الغذاء والبيئة: RYFEM / RYFEF
@@ -184,26 +186,78 @@ export function normalizeArabic(str = "") {
 // =======================
 function stripCollegeWords(str = "") {
   return normalizeArabic(str)
+    .replace(/^[\s\-_,.]+|[\s\-_,.]+$/g, "")
     .replace(/الكليه/g, "")
-    .replace(/التقنيه/g, "")
-    .replace(/التقنية/g, "")
+    .replace(/الكليات/g, "")
     .replace(/للبنين/g, "")
     .replace(/للبنات/g, "")
     .replace(/بنين/g, "")
     .replace(/بنات/g, "")
+    .replace(/رجال/g, "")
+    .replace(/نساء/g, "")
     .replace(/المتقدمه/g, "")
     .replace(/العالميه/g, "")
     .replace(/الدوليه/g, "")
     .replace(/بمنطقه/g, "")
-    .replace(/بمنطقة/g, "")
     .replace(/بمحافظه/g, "")
-    .replace(/بمحافظة/g, "")
     .replace(/بمدينه/g, "")
     .replace(/بمدينة/g, "")
-    .replace(/\s+/g, " ")
+    .replace(/بمنطقة/g, "")
+    .replace(/بمحافظة/g, "")
+    .replace(/في منطقه/g, "")
+    .replace(/في محافظة/g, "")
+    .replace(/في مدينة/g, "")
+    .replace(/فرع/g, "")
+    .replace(/بفرع/g, "")
+
+    // نحول "بالرياض" إلى "الرياض"
     .replace(/\bبال(?=\S)/g, "ال")
+
+    // نحذف حرف الباء إذا جاء قبل "ال"
     .replace(/\bب(?=ال)/g, "")
+
+    // إزالة كلمات المسارات حتى تبقى المدينة فقط
+    .replace(/التقنيه/g, "")
+    .replace(/التقنية/g, "")
+    .replace(/تقنيه/g, "")
+    .replace(/تقنية/g, "")
+    .replace(/التطبيقية/g, "")
+    .replace(/التطبيقيه/g, "")
+    .replace(/تطبيقية/g, "")
+    .replace(/تطبيقيه/g, "")
+    .replace(/السياحة/g, "")
+    .replace(/سياحه/g, "")
+    .replace(/الفندقة/g, "")
+    .replace(/فندقه/g, "")
+    .replace(/الاتصالات/g, "")
+    .replace(/اتصالات/g, "")
+    .replace(/المعلومات/g, "")
+    .replace(/معلومات/g, "")
+    .replace(/الإلكترونيات/g, "")
+    .replace(/الالكترونيات/g, "")
+    .replace(/إلكترونيات/g, "")
+    .replace(/الكترونيات/g, "")
+    .replace(/الرقمية/g, "")
+    .replace(/الرقميه/g, "")
+    .replace(/رقمية/g, "")
+    .replace(/رقميه/g, "")
+    .replace(/الغذاء/g, "")
+    .replace(/غذاء/g, "")
+    .replace(/البيئة/g, "")
+    .replace(/البيئه/g, "")
+    .replace(/بيئة/g, "")
+    .replace(/بيئه/g, "")
+
+    .replace(/\s+/g, " ")
     .trim();
+}
+
+function getLocationAliases(name = "") {
+  const normalized = normalizeArabic(name);
+  const withoutAl = normalized.replace(/^ال/, "");
+  const withAl = withoutAl ? `ال${withoutAl}` : normalized;
+
+  return Array.from(new Set([normalized, withoutAl, withAl].filter(Boolean)));
 }
 
 // =======================
@@ -212,17 +266,11 @@ function stripCollegeWords(str = "") {
 export function detectGenderFromText(text = "") {
   const normalized = normalizeArabic(text);
 
-  if (
-    normalized.includes("للبنات") ||
-    normalized.includes("بنات")
-  ) {
+  if (normalized.includes("للبنات") || normalized.includes("بنات")) {
     return "female";
   }
 
-  if (
-    normalized.includes("للبنين") ||
-    normalized.includes("بنين")
-  ) {
+  if (normalized.includes("للبنين") || normalized.includes("بنين")) {
     return "male";
   }
 
@@ -235,11 +283,7 @@ export function detectGenderFromRows(rows = []) {
   const textPool = rows
     .slice(0, 50)
     .map((row) =>
-      [
-        row?.["الوحدة"],
-        row?.["القسم"],
-        row?.["التخصص"],
-      ]
+      [row?.["الوحدة"], row?.["القسم"], row?.["التخصص"]]
         .filter(Boolean)
         .join(" ")
     )
@@ -254,6 +298,7 @@ export function detectGenderFromRows(rows = []) {
 export function detectCollegeTrackFromText(text = "") {
   const normalized = normalizeArabic(text);
 
+  // مهم: التطبيقية قبل التقنية
   if (
     normalized.includes("التطبيقية") ||
     normalized.includes("تطبيقية") ||
@@ -300,6 +345,15 @@ export function detectCollegeTrackFromText(text = "") {
     return "FE";
   }
 
+  if (
+    normalized.includes("التقنية") ||
+    normalized.includes("التقنيه") ||
+    normalized.includes("تقنية") ||
+    normalized.includes("تقنيه")
+  ) {
+    return "CT";
+  }
+
   return "CT";
 }
 
@@ -309,11 +363,7 @@ export function detectCollegeTrackFromRows(rows = []) {
   const textPool = rows
     .slice(0, 50)
     .map((row) =>
-      [
-        row?.["الوحدة"],
-        row?.["القسم"],
-        row?.["التخصص"],
-      ]
+      [row?.["الوحدة"], row?.["القسم"], row?.["التخصص"]]
         .filter(Boolean)
         .join(" ")
     )
@@ -340,25 +390,45 @@ export function resolveLocationName(locationOrCollegeName = "") {
 
   const normalizedRaw = normalizeArabic(raw);
   const simplifiedRaw = stripCollegeWords(raw);
+  const rawTokens = normalizedRaw.split(" ").filter(Boolean);
+  const simplifiedTokens = simplifiedRaw.split(" ").filter(Boolean);
 
-  const exactMatch = Object.keys(LOCATION_CODES).find(
-    (key) => normalizeArabic(key) === normalizedRaw
+  // 1) مطابقة مباشرة
+  const exactMatch = Object.keys(LOCATION_CODES).find((key) =>
+    getLocationAliases(key).includes(normalizedRaw)
   );
   if (exactMatch) return exactMatch;
 
-  const simplifiedMatch = Object.keys(LOCATION_CODES).find(
-    (key) => normalizeArabic(key) === simplifiedRaw
+  // 2) مطابقة مباشرة بعد التنظيف
+  const simplifiedMatch = Object.keys(LOCATION_CODES).find((key) =>
+    getLocationAliases(key).includes(simplifiedRaw)
   );
   if (simplifiedMatch) return simplifiedMatch;
 
+  // 3) مطابقة احتواء
   const containsMatch = Object.keys(LOCATION_CODES).find((key) => {
-    const normalizedKey = normalizeArabic(key);
-    return (
-      normalizedRaw.includes(normalizedKey) ||
-      simplifiedRaw.includes(normalizedKey)
+    const aliases = getLocationAliases(key);
+    return aliases.some(
+      (alias) =>
+        normalizedRaw.includes(alias) ||
+        simplifiedRaw.includes(alias)
     );
   });
   if (containsMatch) return containsMatch;
+
+  // 4) مطابقة بالكلمات
+  const tokenMatch = Object.keys(LOCATION_CODES).find((key) => {
+    const aliases = getLocationAliases(key);
+
+    return aliases.some((alias) => {
+      const aliasTokens = alias.split(" ").filter(Boolean);
+      return aliasTokens.every(
+        (token) =>
+          rawTokens.includes(token) || simplifiedTokens.includes(token)
+      );
+    });
+  });
+  if (tokenMatch) return tokenMatch;
 
   return "";
 }
@@ -376,7 +446,7 @@ export function resolveLocationCode(locationOrCollegeName = "") {
 // =======================
 export function resolveTrackCode(text = "", track = "") {
   const resolvedTrack = track || detectCollegeTrackFromText(text) || "CT";
-  return TRACK_CODES[resolvedTrack] || TRACK_CODES.TT;
+  return TRACK_CODES[resolvedTrack] || TRACK_CODES.CT;
 }
 
 // =======================
@@ -393,7 +463,7 @@ export function resolveLocationSlug(locationOrCollegeName = "", gender = "", tra
     gender || detectGenderFromText(locationOrCollegeName) || "male";
 
   const resolvedTrack =
-    track || detectCollegeTrackFromText(locationOrCollegeName) || "CT";
+    resolveTrackCode(locationOrCollegeName, track) || "CT";
 
   return (
     slugEntry?.[resolvedGender]?.[resolvedTrack] ||
