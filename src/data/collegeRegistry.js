@@ -201,6 +201,12 @@ function stripCollegeWords(str = "") {
     .replace(/بمدينه/g, "")
     .replace(/بمدينة/g, "")
     .replace(/\s+/g, " ")
+    .replace(/التطبيقية|التطبيقيه|تطبيقية|تطبيقيه/g, "")
+    .replace(/السياحة|سياحه|الفندقة|فندقه/g, "")
+    .replace(/الاتصالات|اتصالات|المعلومات|معلومات/g, "")
+    .replace(/الإلكترونيات|الالكترونيات|إلكترونيات|الكترونيات/g, "")
+    .replace(/الرقمية|الرقميه|رقمية|رقميه/g, "")
+    .replace(/الغذاء|غذاء|البيئة|البيئه|بيئة|بيئه/g, "")
     .trim();
 }
 
@@ -373,7 +379,7 @@ export function resolveLocationCode(locationOrCollegeName = "") {
 // RESOLVE TRACK CODE
 // =======================
 export function resolveTrackCode(text = "", track = "") {
-  const resolvedTrack = track || detectCollegeTrackFromText(text) || "TT";
+  const resolvedTrack = track || detectCollegeTrackFromText(text) || "CT";
   return TRACK_CODES[resolvedTrack] || TRACK_CODES.TT;
 }
 
@@ -391,11 +397,11 @@ export function resolveLocationSlug(locationOrCollegeName = "", gender = "", tra
     gender || detectGenderFromText(locationOrCollegeName) || "male";
 
   const resolvedTrack =
-    track || detectCollegeTrackFromText(locationOrCollegeName) || "TT";
+    track || detectCollegeTrackFromText(locationOrCollegeName) || "CT";
 
   return (
     slugEntry?.[resolvedGender]?.[resolvedTrack] ||
-    slugEntry?.male?.TT ||
+    slugEntry?.male?.CT ||
     ""
   );
 }
