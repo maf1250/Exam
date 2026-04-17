@@ -1838,26 +1838,6 @@ const [hallWarnings, setHallWarnings] = useState([]);
     });
   }
 
-  function addConstraintCourseToList(courseKey) {
-    if (!courseKey) return;
-
-    setSelectedConstraintCourseKeys((prev) => {
-      const next = prev.includes(courseKey) ? prev : [...prev, courseKey];
-      return next;
-    });
-    setSelectedConstraintCourseKey(courseKey);
-  }
-
-  function removeConstraintCourseFromList(courseKey) {
-    if (!courseKey) return;
-
-    setSelectedConstraintCourseKeys((prev) => {
-      const remaining = prev.filter((key) => key !== courseKey);
-      setSelectedConstraintCourseKey((current) => (current === courseKey ? remaining[0] || "" : current));
-      return remaining;
-    });
-  }
-
   function moveScheduledCourseToSlot(itemId, targetSlotId) {
     if (manualScheduleLocked) return;
 
@@ -1908,7 +1888,7 @@ const [hallWarnings, setHallWarnings] = useState([]);
 
     setSchedule((prev) => {
       removedItem = prev.find((item) => item.instanceId === itemId) || null;
-      return prev.filter((item) => item.instanceId !== itemId);
+      return prev.filter((item) => item.id !== itemId);
     });
 
     if (removedItem) {
@@ -3147,19 +3127,6 @@ const selectedCourseB = useMemo(
     ? courseConstraints[selectedConstraintCourseKey] || getCourseConstraintDefaults()
     : getCourseConstraintDefaults();
 
-
-  useEffect(() => {
-    const validKeys = new Set(courseConstraintOptions.map((course) => course.key));
-
-    setSelectedConstraintCourseKeys((prev) => {
-      const filtered = prev.filter((key) => validKeys.has(key));
-      if (selectedConstraintCourseKey && validKeys.has(selectedConstraintCourseKey) && !filtered.includes(selectedConstraintCourseKey)) {
-        return [...filtered, selectedConstraintCourseKey];
-      }
-      return filtered;
-    });
-  }, [selectedConstraintCourseKey, courseConstraintOptions]);
-
   const normalizedSamePeriodGroups = useMemo(() => {
     const validKeys = new Set(
       parsed.courses
@@ -3673,7 +3640,12 @@ newPlaced.push({
 
 const generateGeneralSchedule = () => {
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
-  setGeneralSchedule(placed);
+  const sortedPlaced = [...placed].sort(
+    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+  );
+  setGeneralSchedule(sortedPlaced);
+  setSchedule(sortedPlaced);
+  setSpecializedSchedule([]);
   setUnscheduled(notPlaced || []);
   setHallWarnings(nextHallWarnings || []);
   setPreviewTab("schedule");
@@ -3784,8 +3756,8 @@ const filteredSortedCourses = useMemo(() => {
 
   const groupedScheduleEntries = useMemo(() => Object.entries(groupedSchedule), [groupedSchedule]);
 
-  const daysPerPage = Math.max(1, groupedScheduleEntries.length || 1);
-  const totalPreviewPages = 1;
+  const daysPerPage = 5;
+  const totalPreviewPages = Math.max(1, Math.ceil(groupedScheduleEntries.length / daysPerPage));
 
   const paginatedGroupedSchedule = useMemo(() => {
     const start = previewPage * daysPerPage;
@@ -6774,7 +6746,7 @@ style={{
                     description="يتضمن التاريخ الميلادي والهجري والقاعات والأقسام والمراقبين لكل فترة."
                   />
 
-                  {filteredScheduleForPrint.length && totalPreviewPages > 1 ? (
+                  {filteredScheduleForPrint.length ? (
                     <div
                       style={{
                         display: "flex",
