@@ -3285,13 +3285,21 @@ const detectedCollegeLocation = useMemo(() => {
 
 const effectiveCollegeLocation = manualCollegeLocation || detectedCollegeLocation || "";
 
+const collegeSourceForSlug = useMemo(() => {
+  return (
+    String(parsed?.collegeName || "").trim() ||
+    String(collegeNameInput || "").trim() ||
+    String(effectiveCollegeLocation || "").trim()
+  );
+}, [parsed?.collegeName, collegeNameInput, effectiveCollegeLocation]);
+
 const effectiveCollegeSlug = useMemo(() => {
-  return resolveLocationSlug(effectiveCollegeLocation, detectedGender);
-}, [effectiveCollegeLocation, detectedGender]);
+  return resolveLocationSlug(collegeSourceForSlug, detectedGender);
+}, [collegeSourceForSlug, detectedGender]);
 
 const baseLink = useMemo(() => {
-  return generateTraineeLink(effectiveCollegeLocation, detectedGender);
-}, [effectiveCollegeLocation, detectedGender]);
+  return generateTraineeLink(collegeSourceForSlug, detectedGender);
+}, [collegeSourceForSlug, detectedGender]);
 
 
   const allCollegeLocations = useMemo(() => getAllLocations(), []);
