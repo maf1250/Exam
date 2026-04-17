@@ -293,6 +293,49 @@ function minutesToTimeText(minutes) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+const PERIOD_DURATION_OPTIONS = [60, 75, 90, 120, 150, 180];
+
+function generatePeriodTimeOptions() {
+  const times = [];
+  for (let h = 6; h <= 20; h += 1) {
+    for (const m of [0, 15, 30, 45]) {
+      times.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+  return times;
+}
+
+const PERIOD_TIME_OPTIONS = generatePeriodTimeOptions();
+
+function getDefaultPeriodConfigs() {
+  return [
+    { start: "07:45", duration: 75 },
+    { start: "09:15", duration: 105 },
+    { start: "11:15", duration: 105 },
+  ];
+}
+
+function serializePeriodConfigsToText(periodConfigs) {
+  return (Array.isArray(periodConfigs) ? periodConfigs : [])
+    .map((item) => {
+      const startMinutes = parseTimeToMinutes(item?.start);
+      const duration = Number(item?.duration);
+      if (startMinutes === null || !Number.isFinite(duration) || duration <= 0) return "";
+      return `${minutesToTimeText(startMinutes)}-${minutesToTimeText(startMinutes + duration)}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function parsePeriodsTextToConfigs(periodsText) {
+  const parsed = parsePeriodsText(periodsText).filter((item) => item.valid);
+  if (!parsed.length) return getDefaultPeriodConfigs();
+  return parsed.slice(0, 3).map((item) => ({
+    start: minutesToTimeText(item.startMinutes),
+    duration: item.endMinutes - item.startMinutes,
+  }));
+}
+
 function parsePeriodsText(periodsText) {
   return String(periodsText || "")
     .split("\n")
@@ -1669,7 +1712,7 @@ const pendingRestoreRef = useRef(null);
   const [showTrainerHint, setShowTrainerHint] = useState(false);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
-  const [periodsText, setPeriodsText] = useState("07:45-09:00\n09:15-11:00");
+  const [periodConfigs, setPeriodConfigs] = useState(getDefaultPeriodConfigs());
   const [examHalls, setExamHalls] = useState([
   {
     id: makeHallId(),
@@ -1702,6 +1745,49 @@ const stepNineCardStyle = {
   maxWidth: 700,
 };
 const [hallWarnings, setHallWarnings] = useState([]);
+
+const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
+
+const updatePeriodConfig = (index, patch) => {
+  setPeriodConfigs((prev) =>
+    prev.map((item, itemIndex) =>
+      itemIndex === index
+        ? {
+            ...item,
+            ...patch,
+          }
+        : item
+    )
+  );
+};
+
+const periodOverlapWarning = useMemo(() => {
+  const normalized = periodConfigs
+    .map((item, index) => {
+      const startMinutes = parseTimeToMinutes(item?.start);
+      const duration = Number(item?.duration);
+      const endMinutes = startMinutes === null || !Number.isFinite(duration) ? null : startMinutes + duration;
+      return {
+        index,
+        startMinutes,
+        endMinutes,
+      };
+    })
+    .filter((item) => item.startMinutes !== null && item.endMinutes !== null);
+
+  const overlaps = [];
+  for (let i = 0; i < normalized.length; i += 1) {
+    for (let j = i + 1; j < normalized.length; j += 1) {
+      const a = normalized[i];
+      const b = normalized[j];
+      if (a.startMinutes < b.endMinutes && b.startMinutes < a.endMinutes) {
+        overlaps.push(`الفترة ${a.index + 1} تتداخل مع الفترة ${b.index + 1}`);
+      }
+    }
+  }
+
+  return overlaps.length ? overlaps.join('، ') : '';
+}, [periodConfigs]);
 
 
   function addExamHall() {
@@ -2436,6 +2522,7 @@ const buildPersistedState = () => ({
   startDate,
   numberOfDays,
   selectedDays,
+  periodConfigs,
   periodsText,
   examHalls,
   enableSamePeriodGroups,
@@ -2481,7 +2568,14 @@ const restorePersistedState = (saved) => {
   setStartDate(saved.startDate || "");
   setNumberOfDays(saved.numberOfDays || 8);
   setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
-  setPeriodsText(saved.periodsText || "07:45-09:00\n09:15-11:00");
+  setPeriodConfigs(
+    Array.isArray(saved.periodConfigs) && saved.periodConfigs.length
+      ? saved.periodConfigs.slice(0, 3).map((item, index) => ({
+          start: String(item?.start || getDefaultPeriodConfigs()[index]?.start || "07:45"),
+          duration: Number(item?.duration) || getDefaultPeriodConfigs()[index]?.duration || 90,
+        }))
+      : parsePeriodsTextToConfigs(saved.periodsText || "07:45-09:00\n09:15-11:00")
+  );
   setExamHalls(
     Array.isArray(saved.examHalls) && saved.examHalls.length
       ? saved.examHalls.map((hall) => ({
@@ -2685,6 +2779,7 @@ useEffect(() => {
   startDate,
   numberOfDays,
   selectedDays,
+  periodConfigs,
   periodsText,
   examHalls,
   enableSamePeriodGroups,
@@ -3508,7 +3603,7 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   }
 
   if (invalidPeriods.length) {
-    showToast("أوقات غير صحيحة", "تحقق من تنسيق الأوقات. مثال صحيح: 07:45-09:00", "error");
+    showToast("أوقات غير صحيحة", periodOverlapWarning || "تحقق من إعداد الفترات وتأكد من عدم وجود تداخل بينها.", "error");
     return [];
   }
 
@@ -4911,18 +5006,101 @@ style={{
                 />
               </div>
             </div>
-
             <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد الفترات وأوقاتها</div>
-              <textarea
-                value={periodsText}
-                onChange={(e) => setPeriodsText(e.target.value)}
-                style={{ ...fieldStyle(), minHeight: 110, resize: "vertical" }}
-                placeholder={"07:45-09:00\n09:15-11:00\n11:15-13:00"}
-              />
-              <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
-                اكتب كل فترة في سطر مستقل بهذه الصيغة: 07:45-09:00
+              <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار الثلاث</div>
+              <div style={{ display: "grid", gap: 12 }}>
+                {periodConfigs.map((periodConfig, index) => {
+                  const startMinutes = parseTimeToMinutes(periodConfig.start);
+                  const endText =
+                    startMinutes === null
+                      ? "--:--"
+                      : minutesToTimeText(startMinutes + Number(periodConfig.duration || 0));
+
+                  return (
+                    <div
+                      key={`period-config-${index}`}
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 16,
+                        padding: 12,
+                        background: "#fff",
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 12,
+                        alignItems: "end",
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: COLORS.charcoal, alignSelf: "center" }}>
+                        الفترة {index + 1}
+                      </div>
+
+                      <div>
+                        <div style={{ marginBottom: 8, fontWeight: 700 }}>وقت البداية</div>
+                        <select
+                          value={periodConfig.start}
+                          onChange={(e) => updatePeriodConfig(index, { start: e.target.value })}
+                          style={fieldStyle()}
+                        >
+                          {PERIOD_TIME_OPTIONS.map((timeValue) => (
+                            <option key={timeValue} value={timeValue}>
+                              {timeValue}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <div style={{ marginBottom: 8, fontWeight: 700 }}>المدة</div>
+                        <select
+                          value={periodConfig.duration}
+                          onChange={(e) => updatePeriodConfig(index, { duration: Number(e.target.value) })}
+                          style={fieldStyle()}
+                        >
+                          {PERIOD_DURATION_OPTIONS.map((durationValue) => (
+                            <option key={durationValue} value={durationValue}>
+                              {durationValue} دقيقة
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <div style={{ marginBottom: 8, fontWeight: 700 }}>وقت النهاية</div>
+                        <div
+                          style={{
+                            ...fieldStyle(),
+                            background: COLORS.bg2,
+                            fontWeight: 800,
+                            color: COLORS.primaryDark,
+                          }}
+                        >
+                          {endText}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+
+              <div style={{ marginTop: 8, color: COLORS.muted, fontSize: 13 }}>
+                اختر وقت البداية والمدة لكل فترة. المدة المسموحة من ساعة إلى ثلاث ساعات.
+              </div>
+
+              {periodOverlapWarning ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    border: `1px solid #FECACA`,
+                    background: COLORS.dangerBg,
+                    color: COLORS.danger,
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {periodOverlapWarning}
+                </div>
+              ) : null}
             </div>
 
             <div style={{ marginTop: 18 }}>
