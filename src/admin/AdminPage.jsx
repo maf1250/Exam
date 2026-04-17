@@ -4,7 +4,7 @@ import {
   generateTraineeLink,
   getAllLocations,
   resolveLocationName,
-  resolve
+  resolveLocationSlug,
   detectGenderFromText,
   detectGenderFromRows,
 } from "../data/collegeRegistry";
@@ -1688,6 +1688,7 @@ const [courseConstraints, setCourseConstraints] = useState({});
 const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
 const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
+const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMode] = useState("off");
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
 const [draggingUnscheduledCourseKey, setDraggingUnscheduledCourseKey] = useState("");
 const [activeDropSlotId, setActiveDropSlotId] = useState("");
@@ -2206,6 +2207,7 @@ const handleUpload = (file) => {
       setSelectedConstraintCourseKey("");
       setSelectedConstraintCourseKeys([]);
       setManualScheduleLocked(false);
+      setGeneralSpecializedDaySeparationMode("off");
       setDraggingScheduleItemId("");
       setDraggingUnscheduledCourseKey("");
       setActiveDropSlotId("");
@@ -2401,6 +2403,7 @@ const buildPersistedState = () => ({
   maxExamsPerStudentPerDay,
   courseConstraints,
   manualScheduleLocked,
+  generalSpecializedDaySeparationMode,
   hallWarnings,
   includeInvigilators,
   excludedInvigilators,
@@ -2469,6 +2472,7 @@ const restorePersistedState = (saved) => {
   setMaxExamsPerStudentPerDay(Math.max(1, Number(saved.maxExamsPerStudentPerDay) || 2));
   setCourseConstraints(saved.courseConstraints || {});
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
+  setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
   setExcludedInvigilators(saved.excludedInvigilators || []);
@@ -3485,6 +3489,7 @@ const hallsPool = normalizedExamHalls;
   const hallUsageMap = new Map();
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
   const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
+  const scheduledTypeByDate = new Map();
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
@@ -3697,6 +3702,22 @@ const pickInvigilators = (course, slot) => {
         } else {
           score += placedGroupMates.length * 180;
         }
+      }
+    }
+
+    if (generalSpecializedDaySeparationMode !== "off") {
+      const currentTypeKey = isGeneralStudiesCourse(course) ? "general" : "specialized";
+      const oppositeTypeKey = currentTypeKey === "general" ? "specialized" : "general";
+      const dayTypeCounts = scheduledTypeByDate.get(slot.dateISO) || { general: 0, specialized: 0 };
+      const sameTypeCount = dayTypeCounts[currentTypeKey] || 0;
+      const oppositeTypeCount = dayTypeCounts[oppositeTypeKey] || 0;
+      const strongMode = generalSpecializedDaySeparationMode === "strong";
+
+      if (sameTypeCount > 0) {
+        score -= strongMode ? sameTypeCount * 90 : sameTypeCount * 35;
+      }
+      if (oppositeTypeCount > 0) {
+        score += strongMode ? oppositeTypeCount * 220 : oppositeTypeCount * 80;
       }
     }
 
@@ -5234,6 +5255,33 @@ style={{
                 ) : (
                   <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
                 )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>فصل أيام الدراسات العامة عن التخصص</div>
+              <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.9, marginBottom: 12 }}>
+                عند تفعيل هذا الخيار سيحاول النظام توزيع مقررات الدراسات العامة في أيام مختلفة عن أيام مقررات التخصص. مثال توضيحي: الدراسات العامة يمكن أن تتجه إلى الأحد والثلاثاء والخميس ثم الاثنين القادم، بينما تتجه مقررات التخصص إلى الاثنين والأربعاء ثم الأحد القادم والثلاثاء القادم، وذلك حسب الإمكان دون كسر القيود الأساسية.
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {[
+                  { value: "off", label: "بدون فصل إضافي" },
+                  { value: "soft", label: "فصل مرن (تفضيل بسيط)" },
+                  { value: "strong", label: "فصل كامل (يفضل بقوة)" },
+                ].map((option) => {
+                  const active = generalSpecializedDaySeparationMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setGeneralSpecializedDaySeparationMode(option.value)}
+                      style={cardButtonStyle({ active })}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
