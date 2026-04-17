@@ -1587,6 +1587,38 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   openPrintWindow("طباعة جدول متدرب", html);
 }
 
+
+function getCourseConstraintDefaults() {
+  return {
+    preferredDays: [],
+    preferredPeriods: [],
+    avoidedDays: [],
+    avoidedPeriods: [],
+  };
+}
+
+function sanitizeCourseConstraintsMap(map, validKeys) {
+  const valid = new Set(validKeys || []);
+  const next = {};
+
+  Object.entries(map || {}).forEach(([courseKey, value]) => {
+    if (!valid.has(courseKey)) return;
+
+    next[courseKey] = {
+      preferredDays: Array.from(new Set((value?.preferredDays || []).filter(Boolean))),
+      preferredPeriods: Array.from(
+        new Set((value?.preferredPeriods || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0))
+      ),
+      avoidedDays: Array.from(new Set((value?.avoidedDays || []).filter(Boolean))),
+      avoidedPeriods: Array.from(
+        new Set((value?.avoidedPeriods || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0))
+      ),
+    };
+  });
+
+  return next;
+}
+
 export default function AdminPage() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -1628,6 +1660,11 @@ const pendingRestoreRef = useRef(null);
 const [enableSamePeriodGroups, setEnableSamePeriodGroups] = useState(false);
 const [samePeriodGroups, setSamePeriodGroups] = useState([]);
 const [draggingSamePeriodCourseKey, setDraggingSamePeriodCourseKey] = useState("");
+const [maxExamsPerStudentPerDay, setMaxExamsPerStudentPerDay] = useState(2);
+const [courseConstraints, setCourseConstraints] = useState({});
+const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
+const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
+const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
 const stepNineCardStyle = {
   borderRadius: 16,
   padding: "12px 14px",
@@ -1753,6 +1790,181 @@ const [hallWarnings, setHallWarnings] = useState([]);
     );
   }
 
+  function updateCourseConstraint(courseKey, patch) {
+    if (!courseKey) return;
+    setCourseConstraints((prev) => ({
+      ...prev,
+      [courseKey]: {
+        ...getCourseConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+        ...patch,
+      },
+    }));
+  }
+
+  function toggleCourseConstraintValue(courseKey, field, value) {
+    if (!courseKey || !field) return;
+    setCourseConstraints((prev) => {
+      const current = {
+        ...getCourseConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+      };
+      const currentList = Array.isArray(current[field]) ? current[field] : [];
+      const nextList = currentList.includes(value)
+        ? currentList.filter((item) => item !== value)
+        : [...currentList, value];
+
+      return {
+        ...prev,
+        [courseKey]: {
+          ...current,
+          [field]: nextList,
+        },
+      };
+    });
+  }
+
+  function clearCourseConstraint(courseKey) {
+    if (!courseKey) return;
+    setCourseConstraints((prev) => {
+      const next = { ...prev };
+      delete next[courseKey];
+      return next;
+    });
+  }
+
+  function moveScheduledCourseToSlot(itemId, targetSlotId) {
+    if (manualScheduleLocked) return;
+
+    setSchedule((prev) => {
+      const sourceItem = prev.find((item) => item.id === itemId);
+      const targetSlot = slots.find((slot) => slot.id === targetSlotId);
+
+      if (!sourceItem || !targetSlot || sourceItem.id === targetSlotId) {
+        return prev;
+      }
+
+      const sourceStudents = new Set(sourceItem.students || []);
+      const hasConflict = prev.some((item) => {
+        if (item.id !== targetSlotId) return false;
+        if (item.id === itemId) return false;
+        return (item.students || []).some((studentId) => sourceStudents.has(studentId));
+      });
+
+      if (hasConflict) {
+        showToast("تعذر النقل", "يوجد متدرب مشترك في هذه الفترة، لذلك لم يتم النقل.", "error");
+        return prev;
+      }
+
+      return prev.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              ...targetSlot,
+              manualEdited: true,
+            }
+          : item
+      );
+    });
+  }
+
+  function togglePinScheduledCourse(itemId) {
+    setSchedule((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, isPinned: !item.isPinned } : item
+      )
+    );
+  }
+
+  function unscheduleCourseManually(itemId) {
+    if (manualScheduleLocked) return;
+
+    let removedItem = null;
+
+    setSchedule((prev) => {
+      removedItem = prev.find((item) => item.id === itemId) || null;
+      return prev.filter((item) => item.id !== itemId);
+    });
+
+    if (removedItem) {
+      setUnscheduled((prev) => [
+        ...prev,
+        {
+          ...removedItem,
+          unscheduledReason: removedItem.unscheduledReason || "تم نقل المقرر يدويًا إلى قائمة غير المجدول.",
+        },
+      ]);
+    }
+  }
+
+  function restoreUnscheduledCourse(courseKey) {
+    if (manualScheduleLocked) return;
+
+    const course = parsed.courses.find((item) => item.key === courseKey);
+    if (!course) return;
+
+    const result = generateScheduleForCourses([course], schedule);
+    if (!result?.placed?.length) {
+      showToast("تعذر الإعادة", "لم يتم العثور على فترة مناسبة لهذا المقرر.", "error");
+      return;
+    }
+
+    setSchedule((prev) =>
+      [...prev, ...result.placed].sort(
+        (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+      )
+    );
+    setUnscheduled((prev) => prev.filter((item) => item.key !== courseKey));
+    showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
+  }
+
+  function clearAllPinnedCourses() {
+    setSchedule((prev) => prev.map((item) => ({ ...item, isPinned: false })));
+    showToast("تم إلغاء التثبيت", "تم إلغاء تثبيت جميع المقررات.", "success");
+  }
+
+  function redistributeUnpinnedCourses() {
+    if (manualScheduleLocked) return;
+
+    const pinnedCourses = schedule.filter((item) => item.isPinned);
+    const candidateKeys = new Set([
+      ...schedule.filter((item) => !item.isPinned).map((item) => item.key),
+      ...unscheduled.map((item) => item.key),
+    ]);
+
+    const coursesToRedistribute = Array.from(candidateKeys)
+      .map((courseKey) => parsed.courses.find((course) => course.key === courseKey) || unscheduled.find((course) => course.key === courseKey) || schedule.find((course) => course.key === courseKey))
+      .filter(Boolean);
+
+    if (!coursesToRedistribute.length) {
+      showToast("لا توجد مقررات", "لا توجد مقررات غير مثبتة لإعادة توزيعها.", "warning");
+      return;
+    }
+
+    const result = generateScheduleForCourses(coursesToRedistribute, pinnedCourses);
+    const placed = Array.isArray(result?.placed) ? result.placed : [];
+    const notPlaced = Array.isArray(result?.notPlaced) ? result.notPlaced : [];
+    const nextHallWarnings = Array.isArray(result?.hallWarnings) ? result.hallWarnings : [];
+
+    const mergedSchedule = [...pinnedCourses, ...placed].sort(
+      (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+    );
+
+    setSchedule(mergedSchedule);
+    setUnscheduled(notPlaced);
+    setHallWarnings(nextHallWarnings);
+
+    if (notPlaced.length) {
+      showToast(
+        "تمت إعادة التوزيع مع ملاحظات",
+        `تمت إعادة توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
+        "warning"
+      );
+    } else {
+      showToast("تمت إعادة التوزيع", `تمت إعادة توزيع ${placed.length} مقرر غير مثبت بنجاح.`, "success");
+    }
+  }
+
   const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
 
   const [previewPage, setPreviewPage] = useState(0);
@@ -1825,6 +2037,11 @@ const handleUpload = (file) => {
       setEnableSamePeriodGroups(false);
       setSamePeriodGroups([]);
       setDraggingSamePeriodCourseKey("");
+      setMaxExamsPerStudentPerDay(2);
+      setCourseConstraints({});
+      setSelectedConstraintCourseKey("");
+      setManualScheduleLocked(false);
+      setDraggingScheduleItemId("");
       setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
       setIncludeAllDepartmentsAndMajors(true);
       setExcludedDepartmentMajors([]);
@@ -2013,6 +2230,9 @@ const buildPersistedState = () => ({
   examHalls,
   enableSamePeriodGroups,
   samePeriodGroups,
+  maxExamsPerStudentPerDay,
+  courseConstraints,
+  manualScheduleLocked,
   hallWarnings,
   includeInvigilators,
   excludedInvigilators,
@@ -2078,6 +2298,9 @@ const restorePersistedState = (saved) => {
         }))
       : []
   );
+  setMaxExamsPerStudentPerDay(Math.max(1, Number(saved.maxExamsPerStudentPerDay) || 2));
+  setCourseConstraints(saved.courseConstraints || {});
+  setManualScheduleLocked(saved.manualScheduleLocked ?? false);
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
   setExcludedInvigilators(saved.excludedInvigilators || []);
@@ -2859,6 +3082,15 @@ const selectedCourseB = useMemo(
     [startDate, numberOfDays, selectedDays, parsedPeriods]
   );
 
+  const editableScheduleSlots = useMemo(
+    () =>
+      slots.map((slot) => ({
+        ...slot,
+        items: (schedule || []).filter((item) => item.id === slot.id),
+      })),
+    [slots, schedule]
+  );
+
   const allCourseOptions = useMemo(() => {
     if (!rows.length) return [];
 
@@ -2875,6 +3107,19 @@ const selectedCourseB = useMemo(
 
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ar"));
   }, [rows]);
+
+  const courseConstraintOptions = useMemo(
+    () =>
+      parsed.courses.map((course) => ({
+        key: course.key,
+        label: `${course.courseName} - ${course.courseCode}`,
+      })),
+    [parsed.courses]
+  );
+
+  const selectedCourseConstraint = selectedConstraintCourseKey
+    ? courseConstraints[selectedConstraintCourseKey] || getCourseConstraintDefaults()
+    : getCourseConstraintDefaults();
 
   const normalizedSamePeriodGroups = useMemo(() => {
     const validKeys = new Set(
@@ -2966,6 +3211,17 @@ const selectedCourseB = useMemo(
       setSamePeriodGroups(sanitized);
     }
   }, [enableSamePeriodGroups, samePeriodGroups, excludedCourses]);
+
+  useEffect(() => {
+    const validKeys = parsed.courses.map((course) => course.key);
+    const sanitized = sanitizeCourseConstraintsMap(courseConstraints, validKeys);
+    const currentJson = JSON.stringify(courseConstraints || {});
+    const nextJson = JSON.stringify(sanitized);
+
+    if (currentJson !== nextJson) {
+      setCourseConstraints(sanitized);
+    }
+  }, [courseConstraints, parsed.courses]);
 
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
@@ -3182,9 +3438,10 @@ const pickInvigilators = (course, slot) => {
 
       const dayMap = studentDayMap.get(studentId) || new Map();
       const sameDayCount = dayMap.get(slot.dateISO) || 0;
+      const sameDayLimit = Math.max(1, Number(maxExamsPerStudentPerDay) || 2);
 
-      if (sameDayCount >= 2) hardConflict = true;
-      if (sameDayCount === 1) sameDayPenalty += 4;
+      if (sameDayCount >= sameDayLimit) hardConflict = true;
+      if (sameDayCount >= 1) sameDayPenalty += sameDayCount * 4;
     });
 
     if (!hardConflict && avoidSameLevelSameDay && courseLevel) {
@@ -3197,6 +3454,13 @@ const pickInvigilators = (course, slot) => {
     if (hardConflict) return Number.POSITIVE_INFINITY;
 
     let score = slotLoadPenalty + sameDayPenalty;
+
+    const courseConstraint = courseConstraints[course.key] || getCourseConstraintDefaults();
+
+    if (courseConstraint.preferredDays.includes(slot.dayName)) score -= 40;
+    if (courseConstraint.preferredPeriods.includes(slot.period)) score -= 35;
+    if (courseConstraint.avoidedDays.includes(slot.dayName)) score += 70;
+    if (courseConstraint.avoidedPeriods.includes(slot.period)) score += 55;
 
     if (includeInvigilators) {
       const availableInvigilatorsCount = invigilatorPool.filter(
@@ -3282,7 +3546,13 @@ sortedCoursesForInvigilation.forEach((course) => {
           : 0,
     });
   }
-  notPlaced.push(course);
+  notPlaced.push({
+    ...course,
+    unscheduledReason:
+      (Number(maxAvailable) || 0) > 0
+        ? "تعذر إيجاد فترة مناسبة دون تعارض أو ضمن القيود الحالية."
+        : "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+  });
   return;
 }
 
@@ -3318,7 +3588,10 @@ sortedCoursesForInvigilation.forEach((course) => {
         required: Number(course.studentCount) || 0,
         maxAvailable,
       });
-      notPlaced.push(course);
+      notPlaced.push({
+        ...course,
+        unscheduledReason: "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+      });
 
       return;
     }
@@ -3336,6 +3609,8 @@ newPlaced.push({
   departmentRoots: Array.from(course.departmentRoots || []),
   examHall: assignedHall,
   invigilators: pickInvigilators(course, bestSlot),
+  manualEdited: false,
+  isPinned: false,
 });
   });
 
@@ -4181,9 +4456,10 @@ const headerBtn = (danger = false) => ({
   { id: 4, label: "4. مقررات الدراسات العامة" },
   { id: 5, label: "5. مقررات التخصص" },
   { id: 6, label: "6. تحليل تعارض مقررين" },
-  { id: 7, label: "7. المعاينة" },
-  { id: 8, label: "8. الطباعة" },
-  { id: 9, label: "9. التصدير وبوابة المتدربين" },
+  { id: 7, label: "7. التعديل اليدوي" },
+  { id: 8, label: "8. المعاينة" },
+  { id: 9, label: "9. الطباعة" },
+  { id: 10, label: "10. التصدير وبوابة المتدربين" },
 ].map((step) => {
             const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
 
@@ -4317,12 +4593,14 @@ style={{
               </div>
 
               <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>مدرب لديه ظروف خاصة</div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>الحد الأقصى لاختبارات المتدرب في اليوم</div>
                 <input
-                  value={prioritizeTrainer}
-                  onChange={(e) => setPrioritizeTrainer(e.target.value)}
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={maxExamsPerStudentPerDay}
+                  onChange={(e) => setMaxExamsPerStudentPerDay(Math.max(1, safeNum(e.target.value, 2)))}
                   style={fieldStyle()}
-                  placeholder="اسم المدرب أو جزء منه"
                 />
               </div>
             </div>
@@ -4810,7 +5088,7 @@ style={{
                   fontSize: 14,
                 }}
               >
-                فعّل هذا الخيار إذا كنت تريد أن يحاول النظام وضع مقررات معينة في نفس الفترة. يمكنك إنشاء أكثر من مجموعة مستقلة، مثل مجموعة لمقررات الرياضيات ومجموعة أخرى لمقررات اللغة الإنجليزية. اسحب المقررات من القائمة إلى المربعات في الأسفل، وسيتم تطبيق ذلك حسب الإمكان مع مراعاة التعارضات وسعة القاعات وتوفر المراقبين.
+                فعّل هذا الخيار إذا كنت تريد أن يحاول النظام وضع مقررات معينة في نفس الفترة. اسحب المقررات من القائمة إلى المربعات في الأسفل، وسيتم تطبيق ذلك حسب الإمكان مع مراعاة التعارضات وسعة القاعات وتوفر المراقبين.
               </div>
 
               {enableSamePeriodGroups ? (
@@ -4863,10 +5141,6 @@ style={{
                         <span style={{ color: "#94A3B8" }}>لا توجد مقررات متاحة حاليًا</span>
                       )}
                     </div>
-                  </div>
-
-                  <div style={{ fontWeight: 900, marginBottom: 12, color: COLORS.charcoal }}>
-                    المجموعات المخصصة لنفس الفترة
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
@@ -4946,6 +5220,112 @@ style={{
                       );
                     })}
                   </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                marginTop: 18,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 22,
+                padding: 16,
+                background: "#F8FEFE",
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)</div>
+              <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
+                هذه الخيارات ليست إلزامية؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
+              </div>
+
+              <div style={{ maxWidth: 520, marginBottom: 14 }}>
+                <select
+                  value={selectedConstraintCourseKey}
+                  onChange={(e) => setSelectedConstraintCourseKey(e.target.value)}
+                  style={fieldStyle()}
+                >
+                  <option value="">اختر المقرر</option>
+                  {courseConstraintOptions.map((course) => (
+                    <option key={course.key} value={course.key}>
+                      {course.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedConstraintCourseKey ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+                  <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>تفضيل اليوم</div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {DAY_OPTIONS.map((day) => (
+                        <label key={day} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCourseConstraint.preferredDays.includes(day)}
+                            onChange={() => toggleCourseConstraintValue(selectedConstraintCourseKey, "preferredDays", day)}
+                          />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>تفضيل الفترة</div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {parsedPeriods.filter((p) => p.valid).map((period, index) => (
+                        <label key={`pref-${index + 1}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCourseConstraint.preferredPeriods.includes(index + 1)}
+                            onChange={() => toggleCourseConstraintValue(selectedConstraintCourseKey, "preferredPeriods", index + 1)}
+                          />
+                          الفترة {index + 1}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>تجنب اليوم</div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {DAY_OPTIONS.map((day) => (
+                        <label key={`avoid-day-${day}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCourseConstraint.avoidedDays.includes(day)}
+                            onChange={() => toggleCourseConstraintValue(selectedConstraintCourseKey, "avoidedDays", day)}
+                          />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>تجنب الفترة</div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {parsedPeriods.filter((p) => p.valid).map((period, index) => (
+                        <label key={`avoid-period-${index + 1}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCourseConstraint.avoidedPeriods.includes(index + 1)}
+                            onChange={() => toggleCourseConstraintValue(selectedConstraintCourseKey, "avoidedPeriods", index + 1)}
+                          />
+                          الفترة {index + 1}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedConstraintCourseKey ? (
+                <div style={{ marginTop: 14 }}>
+                  <button type="button" onClick={() => clearCourseConstraint(selectedConstraintCourseKey)} style={cardButtonStyle({ danger: true })}>
+                    مسح تفضيلات هذا المقرر
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -5949,13 +6329,186 @@ style={{
         السابق
       </button>
       <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
-        التالي: المعاينة
+        التالي: التعديل اليدوي
       </button>
     </div>
   </Card>
 )}
           
         {currentStep === 7 && (
+          <div style={{ marginTop: 20 }}>
+            <Card>
+              <SectionHeader
+                title="التعديل اليدوي للجدول"
+                description="اسحب المقررات بين الفترات يدويًا، ويمكنك قفل الجدول أو تثبيت بعض المقررات حتى لا تتغير لاحقًا."
+              />
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => setManualScheduleLocked((prev) => !prev)}
+                  style={cardButtonStyle({ active: manualScheduleLocked })}
+                >
+                  {manualScheduleLocked ? "🔒 الجدول مقفل" : "🔓 التعديل مفتوح"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={redistributeUnpinnedCourses}
+                  style={cardButtonStyle({ disabled: manualScheduleLocked || !schedule.length })}
+                  disabled={manualScheduleLocked || !schedule.length}
+                >
+                  إعادة توزيع غير المثبت فقط
+                </button>
+
+                <button
+                  type="button"
+                  onClick={clearAllPinnedCourses}
+                  style={cardButtonStyle({ disabled: !schedule.some((item) => item.isPinned) })}
+                  disabled={!schedule.some((item) => item.isPinned)}
+                >
+                  إلغاء تثبيت الكل
+                </button>
+
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 16,
+                    padding: "10px 12px",
+                    background: "#F8FEFE",
+                    color: COLORS.muted,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  التثبيت يعني أن المقرر يبقى في موضعه الحالي حتى لو أعدت التوزيع لاحقًا.
+                </div>
+              </div>
+
+              {!schedule.length ? (
+                <div
+                  style={{
+                    border: `2px dashed ${COLORS.border}`,
+                    borderRadius: 22,
+                    padding: 26,
+                    textAlign: "center",
+                    color: COLORS.muted,
+                    background: "#F8FEFE",
+                  }}
+                >
+                  أنشئ الجدول أولًا من الصفحات السابقة ثم عد إلى هنا للتعديل اليدوي.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 16 }}>
+                  {editableScheduleSlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      onDragOver={(e) => {
+                        if (!manualScheduleLocked) e.preventDefault();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggingScheduleItemId) {
+                          moveScheduledCourseToSlot(draggingScheduleItemId, slot.id);
+                          setDraggingScheduleItemId("");
+                        }
+                      }}
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 22,
+                        overflow: "hidden",
+                        background: "#fff",
+                      }}
+                    >
+                      <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+                          {slot.gregorian} — الفترة {slot.period}
+                        </div>
+                        <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
+                      </div>
+
+                      <div style={{ padding: 14, display: "flex", gap: 10, flexWrap: "wrap", minHeight: 82 }}>
+                        {slot.items.length ? (
+                          slot.items.map((item) => (
+                            <div
+                              key={`${item.key}-${item.id}`}
+                              draggable={!manualScheduleLocked}
+                              onDragStart={() => setDraggingScheduleItemId(item.id)}
+                              onDragEnd={() => setDraggingScheduleItemId("")}
+                              style={{
+                                border: `1px solid ${item.isPinned ? COLORS.primaryDark : COLORS.primaryBorder}`,
+                                background: item.isPinned ? "#DFF7F5" : COLORS.primaryLight,
+                                color: COLORS.primaryDark,
+                                borderRadius: 18,
+                                padding: 12,
+                                minWidth: 220,
+                                cursor: manualScheduleLocked ? "default" : "grab",
+                              }}
+                            >
+                              <div style={{ fontWeight: 900 }}>{item.courseName}</div>
+                              <div style={{ fontSize: 13, marginTop: 4 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                                <button type="button" onClick={() => togglePinScheduledCourse(item.id)} style={cardButtonStyle({ active: !!item.isPinned })}>
+                                  {item.isPinned ? "إلغاء التثبيت" : "تثبيت"}
+                                </button>
+                                <button type="button" onClick={() => unscheduleCourseManually(item.id)} style={cardButtonStyle({ danger: true, disabled: manualScheduleLocked })} disabled={manualScheduleLocked}>
+                                  نقل إلى غير المجدول
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <span style={{ color: COLORS.muted }}>اسحب مقررًا إلى هذه الفترة</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div
+                style={{
+                  marginTop: 18,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 22,
+                  padding: 16,
+                  background: "#fff",
+                }}
+              >
+                <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {unscheduled.length ? (
+                    unscheduled.map((course, index) => (
+                      <div key={`${course.key}-${index}`} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: "#F8FEFE", minWidth: 220 }}>
+                        <div style={{ fontWeight: 800 }}>{course.courseName}</div>
+                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
+                          {course.unscheduledReason || "تعذر العثور على فترة مناسبة."}
+                        </div>
+                        <div style={{ marginTop: 8 }}>
+                          <button type="button" onClick={() => restoreUnscheduledCourse(course.key)} style={cardButtonStyle({ disabled: manualScheduleLocked })} disabled={manualScheduleLocked}>
+                            محاولة إعادة الجدولة
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مجدولة.</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                  السابق
+                </button>
+                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
+                  التالي: المعاينة
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {currentStep === 8 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
@@ -6043,10 +6596,10 @@ style={{
 
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                  <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
                     السابق
                   </button>
-                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
+                  <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
                     التالي: الطباعة
                   </button>
                 </div>
@@ -6422,7 +6975,7 @@ style={{
             )}
           </>
         )}
-        {currentStep === 8 && (
+        {currentStep === 9 && (
           <div style={{ marginTop: 20 }}>
             <Card>
               <SectionHeader
@@ -6653,7 +7206,7 @@ style={{
               </label>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
+                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
                   السابق
                 </button>
 
@@ -6701,7 +7254,7 @@ style={{
                 >
                   طباعة جدول المراقبين
                 </button>
-                 <button onClick={() => setCurrentStep(9)} style={cardButtonStyle({ active: true })}>
+                 <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
       </button>
               </div>
@@ -6711,7 +7264,7 @@ style={{
 
         </div>
   
-{currentStep === 9 && (
+{currentStep === 10 && (
   <Card>
     <SectionHeader
       title="تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
@@ -6968,7 +7521,7 @@ style={{
     <br />
 
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+      <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
         السابق
       </button>
     </div>
