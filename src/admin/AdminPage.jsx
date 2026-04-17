@@ -1668,6 +1668,41 @@ function getCourseConstraintDefaults() {
     avoidedPeriods: [],
   };
 }
+function getCourseHallConstraintDefaults() {
+  return { mode: "off", hallNames: [] };
+}
+
+function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
+  const valid = new Set(validKeys || []);
+  const halls = new Set((validHallNames || []).map((name) => normalizeArabic(name)));
+  const next = {};
+  Object.entries(map || {}).forEach(([courseKey, value]) => {
+    if (!valid.has(courseKey)) return;
+    next[courseKey] = {
+      mode: ["off", "prefer", "block", "only"].includes(value?.mode) ? value.mode : "off",
+      hallNames: Array.from(new Set((value?.hallNames || []).filter((name) => halls.has(normalizeArabic(name))))),
+    };
+  });
+  return next;
+}
+
+function getCourseInvigilatorConstraintDefaults() {
+  return { mode: "off", invigilatorNames: [] };
+}
+
+function sanitizeCourseInvigilatorConstraintsMap(map, validKeys, validInvigilatorNames) {
+  const valid = new Set(validKeys || []);
+  const invigilators = new Set((validInvigilatorNames || []).map((name) => normalizeArabic(name)));
+  const next = {};
+  Object.entries(map || {}).forEach(([courseKey, value]) => {
+    if (!valid.has(courseKey)) return;
+    next[courseKey] = {
+      mode: ["off", "prefer", "block", "prefer_department", "only_department", "only_specific"].includes(value?.mode) ? value.mode : "off",
+      invigilatorNames: Array.from(new Set((value?.invigilatorNames || []).filter((name) => invigilators.has(normalizeArabic(name))))),
+    };
+  });
+  return next;
+}
 
 function sanitizeCourseConstraintsMap(map, validKeys) {
   const valid = new Set(validKeys || []);
@@ -1737,6 +1772,12 @@ const [maxExamsPerStudentPerDay, setMaxExamsPerStudentPerDay] = useState(2);
 const [courseConstraints, setCourseConstraints] = useState({});
 const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
 const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
+const [courseHallConstraints, setCourseHallConstraints] = useState({});
+const [selectedHallConstraintCourseKey, setSelectedHallConstraintCourseKey] = useState("");
+const [selectedHallConstraintCourseKeys, setSelectedHallConstraintCourseKeys] = useState([]);
+const [courseInvigilatorConstraints, setCourseInvigilatorConstraints] = useState({});
+const [selectedInvigilatorConstraintCourseKey, setSelectedInvigilatorConstraintCourseKey] = useState("");
+const [selectedInvigilatorConstraintCourseKeys, setSelectedInvigilatorConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
 const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMode] = useState("off");
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
@@ -1957,15 +1998,56 @@ const periodOverlapWarning = useMemo(() => {
     });
   }
 
-  function clearCourseConstraint(courseKey) {
+  function updateCourseHallConstraint(courseKey, patch) {
     if (!courseKey) return;
-    setCourseConstraints((prev) => {
-      const next = { ...prev };
-      delete next[courseKey];
+    setCourseHallConstraints((prev) => ({ ...prev, [courseKey]: { ...getCourseHallConstraintDefaults(), ...(prev[courseKey] || {}), ...patch } }));
+  }
+  function toggleCourseHallConstraintValue(courseKey, hallName) {
+    if (!courseKey || !hallName) return;
+    setCourseHallConstraints((prev) => {
+      const current = { ...getCourseHallConstraintDefaults(), ...(prev[courseKey] || {}) };
+      const hallNames = current.hallNames.includes(hallName) ? current.hallNames.filter((name) => name !== hallName) : [...current.hallNames, hallName];
+      return { ...prev, [courseKey]: { ...current, hallNames } };
+    });
+  }
+  function addHallConstraintCourseToList(courseKey) {
+    if (!courseKey) return;
+    setSelectedHallConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
+    setSelectedHallConstraintCourseKey(courseKey);
+  }
+  function removeHallConstraintCourseFromList(courseKey) {
+    if (!courseKey) return;
+    setSelectedHallConstraintCourseKeys((prev) => {
+      const next = prev.filter((key) => key !== courseKey);
+      if (selectedHallConstraintCourseKey === courseKey) setSelectedHallConstraintCourseKey(next[0] || "");
       return next;
     });
   }
-
+  function updateCourseInvigilatorConstraint(courseKey, patch) {
+    if (!courseKey) return;
+    setCourseInvigilatorConstraints((prev) => ({ ...prev, [courseKey]: { ...getCourseInvigilatorConstraintDefaults(), ...(prev[courseKey] || {}), ...patch } }));
+  }
+  function toggleCourseInvigilatorConstraintValue(courseKey, invigilatorName) {
+    if (!courseKey || !invigilatorName) return;
+    setCourseInvigilatorConstraints((prev) => {
+      const current = { ...getCourseInvigilatorConstraintDefaults(), ...(prev[courseKey] || {}) };
+      const invigilatorNames = current.invigilatorNames.includes(invigilatorName) ? current.invigilatorNames.filter((name) => name !== invigilatorName) : [...current.invigilatorNames, invigilatorName];
+      return { ...prev, [courseKey]: { ...current, invigilatorNames } };
+    });
+  }
+  function addInvigilatorConstraintCourseToList(courseKey) {
+    if (!courseKey) return;
+    setSelectedInvigilatorConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
+    setSelectedInvigilatorConstraintCourseKey(courseKey);
+  }
+  function removeInvigilatorConstraintCourseFromList(courseKey) {
+    if (!courseKey) return;
+    setSelectedInvigilatorConstraintCourseKeys((prev) => {
+      const next = prev.filter((key) => key !== courseKey);
+      if (selectedInvigilatorConstraintCourseKey === courseKey) setSelectedInvigilatorConstraintCourseKey(next[0] || "");
+      return next;
+    });
+  }
 
   function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
     if (!course || !targetSlotId) return [];
@@ -2351,6 +2433,12 @@ const handleUpload = (file) => {
       setCourseConstraints({});
       setSelectedConstraintCourseKey("");
       setSelectedConstraintCourseKeys([]);
+      setCourseHallConstraints({});
+      setSelectedHallConstraintCourseKey("");
+      setSelectedHallConstraintCourseKeys([]);
+      setCourseInvigilatorConstraints({});
+      setSelectedInvigilatorConstraintCourseKey("");
+      setSelectedInvigilatorConstraintCourseKeys([]);
       setManualScheduleLocked(false);
       setGeneralSpecializedDaySeparationMode("off");
       setDraggingScheduleItemId("");
@@ -2447,6 +2535,19 @@ const deserializeScheduleItem = (item) => ({
   if (n === 1) return "متدرب";
   if (n >= 2 && n <= 10) return "متدربين";
   return "متدرب";
+};
+const renderUnscheduledReasons = (course) => {
+  const details = Array.isArray(course?.unscheduledReasonDetails) ? course.unscheduledReasonDetails : [];
+  if (!details.length) return null;
+  return (
+    <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
+      {details.map((reason, index) => (
+        <div key={`${course.key}-reason-${index}`} style={{ fontSize: 12, color: COLORS.warning, lineHeight: 1.7 }}>
+          • {reason}
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const getPeriodTheme = (period) => {
@@ -3616,6 +3717,21 @@ const selectedCourseB = useMemo(
       setCourseConstraints(sanitized);
     }
   }, [courseConstraints, parsed.courses]);
+  useEffect(() => {
+    const validKeys = parsed.courses.map((course) => course.key);
+    const sanitized = sanitizeCourseHallConstraintsMap(courseHallConstraints, validKeys, (examHalls || []).map((hall) => hall.name));
+    if (JSON.stringify(courseHallConstraints || {}) !== JSON.stringify(sanitized)) {
+      setCourseHallConstraints(sanitized);
+    }
+  }, [courseHallConstraints, parsed.courses, examHalls]);
+
+  useEffect(() => {
+    const validKeys = parsed.courses.map((course) => course.key);
+    const sanitized = sanitizeCourseInvigilatorConstraintsMap(courseInvigilatorConstraints, validKeys, (manualInvigilators ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean) : parsed.invigilators));
+    if (JSON.stringify(courseInvigilatorConstraints || {}) !== JSON.stringify(sanitized)) {
+      setCourseInvigilatorConstraints(sanitized);
+    }
+  }, [courseInvigilatorConstraints, parsed.courses, manualInvigilators, parsed.invigilators]);
 
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
@@ -3683,6 +3799,39 @@ const hallsPool = normalizedExamHalls;
   const orderedDateIndexMap = new Map(
     Array.from(new Set(slots.map((slot) => slot.dateISO))).map((dateISO, index) => [dateISO, index])
   );
+  const getCourseHallConstraint = (course) => ({ ...getCourseHallConstraintDefaults(), ...(courseHallConstraints[course.key] || {}) });
+  const isHallAllowedByCourseConstraint = (hall, course) => {
+    const constraint = getCourseHallConstraint(course);
+    const selected = new Set((constraint.hallNames || []).map((name) => normalizeArabic(name)));
+    const normalizedHall = normalizeArabic(hall.name);
+    if (constraint.mode === "block" && selected.has(normalizedHall)) return false;
+    if (constraint.mode === "only" && selected.size) return selected.has(normalizedHall);
+    return true;
+  };
+  const getCourseInvigilatorConstraint = (course) => ({ ...getCourseInvigilatorConstraintDefaults(), ...(courseInvigilatorConstraints[course.key] || {}) });
+  const getDepartmentAllowedInvigilatorNames = (course) => {
+    const roots = new Set((course.departmentRoots || []).map((root) => normalizeArabic(root)));
+    return invigilatorPool.filter((name) => {
+      const invRoots = invigilatorDepartmentRootsMap.get(name) || new Set();
+      for (const root of invRoots) if (roots.has(root)) return true;
+      return false;
+    });
+  };
+  const getAvailableInvigilatorCandidates = (course, periodKey, chosen = []) => {
+    const constraint = getCourseInvigilatorConstraint(course);
+    let candidates = invigilatorPool.filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)).filter((name) => !chosen.includes(name));
+    const blocked = new Set((constraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
+    candidates = candidates.filter((name) => !blocked.has(normalizeArabic(name)));
+    if (constraint.mode === "only_specific") {
+      const allowed = new Set((constraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
+      candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
+    }
+    if (constraint.mode === "only_department") {
+      const allowed = new Set(getDepartmentAllowedInvigilatorNames(course).map((name) => normalizeArabic(name)));
+      candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
+    }
+    return candidates;
+  };
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
@@ -3762,9 +3911,10 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
-  const availableCandidates = invigilatorPool
-    .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+  const invigilatorConstraint = getCourseInvigilatorConstraint(course);
+  const preferredInvigilatorSet = new Set((invigilatorConstraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
+  const departmentInvigilatorSet = new Set(getDepartmentAllowedInvigilatorNames(course).map((name) => normalizeArabic(name)));
+  const availableCandidates = getAvailableInvigilatorCandidates(course, periodKey);
 
   // المرحلة 1: نختار فقط من ضمن من هم داخل هامش العدالة
   while (chosen.length < requiredCount) {
@@ -3774,15 +3924,12 @@ const pickInvigilators = (course, slot) => {
       .filter((name) => !chosen.includes(name))
       .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
       .sort((a, b) => {
-        const aScore = rankInvigilatorForFairness(
-          a,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a))
-        );
-        const bScore = rankInvigilatorForFairness(
-          b,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b))
-        );
-
+        let aScore = rankInvigilatorForFairness(a, preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a)));
+        let bScore = rankInvigilatorForFairness(b, preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b)));
+        if (invigilatorConstraint.mode === "prefer" && preferredInvigilatorSet.has(normalizeArabic(a))) aScore -= 1.5;
+        if (invigilatorConstraint.mode === "prefer" && preferredInvigilatorSet.has(normalizeArabic(b))) bScore -= 1.5;
+        if (invigilatorConstraint.mode === "prefer_department" && departmentInvigilatorSet.has(normalizeArabic(a))) aScore -= 1.2;
+        if (invigilatorConstraint.mode === "prefer_department" && departmentInvigilatorSet.has(normalizeArabic(b))) bScore -= 1.2;
         return aScore - bScore || a.localeCompare(b, "ar");
       });
 
@@ -3793,8 +3940,7 @@ const pickInvigilators = (course, slot) => {
 
   // المرحلة 2: إذا لم يكتمل العدد، نكمل من الأقل حملًا مهما كان
   if (chosen.length < requiredCount) {
-    const fallbackCandidates = availableCandidates
-      .filter((name) => !chosen.includes(name))
+    const fallbackCandidates = getAvailableInvigilatorCandidates(course, periodKey, chosen)
       .sort((a, b) => {
         const aLoad = invigilatorLoad.get(a) || 0;
         const bLoad = invigilatorLoad.get(b) || 0;
@@ -3802,11 +3948,11 @@ const pickInvigilators = (course, slot) => {
         const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
         const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
 
-        return (
-          aLoad - bLoad ||
-          Number(bTrainer) - Number(aTrainer) ||
-          a.localeCompare(b, "ar")
-        );
+        const aPreferred = invigilatorConstraint.mode === "prefer" && preferredInvigilatorSet.has(normalizeArabic(a));
+        const bPreferred = invigilatorConstraint.mode === "prefer" && preferredInvigilatorSet.has(normalizeArabic(b));
+        const aDeptPreferred = invigilatorConstraint.mode === "prefer_department" && departmentInvigilatorSet.has(normalizeArabic(a));
+        const bDeptPreferred = invigilatorConstraint.mode === "prefer_department" && departmentInvigilatorSet.has(normalizeArabic(b));
+        return aLoad - bLoad || Number(bPreferred) - Number(aPreferred) || Number(bDeptPreferred) - Number(aDeptPreferred) || Number(bTrainer) - Number(aTrainer) || a.localeCompare(b, "ar");
       });
 
     for (const name of fallbackCandidates) {
@@ -3866,9 +4012,7 @@ const pickInvigilators = (course, slot) => {
     if (courseConstraint.avoidedPeriods.includes(slot.period)) score += 55;
 
     if (includeInvigilators) {
-      const availableInvigilatorsCount = invigilatorPool.filter(
-        (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
-      ).length;
+      const availableInvigilatorsCount = getAvailableInvigilatorCandidates(course, periodKey).length;
 
       if (availableInvigilatorsCount < requiredInvigilators) {
         score += (requiredInvigilators - availableInvigilatorsCount) * 50;
@@ -3876,7 +4020,7 @@ const pickInvigilators = (course, slot) => {
     }
 
     const matchingHallCount = hallsPool.filter((hall) =>
-      canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
+      isHallAllowedByCourseConstraint(hall, course) && canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
     ).length;
 
     if (!matchingHallCount) {
@@ -3964,22 +4108,48 @@ sortedCoursesForInvigilation.forEach((course) => {
   
       if (!bestSlot || !Number.isFinite(bestScore)) {
   const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+  const diagnostics = { studentConflict: 0, hallUnavailable: 0, invigilatorShortage: 0, constraintConflict: 0 };
+  slots.forEach((slot) => {
+    let hardStudentConflict = false;
+    let hardConstraintConflict = false;
+    course.students.forEach((studentId) => {
+      const usedSlots = studentSlotMap.get(studentId) || new Set();
+      if (usedSlots.has(slot.id)) hardStudentConflict = true;
+      const dayMap = studentDayMap.get(studentId) || new Map();
+      const sameDayCount = dayMap.get(slot.dateISO) || 0;
+      const sameDayLimit = Math.max(1, Number(maxExamsPerStudentPerDay) || 2);
+      if (sameDayCount >= sameDayLimit) hardConstraintConflict = true;
+    });
+    if (hardStudentConflict) diagnostics.studentConflict += 1;
+    if (hardConstraintConflict) diagnostics.constraintConflict += 1;
+    const matchingHallCount = hallsPool.filter((hall) => isHallAllowedByCourseConstraint(hall, course) && canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)).length;
+    if (!matchingHallCount) diagnostics.hallUnavailable += 1;
+    if (includeInvigilators && getAvailableInvigilatorCandidates(course, getSlotPeriodKey(slot)).length < getRequiredInvigilatorsCount(course)) diagnostics.invigilatorShortage += 1;
+  });
+  const detailedReasons = [];
+  if (diagnostics.studentConflict === slots.length && slots.length) detailedReasons.push("تعارض طلاب في جميع الفترات المتاحة.");
+  else if (diagnostics.studentConflict > 0) detailedReasons.push(`تعارض طلاب في ${diagnostics.studentConflict} فترة.`);
+  if (diagnostics.constraintConflict === slots.length && slots.length) detailedReasons.push("الحد الأقصى لاختبارات المتدرب في اليوم أو القيود اليومية يمنع الجدولة في جميع الفترات.");
+  if (diagnostics.hallUnavailable === slots.length && slots.length) detailedReasons.push("لا توجد قاعة مناسبة لهذا المقرر ضمن القيود الحالية للقاعات.");
+  else if (diagnostics.hallUnavailable > 0) detailedReasons.push(`تعذر توفير قاعة مناسبة في ${diagnostics.hallUnavailable} فترة.`);
+  if (includeInvigilators && diagnostics.invigilatorShortage === slots.length && slots.length) detailedReasons.push("لا يوجد مراقبون كافون وفق القيود الحالية لهذا المقرر.");
+  else if (includeInvigilators && diagnostics.invigilatorShortage > 0) detailedReasons.push(`نقص مراقبين في ${diagnostics.invigilatorShortage} فترة.`);
+  const hallConstraint = getCourseHallConstraint(course);
+  const invConstraint = getCourseInvigilatorConstraint(course);
+  if (hallConstraint.mode === "only") detailedReasons.push("المقرر مقصور على قاعات محددة فقط.");
+  if (invConstraint.mode === "only_specific") detailedReasons.push("المقرر مقصور على مراقبين محددين فقط.");
+  if (invConstraint.mode === "only_department") detailedReasons.push("المقرر مقصور على مراقبي قسمه فقط.");
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       required: Number(course.studentCount) || 0,
-      maxAvailable:
-        Number.isFinite(maxAvailable) && maxAvailable < Number.MAX_SAFE_INTEGER
-          ? maxAvailable
-          : 0,
+      maxAvailable: Number.isFinite(maxAvailable) && maxAvailable < Number.MAX_SAFE_INTEGER ? maxAvailable : 0,
     });
   }
   notPlaced.push({
     ...course,
-    unscheduledReason:
-      (Number(maxAvailable) || 0) > 0
-        ? "تعذر إيجاد فترة مناسبة دون تعارض أو ضمن القيود الحالية."
-        : "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+    unscheduledReason: detailedReasons[0] || ((Number(maxAvailable) || 0) > 0 ? "تعذر إيجاد فترة مناسبة دون تعارض أو ضمن القيود الحالية." : "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة."),
+    unscheduledReasonDetails: detailedReasons,
   });
   return;
 }
@@ -3994,11 +4164,15 @@ sortedCoursesForInvigilation.forEach((course) => {
     });
 
     const fittingHalls = hallsPool
-      .filter((hall) => canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap))
+      .filter((hall) => isHallAllowedByCourseConstraint(hall, course) && canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap))
       .sort((a, b) => {
+        const hallConstraint = getCourseHallConstraint(course);
+        const preferred = new Set((hallConstraint.hallNames || []).map((name) => normalizeArabic(name)));
+        const aPreferred = hallConstraint.mode === "prefer" && preferred.has(normalizeArabic(a.name));
+        const bPreferred = hallConstraint.mode === "prefer" && preferred.has(normalizeArabic(b.name));
         const aRemaining = getRemainingHallCapacityForSlot(a, bestSlot, hallUsageMap);
         const bRemaining = getRemainingHallCapacityForSlot(b, bestSlot, hallUsageMap);
-        return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
+        return Number(bPreferred) - Number(aPreferred) || aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
       });
 
     let assignedHall = null;
@@ -4019,6 +4193,7 @@ sortedCoursesForInvigilation.forEach((course) => {
       notPlaced.push({
         ...course,
         unscheduledReason: "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+        unscheduledReasonDetails: ["لا توجد قاعة مناسبة لهذا المقرر ضمن القيود الحالية للقاعات."],
       });
 
       return;
@@ -6087,6 +6262,84 @@ style={{
               </div>
             ) : null}
 
+            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>فترات الاختبار</div>
+              <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>تم دمج إعداد الفترات هنا أيضًا لتكون ضمن صفحة تعديل المقررات.</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {periodConfigs.map((periodConfig, index) => {
+                  const startMinutes = parseTimeToMinutes(periodConfig.start);
+                  const endText = periodConfig.enabled === false || startMinutes === null ? "--:--" : minutesToTimeText(startMinutes + Number(periodConfig.duration || 0));
+                  const isRequired = index === 0;
+                  return (
+                    <div key={`period-config-step2-${index}`} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 10, background: periodConfig.enabled ? "#fff" : COLORS.bg2, display: "grid", gridTemplateColumns: "110px minmax(100px, 135px) minmax(100px, 135px) minmax(80px, 110px)", gap: 8, alignItems: "end", maxWidth: 560, opacity: periodConfig.enabled ? 1 : 0.78 }}>
+                      <div>
+                        <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 8 }}>الفترة {index + 1}</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: isRequired ? COLORS.muted : COLORS.text }}>
+                          <input type="checkbox" checked={isRequired ? true : periodConfig.enabled !== false} disabled={isRequired} onChange={(e) => updatePeriodConfig(index, { enabled: e.target.checked })} />
+                          {isRequired ? "إلزامية" : "تفعيل"}
+                        </label>
+                      </div>
+                      <div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>البداية</div>
+                        <select value={periodConfig.start} disabled={periodConfig.enabled === false} onChange={(e) => updatePeriodConfig(index, { start: e.target.value })} style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}>
+                          {PERIOD_TIME_OPTIONS.map((timeValue) => <option key={timeValue} value={timeValue}>{timeValue}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>المدة</div>
+                        <select value={periodConfig.duration} disabled={periodConfig.enabled === false} onChange={(e) => updatePeriodConfig(index, { duration: Number(e.target.value) })} style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}>
+                          {PERIOD_DURATION_OPTIONS.map((durationValue) => <option key={durationValue} value={durationValue}>{durationValue} د</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>النهاية</div>
+                        <div style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, background: COLORS.bg2, fontWeight: 800, color: COLORS.primaryDark, fontSize: 14, textAlign: "center" }}>{endText}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {periodOverlapWarning ? <div style={{ marginTop: 10, border: `1px solid #FECACA`, background: COLORS.dangerBg, color: COLORS.danger, borderRadius: 14, padding: "10px 12px", fontWeight: 700, maxWidth: 560 }}>{periodOverlapWarning}</div> : null}
+            </div>
+
+            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
+              <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>يمكنك تفضيل قاعات محددة أو منعها أو قصر المقرر على قاعات محددة فقط.</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ flex: "1 1 320px" }}>
+                  <select value={selectedHallConstraintCourseKey} onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)} style={fieldStyle()}>
+                    <option value="">اختر المقرر</option>
+                    {allCourseOptions.map((course) => <option key={course.key} value={course.key}>{course.label}</option>)}
+                  </select>
+                </div>
+                <button type="button" onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)} style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })} disabled={!selectedHallConstraintCourseKey}>إضافة مقرر آخر</button>
+              </div>
+              {selectedHallConstraintCourseKeys.length ? <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {selectedHallConstraintCourseKeys.map((courseKey) => {
+                    const course = allCourseOptions.find((item) => item.key === courseKey);
+                    const active = selectedHallConstraintCourseKey === courseKey;
+                    return <button key={courseKey} type="button" onClick={() => setSelectedHallConstraintCourseKey(courseKey)} style={cardButtonStyle({ active })}>{course?.label || courseKey}</button>;
+                  })}
+                </div>
+                {selectedHallConstraintCourseKey ? (() => {
+                  const hallConstraint = courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults();
+                  return <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                      {[{ value: "off", label: "بدون قيد" }, { value: "prefer", label: "تفضيل قاعات" }, { value: "block", label: "منع قاعات" }, { value: "only", label: "قصر على هذه القاعات فقط" }].map((option) => <button key={option.value} type="button" onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })} style={cardButtonStyle({ active: hallConstraint.mode === option.value })}>{option.label}</button>)}
+                      <button type="button" onClick={() => removeHallConstraintCourseFromList(selectedHallConstraintCourseKey)} style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {normalizedExamHalls.map((hall) => {
+                        const selected = (hallConstraint.hallNames || []).includes(hall.name);
+                        return <button key={hall.id} type="button" onClick={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)} style={{ border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`, background: selected ? COLORS.primaryLight : "#fff", color: selected ? COLORS.primaryDark : COLORS.charcoalSoft, borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{selected ? `مختارة: ${hall.name}` : hall.name}</button>;
+                      })}
+                    </div>
+                  </div>;
+                })() : null}
+              </div> : null}
+            </div>
+
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
                 السابق
@@ -6357,6 +6610,51 @@ style={{
               <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
             )}
           </div>
+        </div>
+
+        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, marginTop: 14, background: "#F8FEFE" }}>
+          <div style={{ fontWeight: 800, marginBottom: 10 }}>تفضيل / منع / قصر مراقبين لمقرر معيّن</div>
+          <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>اختر المقرر ثم نوع القيد المطلوب. يمكن القصر على مراقبي القسم أو مراقبين محددين.</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ flex: "1 1 320px" }}>
+              <select value={selectedInvigilatorConstraintCourseKey} onChange={(e) => setSelectedInvigilatorConstraintCourseKey(e.target.value)} style={fieldStyle()}>
+                <option value="">اختر المقرر</option>
+                {allCourseOptions.map((course) => <option key={course.key} value={course.key}>{course.label}</option>)}
+              </select>
+            </div>
+            <button type="button" onClick={() => addInvigilatorConstraintCourseToList(selectedInvigilatorConstraintCourseKey)} style={cardButtonStyle({ disabled: !selectedInvigilatorConstraintCourseKey })} disabled={!selectedInvigilatorConstraintCourseKey}>إضافة مقرر آخر</button>
+          </div>
+          {selectedInvigilatorConstraintCourseKeys.length ? <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {selectedInvigilatorConstraintCourseKeys.map((courseKey) => {
+                const course = allCourseOptions.find((item) => item.key === courseKey);
+                const active = selectedInvigilatorConstraintCourseKey === courseKey;
+                return <button key={courseKey} type="button" onClick={() => setSelectedInvigilatorConstraintCourseKey(courseKey)} style={cardButtonStyle({ active })}>{course?.label || courseKey}</button>;
+              })}
+            </div>
+            {selectedInvigilatorConstraintCourseKey ? (() => {
+              const invConstraint = courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults();
+              return <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                  {[
+                    { value: "off", label: "بدون قيد" },
+                    { value: "prefer", label: "تفضيل مراقبين محددين" },
+                    { value: "block", label: "منع مراقبين محددين" },
+                    { value: "prefer_department", label: "تفضيل مراقبي القسم" },
+                    { value: "only_department", label: "قصر على مراقبي القسم" },
+                    { value: "only_specific", label: "قصر على مراقبين محددين" },
+                  ].map((option) => <button key={option.value} type="button" onClick={() => updateCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey, { mode: option.value })} style={cardButtonStyle({ active: invConstraint.mode === option.value })}>{option.label}</button>)}
+                  <button type="button" onClick={() => removeInvigilatorConstraintCourseFromList(selectedInvigilatorConstraintCourseKey)} style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {availableInvigilators.map((name) => {
+                    const selected = (invConstraint.invigilatorNames || []).includes(name);
+                    return <button key={name} type="button" onClick={() => toggleCourseInvigilatorConstraintValue(selectedInvigilatorConstraintCourseKey, name)} style={{ border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`, background: selected ? COLORS.primaryLight : "#fff", color: selected ? COLORS.primaryDark : COLORS.charcoalSoft, borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{selected ? `مختار: ${name}` : name}</button>;
+                  })}
+                </div>
+              </div>;
+            })() : null}
+          </div> : null}
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
@@ -7168,6 +7466,7 @@ style={{
                         <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
                           {course.unscheduledReason || "تعذر العثور على فترة مناسبة."}
                         </div>
+                        {renderUnscheduledReasons(course)}
                         {!canEditManualCourse(course) ? (
                           <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
                         ) : null}
