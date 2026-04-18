@@ -1683,6 +1683,10 @@ function getCourseInvigilatorConstraintDefaults() {
   };
 }
 
+function isDepartmentTrainerConstraintMode(mode) {
+  return mode === "avoid_department_trainers" || mode === "only_department_trainers";
+}
+
 function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
   const valid = new Set(validKeys || []);
   const allowedHallNames = new Set((validHallNames || []).map((name) => normalizeArabic(name)));
@@ -1736,7 +1740,11 @@ function sanitizeCourseInvigilatorConstraintsMap(map, validKeys, validInvigilato
 
     next[courseKey] = {
       mode:
-        value?.mode === "only" || value?.mode === "prefer" || value?.mode === "avoid"
+        value?.mode === "only" ||
+        value?.mode === "prefer" ||
+        value?.mode === "avoid" ||
+        value?.mode === "avoid_department_trainers" ||
+        value?.mode === "only_department_trainers"
           ? value.mode
           : "off",
       invigilatorNames: Array.from(
@@ -3767,6 +3775,59 @@ const selectedCourseB = useMemo(
   const hallConstraintOptions = courseConstraintOptions;
   const invigilatorConstraintOptions = courseConstraintOptions;
 
+
+  const departmentTrainerNamesByCourseKey = useMemo(() => {
+    const map = new Map();
+    const normalizedAvailableInvigilatorSet = new Set(
+      (manualInvigilators
+        ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+        : parsed.invigilators
+      ).map((name) => normalizeArabic(name))
+    );
+
+    const generalStudiesTrainerNames = Array.from(
+      new Set(
+        parsed.courses
+          .filter((course) => isGeneralStudiesCourse(course))
+          .flatMap((course) => Array.from(course.trainers || []))
+          .map((name) => String(name || "").trim())
+          .filter((name) => name && normalizedAvailableInvigilatorSet.has(normalizeArabic(name)))
+      )
+    ).sort((a, b) => a.localeCompare(b, "ar"));
+
+    parsed.courses.forEach((course) => {
+      const isGeneral = isGeneralStudiesCourse(course);
+
+      if (isGeneral) {
+        map.set(course.key, generalStudiesTrainerNames);
+        return;
+      }
+
+      const courseRoots = normalizeDepartmentList(course.departmentRoots || []);
+      const names = Array.from(
+        new Set(
+          parsed.courses
+            .filter((candidate) => !isGeneralStudiesCourse(candidate))
+            .filter((candidate) => {
+              const candidateRoots = normalizeDepartmentList(candidate.departmentRoots || []);
+              return candidateRoots.some((root) => courseRoots.includes(root));
+            })
+            .flatMap((candidate) => Array.from(candidate.trainers || []))
+            .map((name) => String(name || "").trim())
+            .filter((name) => name && normalizedAvailableInvigilatorSet.has(normalizeArabic(name)))
+        )
+      ).sort((a, b) => a.localeCompare(b, "ar"));
+
+      map.set(course.key, names);
+    });
+
+    return map;
+  }, [manualInvigilators, parsed.courses, parsed.invigilators]);
+
+  const selectedDepartmentTrainerNames = selectedInvigilatorConstraintCourseKey
+    ? departmentTrainerNamesByCourseKey.get(selectedInvigilatorConstraintCourseKey) || []
+    : [];
+
   const normalizedSamePeriodGroups = useMemo(() => {
     const validKeys = new Set(
       parsed.courses
@@ -4070,6 +4131,9 @@ const pickInvigilators = (course, slot) => {
   const constrainedInvigilators = new Set(
     (invigilatorConstraint.invigilatorNames || []).map((name) => normalizeArabic(name))
   );
+  const departmentTrainerInvigilators = new Set(
+    ((departmentTrainerNamesByCourseKey.get(course.key) || []).map((name) => normalizeArabic(name)))
+  );
 
   const availableCandidates = invigilatorPool
     .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
@@ -4083,6 +4147,14 @@ const pickInvigilators = (course, slot) => {
 
       if (invigilatorConstraint.mode === "avoid" && constrainedInvigilators.size) {
         return !constrainedInvigilators.has(normalizedName);
+      }
+
+      if (invigilatorConstraint.mode === "only_department_trainers") {
+        return departmentTrainerInvigilators.has(normalizedName);
+      }
+
+      if (invigilatorConstraint.mode === "avoid_department_trainers") {
+        return !departmentTrainerInvigilators.has(normalizedName);
       }
 
       return true;
@@ -5513,7 +5585,7 @@ style={{
               ) : null}
             </div>
 
-            <div style={{ marginTop: 18, maxWidth: 640 }}>
+            <div style={{ marginTop: 18 }}>
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
@@ -7003,6 +7075,8 @@ style={{
                   { value: "prefer", label: "تفضيل مراقبين محددين" },
                   { value: "avoid", label: "منع مراقبين محددين" },
                   { value: "only", label: "قصر على مراقبين محددين" },
+                  { value: "avoid_department_trainers", label: "منع مدربي القسم" },
+                  { value: "only_department_trainers", label: "قصر على مدربي القسم" },
                 ].map((option) => {
                   const active = selectedCourseInvigilatorConstraint.mode === option.value;
                   return (
@@ -7024,6 +7098,48 @@ style={{
 
               {selectedCourseInvigilatorConstraint.mode === "off" ? (
                 <div style={{ color: COLORS.muted }}>لم يتم تفعيل تخصيص مراقبين لهذا المقرر.</div>
+              ) : isDepartmentTrainerConstraintMode(selectedCourseInvigilatorConstraint.mode) ? (
+                <>
+                  <div style={{ color: COLORS.muted, marginBottom: 12, lineHeight: 1.8 }}>
+                    {selectedCourseInvigilatorConstraint.mode === "only_department_trainers"
+                      ? "سيتم قصر المراقبة تلقائيًا على مدربي القسم لهذا المقرر. وإذا كان المقرر من الدراسات العامة فسيقتصر على مدربي الدراسات العامة فقط."
+                      : "سيتم منع مدربي القسم لهذا المقرر من المراقبة. وإذا كان المقرر من الدراسات العامة فسيتم منع مدربي الدراسات العامة فقط."}
+                  </div>
+
+                  {selectedDepartmentTrainerNames.length ? (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      {selectedDepartmentTrainerNames.map((name) => (
+                        <span
+                          key={name}
+                          style={{
+                            border: `1px solid ${COLORS.primaryBorder}`,
+                            background: COLORS.primaryLight,
+                            color: COLORS.primaryDark,
+                            borderRadius: 999,
+                            padding: "8px 14px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: COLORS.warning, marginBottom: 14 }}>
+                      لم يتم العثور على مدربين مطابقين لهذا القسم ضمن قائمة المراقبين الحالية.
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => clearCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey)}
+                      style={cardButtonStyle({ danger: true })}
+                    >
+                      حذف تخصيص هذا المقرر
+                    </button>
+                  </div>
+                </>
               ) : availableInvigilators.length ? (
                 <>
                   <div style={{ color: COLORS.muted, marginBottom: 12 }}>
