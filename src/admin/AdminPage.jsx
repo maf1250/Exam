@@ -3752,21 +3752,40 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
 
   if (parsed.missingColumns.length) {
     showToast("أعمدة ناقصة", `الملف ينقصه: ${parsed.missingColumns.join("، ")}`, "error");
-    return [];
+    return { placed: [], notPlaced: [], hallWarnings: [] };
   }
 
   if (invalidPeriods.length) {
     showToast("أوقات غير صحيحة", periodOverlapWarning || "تحقق من إعداد الفترات وتأكد من عدم وجود تداخل بينها.", "error");
-    return [];
+    return { placed: [], notPlaced: [], hallWarnings: [] };
   }
 
   if (!slots.length) {
     showToast("لا توجد فترات", "اختر تاريخ بداية وأيامًا وعدد أيام مناسبًا مع أوقات صحيحة.", "error");
-    return [];
+    return { placed: [], notPlaced: [], hallWarnings: [] };
   }
 
+  const normalizedCoursesList = Array.isArray(coursesList) ? coursesList.filter(Boolean) : [];
+  if (!normalizedCoursesList.length) {
+    return { placed: [], notPlaced: [], hallWarnings: [] };
+  }
 
-const hallsPool = normalizedExamHalls;
+  const hallsPool = normalizedExamHalls;
+  if (!hallsPool.length) {
+    showToast("لا توجد قاعات اختبار", "أضف قاعة اختبار واحدة على الأقل ثم أعد محاولة التوزيع.", "warning");
+    return {
+      placed: [],
+      notPlaced: normalizedCoursesList.map((course) => ({
+        ...course,
+        unscheduledReason: "لا توجد قاعات اختبار مضافة.",
+      })),
+      hallWarnings: normalizedCoursesList.map((course) => ({
+        courseName: course.courseName || "-",
+        required: Number(course.studentCount) || 0,
+        maxAvailable: 0,
+      })),
+    };
+  }
 
   const baseInvigilators = manualInvigilators
     ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
@@ -4248,7 +4267,15 @@ const generateGeneralSchedule = () => {
     return;
   }
 
-  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
+  if (!generalCourses.length) {
+    showToast("لا توجد مقررات دراسات عامة", "لم يتم العثور على مقررات دراسات عامة قابلة للتوزيع حسب التصنيف الحالي.", "warning");
+    return;
+  }
+
+  const result = generateScheduleForCourses(generalCourses, []);
+  const placed = Array.isArray(result?.placed) ? result.placed : [];
+  const notPlaced = Array.isArray(result?.notPlaced) ? result.notPlaced : [];
+  const nextHallWarnings = Array.isArray(result?.hallWarnings) ? result.hallWarnings : [];
   const sortedPlaced = [...placed].sort(
     (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
   );
@@ -4276,7 +4303,15 @@ const generateSpecializedSchedule = () => {
     return;
   }
 
-  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
+  if (!specializedCourses.length) {
+    showToast("لا توجد مقررات تخصص", "لم يتم العثور على مقررات تخصص قابلة للتوزيع حسب الإعدادات الحالية.", "warning");
+    return;
+  }
+
+  const result = generateScheduleForCourses(specializedCourses, generalSchedule);
+  const placed = Array.isArray(result?.placed) ? result.placed : [];
+  const notPlaced = Array.isArray(result?.notPlaced) ? result.notPlaced : [];
+  const nextHallWarnings = Array.isArray(result?.hallWarnings) ? result.hallWarnings : [];
   setSpecializedSchedule(placed);
   setHallWarnings((prev) => {
     const combined = [...(prev || []), ...(nextHallWarnings || [])];
