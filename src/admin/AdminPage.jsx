@@ -5354,12 +5354,17 @@ style={{
       >
         <div
           style={{
-            display: "flex",
+           // display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
+           // gap: 12,
             marginBottom: 12,
             flexWrap: "wrap",
+            display: "grid",
+                        gridTemplateColumns: "120px minmax(110px, 150px) minmax(110px, 150px) minmax(90px, 120px)",
+                        gap: 8,
+                        alignItems: "end",
+                        maxWidth: 640,
           }}
         >
           <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
