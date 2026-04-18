@@ -525,6 +525,21 @@ function getMaxAllowedHallCapacity(halls, course) {
 
   return Number.isFinite(maxCapacity) ? maxCapacity : 0;
 }
+function getEffectiveAvailableHallCapacityForCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
+  if (!hall || !course) return 0;
+  if (!isHallAllowedForCourse(hall, course)) return 0;
+
+  const hallCapacity = Number(hall.capacity);
+  if (!Number.isFinite(hallCapacity) || hallCapacity <= 0) return 0;
+
+  if (hall.allowSharedAssignments) {
+    return getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap);
+  }
+
+  const alreadyUsed = (hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0) > 0;
+  return alreadyUsed ? 0 : hallCapacity;
+}
+
 function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
   const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
     isHallAllowedForCourse(hall, course)
@@ -533,7 +548,9 @@ function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, ha
   if (!allowedHalls.length) return 0;
 
   const maxRemaining = Math.max(
-    ...allowedHalls.map((hall) => getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap))
+    ...allowedHalls.map((hall) =>
+      getEffectiveAvailableHallCapacityForCourseInSlot(hall, course, slotOrItem, hallUsageMap)
+    )
   );
 
   return Number.isFinite(maxRemaining) ? maxRemaining : 0;
