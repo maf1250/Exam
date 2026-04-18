@@ -4231,6 +4231,11 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
 };
 
 const generateGeneralSchedule = () => {
+  if (!rows.length) {
+    showToast("لم يتم استيراد تقرير SF01", "يرجى استيراد تقرير SF01 أولًا قبل محاولة توزيع الدراسات العامة.", "warning");
+    return;
+  }
+
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
   const sortedPlaced = [...placed].sort(
     (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
@@ -4254,6 +4259,11 @@ const generateGeneralSchedule = () => {
 };
 
 const generateSpecializedSchedule = () => {
+  if (!rows.length) {
+    showToast("لم يتم استيراد تقرير SF01", "يرجى استيراد تقرير SF01 أولًا قبل محاولة توزيع مقررات التخصص.", "warning");
+    return;
+  }
+
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
   setHallWarnings((prev) => {
@@ -5323,14 +5333,14 @@ style={{
               ) : null}
             </div>
 
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 18, maxWidth: 620 }}>
             <Card>
   <SectionHeader
     title="قاعات الاختبار"
     description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
   />
 
-  <div style={{ display: "grid", gap: 14, maxWidth: 620,  }}>
+  <div style={{ display: "grid", gap: 14, maxWidth: 620  }}>
     {examHalls.map((hall, index) => (
       <div
         key={hall.id}
