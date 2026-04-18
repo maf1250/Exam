@@ -510,8 +510,11 @@ function isHallValidForCourse(hall, course) {
 }
 
 function getMaxAllowedHallCapacity(halls, course) {
-  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
-    isHallAllowedForCourse(hall, course)
+  const allowedHalls = filterHallsByCourseHallConstraint(
+    (Array.isArray(halls) ? halls : []).filter((hall) =>
+      isHallAllowedForCourse(hall, course)
+    ),
+    course
   );
 
   if (!allowedHalls.length) return 0;
@@ -542,8 +545,11 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
 }
 
 function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
-  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
-    isHallAllowedForCourse(hall, course)
+  const allowedHalls = filterHallsByCourseHallConstraint(
+    (Array.isArray(halls) ? halls : []).filter((hall) =>
+      isHallAllowedForCourse(hall, course)
+    ),
+    course
   );
 
   if (!allowedHalls.length) return 0;
@@ -4793,8 +4799,9 @@ const pickInvigilators = (course, slot) => {
         }
       }
 
-      const matchingHallCount = hallsPool.filter((hall) =>
-        canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
+      const matchingHallCount = filterHallsByCourseHallConstraint(
+        hallsPool.filter((hall) => canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)),
+        course
       ).length;
       if (!matchingHallCount) diagnosis.hallUnavailable += 1;
 
@@ -4834,7 +4841,7 @@ const requiredSeats = Number(course.studentCount) || 0;
 
     const maxRemainingAcrossSlots = diagnosis.totalSlots
       ? slots.reduce((best, slot) => {
-          const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
+          const bestForSlot = filterHallsByCourseHallConstraint(hallsPool || [], course).reduce((slotBest, hall) => {
             return Math.max(
               slotBest,
               getEffectiveAssignableHallCapacityForSlot(hall, course, slot, hallUsageMap)
