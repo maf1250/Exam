@@ -2516,46 +2516,71 @@ const periodOverlapWarning = useMemo(() => {
         hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
       });
 
+
     const fittingHalls = sortHallsByCourseHallPreference(
-      filterHallsByCourseHallConstraint(
-        normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)),
-        course
-      ),
-      course
-    );
-    let assignedHall = "";
-    if (fittingHalls.length) {
-      assignedHall = fittingHalls[0].name;
-      reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
-    }
+  filterHallsByCourseHallConstraint(
+    normalizedExamHalls.filter((hall) =>
+      canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)
+    ),
+    course
+  ),
+  course
+).sort((a, b) => {
+  const aRemaining = getRemainingHallCapacityForSlot(a, targetSlot, hallUsageMap);
+  const bRemaining = getRemainingHallCapacityForSlot(b, targetSlot, hallUsageMap);
+  return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
+});
 
-    const placedItem = {
-      ...course,
-      ...targetSlot,
-      instanceId: makeScheduledInstanceId(),
-      students: Array.from(course.students || []),
-      trainers: Array.from(course.trainers || []),
-      departments: Array.from(course.departments || []),
-      majors: Array.from(course.majors || []),
-      sectionNames: Array.from(course.sectionNames || []),
-      scheduleTypes: Array.from(course.scheduleTypes || []),
-      departmentRoots: Array.from(course.departmentRoots || []),
-      examHall: assignedHall,
-      invigilators: [],
-      manualEdited: true,
-      isPinned: false,
-    };
+let assignedHall = "";
+let assignedHallObj = null;
 
-    setSchedule((prev) =>
-      [...prev, placedItem].sort(
-        (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
-      )
-    );
-    setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-    setDraggingUnscheduledCourseKey("");
-    setActiveDropSlotId("");
-    showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
-  }
+if (fittingHalls.length) {
+  assignedHallObj = fittingHalls[0];
+  assignedHall = assignedHallObj.name;
+  reserveHallForCourseInSlot(assignedHallObj, course, targetSlot, hallUsageMap);
+} else {
+  const maxRemaining = getMaxRemainingAllowedHallCapacityForSlot(
+    normalizedExamHalls,
+    course,
+    targetSlot,
+    hallUsageMap
+  );
+
+  showToast(
+    "لا توجد قاعة مناسبة",
+    `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`,
+    "error"
+  );
+  return;
+}
+
+const placedItem = {
+  ...course,
+  ...targetSlot,
+  instanceId: makeScheduledInstanceId(),
+  students: Array.from(course.students || []),
+  trainers: Array.from(course.trainers || []),
+  departments: Array.from(course.departments || []),
+  majors: Array.from(course.majors || []),
+  sectionNames: Array.from(course.sectionNames || []),
+  scheduleTypes: Array.from(course.scheduleTypes || []),
+  departmentRoots: Array.from(course.departmentRoots || []),
+  examHall: assignedHall,
+  invigilators: [],
+  manualEdited: true,
+  isPinned: false,
+};
+
+setSchedule((prev) =>
+  [...prev, placedItem].sort(
+    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+  )
+);
+setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
+setDraggingUnscheduledCourseKey("");
+setActiveDropSlotId("");
+showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
+      }
 
   function addConstraintCourseToList(courseKey) {
     if (!courseKey) return;
