@@ -4620,7 +4620,8 @@ const periodKey = getSlotPeriodKey(item);
     hallsPool.find(
       (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
     ) || {
-      name: String(item.examHall || "").trim(),
+     name: String(item.examHall || "").trim(),
+      allowSharedAssignments: true,
     };
 
   reserveHallForCourseInSlot(matchedHall, item, item, hallUsageMap);
@@ -5121,8 +5122,8 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   
       if (!bestSlot || !Number.isFinite(bestScore)) {
-  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
-  if ((Number(course.studentCount) || 0) > 0) {
+const maxAvailable = maxRemainingAcrossSlots;
+        if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       required: Number(course.studentCount) || 0,
