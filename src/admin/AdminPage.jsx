@@ -4881,12 +4881,7 @@ const pickInvigilators = (course, slot) => {
     });
 
 const requiredSeats = Number(course.studentCount) || 0;
-const maxAvailable = Math.max(
-  0,
-  ...slots.map((slot) =>
-    getMaxRemainingAllowedHallCapacityForSlot(hallsPool, course, slot, buildHallUsageMapForSlot(slot.id))
-  )
-);
+
     const maxRemainingAcrossSlots = diagnosis.totalSlots
       ? slots.reduce((best, slot) => {
           const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
