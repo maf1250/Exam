@@ -2565,6 +2565,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
+  const [hasImportedSessionFile, setHasImportedSessionFile] = useState(false);
   const [pendingRestore, setPendingRestore] = useState(null);
   const [didRestore, setDidRestore] = useState(false);
   const [storageMode, setStorageMode] = useState("localStorage");
@@ -2627,6 +2628,7 @@ const handleUpload = (file) => {
       setSelectedStudentIdForPrint("");
       setCompactPrintMode(false);
       setCurrentStep(1);
+      setHasImportedSessionFile(false);
       pendingRestoreRef.current = null;
       setPendingRestore(null);
       setDidRestore(true);
@@ -2808,6 +2810,7 @@ const buildPersistedState = () => ({
   rows,
   fileName,
   collegeNameInput,
+  hasImportedSessionFile,
   currentStep,
   startDate,
   numberOfDays,
@@ -2862,6 +2865,7 @@ const restorePersistedState = (saved) => {
   setRows(saved.rows || []);
   setFileName(saved.fileName || "");
   setCollegeNameInput(saved.collegeNameInput || saved.collegeName || "");
+  setHasImportedSessionFile(Boolean(saved.hasImportedSessionFile));
   setCurrentStep(saved.currentStep || 1);
   setStartDate(saved.startDate || "");
   setNumberOfDays(saved.numberOfDays || 8);
@@ -3199,7 +3203,7 @@ const clearSavedState = async () => {
 const exportSavedSession = () => {
   const data = buildPersistedState();
   downloadFile(
-    `exam-session-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.json`,
+    `ملف اختبارات -${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.json`,
     JSON.stringify(data, null, 2),
     "application/json;charset=utf-8"
   );
@@ -3216,6 +3220,7 @@ const importSavedSession = (file) => {
     try {
       const saved = JSON.parse(e.target.result);
       restorePersistedState(saved);
+      setHasImportedSessionFile(true);
 
       const serialized = JSON.stringify(saved);
       try {
@@ -4606,6 +4611,7 @@ const generateSpecializedSchedule = () => {
     return;
   }
 
+  const shouldWarnAboutMissingImportedSession = !hasImportedSessionFile && !(generalSchedule || []).length;
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
   setHallWarnings((prev) => {
@@ -4636,10 +4642,22 @@ const generateSpecializedSchedule = () => {
     });
     return Array.from(map.values());
   });
-  if (notPlaced.length) {
+  if (notPlaced.length || shouldWarnAboutMissingImportedSession) {
+    const messageParts = [];
+
+    messageParts.push(`تم توزيع ${placed.length} مقرر.`);
+
+    if (notPlaced.length) {
+      messageParts.push(`تعذر جدولة ${notPlaced.length} مقرر.`);
+    }
+
+    if (shouldWarnAboutMissingImportedSession) {
+      messageParts.push("تنبيه: تم توزيع مقررات التخصص بدون استيراد ملف الجلسة، لذا قد لا تكون مقررات الدراسات العامة أو البيانات المستوردة السابقة مضافة إلى هذا الجدول.");
+    }
+
     showToast(
-      "تم توزيع مقررات التخصص مع ملاحظات",
-      `تم توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
+      shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
+      messageParts.join(" "),
       "warning"
     );
   } else {
@@ -5106,7 +5124,7 @@ const availableMajorsForPrint = useMemo(() => {
         : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
 
     downloadFile(
-      `final-exam-schedule-${suffix}-${(fileName || "technical-college").replace(/\.[^.]+$/, "")}.csv`,
+      `جدول الاختبارات النهائي-${suffix}-${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
