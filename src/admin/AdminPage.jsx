@@ -6273,49 +6273,7 @@ style={{
                   ) : null}
                   
                   {/* end*/}
-                  
-                  <div
-                    style={{
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 18,
-                      padding: 14,
-                      background: "#fff",
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم</div>
-                    <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
-                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم.
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
-                        <select
-                          value={selectedHallConstraintDepartmentKey}
-                          onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
-                          style={{ ...fieldStyle(), maxWidth: 340 }}
-                        >
-                          <option value="">اختر القسم</option>
-                          {hallConstraintDepartmentOptions.map((department) => (
-                            <option key={department} value={department}>
-                              {department}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => addHallConstraintDepartmentToList(selectedHallConstraintDepartmentKey)}
-                        style={cardButtonStyle({ disabled: !selectedHallConstraintDepartmentKey })}
-                        disabled={!selectedHallConstraintDepartmentKey}
-                      >
-                        إضافة القسم
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                
-
                   
                   {selectedHallConstraintCourseKey ? (
                     <div
@@ -6396,6 +6354,49 @@ style={{
                     </div>
                   ) : null}
                 </div>
+                  
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 14,
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم</div>
+                    <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
+                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم.
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                        <select
+                          value={selectedHallConstraintDepartmentKey}
+                          onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
+                          style={{ ...fieldStyle(), maxWidth: 340 }}
+                        >
+                          <option value="">اختر القسم</option>
+                          {hallConstraintDepartmentOptions.map((department) => (
+                            <option key={department} value={department}>
+                              {department}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addHallConstraintDepartmentToList(selectedHallConstraintDepartmentKey)}
+                        style={cardButtonStyle({ disabled: !selectedHallConstraintDepartmentKey })}
+                        disabled={!selectedHallConstraintDepartmentKey}
+                      >
+                        إضافة القسم
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+               
+
 
                 <div
                   style={{
