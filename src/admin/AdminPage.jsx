@@ -4178,7 +4178,7 @@ const pickInvigilators = (course, slot) => {
   const departmentTrainerSet = new Set(
     (
       (typeof getDepartmentTrainerNamesForCourse === "function"
-        ? getDepartmentTrainerNamesForCourse(course)
+        ? getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet)
         : []) || []
     ).map((name) => normalizeArabic(name))
   );
