@@ -3372,7 +3372,7 @@ const clearSavedState = async () => {
 const exportSavedSession = () => {
   const data = buildPersistedState();
   downloadFile(
-    `ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية") - todayText.replace(/\.[^.]+$/, "")}.json`,
+`ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية")} - ${todayText.replace(/\.[^.]+$/, "")}.json`,
     JSON.stringify(data, null, 2),
     "application/json;charset=utf-8"
   );
@@ -5328,7 +5328,7 @@ const availableMajorsForPrint = useMemo(() => {
         : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
 
     downloadFile(
-      `ملف الاختبارات النهائي - ${suffix}-${(collegeNameInput || "الكلية التقنية") - todayText.replace(/\.[^.]+$/, "")}.csv`,
+      `ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية")} - ${todayText.replace(/\.[^.]+$/, "")}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
@@ -6165,7 +6165,7 @@ style={{
                         style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })}
                         disabled={!selectedHallConstraintCourseKey}
                       >
-                        إضافة مقرر
+                        إضافة المقرر
                       </button>
                     </div>
                   </div>
@@ -6204,7 +6204,7 @@ style={{
                         style={cardButtonStyle({ disabled: !selectedHallConstraintDepartmentKey })}
                         disabled={!selectedHallConstraintDepartmentKey}
                       >
-                        إضافة قسم
+                        إضافة القسم
                       </button>
                     </div>
                   </div>
@@ -6954,7 +6954,7 @@ style={{
   style={cardButtonStyle({ disabled: !selectedConstraintCourseKey })}
   disabled={!selectedConstraintCourseKey}
 >
-  إضافة مقرر آخر
+  إضافة المقرر
 </button>
                 </div>
               </div>
@@ -7537,7 +7537,7 @@ style={{
                 style={cardButtonStyle({ disabled: !selectedInvigilatorConstraintCourseKey })}
                 disabled={!selectedInvigilatorConstraintCourseKey}
               >
-                إضافة مقرر
+                إضافة المقرر
               </button>
             </div>
           </div>
