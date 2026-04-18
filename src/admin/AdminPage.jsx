@@ -508,13 +508,22 @@ function isHallValidForCourse(hall, course) {
 
   return isHallAllowedForCourse(hall, course);
 }
-function buildHallUsageMapForSlot(slotId, schedule) {
+function buildHallUsageMapForSlot(slotOrSlotId, schedule, slots = []) {
   const usageMap = new Map();
 
+  const slot =
+    typeof slotOrSlotId === "string"
+      ? slots.find((item) => item.id === slotOrSlotId)
+      : slotOrSlotId;
+
+  if (!slot) return usageMap;
+
+  const targetPeriodKey = getSlotPeriodKey(slot);
+
   (Array.isArray(schedule) ? schedule : [])
-    .filter((item) => item.id === slotId && item.examHall)
+    .filter((item) => getSlotPeriodKey(item) === targetPeriodKey && item.examHall)
     .forEach((item) => {
-      const key = getHallUsageKey(item, item.examHall);
+      const key = getHallUsageKey(slot, item.examHall);
       usageMap.set(
         key,
         (usageMap.get(key) || 0) + (Number(item.studentCount) || 0)
@@ -2529,16 +2538,18 @@ const periodOverlapWarning = useMemo(() => {
     return;
   }
 
-  const hallUsageMap = new Map();
-  schedule
-    .filter((item) => item.id === targetSlotId && item.examHall)
-    .forEach((item) => {
-      const key = getHallUsageKey(targetSlot, item.examHall);
-      hallUsageMap.set(
-        key,
-        (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0)
-      );
-    });
+const hallUsageMap = new Map();
+const targetPeriodKey = getSlotPeriodKey(targetSlot);
+
+schedule
+  .filter((item) => getSlotPeriodKey(item) === targetPeriodKey && item.examHall)
+  .forEach((item) => {
+    const key = getHallUsageKey(targetSlot, item.examHall);
+    hallUsageMap.set(
+      key,
+      (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0)
+    );
+  });
 
   const fittingHalls = sortHallsByCourseHallPreference(
     filterHallsByCourseHallConstraint(
@@ -4899,7 +4910,7 @@ const requiredSeats = Number(course.studentCount) || 0;
    const maxAvailable = Math.max(
   0,
   ...slots.map((slot) => {
-    const slotHallUsageMap = buildHallUsageMapForSlot(slot.id, schedule);
+    const slotHallUsageMap = buildHallUsageMapForSlot(slot, schedule, slots);
     return getMaxRemainingAllowedHallCapacityForSlot(
       hallsPool,
       course,
