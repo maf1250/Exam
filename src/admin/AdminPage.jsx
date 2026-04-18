@@ -1669,6 +1669,34 @@ function getCourseConstraintDefaults() {
   };
 }
 
+function getCourseHallConstraintDefaults() {
+  return {
+    mode: "off",
+    hallNames: [],
+  };
+}
+
+function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
+  const valid = new Set(validKeys || []);
+  const allowedHallNames = new Set((validHallNames || []).map((name) => normalizeArabic(name)));
+  const next = {};
+
+  Object.entries(map || {}).forEach(([courseKey, value]) => {
+    if (!valid.has(courseKey)) return;
+
+    next[courseKey] = {
+      mode: value?.mode === "only" || value?.mode === "prefer" ? value.mode : "off",
+      hallNames: Array.from(
+        new Set(
+          (value?.hallNames || []).filter((name) => allowedHallNames.has(normalizeArabic(name)))
+        )
+      ),
+    };
+  });
+
+  return next;
+}
+
 function sanitizeCourseConstraintsMap(map, validKeys) {
   const valid = new Set(validKeys || []);
   const next = {};
@@ -1737,6 +1765,9 @@ const [maxExamsPerStudentPerDay, setMaxExamsPerStudentPerDay] = useState(2);
 const [courseConstraints, setCourseConstraints] = useState({});
 const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
 const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
+const [courseHallConstraints, setCourseHallConstraints] = useState({});
+const [selectedHallConstraintCourseKey, setSelectedHallConstraintCourseKey] = useState("");
+const [selectedHallConstraintCourseKeys, setSelectedHallConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
 const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMode] = useState("off");
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
@@ -1966,6 +1997,96 @@ const periodOverlapWarning = useMemo(() => {
     });
   }
 
+  function updateCourseHallConstraint(courseKey, patch) {
+    if (!courseKey) return;
+    setCourseHallConstraints((prev) => ({
+      ...prev,
+      [courseKey]: {
+        ...getCourseHallConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+        ...patch,
+      },
+    }));
+  }
+
+  function toggleCourseHallConstraintValue(courseKey, hallName) {
+    if (!courseKey || !hallName) return;
+    setCourseHallConstraints((prev) => {
+      const current = {
+        ...getCourseHallConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+      };
+      const nextHallNames = current.hallNames.includes(hallName)
+        ? current.hallNames.filter((name) => name !== hallName)
+        : [...current.hallNames, hallName];
+
+      return {
+        ...prev,
+        [courseKey]: {
+          ...current,
+          hallNames: nextHallNames,
+        },
+      };
+    });
+  }
+
+  function clearCourseHallConstraint(courseKey) {
+    if (!courseKey) return;
+    setCourseHallConstraints((prev) => {
+      const next = { ...prev };
+      delete next[courseKey];
+      return next;
+    });
+  }
+
+  function addHallConstraintCourseToList(courseKey) {
+    if (!courseKey) return;
+    setSelectedHallConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
+    setSelectedHallConstraintCourseKey("");
+  }
+
+  function removeHallConstraintCourseFromList(courseKey) {
+    if (!courseKey) return;
+    setSelectedHallConstraintCourseKeys((prev) => {
+      const next = prev.filter((key) => key !== courseKey);
+      if (selectedHallConstraintCourseKey === courseKey) {
+        setSelectedHallConstraintCourseKey(next[0] || "");
+      }
+      return next;
+    });
+  }
+
+  function getCourseHallConstraint(course) {
+    return courseHallConstraints[course?.key] || getCourseHallConstraintDefaults();
+  }
+
+  function filterHallsByCourseHallConstraint(halls, course) {
+    const constraint = getCourseHallConstraint(course);
+    const selectedNames = new Set((constraint.hallNames || []).map((name) => normalizeArabic(name)));
+
+    if (constraint.mode === "only" && selectedNames.size) {
+      return halls.filter((hall) => selectedNames.has(normalizeArabic(hall.name)));
+    }
+
+    return halls;
+  }
+
+  function sortHallsByCourseHallPreference(halls, course) {
+    const constraint = getCourseHallConstraint(course);
+    const selectedNames = new Set((constraint.hallNames || []).map((name) => normalizeArabic(name)));
+
+    return [...halls].sort((a, b) => {
+      const aPreferred = selectedNames.has(normalizeArabic(a.name)) ? 1 : 0;
+      const bPreferred = selectedNames.has(normalizeArabic(b.name)) ? 1 : 0;
+
+      if (constraint.mode === "prefer") {
+        if (aPreferred !== bPreferred) return bPreferred - aPreferred;
+      }
+
+      return 0;
+    });
+  }
+
 
   function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
     if (!course || !targetSlotId) return [];
@@ -2060,7 +2181,13 @@ const periodOverlapWarning = useMemo(() => {
         hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
       });
 
-    const fittingHalls = normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap));
+    const fittingHalls = sortHallsByCourseHallPreference(
+      filterHallsByCourseHallConstraint(
+        normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)),
+        course
+      ),
+      course
+    );
     let assignedHall = "";
     if (fittingHalls.length) {
       assignedHall = fittingHalls[0].name;
@@ -2548,6 +2675,7 @@ const buildPersistedState = () => ({
   samePeriodGroups,
   maxExamsPerStudentPerDay,
   courseConstraints,
+  courseHallConstraints,
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
@@ -2630,6 +2758,7 @@ const restorePersistedState = (saved) => {
   );
   setMaxExamsPerStudentPerDay(Math.max(1, Number(saved.maxExamsPerStudentPerDay) || 2));
   setCourseConstraints(saved.courseConstraints || {});
+  setCourseHallConstraints(saved.courseHallConstraints || {});
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
@@ -3510,6 +3639,12 @@ const selectedCourseB = useMemo(
     ? courseConstraints[selectedConstraintCourseKey] || getCourseConstraintDefaults()
     : getCourseConstraintDefaults();
 
+  const selectedCourseHallConstraint = selectedHallConstraintCourseKey
+    ? courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults()
+    : getCourseHallConstraintDefaults();
+
+  const hallConstraintOptions = courseConstraintOptions;
+
   const normalizedSamePeriodGroups = useMemo(() => {
     const validKeys = new Set(
       parsed.courses
@@ -3616,6 +3751,24 @@ const selectedCourseB = useMemo(
       setCourseConstraints(sanitized);
     }
   }, [courseConstraints, parsed.courses]);
+
+  useEffect(() => {
+    const validKeys = new Set(parsed.courses.map((course) => course.key));
+    setSelectedHallConstraintCourseKeys((prev) => prev.filter((key) => validKeys.has(key)));
+    setSelectedHallConstraintCourseKey((prev) => (prev && validKeys.has(prev) ? prev : ""));
+  }, [parsed.courses]);
+
+  useEffect(() => {
+    const validKeys = parsed.courses.map((course) => course.key);
+    const validHallNames = normalizedExamHalls.map((hall) => hall.name);
+    const sanitized = sanitizeCourseHallConstraintsMap(courseHallConstraints, validKeys, validHallNames);
+    const currentJson = JSON.stringify(courseHallConstraints || {});
+    const nextJson = JSON.stringify(sanitized);
+
+    if (currentJson !== nextJson) {
+      setCourseHallConstraints(sanitized);
+    }
+  }, [courseHallConstraints, parsed.courses, normalizedExamHalls]);
 
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
@@ -3993,13 +4146,20 @@ sortedCoursesForInvigilation.forEach((course) => {
       dayMap.set(bestSlot.dateISO, (dayMap.get(bestSlot.dateISO) || 0) + 1);
     });
 
-    const fittingHalls = hallsPool
-      .filter((hall) => canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap))
-      .sort((a, b) => {
-        const aRemaining = getRemainingHallCapacityForSlot(a, bestSlot, hallUsageMap);
-        const bRemaining = getRemainingHallCapacityForSlot(b, bestSlot, hallUsageMap);
-        return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
-      });
+    const fittingHalls = sortHallsByCourseHallPreference(
+      filterHallsByCourseHallConstraint(
+        hallsPool.filter((hall) => canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap)),
+        course
+      ),
+      course
+    ).sort((a, b) => {
+      const aPreferred = getCourseHallConstraint(course).mode === "prefer" && (getCourseHallConstraint(course).hallNames || []).some((name) => normalizeArabic(name) === normalizeArabic(a.name)) ? 1 : 0;
+      const bPreferred = getCourseHallConstraint(course).mode === "prefer" && (getCourseHallConstraint(course).hallNames || []).some((name) => normalizeArabic(name) === normalizeArabic(b.name)) ? 1 : 0;
+      if (aPreferred !== bPreferred) return bPreferred - aPreferred;
+      const aRemaining = getRemainingHallCapacityForSlot(a, bestSlot, hallUsageMap);
+      const bRemaining = getRemainingHallCapacityForSlot(b, bestSlot, hallUsageMap);
+      return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
+    });
 
     let assignedHall = null;
     let assignedHallObj = null;
@@ -5160,7 +5320,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-            <Card>
+            <Card style={{ maxWidth: 760 }}>
   <SectionHeader
     title="قاعات الاختبار"
     description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
@@ -5175,6 +5335,7 @@ style={{
           borderRadius: 18,
           padding: 14,
           background: "#fff",
+          maxWidth: 720,
         }}
       >
         <div
@@ -5392,6 +5553,144 @@ style={{
     </div>
   </div>
 </Card>
+            </div>
+
+            <div style={{ marginTop: 18, maxWidth: 760 }}>
+              <Card>
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
+                <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
+                  يمكنك هنا تحديد قاعات مفضلة لمقرر معيّن، أو قصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر.
+                </div>
+
+                <div style={{ maxWidth: 700, marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                      <select
+                        value={selectedHallConstraintCourseKey}
+                        onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
+                        style={{ ...fieldStyle(), maxWidth: 340 }}
+                      >
+                        <option value="">اختر المقرر</option>
+                        {hallConstraintOptions.map((course) => (
+                          <option key={course.key} value={course.key}>
+                            {course.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)}
+                      style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })}
+                      disabled={!selectedHallConstraintCourseKey}
+                    >
+                      إضافة مقرر
+                    </button>
+                  </div>
+                </div>
+
+                {selectedHallConstraintCourseKeys.length ? (
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                    {selectedHallConstraintCourseKeys.map((courseKey) => {
+                      const option = hallConstraintOptions.find((item) => item.key === courseKey);
+                      if (!option) return null;
+                      return (
+                        <button
+                          key={courseKey}
+                          type="button"
+                          onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                          style={{
+                            border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                            background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                            color: COLORS.charcoal,
+                            borderRadius: 14,
+                            padding: "10px 12px",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {selectedHallConstraintCourseKey ? (
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 16,
+                      background: COLORS.bg2,
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      {[
+                        { value: "off", label: "بدون تخصيص" },
+                        { value: "prefer", label: "تفضيل قاعات محددة" },
+                        { value: "only", label: "قصر على قاعات محددة" },
+                      ].map((option) => {
+                        const active = selectedCourseHallConstraint.mode === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })}
+                            style={cardButtonStyle({ active })}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
+                    {normalizedExamHalls.length ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                        {normalizedExamHalls.map((hall) => {
+                          const checked = selectedCourseHallConstraint.hallNames.includes(hall.name);
+                          return (
+                            <label
+                              key={hall.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                background: checked ? COLORS.primaryLight : "#fff",
+                                borderRadius: 12,
+                                padding: "10px 12px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)}
+                              />
+                              <span>{hall.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للمقررات.</div>
+                    )}
+
+                    <div style={{ marginTop: 14 }}>
+                      <button
+                        type="button"
+                        onClick={() => clearCourseHallConstraint(selectedHallConstraintCourseKey)}
+                        style={cardButtonStyle({ danger: true })}
+                      >
+                        مسح تخصيص هذا المقرر
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </Card>
             </div>
 
             <div style={{ marginTop: 18 }}>
