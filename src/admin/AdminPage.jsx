@@ -3372,7 +3372,7 @@ const clearSavedState = async () => {
 const exportSavedSession = () => {
   const data = buildPersistedState();
   downloadFile(
-    `ملف الاختبارات النهائية -${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.json`,
+    `ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية") - todayText.replace(/\.[^.]+$/, "")}.json`,
     JSON.stringify(data, null, 2),
     "application/json;charset=utf-8"
   );
@@ -4059,11 +4059,17 @@ const selectedCourseB = useMemo(
     ? courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults()
     : getCourseInvigilatorConstraintDefaults();
 
+  const visibleCourseConstraintOptions = courseConstraintOptions.filter(
+    (course) => !selectedConstraintCourseKeys.includes(course.key)
+  );
   const hallConstraintOptions = courseConstraintOptions.filter(
     (course) => !selectedHallConstraintCourseKeys.includes(course.key)
   );
   const hallConstraintDepartmentOptions = availableDepartments.filter(
     (department) => !selectedHallConstraintDepartmentKeys.includes(normalizeArabic(department))
+  );
+  const visibleInvigilatorConstraintOptions = courseConstraintOptions.filter(
+    (course) => !selectedInvigilatorConstraintCourseKeys.includes(course.key)
   );
   const invigilatorConstraintOptions = courseConstraintOptions;
 
@@ -5322,7 +5328,7 @@ const availableMajorsForPrint = useMemo(() => {
         : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
 
     downloadFile(
-      `جدول الاختبارات النهائي-${suffix}-${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.csv`,
+      `ملف الاختبارات النهائي - ${suffix}-${(collegeNameInput || "الكلية التقنية") - todayText.replace(/\.[^.]+$/, "")}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
@@ -6931,7 +6937,7 @@ style={{
                       style={fieldStyle()}
                     >
                       <option value="">اختر المقرر</option>
-                      {courseConstraintOptions.map((course) => (
+                      {visibleCourseConstraintOptions.map((course) => (
                         <option key={course.key} value={course.key}>
                           {course.label}
                         </option>
@@ -6989,11 +6995,22 @@ style={{
                       </div>
                     );
                   })}
-                </div>
+                  </div>
               ) : null}
 
               {selectedConstraintCourseKey ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      marginBottom: 12,
+                      color: COLORS.charcoal,
+                    }}
+                  >
+                    تفضيلات المقرر: {courseConstraintOptions.find((item) => item.key === selectedConstraintCourseKey)?.label || selectedConstraintCourseKey}
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
                   <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
                     <div style={{ fontWeight: 800, marginBottom: 8 }}>تفضيل اليوم</div>
                     <div style={{ display: "grid", gap: 8 }}>
@@ -7057,6 +7074,7 @@ style={{
                       ))}
                     </div>
                   </div>
+                </div>
                 </div>
               ) : null}
 
@@ -7505,7 +7523,7 @@ style={{
                   style={fieldStyle()}
                 >
                   <option value="">اختر المقرر</option>
-                  {invigilatorConstraintOptions.map((course) => (
+                  {visibleInvigilatorConstraintOptions.map((course) => (
                     <option key={course.key} value={course.key}>
                       {course.label}
                     </option>
@@ -7592,6 +7610,9 @@ style={{
                 background: COLORS.bg2,
               }}
             >
+              <div style={{ fontWeight: 900, marginBottom: 12, color: COLORS.charcoal }}>
+                تخصيص المراقبين للمقرر: {invigilatorConstraintOptions.find((item) => item.key === selectedInvigilatorConstraintCourseKey)?.label || selectedInvigilatorConstraintCourseKey}
+              </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
                 {[
                   { value: "off", label: "بدون تخصيص" },
