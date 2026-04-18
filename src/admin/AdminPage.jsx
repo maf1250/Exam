@@ -2858,22 +2858,89 @@ const openUnscheduledCoursesPreview = (focusReason = false) => {
   }
 };
 
+const getUnscheduledReasonCategory = (courseOrReason) => {
+  const reason = typeof courseOrReason === "string"
+    ? courseOrReason
+    : String(courseOrReason?.unscheduledReason || "");
+  const normalized = normalizeArabic(reason);
+
+  if (!normalized) {
+    return {
+      code: "generic",
+      shortLabel: "تعذر الجدولة",
+    };
+  }
+
+  if (normalized.includes("قاعة")) {
+    return {
+      code: "hall",
+      shortLabel: "لا توجد قاعة مناسبة",
+    };
+  }
+
+  if (normalized.includes("مراقب")) {
+    return {
+      code: "invigilator",
+      shortLabel: "لا يوجد مراقبون كافيون",
+    };
+  }
+
+  if (
+    normalized.includes("تعارض") ||
+    normalized.includes("متدرب") ||
+    normalized.includes("حد اليوم") ||
+    normalized.includes("مستوى") ||
+    normalized.includes("قيود") ||
+    normalized.includes("فتره") ||
+    normalized.includes("فترة") ||
+    normalized.includes("يوم")
+  ) {
+    return {
+      code: "constraint",
+      shortLabel: "تعارض أو قيود",
+    };
+  }
+
+  if (normalized.includes("نقل") || normalized.includes("يدوي")) {
+    return {
+      code: "manual",
+      shortLabel: "تم نقله يدويًا",
+    };
+  }
+
+  return {
+    code: "other",
+    shortLabel: "سبب آخر",
+  };
+};
+
 const buildUnscheduledSummaryText = (notPlaced = []) => {
   const total = Array.isArray(notPlaced) ? notPlaced.length : 0;
   if (!total) return "لم يتبق أي مقرر غير مجدول.";
 
-  const hallCount = notPlaced.filter((item) =>
-    String(item?.unscheduledReason || "").includes("قاعة")
-  ).length;
-  const invigilatorCount = notPlaced.filter((item) =>
-    String(item?.unscheduledReason || "").includes("مراقب")
-  ).length;
-  const conflictCount = total - hallCount - invigilatorCount;
+  const counts = {
+    hall: 0,
+    invigilator: 0,
+    constraint: 0,
+    manual: 0,
+    other: 0,
+    generic: 0,
+  };
+
+  notPlaced.forEach((item) => {
+    const category = getUnscheduledReasonCategory(item).code;
+    counts[category] = (counts[category] || 0) + 1;
+  });
 
   const parts = [`تعذر جدولة ${total} مقرر.`];
-  if (hallCount) parts.push(`${hallCount} بسبب القاعات.`);
-  if (invigilatorCount) parts.push(`${invigilatorCount} بسبب المراقبين.`);
-  if (conflictCount > 0) parts.push(`${conflictCount} بسبب التعارضات أو القيود الحالية.`);
+  if (counts.hall) parts.push(`${counts.hall} بسبب القاعات.`);
+  if (counts.invigilator) parts.push(`${counts.invigilator} بسبب المراقبين.`);
+  if (counts.constraint) parts.push(`${counts.constraint} بسبب التعارضات أو القيود.`);
+  if (counts.manual) parts.push(`${counts.manual} ضمن المعالجة اليدوية.`);
+
+  const remainder = total - counts.hall - counts.invigilator - counts.constraint - counts.manual;
+  if (remainder > 0) parts.push(`${remainder} لأسباب أخرى.`);
+
   return parts.join(" ");
 };
 
@@ -2886,29 +2953,10 @@ const normalizeUnscheduledReason = (course) => {
     };
   }
 
-  if (reason.includes("قاعة")) {
-    return {
-      shortLabel: "لا توجد قاعة مناسبة",
-      detail: reason,
-    };
-  }
-
-  if (reason.includes("مراقب")) {
-    return {
-      shortLabel: "لا يوجد مراقبون كافيون",
-      detail: reason,
-    };
-  }
-
-  if (reason.includes("تعارض") || reason.includes("القيود الحالية") || reason.includes("فترة مناسبة")) {
-    return {
-      shortLabel: "تعارض أو قيود",
-      detail: reason,
-    };
-  }
+  const category = getUnscheduledReasonCategory(reason);
 
   return {
-    shortLabel: "سبب آخر",
+    shortLabel: String(course?.unscheduledShortLabel || "").trim() || category.shortLabel,
     detail: reason,
   };
 };
@@ -4631,6 +4679,119 @@ const pickInvigilators = (course, slot) => {
   return chosen;
 };
   
+  const diagnoseUnscheduledCourse = (course) => {
+    const diagnosis = {
+      totalSlots: slots.length,
+      studentConflict: 0,
+      dailyLimit: 0,
+      levelConflict: 0,
+      hallUnavailable: 0,
+      invigilatorShortage: 0,
+      avoidedConstraint: 0,
+    };
+
+    const courseConstraint = courseConstraints[course.key] || getCourseConstraintDefaults();
+    const courseLevel = courseLevels[course.key] || "";
+    const sameDayLimit = Math.max(1, Number(maxExamsPerStudentPerDay) || 2);
+    const requiredInvigilators = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
+
+    slots.forEach((slot) => {
+      let slotStudentConflict = false;
+      let slotDailyLimit = false;
+
+      course.students.forEach((studentId) => {
+        const usedSlots = studentSlotMap.get(studentId) || new Set();
+        if (usedSlots.has(slot.id)) slotStudentConflict = true;
+
+        const dayMap = studentDayMap.get(studentId) || new Map();
+        const sameDayCount = dayMap.get(slot.dateISO) || 0;
+        if (sameDayCount >= sameDayLimit) slotDailyLimit = true;
+      });
+
+      if (slotStudentConflict) diagnosis.studentConflict += 1;
+      if (slotDailyLimit) diagnosis.dailyLimit += 1;
+
+      if (!slotStudentConflict && !slotDailyLimit && avoidSameLevelSameDay && courseLevel) {
+        const sameDateSameLevelExists = [...basePlaced, ...newPlaced].some(
+          (item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel
+        );
+        if (sameDateSameLevelExists) {
+          diagnosis.levelConflict += 1;
+        }
+      }
+
+      const matchingHallCount = hallsPool.filter((hall) =>
+        canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
+      ).length;
+      if (!matchingHallCount) diagnosis.hallUnavailable += 1;
+
+      if (includeInvigilators) {
+        const periodKey = getSlotPeriodKey(slot);
+        const availableInvigilatorsCount = invigilatorPool.filter(
+          (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+        ).length;
+        if (availableInvigilatorsCount < requiredInvigilators) {
+          diagnosis.invigilatorShortage += 1;
+        }
+      }
+
+      if (
+        courseConstraint.avoidedDays.includes(slot.dayName) ||
+        courseConstraint.avoidedPeriods.includes(slot.period)
+      ) {
+        diagnosis.avoidedConstraint += 1;
+      }
+    });
+
+    const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+    const reasonParts = [];
+
+    if ((Number(maxAvailable) || 0) <= 0) {
+      return {
+        shortLabel: "لا توجد قاعة مناسبة",
+        detail: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
+      };
+    }
+
+    if (diagnosis.studentConflict) {
+      reasonParts.push(`تعارض متدربين في ${diagnosis.studentConflict} فترة`);
+    }
+    if (diagnosis.dailyLimit) {
+      reasonParts.push(`بلوغ الحد اليومي للمتدربين في ${diagnosis.dailyLimit} فترة`);
+    }
+    if (diagnosis.levelConflict) {
+      reasonParts.push(`تعارض مستوى في ${diagnosis.levelConflict} فترة`);
+    }
+    if (diagnosis.hallUnavailable) {
+      reasonParts.push(`عدم توفر قاعة مناسبة في ${diagnosis.hallUnavailable} فترة`);
+    }
+    if (diagnosis.invigilatorShortage) {
+      reasonParts.push(`عدم كفاية المراقبين في ${diagnosis.invigilatorShortage} فترة`);
+    }
+    if (diagnosis.avoidedConstraint) {
+      reasonParts.push(`وجود قيود تفضيل/تجنب على ${diagnosis.avoidedConstraint} فترة`);
+    }
+
+    if (!reasonParts.length) {
+      return {
+        shortLabel: "تعذر الجدولة",
+        detail: "تعذر العثور على فترة مناسبة لهذا المقرر ضمن الإعدادات الحالية.",
+      };
+    }
+
+    const rankedReason = [
+      ["لا توجد قاعة مناسبة", diagnosis.hallUnavailable],
+      ["تعارض متدربين", diagnosis.studentConflict + diagnosis.dailyLimit],
+      ["لا يوجد مراقبون كافيون", diagnosis.invigilatorShortage],
+      ["قيود الجدولة", diagnosis.levelConflict + diagnosis.avoidedConstraint],
+    ].sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      shortLabel: rankedReason?.[0] || "تعذر الجدولة",
+      detail: `تعذر جدولة هذا المقرر بعد فحص ${diagnosis.totalSlots} فترة متاحة: ${reasonParts.join("، ")}.`,
+    };
+  };
+
   const scoreSlot = (course, slot) => {
     let hardConflict = false;
     let sameDayPenalty = 0;
@@ -4779,12 +4940,11 @@ sortedCoursesForInvigilation.forEach((course) => {
           : 0,
     });
   }
+  const diagnosis = diagnoseUnscheduledCourse(course);
   notPlaced.push({
     ...course,
-    unscheduledReason:
-      (Number(maxAvailable) || 0) > 0
-        ? "تعذر إيجاد فترة مناسبة دون تعارض متدربين أو ضمن القيود الحالية."
-        : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
+    unscheduledReason: diagnosis.detail,
+    unscheduledShortLabel: diagnosis.shortLabel,
   });
   return;
 }
@@ -4831,6 +4991,7 @@ sortedCoursesForInvigilation.forEach((course) => {
       notPlaced.push({
         ...course,
         unscheduledReason: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
+        unscheduledShortLabel: "لا توجد قاعة مناسبة",
       });
 
       return;
@@ -4961,12 +5122,10 @@ const generateSpecializedSchedule = () => {
     return Array.from(map.values());
   });
   if (notPlaced.length || shouldWarnAboutMissingImportedSession) {
-    const messageParts = [];
-
-    messageParts.push(`تم توزيع ${placed.length} مقرر.`);
+    const messageParts = [`تم توزيع ${placed.length} مقرر.`];
 
     if (notPlaced.length) {
-      messageParts.push(`تعذر جدولة ${notPlaced.length} مقرر.`);
+      messageParts.push(buildUnscheduledSummaryText(notPlaced));
     }
 
     if (shouldWarnAboutMissingImportedSession) {
@@ -4975,7 +5134,7 @@ const generateSpecializedSchedule = () => {
 
     showToast(
       shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
-      `${messageParts.join(" ")} ${notPlaced.length ? buildUnscheduledSummaryText(notPlaced) : ""}`.trim(),
+      messageParts.join(" ").trim(),
       "warning",
       {
         persistent: true,
