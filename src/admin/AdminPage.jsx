@@ -5320,7 +5320,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-            <Card style={{ maxWidth: 760 }}>
+            <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
     description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
@@ -5555,7 +5555,7 @@ style={{
 </Card>
             </div>
 
-            <div style={{ marginTop: 18, maxWidth: 760 }}>
+            <div style={{ marginTop: 18, maxWidth: 640 }}>
               <Card>
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
