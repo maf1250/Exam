@@ -2439,7 +2439,7 @@ const periodOverlapWarning = useMemo(() => {
     });
     showToast(
       "تعذر النقل",
-      `يوجد ${totalShared} ${formatTrainees(totalShared)} متعارضين موزعين على ${conflictingItems.length} مقرر في هذه الفترة.`,
+      `يوجد ${formatTraineeCountLabel(totalShared)} متعارضون موزعون على ${formatCourseCountLabel(conflictingItems.length)} في هذه الفترة.`,
       "error",
       {
         persistent: true,
@@ -2683,11 +2683,11 @@ const periodOverlapWarning = useMemo(() => {
     if (notPlaced.length) {
       showToast(
         "تمت إعادة التوزيع مع ملاحظات",
-        `تمت إعادة توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
+        `تمت إعادة توزيع ${formatCourseCountLabel(placed.length)}، وتعذر جدولة ${formatCourseCountLabel(notPlaced.length)}.`,
         "warning"
       );
     } else {
-      showToast("تمت إعادة التوزيع", `تمت إعادة توزيع ${placed.length} مقرر غير مثبت بنجاح.`, "success");
+      showToast("تمت إعادة التوزيع", `تمت إعادة توزيع ${formatCourseCountLabel(placed.length)} غير مثبت بنجاح.`, "success");
     }
   }
 
@@ -2914,34 +2914,58 @@ const getUnscheduledReasonCategory = (courseOrReason) => {
   };
 };
 
+const formatArabicCountLabel = (count, forms = {}) => {
+  const n = Number(count) || 0;
+  const singular = forms.singular || "";
+  const dual = forms.dual || singular;
+  const plural = forms.plural || singular;
+
+  if (n === 1) return `${n} ${singular}`;
+  if (n === 2) return `${n} ${dual}`;
+  if (n >= 3 && n <= 10) return `${n} ${plural}`;
+  return `${n} ${singular}`;
+};
+
+const formatCourseCountLabel = (count) =>
+  formatArabicCountLabel(count, {
+    singular: "مقرر",
+    dual: "مقررين",
+    plural: "مقررات",
+  });
+
+const formatTraineeCountLabel = (count) =>
+  formatArabicCountLabel(count, {
+    singular: "متدرب",
+    dual: "متدربين",
+    plural: "متدربين",
+  });
+
 const buildUnscheduledSummaryText = (notPlaced = []) => {
   const total = Array.isArray(notPlaced) ? notPlaced.length : 0;
   if (!total) return "لم يتبق أي مقرر غير مجدول.";
 
-  const counts = {
-    hall: 0,
-    invigilator: 0,
-    constraint: 0,
-    manual: 0,
-    other: 0,
-    generic: 0,
-  };
+  const reasonMap = new Map();
 
   notPlaced.forEach((item) => {
-    const category = getUnscheduledReasonCategory(item).code;
-    counts[category] = (counts[category] || 0) + 1;
+    const reasonInfo = normalizeUnscheduledReason(item);
+    const summaryReason =
+      String(reasonInfo?.shortLabel || "")
+        .replace(/\s+/g, " ")
+        .trim() ||
+      String(reasonInfo?.detail || "")
+        .replace(/\s+/g, " ")
+        .trim() ||
+      "سبب غير محدد";
+
+    reasonMap.set(summaryReason, (reasonMap.get(summaryReason) || 0) + 1);
   });
 
-  const parts = [`تعذر جدولة ${total} مقرر.`];
-  if (counts.hall) parts.push(`${counts.hall} بسبب القاعات.`);
-  if (counts.invigilator) parts.push(`${counts.invigilator} بسبب المراقبين.`);
-  if (counts.constraint) parts.push(`${counts.constraint} بسبب التعارضات أو القيود.`);
-  if (counts.manual) parts.push(`${counts.manual} ضمن المعالجة اليدوية.`);
+  const sortedReasons = Array.from(reasonMap.entries()).sort((a, b) => b[1] - a[1]);
 
-  const remainder = total - counts.hall - counts.invigilator - counts.constraint - counts.manual;
-  if (remainder > 0) parts.push(`${remainder} لأسباب أخرى.`);
-
-  return parts.join(" ");
+  return [
+    `تعذر جدولة ${formatCourseCountLabel(total)}.`,
+    ...sortedReasons.map(([reason, count]) => `${formatCourseCountLabel(count)} بسبب ${reason}.`),
+  ].join(" ");
 };
 
 const normalizeUnscheduledReason = (course) => {
@@ -2953,10 +2977,25 @@ const normalizeUnscheduledReason = (course) => {
     };
   }
 
+  const explicitShortLabel = String(course?.unscheduledShortLabel || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (explicitShortLabel) {
+    return {
+      shortLabel: explicitShortLabel,
+      detail: reason,
+    };
+  }
+
   const category = getUnscheduledReasonCategory(reason);
+  const fallbackShortLabel =
+    category.code === "other"
+      ? reason.replace(/\s+/g, " ").trim()
+      : category.shortLabel;
 
   return {
-    shortLabel: String(course?.unscheduledShortLabel || "").trim() || category.shortLabel,
+    shortLabel: fallbackShortLabel || "سبب غير محدد",
     detail: reason,
   };
 };
@@ -3015,9 +3054,8 @@ const deserializeScheduleItem = (item) => ({
 });
 
   const formatTrainees = (n) => {
-  if (n === 1) return "متدرب";
-  if (n >= 2 && n <= 10) return "متدربين";
-  return "متدرب";
+  const label = formatTraineeCountLabel(n);
+  return label.replace(/^\d+\s+/, "");
 };
 
 const getPeriodTheme = (period) => {
@@ -5066,7 +5104,7 @@ const generateGeneralSchedule = () => {
   if (notPlaced.length) {
     showToast(
       "تم توزيع مقررات الدراسات العامة مع ملاحظات",
-      `تم توزيع ${placed.length} مقرر. ${buildUnscheduledSummaryText(notPlaced)}`,
+      `تم توزيع ${formatCourseCountLabel(placed.length)}. ${buildUnscheduledSummaryText(notPlaced)}`,
       "warning",
       {
         persistent: true,
@@ -5079,7 +5117,7 @@ const generateGeneralSchedule = () => {
       }
     );
   } else {
-    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
   }
   setCurrentStep(5);
 };
@@ -5122,7 +5160,7 @@ const generateSpecializedSchedule = () => {
     return Array.from(map.values());
   });
   if (notPlaced.length || shouldWarnAboutMissingImportedSession) {
-    const messageParts = [`تم توزيع ${placed.length} مقرر.`];
+    const messageParts = [`تم توزيع ${formatCourseCountLabel(placed.length)}.`];
 
     if (notPlaced.length) {
       messageParts.push(buildUnscheduledSummaryText(notPlaced));
@@ -5147,7 +5185,7 @@ const generateSpecializedSchedule = () => {
       }
     );
   } else {
-    showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
+    showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
   }
   setCurrentStep(6);
 };
