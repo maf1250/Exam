@@ -3714,7 +3714,7 @@ const baseLink = useMemo(() => {
   const handleIncludeAllDepartmentsAndMajorsChange = (checked) => {
     if (!checked && !generalSchedule.length) {
       showToast(
-        "يجب توزيع الدراسات العامة أولًا",
+        "يجب توزيع مقررات الدراسات العامة أولًا",
         "لا يمكن تفعيل التوزيع الخاص بالأقسام والتخصصات قبل توزيع مقررات الدراسات العامة.",
         "warning"
       );
@@ -4590,12 +4590,12 @@ const generateGeneralSchedule = () => {
   setPreviewTab("schedule");
   if (notPlaced.length) {
     showToast(
-      "تم توزيع الدراسات العامة مع ملاحظات",
+      "تم توزيع مقررات الدراسات العامة مع ملاحظات",
       `تم توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
       "warning"
     );
   } else {
-    showToast("تم توزيع الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
+    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
   }
   setCurrentStep(5);
 };
@@ -7387,7 +7387,17 @@ style={{
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
             </div>
-
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع مقررات الدراسات العامة
+              </button>
+              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+                التالي
+              </button>
+            </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -7419,17 +7429,7 @@ style={{
               </table>
             </div>
 
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
-                السابق
-              </button>
-              <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع الدراسات العامة
-              </button>
-              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
-                التالي
-              </button>
-            </div>
+            
               </>
             )}
           </Card>
@@ -7523,7 +7523,17 @@ style={{
             <div style={{ marginBottom: 16, marginTop: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
             </div>
-
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
+                توزيع مقررات التخصص
+              </button>
+              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                التالي
+              </button>
+            </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -7555,17 +7565,7 @@ style={{
               </table>
             </div>
 
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
-                السابق
-              </button>
-              <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع مقررات التخصص
-              </button>
-              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
-                التالي
-              </button>
-            </div>
+            
           </Card>
         )}
 
