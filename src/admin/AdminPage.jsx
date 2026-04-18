@@ -6204,6 +6204,17 @@ style={{
                   </div>
                 </div>
 
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#FCFEFE",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى المقرر</div>
+
                 {selectedHallConstraintCourseKeys.length ? (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
                     {selectedHallConstraintCourseKeys.map((courseKey) => {
@@ -6265,6 +6276,18 @@ style={{
                     })}
                   </div>
                 ) : null}
+                </div>
+
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#FCFEFE",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى القسم</div>
 
                 {selectedHallConstraintDepartmentKeys.length ? (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -6410,6 +6433,7 @@ style={{
                     </div>
                   </div>
                 ) : null}
+                </div>
 
                 {selectedHallConstraintCourseKey ? (
                   <div
@@ -6483,15 +6507,6 @@ style={{
                       </button>
                     </div>
 
-                    <div style={{ marginTop: 14 }}>
-                      <button
-                        type="button"
-                        onClick={() => clearCourseHallConstraint(selectedHallConstraintCourseKey)}
-                        style={cardButtonStyle({ danger: true })}
-                      >
-                        مسح تخصيص هذا المقرر
-                      </button>
-                    </div>
                   </div>
                 ) : null}
               </Card>
