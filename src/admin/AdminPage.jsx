@@ -3203,7 +3203,7 @@ const clearSavedState = async () => {
 const exportSavedSession = () => {
   const data = buildPersistedState();
   downloadFile(
-    `ملف اختبارات -${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.json`,
+    `ملف الاختبارات النهائية -${(collegeNameInput || "الكلية التقنية").replace(/\.[^.]+$/, "")}.json`,
     JSON.stringify(data, null, 2),
     "application/json;charset=utf-8"
   );
