@@ -5635,7 +5635,7 @@ style={{
             </div>
             <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
-              <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
                 {periodConfigs.map((periodConfig, index) => {
                   const startMinutes = parseTimeToMinutes(periodConfig.start);
                   const endText =
