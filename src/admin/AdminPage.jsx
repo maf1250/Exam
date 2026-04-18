@@ -6215,67 +6215,146 @@ style={{
                 >
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى المقرر</div>
 
-                {selectedHallConstraintCourseKeys.length ? (
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                    {selectedHallConstraintCourseKeys.map((courseKey) => {
-                      const option = courseConstraintOptions.find((item) => item.key === courseKey);
-                      if (!option) return null;
-                      return (
-                        <div
-                          key={courseKey}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
-                            background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
-                            color: COLORS.charcoal,
-                            borderRadius: 14,
-                            padding: "6px 8px 6px 12px",
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                  {selectedHallConstraintCourseKeys.length ? (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      {selectedHallConstraintCourseKeys.map((courseKey) => {
+                        const option = courseConstraintOptions.find((item) => item.key === courseKey);
+                        if (!option) return null;
+                        return (
+                          <div
+                            key={courseKey}
                             style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "inherit",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              padding: 0,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                              border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                              background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                              color: COLORS.charcoal,
+                              borderRadius: 14,
+                              padding: "6px 8px 6px 12px",
                             }}
                           >
-                            {option.label}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                color: "inherit",
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                padding: 0,
+                              }}
+                            >
+                              {option.label}
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              removeHallConstraintCourseFromList(courseKey);
-                            }}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              color: COLORS.danger,
-                              fontWeight: 900,
-                              fontSize: 16,
-                              lineHeight: 1,
-                              padding: 0,
-                            }}
-                            aria-label={`حذف ${option.label}`}
-                            title="حذف المقرر"
-                          >
-                            ×
-                          </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeHallConstraintCourseFromList(courseKey);
+                              }}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                cursor: "pointer",
+                                color: COLORS.danger,
+                                fontWeight: 900,
+                                fontSize: 16,
+                                lineHeight: 1,
+                                padding: 0,
+                              }}
+                              aria-label={`حذف ${option.label}`}
+                              title="حذف المقرر"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {selectedHallConstraintCourseKey ? (
+                    <div
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 18,
+                        padding: 16,
+                        background: "#fff",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                        تخصيص القاعات للمقرر:{" "}
+                        {courseConstraintOptions.find((item) => item.key === selectedHallConstraintCourseKey)?.label || selectedHallConstraintCourseKey}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                        {[
+                          { value: "off", label: "بدون تخصيص" },
+                          { value: "prefer", label: "تفضيل قاعات محددة" },
+                          { value: "only", label: "قصر على قاعات محددة" },
+                        ].map((option) => {
+                          const active = selectedCourseHallConstraint.mode === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })}
+                              style={cardButtonStyle({ active })}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
+                      {normalizedExamHalls.length ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                          {normalizedExamHalls.map((hall) => {
+                            const checked = selectedCourseHallConstraint.hallNames.includes(hall.name);
+                            return (
+                              <label
+                                key={`course-hall-${hall.id}`}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                  background: checked ? COLORS.primaryLight : "#fff",
+                                  borderRadius: 12,
+                                  padding: "10px 12px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)}
+                                />
+                                <span>{hall.name}</span>
+                              </label>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                      ) : (
+                        <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للمقررات.</div>
+                      )}
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                        <button
+                          type="button"
+                          onClick={() => clearCourseHallConstraint(selectedHallConstraintCourseKey)}
+                          style={cardButtonStyle({ danger: true })}
+                        >
+                          مسح تخصيص المقرر
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div
@@ -6289,226 +6368,152 @@ style={{
                 >
                   <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى القسم</div>
 
-                {selectedHallConstraintDepartmentKeys.length ? (
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                    {selectedHallConstraintDepartmentKeys.map((departmentKey) => {
-                      const label = availableDepartments.find(
-                        (item) => normalizeArabic(item) === normalizeArabic(departmentKey)
-                      ) || departmentKey;
-                      return (
-                        <div
-                          key={departmentKey}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            border: `1px solid ${normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey) ? COLORS.primaryDark : COLORS.border}`,
-                            background:
-                              normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey)
-                                ? COLORS.primaryLight
-                                : "#fff",
-                            color: COLORS.charcoal,
-                            borderRadius: 14,
-                            padding: "6px 8px 6px 12px",
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setSelectedHallConstraintDepartmentKey(label)}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "inherit",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              padding: 0,
-                            }}
-                          >
-                            {label}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              removeHallConstraintDepartmentFromList(departmentKey);
-                            }}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              color: COLORS.danger,
-                              fontWeight: 900,
-                              fontSize: 16,
-                              lineHeight: 1,
-                              padding: 0,
-                            }}
-                            aria-label={`حذف ${label}`}
-                            title="حذف القسم"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {selectedHallConstraintDepartmentKey ? (
-                  <div
-                    style={{
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 18,
-                      padding: 16,
-                      background: "#fff",
-                      marginBottom: 14,
-                    }}
-                  >
-                    <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                      تخصيص القاعات للقسم: {selectedHallConstraintDepartmentKey}
-                    </div>
-
+                  {selectedHallConstraintDepartmentKeys.length ? (
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                      {[
-                        { value: "off", label: "بدون تخصيص" },
-                        { value: "prefer", label: "تفضيل قاعات محددة" },
-                        { value: "only", label: "قصر على قاعات محددة" },
-                      ].map((option) => {
-                        const active = selectedDepartmentHallConstraint.mode === option.value;
+                      {selectedHallConstraintDepartmentKeys.map((departmentKey) => {
+                        const label = availableDepartments.find(
+                          (item) => normalizeArabic(item) === normalizeArabic(departmentKey)
+                        ) || departmentKey;
                         return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => updateDepartmentHallConstraint(selectedHallConstraintDepartmentKey, { mode: option.value })}
-                            style={cardButtonStyle({ active })}
+                          <div
+                            key={departmentKey}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                              border: `1px solid ${normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey) ? COLORS.primaryDark : COLORS.border}`,
+                              background:
+                                normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey)
+                                  ? COLORS.primaryLight
+                                  : "#fff",
+                              color: COLORS.charcoal,
+                              borderRadius: 14,
+                              padding: "6px 8px 6px 12px",
+                            }}
                           >
-                            {option.label}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedHallConstraintDepartmentKey(label)}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                color: "inherit",
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                padding: 0,
+                              }}
+                            >
+                              {label}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeHallConstraintDepartmentFromList(departmentKey);
+                              }}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                cursor: "pointer",
+                                color: COLORS.danger,
+                                fontWeight: 900,
+                                fontSize: 16,
+                                lineHeight: 1,
+                                padding: 0,
+                              }}
+                              aria-label={`حذف ${label}`}
+                              title="حذف القسم"
+                            >
+                              ×
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
+                  ) : null}
 
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
-                    {normalizedExamHalls.length ? (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
-                        {normalizedExamHalls.map((hall) => {
-                          const checked = selectedDepartmentHallConstraint.hallNames.includes(hall.name);
+                  {selectedHallConstraintDepartmentKey ? (
+                    <div
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 18,
+                        padding: 16,
+                        background: "#fff",
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                        تخصيص القاعات للقسم: {selectedHallConstraintDepartmentKey}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                        {[
+                          { value: "off", label: "بدون تخصيص" },
+                          { value: "prefer", label: "تفضيل قاعات محددة" },
+                          { value: "only", label: "قصر على قاعات محددة" },
+                        ].map((option) => {
+                          const active = selectedDepartmentHallConstraint.mode === option.value;
                           return (
-                            <label
-                              key={`department-hall-${hall.id}`}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
-                                background: checked ? COLORS.primaryLight : "#fff",
-                                borderRadius: 12,
-                                padding: "10px 12px",
-                                cursor: "pointer",
-                              }}
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => updateDepartmentHallConstraint(selectedHallConstraintDepartmentKey, { mode: option.value })}
+                              style={cardButtonStyle({ active })}
                             >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleDepartmentHallConstraintValue(selectedHallConstraintDepartmentKey, hall.name)}
-                              />
-                              <span>{hall.name}</span>
-                            </label>
+                              {option.label}
+                            </button>
                           );
                         })}
                       </div>
-                    ) : (
-                      <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام.</div>
-                    )}
 
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                      <button
-                        type="button"
-                        onClick={() => clearDepartmentHallConstraint(selectedHallConstraintDepartmentKey)}
-                        style={cardButtonStyle({ danger: true })}
-                      >
-                        مسح تخصيص القسم
-                      </button>
+                      <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
+                      {normalizedExamHalls.length ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                          {normalizedExamHalls.map((hall) => {
+                            const checked = selectedDepartmentHallConstraint.hallNames.includes(hall.name);
+                            return (
+                              <label
+                                key={`department-hall-${hall.id}`}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                  background: checked ? COLORS.primaryLight : "#fff",
+                                  borderRadius: 12,
+                                  padding: "10px 12px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleDepartmentHallConstraintValue(selectedHallConstraintDepartmentKey, hall.name)}
+                                />
+                                <span>{hall.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام.</div>
+                      )}
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                        <button
+                          type="button"
+                          onClick={() => clearDepartmentHallConstraint(selectedHallConstraintDepartmentKey)}
+                          style={cardButtonStyle({ danger: true })}
+                        >
+                          مسح تخصيص القسم
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
                 </div>
 
-                {selectedHallConstraintCourseKey ? (
-                  <div
-                    style={{
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: 18,
-                      padding: 16,
-                      background: COLORS.bg2,
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                      {[
-                        { value: "off", label: "بدون تخصيص" },
-                        { value: "prefer", label: "تفضيل قاعات محددة" },
-                        { value: "only", label: "قصر على قاعات محددة" },
-                      ].map((option) => {
-                        const active = selectedCourseHallConstraint.mode === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })}
-                            style={cardButtonStyle({ active })}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
-                    {normalizedExamHalls.length ? (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
-                        {normalizedExamHalls.map((hall) => {
-                          const checked = selectedCourseHallConstraint.hallNames.includes(hall.name);
-                          return (
-                            <label
-                              key={hall.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
-                                background: checked ? COLORS.primaryLight : "#fff",
-                                borderRadius: 12,
-                                padding: "10px 12px",
-                                cursor: "pointer",
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)}
-                              />
-                              <span>{hall.name}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للمقررات.</div>
-                    )}
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                      <button
-                        type="button"
-                        onClick={() => clearCourseHallConstraint(selectedHallConstraintCourseKey)}
-                        style={cardButtonStyle({ danger: true })}
-                      >
-                        مسح تخصيص المقرر
-                      </button>
-                    </div>
-
-                  </div>
-                ) : null}
               </Card>
             </div>
 
