@@ -5596,22 +5596,57 @@ style={{
                       const option = hallConstraintOptions.find((item) => item.key === courseKey);
                       if (!option) return null;
                       return (
-                        <button
+                        <div
                           key={courseKey}
-                          type="button"
-                          onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
                           style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
                             border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
                             background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
                             color: COLORS.charcoal,
                             borderRadius: 14,
-                            padding: "10px 12px",
-                            fontWeight: 800,
-                            cursor: "pointer",
+                            padding: "6px 8px 6px 12px",
                           }}
                         >
-                          {option.label}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "inherit",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                          >
+                            {option.label}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeHallConstraintCourseFromList(courseKey);
+                            }}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              color: COLORS.danger,
+                              fontWeight: 900,
+                              fontSize: 16,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                            aria-label={`حذف ${option.label}`}
+                            title="حذف المقرر"
+                          >
+                            ×
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
