@@ -5513,7 +5513,7 @@ style={{
               ) : null}
             </div>
 
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 18, maxWidth: 640 }}>
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
