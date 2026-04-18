@@ -2840,6 +2840,79 @@ const showToast = (title, description, type = "success", options = {}) => {
   }
 };
 
+const openUnscheduledCoursesPreview = (focusReason = false) => {
+  setPreviewTab("schedule");
+  setCurrentStep(8);
+  setPreviewPage(0);
+
+  window.requestAnimationFrame(() => {
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  if (focusReason) {
+    showToast(
+      "المقررات غير المجدولة",
+      "يمكنك الآن مراجعة المقررات غير المجدولة مع سبب كل مقرر داخل صفحة المعاينة.",
+      "warning"
+    );
+  }
+};
+
+const buildUnscheduledSummaryText = (notPlaced = []) => {
+  const total = Array.isArray(notPlaced) ? notPlaced.length : 0;
+  if (!total) return "لم يتبق أي مقرر غير مجدول.";
+
+  const hallCount = notPlaced.filter((item) =>
+    String(item?.unscheduledReason || "").includes("قاعة")
+  ).length;
+  const invigilatorCount = notPlaced.filter((item) =>
+    String(item?.unscheduledReason || "").includes("مراقب")
+  ).length;
+  const conflictCount = total - hallCount - invigilatorCount;
+
+  const parts = [`تعذر جدولة ${total} مقرر.`];
+  if (hallCount) parts.push(`${hallCount} بسبب القاعات.`);
+  if (invigilatorCount) parts.push(`${invigilatorCount} بسبب المراقبين.`);
+  if (conflictCount > 0) parts.push(`${conflictCount} بسبب التعارضات أو القيود الحالية.`);
+  return parts.join(" ");
+};
+
+const normalizeUnscheduledReason = (course) => {
+  const reason = String(course?.unscheduledReason || "").trim();
+  if (!reason) {
+    return {
+      shortLabel: "تعذر الجدولة",
+      detail: "تعذر العثور على فترة مناسبة لهذا المقرر ضمن الإعدادات الحالية.",
+    };
+  }
+
+  if (reason.includes("قاعة")) {
+    return {
+      shortLabel: "لا توجد قاعة مناسبة",
+      detail: reason,
+    };
+  }
+
+  if (reason.includes("مراقب")) {
+    return {
+      shortLabel: "لا يوجد مراقبون كافيون",
+      detail: reason,
+    };
+  }
+
+  if (reason.includes("تعارض") || reason.includes("القيود الحالية") || reason.includes("فترة مناسبة")) {
+    return {
+      shortLabel: "تعارض أو قيود",
+      detail: reason,
+    };
+  }
+
+  return {
+    shortLabel: "سبب آخر",
+    detail: reason,
+  };
+};
+
 const hasImportedSf01 = rows.length > 0;
 const showSf01ImportFirstToast = () => {
   showToast(
@@ -4710,8 +4783,8 @@ sortedCoursesForInvigilation.forEach((course) => {
     ...course,
     unscheduledReason:
       (Number(maxAvailable) || 0) > 0
-        ? "تعذر إيجاد فترة مناسبة دون تعارض أو ضمن القيود الحالية."
-        : "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+        ? "تعذر إيجاد فترة مناسبة دون تعارض متدربين أو ضمن القيود الحالية."
+        : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
   });
   return;
 }
@@ -4757,7 +4830,7 @@ sortedCoursesForInvigilation.forEach((course) => {
       });
       notPlaced.push({
         ...course,
-        unscheduledReason: "لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة.",
+        unscheduledReason: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
       });
 
       return;
@@ -4797,7 +4870,15 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
     showToast(
       "ملاحظة على توزيع المراقبين",
       `تمت جدولة ${underCoveredCoursesCount} مقرر بعدد مراقبين أقل من المطلوب بسبب محدودية التوفر في بعض الفترات.`,
-      "warning"
+      "warning",
+      {
+        actions: [
+          {
+            label: "فتح المعاينة",
+            onClick: () => openUnscheduledCoursesPreview(false),
+          },
+        ],
+      }
     );
   }
 
@@ -4824,8 +4905,17 @@ const generateGeneralSchedule = () => {
   if (notPlaced.length) {
     showToast(
       "تم توزيع مقررات الدراسات العامة مع ملاحظات",
-      `تم توزيع ${placed.length} مقرر، وتعذر جدولة ${notPlaced.length} مقرر.`,
-      "warning"
+      `تم توزيع ${placed.length} مقرر. ${buildUnscheduledSummaryText(notPlaced)}`,
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "عرض غير المجدول",
+            onClick: () => openUnscheduledCoursesPreview(true),
+          },
+        ],
+      }
     );
   } else {
     showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${placed.length} مقرر.`, "success");
@@ -4885,8 +4975,17 @@ const generateSpecializedSchedule = () => {
 
     showToast(
       shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
-      messageParts.join(" "),
-      "warning"
+      `${messageParts.join(" ")} ${notPlaced.length ? buildUnscheduledSummaryText(notPlaced) : ""}`.trim(),
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "عرض غير المجدول",
+            onClick: () => openUnscheduledCoursesPreview(true),
+          },
+        ],
+      }
     );
   } else {
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${placed.length} مقرر.`, "success");
@@ -6171,7 +6270,7 @@ style={{
                   >
                     <div style={{ fontWeight: 800, marginBottom: 10 }}>إضافة تخصيص على مستوى المقرر</div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                      <div style={{ flex: "0 1 340px", minWidth: 200 }}>
                         <select
                           value={hallConstraintOptions.some((course) => course.key === selectedHallConstraintCourseKey) ? selectedHallConstraintCourseKey : ""}
                           onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
@@ -6368,7 +6467,7 @@ style={{
                       بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم.
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                      <div style={{ flex: "0 1 340px", minWidth: 200 }}>
                         <select
                           value={selectedHallConstraintDepartmentKey}
                           onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
@@ -8540,9 +8639,24 @@ style={{
                         setDraggingUnscheduledCourseKey("");
                         setActiveDropSlotId("");
                       }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked || !canEditManualCourse(course) ? "default" : "grab", opacity: !canEditManualCourse(course) ? 0.72 : (draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1) }}>
-                        <div style={{ fontWeight: 800 }}>{course.courseName}</div>
-                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>
-                          {course.unscheduledReason || "تعذر العثور على فترة مناسبة."}
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontWeight: 800 }}>{course.courseName}</div>
+                          <span
+                            style={{
+                              background: COLORS.warningBg,
+                              border: "1px solid #FED7AA",
+                              color: COLORS.warning,
+                              borderRadius: 999,
+                              padding: "3px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {normalizeUnscheduledReason(course).shortLabel}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
+                          {normalizeUnscheduledReason(course).detail}
                         </div>
                         {!canEditManualCourse(course) ? (
                           <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
@@ -8822,22 +8936,56 @@ style={{
                         padding: 14,
                       }}
                     >
-                      <div style={{ fontWeight: 900, marginBottom: 8 }}>مقررات لم يتم جدولة اختبارها</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {unscheduled.map((course) => (
-                          <span
-                            key={course.key}
-                            style={{
-                              background: "#fff",
-                              border: "1px solid #FED7AA",
-                              borderRadius: 999,
-                              padding: "6px 12px",
-                              fontSize: 13,
-                            }}
-                          >
-                            {course.courseName} - {course.courseCode}
-                          </span>
-                        ))}
+                      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+                        <div style={{ fontWeight: 900 }}>مقررات لم يتم جدولة اختبارها</div>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(7)}
+                          style={{ ...cardButtonStyle(), padding: "8px 14px", borderRadius: 12 }}
+                        >
+                          فتح صفحة المعالجة اليدوية
+                        </button>
+                      </div>
+                      <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
+                        {buildUnscheduledSummaryText(unscheduled)}
+                      </div>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {unscheduled.map((course) => {
+                          const reasonInfo = normalizeUnscheduledReason(course);
+                          return (
+                            <div
+                              key={course.key}
+                              style={{
+                                background: "#fff",
+                                border: "1px solid #FED7AA",
+                                borderRadius: 16,
+                                padding: 12,
+                              }}
+                            >
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ fontWeight: 900, color: COLORS.text }}>
+                                  {course.courseName} <span style={{ color: COLORS.muted, fontWeight: 700 }}>- {course.courseCode}</span>
+                                </div>
+                                <span
+                                  style={{
+                                    background: COLORS.warningBg,
+                                    border: "1px solid #FED7AA",
+                                    color: COLORS.warning,
+                                    borderRadius: 999,
+                                    padding: "4px 10px",
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {reasonInfo.shortLabel}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: 8, color: COLORS.muted, lineHeight: 1.8, fontSize: 14 }}>
+                                {reasonInfo.detail}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null}
