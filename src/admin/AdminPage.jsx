@@ -525,6 +525,21 @@ function getMaxAllowedHallCapacity(halls, course) {
 
   return Number.isFinite(maxCapacity) ? maxCapacity : 0;
 }
+function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
+  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
+    isHallAllowedForCourse(hall, course)
+  );
+
+  if (!allowedHalls.length) return 0;
+
+  const maxRemaining = Math.max(
+    ...allowedHalls.map((hall) =>
+      getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap)
+    )
+  );
+
+  return Number.isFinite(maxRemaining) ? maxRemaining : 0;
+}
 function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap) {
   if (!hall || !course) return 0;
   if (!isHallAllowedForCourse(hall, course)) return 0;
@@ -541,21 +556,8 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
   return used > 0 ? 0 : hallCapacity;
 }
 
-function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
-  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
-    isHallAllowedForCourse(hall, course)
-  );
 
-  if (!allowedHalls.length) return 0;
 
-  const maxRemaining = Math.max(
-    ...allowedHalls.map((hall) =>
-      getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap)
-    )
-  );
-
-  return Number.isFinite(maxRemaining) ? maxRemaining : 0;
-}
 function normalizeExamHallsInput(examHalls) {
   return (examHalls || [])
     .map((hall) => {
@@ -2491,96 +2493,105 @@ const periodOverlapWarning = useMemo(() => {
     );
   }
 
-  function placeUnscheduledCourseInSlot(courseKey, targetSlotId) {
-    if (manualScheduleLocked) return;
+ function placeUnscheduledCourseInSlot(courseKey, targetSlotId) {
+  if (manualScheduleLocked) return;
 
-    const course = parsed.courses.find((item) => item.key === courseKey) || unscheduled.find((item) => item.key === courseKey);
-    if (!canEditManualCourse(course)) {
-      showGeneralStudiesManualLockToast();
-      return;
-    }
-    const targetSlot = slots.find((slot) => slot.id === targetSlotId);
-    if (!course || !targetSlot) return;
+  const course =
+    parsed.courses.find((item) => item.key === courseKey) ||
+    unscheduled.find((item) => item.key === courseKey);
 
-    const conflictingItems = getManualMoveConflictItems(course, targetSlotId);
-    if (conflictingItems.length) {
-      openManualConflictToast(course, targetSlot, conflictingItems);
-      return;
-    }
+  if (!canEditManualCourse(course)) {
+    showGeneralStudiesManualLockToast();
+    return;
+  }
 
-    const hallUsageMap = new Map();
-    schedule
-      .filter((item) => item.id === targetSlotId && item.examHall)
-      .forEach((item) => {
-        const key = getHallUsageKey(targetSlot, item.examHall);
-        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
-      });
+  const targetSlot = slots.find((slot) => slot.id === targetSlotId);
+  if (!course || !targetSlot) return;
 
+  const conflictingItems = getManualMoveConflictItems(course, targetSlotId);
+  if (conflictingItems.length) {
+    openManualConflictToast(course, targetSlot, conflictingItems);
+    return;
+  }
 
-    const fittingHalls = sortHallsByCourseHallPreference(
-  filterHallsByCourseHallConstraint(
-    normalizedExamHalls.filter((hall) =>
-      canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)
+  const hallUsageMap = new Map();
+  schedule
+    .filter((item) => item.id === targetSlotId && item.examHall)
+    .forEach((item) => {
+      const key = getHallUsageKey(targetSlot, item.examHall);
+      hallUsageMap.set(
+        key,
+        (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0)
+      );
+    });
+
+  const fittingHalls = sortHallsByCourseHallPreference(
+    filterHallsByCourseHallConstraint(
+      normalizedExamHalls.filter((hall) =>
+        canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)
+      ),
+      course
     ),
     course
-  ),
-  course
-).sort((a, b) => {
-  const aRemaining = getRemainingHallCapacityForSlot(a, targetSlot, hallUsageMap);
-  const bRemaining = getRemainingHallCapacityForSlot(b, targetSlot, hallUsageMap);
-  return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
-});
+  ).sort((a, b) => {
+    const aRemaining = getRemainingHallCapacityForSlot(a, targetSlot, hallUsageMap);
+    const bRemaining = getRemainingHallCapacityForSlot(b, targetSlot, hallUsageMap);
+    return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
+  });
 
-let assignedHall = "";
-let assignedHallObj = null;
+  let assignedHall = "";
+  let assignedHallObj = null;
 
-if (fittingHalls.length) {
-  assignedHallObj = fittingHalls[0];
-  assignedHall = assignedHallObj.name;
-  reserveHallForCourseInSlot(assignedHallObj, course, targetSlot, hallUsageMap);
-} else {
-  const maxRemaining = getMaxRemainingAllowedHallCapacityForSlot(
-    normalizedExamHalls,
-    course,
-    targetSlot,
-    hallUsageMap
+  if (fittingHalls.length) {
+    assignedHallObj = fittingHalls[0];
+    assignedHall = assignedHallObj.name;
+    reserveHallForCourseInSlot(assignedHallObj, course, targetSlot, hallUsageMap);
+  } else {
+    const maxRemaining = getMaxRemainingAllowedHallCapacityForSlot(
+      normalizedExamHalls,
+      course,
+      targetSlot,
+      hallUsageMap
+    );
+
+    showToast(
+      "لا توجد قاعة مناسبة",
+      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`,
+      "error"
+    );
+    return;
+  }
+
+  const placedItem = {
+    ...course,
+    ...targetSlot,
+    instanceId: makeScheduledInstanceId(),
+    students: Array.from(course.students || []),
+    trainers: Array.from(course.trainers || []),
+    departments: Array.from(course.departments || []),
+    majors: Array.from(course.majors || []),
+    sectionNames: Array.from(course.sectionNames || []),
+    scheduleTypes: Array.from(course.scheduleTypes || []),
+    departmentRoots: Array.from(course.departmentRoots || []),
+    examHall: assignedHall,
+    invigilators: [],
+    manualEdited: true,
+    isPinned: false,
+  };
+
+  setSchedule((prev) =>
+    [...prev, placedItem].sort(
+      (a, b) =>
+        a.dateISO.localeCompare(b.dateISO) ||
+        a.period - b.period ||
+        b.studentCount - a.studentCount
+    )
   );
-
-  showToast(
-    "لا توجد قاعة مناسبة",
-    `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`,
-    "error"
-  );
-  return;
+  setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
+  setDraggingUnscheduledCourseKey("");
+  setActiveDropSlotId("");
+  showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
 }
-
-const placedItem = {
-  ...course,
-  ...targetSlot,
-  instanceId: makeScheduledInstanceId(),
-  students: Array.from(course.students || []),
-  trainers: Array.from(course.trainers || []),
-  departments: Array.from(course.departments || []),
-  majors: Array.from(course.majors || []),
-  sectionNames: Array.from(course.sectionNames || []),
-  scheduleTypes: Array.from(course.scheduleTypes || []),
-  departmentRoots: Array.from(course.departmentRoots || []),
-  examHall: assignedHall,
-  invigilators: [],
-  manualEdited: true,
-  isPinned: false,
-};
-
-setSchedule((prev) =>
-  [...prev, placedItem].sort(
-    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
-  )
-);
-setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-setDraggingUnscheduledCourseKey("");
-setActiveDropSlotId("");
-showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
-      }
 
   function addConstraintCourseToList(courseKey) {
     if (!courseKey) return;
