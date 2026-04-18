@@ -4754,6 +4754,7 @@ const pickInvigilators = (course, slot) => {
       dailyLimit: 0,
       levelConflict: 0,
       hallUnavailable: 0,
+      hallOnlyBlock: 0,
       invigilatorShortage: 0,
       avoidedConstraint: 0,
     };
@@ -4766,6 +4767,9 @@ const pickInvigilators = (course, slot) => {
     slots.forEach((slot) => {
       let slotStudentConflict = false;
       let slotDailyLimit = false;
+      let slotLevelConflict = false;
+      let slotInvigilatorShortage = false;
+      let slotAvoidedConstraint = false;
 
       course.students.forEach((studentId) => {
         const usedSlots = studentSlotMap.get(studentId) || new Set();
@@ -4785,6 +4789,7 @@ const pickInvigilators = (course, slot) => {
         );
         if (sameDateSameLevelExists) {
           diagnosis.levelConflict += 1;
+          slotLevelConflict = true;
         }
       }
 
@@ -4800,6 +4805,7 @@ const pickInvigilators = (course, slot) => {
         ).length;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
+          slotInvigilatorShortage = true;
         }
       }
 
@@ -4808,6 +4814,18 @@ const pickInvigilators = (course, slot) => {
         courseConstraint.avoidedPeriods.includes(slot.period)
       ) {
         diagnosis.avoidedConstraint += 1;
+        slotAvoidedConstraint = true;
+      }
+
+      if (
+        !slotStudentConflict &&
+        !slotDailyLimit &&
+        !slotLevelConflict &&
+        !slotInvigilatorShortage &&
+        !slotAvoidedConstraint &&
+        !matchingHallCount
+      ) {
+        diagnosis.hallOnlyBlock += 1;
       }
     });
 
@@ -4876,12 +4894,14 @@ const requiredSeats = Number(course.studentCount) || 0;
       };
     }
 
-    const rankedReason = [
-      ["لا توجد قاعة مناسبة", diagnosis.hallUnavailable],
-      ["تعارض متدربين", diagnosis.studentConflict + diagnosis.dailyLimit],
-      ["لا يوجد مراقبون كافيون", diagnosis.invigilatorShortage],
-      ["قيود الجدولة", diagnosis.levelConflict + diagnosis.avoidedConstraint],
-    ].sort((a, b) => b[1] - a[1])[0];
+    const rankedReason = diagnosis.hallOnlyBlock
+      ? ["لا توجد قاعة مناسبة", diagnosis.hallOnlyBlock]
+      : [
+          ["لا توجد قاعة مناسبة", diagnosis.hallUnavailable],
+          ["تعارض متدربين", diagnosis.studentConflict + diagnosis.dailyLimit],
+          ["لا يوجد مراقبون كافيون", diagnosis.invigilatorShortage],
+          ["قيود الجدولة", diagnosis.levelConflict + diagnosis.avoidedConstraint],
+        ].sort((a, b) => b[1] - a[1])[0];
 
     return {
       shortLabel: rankedReason?.[0] || "تعذر الجدولة",
