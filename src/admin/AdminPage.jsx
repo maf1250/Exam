@@ -4553,17 +4553,12 @@ const periodKey = getSlotPeriodKey(item);
     }
     slotCoursesMap.get(slotId).push(item.key);
 
-if (item.examHall && Number(item.studentCount) > 0) {
-  const matchedHall =
-    hallsPool.find(
+    const existingHall = hallsPool.find(
       (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
-    ) || {
-      name: String(item.examHall || "").trim(),
-      allowSharedAssignments: true,
-    };
-
-  reserveHallForCourseInSlot(matchedHall, item, item, hallUsageMap);
-}
+    );
+    if (existingHall && Number(item.studentCount) > 0) {
+      reserveHallForCourseInSlot(existingHall, item, item, hallUsageMap);
+    }
 
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
@@ -5153,76 +5148,30 @@ placedDayTypeCounts[placedTypeKey] = (placedDayTypeCounts[placedTypeKey] || 0) +
 scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
   });
 
-  const refreshUnscheduledReasonsWithFinalSchedule = (list) => {
-  const finalSchedule = [...basePlaced, ...newPlaced];
+  newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
 
-  return (list || []).map((course) => {
-    let bestSlot = null;
-    let bestMaxRemaining = 0;
+  const underCoveredCoursesCount = includeInvigilators
+    ? newPlaced.filter((item) => (item.invigilators?.length || 0) < getRequiredInvigilatorsCount(item)).length
+    : 0;
 
-    for (const slot of slots) {
-      const slotHallUsageMap = buildHallUsageMapForSlot(slot, finalSchedule, slots);
-      const slotMaxRemaining = getMaxRemainingAllowedHallCapacityForSlot(
-        hallsPool,
-        course,
-        slot,
-        slotHallUsageMap
-      );
-
-      if (slotMaxRemaining > bestMaxRemaining) {
-        bestMaxRemaining = slotMaxRemaining;
-        bestSlot = slot;
+  if (includeInvigilators && underCoveredCoursesCount > 0) {
+    showToast(
+      "ملاحظة على توزيع المراقبين",
+      `تمت جدولة ${underCoveredCoursesCount} مقرر بعدد مراقبين أقل من المطلوب بسبب محدودية التوفر في بعض الفترات.`,
+      "warning",
+      {
+        actions: [
+          {
+            label: "فتح المعاينة",
+            onClick: () => openUnscheduledCoursesPreview(false),
+          },
+        ],
       }
-    }
+    );
+  }
 
-    if (bestSlot) {
-      return {
-        ...course,
-        unscheduledReason:
-          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. ` +
-          `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
-          `وأكبر سعة متبقية فعلية هي ${Number(bestMaxRemaining) || 0}.`,
-        unscheduledShortLabel: "لا توجد قاعة مناسبة",
-      };
-    }
-
-    return {
-      ...course,
-      unscheduledReason:
-        `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. ` +
-        `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
-        `وأكبر سعة متبقية فعلية هي 0.`,
-      unscheduledShortLabel: "لا توجد قاعة مناسبة",
-    };
-  });
-};
-  
- newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
-
-const refreshedNotPlaced = refreshUnscheduledReasonsWithFinalSchedule(notPlaced);
-
-const underCoveredCoursesCount = includeInvigilators
-  ? newPlaced.filter((item) => (item.invigilators?.length || 0) < getRequiredInvigilatorsCount(item)).length
-  : 0;
-
-if (includeInvigilators && underCoveredCoursesCount > 0) {
-  showToast(
-    "ملاحظة على توزيع المراقبين",
-    `تمت جدولة ${underCoveredCoursesCount} مقرر بعدد مراقبين أقل من المطلوب بسبب محدودية التوفر في بعض الفترات.`,
-    "warning",
-    {
-      actions: [
-        {
-          label: "فتح المعاينة",
-          onClick: () => openUnscheduledCoursesPreview(false),
-        },
-      ],
-    }
-  );
-}
-
-setPreviewPage(0);
-return { placed: newPlaced, notPlaced: refreshedNotPlaced, hallWarnings: hallWarningItems };
+  setPreviewPage(0);
+  return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
 };
 
 const generateGeneralSchedule = () => {
