@@ -508,6 +508,21 @@ function isHallValidForCourse(hall, course) {
 
   return isHallAllowedForCourse(hall, course);
 }
+function buildHallUsageMapForSlot(slotId, schedule) {
+  const usageMap = new Map();
+
+  (Array.isArray(schedule) ? schedule : [])
+    .filter((item) => item.id === slotId && item.examHall)
+    .forEach((item) => {
+      const key = getHallUsageKey(item, item.examHall);
+      usageMap.set(
+        key,
+        (usageMap.get(key) || 0) + (Number(item.studentCount) || 0)
+      );
+    });
+
+  return usageMap;
+}
 
 function getMaxAllowedHallCapacity(halls, course) {
   const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
@@ -4866,8 +4881,12 @@ const pickInvigilators = (course, slot) => {
     });
 
 const requiredSeats = Number(course.studentCount) || 0;
-    const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
-
+const maxAvailable = Math.max(
+  0,
+  ...slots.map((slot) =>
+    getMaxRemainingAllowedHallCapacityForSlot(hallsPool, course, slot, buildHallUsageMapForSlot(slot.id))
+  )
+);
     const maxRemainingAcrossSlots = diagnosis.totalSlots
       ? slots.reduce((best, slot) => {
           const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
@@ -4882,17 +4901,27 @@ const requiredSeats = Number(course.studentCount) || 0;
       : 0;
 
     const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
-    const reasonParts = [];
+   const maxAvailable = Math.max(
+  0,
+  ...slots.map((slot) => {
+    const slotHallUsageMap = buildHallUsageMapForSlot(slot.id, schedule);
+    return getMaxRemainingAllowedHallCapacityForSlot(
+      hallsPool,
+      course,
+      slot,
+      slotHallUsageMap
+    );
+  })
+);
 
-    if ((Number(maxAvailable) || 0) <= 0) {
-      return {
-        shortLabel: "لا توجد قاعة مناسبة",
-        detail:
-          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
-          `يحتاج ${requiredSeats} مقعدًا، ` +
-          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
-      };
-    }
+const reasonParts = [];
+
+if ((Number(maxAvailable) || 0) <= 0) {
+  return {
+    shortLabel: "لا توجد قاعة مناسبة",
+    detail: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxAvailable) || 0}.`,
+  };
+}
 
     if (!hasAnyFittableHallInAnySlot) {
       return {
