@@ -5341,7 +5341,7 @@ style={{
     description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
   />
 
-  <div style={{ display: "grid", gap: 14 }}>
+  <div style={{ display: "grid", gap: 14, maxWidth: 620,  }}>
     {examHalls.map((hall, index) => (
       <div
         key={hall.id}
