@@ -4131,33 +4131,21 @@ const pickInvigilators = (course, slot) => {
   const constrainedInvigilators = new Set(
     (invigilatorConstraint.invigilatorNames || []).map((name) => normalizeArabic(name))
   );
-  const courseDepartmentRoots = new Set(
-    (Array.isArray(course?.departmentRoots) ? course.departmentRoots : getCourseDepartmentRoots(course))
-      .map((value) => normalizeArabic(value))
+  const departmentTrainerCandidates = new Set(
+    (departmentTrainerNamesByCourseKey?.[course.key] || [])
+      .map((name) => normalizeArabic(name))
       .filter(Boolean)
   );
-  const departmentTrainerCandidates = new Set();
   const courseIsGeneralStudies = isGeneralStudiesCourse(course);
 
-  invigilatorPool.forEach((name) => {
-    const normalizedName = normalizeArabic(name);
-    if (!normalizedName) return;
-
-    if (courseIsGeneralStudies) {
-      if (generalStudiesInvigilatorsSet.has(normalizedName)) {
+  if (courseIsGeneralStudies && !departmentTrainerCandidates.size) {
+    invigilatorPool.forEach((name) => {
+      const normalizedName = normalizeArabic(name);
+      if (normalizedName && generalStudiesInvigilatorsSet.has(normalizedName)) {
         departmentTrainerCandidates.add(normalizedName);
       }
-      return;
-    }
-
-    const trainerRoots = invigilatorDepartmentRootsMap.get(normalizedName);
-    if (!trainerRoots || !trainerRoots.size) return;
-
-    const matchesDepartment = Array.from(courseDepartmentRoots).some((root) => trainerRoots.has(root));
-    if (matchesDepartment) {
-      departmentTrainerCandidates.add(normalizedName);
-    }
-  });
+    });
+  }
 
   const availableCandidates = invigilatorPool
     .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
