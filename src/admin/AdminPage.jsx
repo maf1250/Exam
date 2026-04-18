@@ -3838,20 +3838,31 @@ const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
     });
   };
   const getAvailableInvigilatorCandidates = (course, periodKey, chosen = []) => {
-    const constraint = getCourseInvigilatorConstraint(course);
-    let candidates = invigilatorPool.filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)).filter((name) => !chosen.includes(name));
+  const constraint = getCourseInvigilatorConstraint(course);
+
+  let candidates = invigilatorPool
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => !chosen.includes(name));
+
+  if (constraint.mode === "block") {
     const blocked = new Set((constraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
     candidates = candidates.filter((name) => !blocked.has(normalizeArabic(name)));
-    if (constraint.mode === "only_specific") {
-      const allowed = new Set((constraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
-      candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
-    }
-    if (constraint.mode === "only_department") {
-      const allowed = new Set(getDepartmentAllowedInvigilatorNames(course).map((name) => normalizeArabic(name)));
-      candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
-    }
-    return candidates;
-  };
+  }
+
+  if (constraint.mode === "only_specific") {
+    const allowed = new Set((constraint.invigilatorNames || []).map((name) => normalizeArabic(name)));
+    candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
+  }
+
+  if (constraint.mode === "only_department") {
+    const allowed = new Set(
+      getDepartmentAllowedInvigilatorNames(course).map((name) => normalizeArabic(name))
+    );
+    candidates = candidates.filter((name) => allowed.has(normalizeArabic(name)));
+  }
+
+  return candidates;
+};
   // نستخدم المقررات المجدولة سابقًا كأساس حتى لا يتكرر المراقب أو يتكرر المتدرب في نفس الفترة
   const basePlaced = [...existingScheduled];
   const newPlaced = [];
