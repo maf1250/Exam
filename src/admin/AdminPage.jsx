@@ -4615,12 +4615,16 @@ const periodKey = getSlotPeriodKey(item);
     }
     slotCoursesMap.get(slotId).push(item.key);
 
-    const existingHall = hallsPool.find(
+   if (item.examHall && Number(item.studentCount) > 0) {
+  const matchedHall =
+    hallsPool.find(
       (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
-    );
-    if (existingHall && Number(item.studentCount) > 0) {
-      reserveHallForCourseInSlot(existingHall, item, item, hallUsageMap);
-    }
+    ) || {
+      name: String(item.examHall || "").trim(),
+    };
+
+  reserveHallForCourseInSlot(matchedHall, item, item, hallUsageMap);
+}
 
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
