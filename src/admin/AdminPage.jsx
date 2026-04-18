@@ -7968,18 +7968,7 @@ style={{
                   إلغاء تثبيت الكل
                 </button>
 
-                <div
-                  style={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 16,
-                    padding: "10px 12px",
-                    background: "#F8FEFE",
-                    color: COLORS.muted,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  التثبيت يعني أن المقرر يبقى في موضعه الحالي حتى لو أعدت التوزيع لاحقًا.
-                </div>
+            
               </div>
 
               {!schedule.length ? (
