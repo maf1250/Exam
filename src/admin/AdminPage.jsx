@@ -6254,9 +6254,9 @@ style={{
 
             <div style={{ marginTop: 18, maxWidth: 640 }}>
               <Card>
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر أو قسم معيّن</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
-                  يمكنك هنا تحديد قاعات مفضلة لمقرر معيّن، أو قصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر.
+                  يمكنك هنا تحديد قاعات مفضلة لمقرر أو قسم معيّن، أو قصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر أو القسم.
                 </div>
 
                 <div style={{ display: "grid", gap: 16, marginBottom: 14 }}>
@@ -6462,9 +6462,9 @@ style={{
                       background: "#fff",
                     }}
                   >
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم</div>
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم أو التخصص</div>
                     <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
-                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم.
+                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم أو التخصص.
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <div style={{ flex: "0 1 340px", minWidth: 200 }}>
@@ -6473,7 +6473,7 @@ style={{
                           onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
                           style={{ ...fieldStyle(), maxWidth: 340 }}
                         >
-                          <option value="">اختر القسم</option>
+                          <option value="">اختر القسم/التخصص</option>
                           {hallConstraintDepartmentOptions.map((department) => (
                             <option key={department} value={department}>
                               {department}
@@ -6488,7 +6488,7 @@ style={{
                         style={cardButtonStyle({ disabled: !selectedHallConstraintDepartmentKey })}
                         disabled={!selectedHallConstraintDepartmentKey}
                       >
-                        إضافة القسم
+                        إضافة القسم/التخصص
                       </button>
                     </div>
                   </div>
@@ -6506,7 +6506,7 @@ style={{
                     marginBottom: 14,
                   }}
                 >
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى القسم</div>
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى القسم/التخصص</div>
 
                   {selectedHallConstraintDepartmentKeys.length ? (
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -6564,7 +6564,7 @@ style={{
                                 padding: 0,
                               }}
                               aria-label={`حذف ${label}`}
-                              title="حذف القسم"
+                              title="حذف القسم/التخصص"
                             >
                               ×
                             </button>
@@ -6585,7 +6585,7 @@ style={{
                       }}
                     >
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                        تخصيص القاعات للقسم: {selectedHallConstraintDepartmentKey}
+                        تخصيص القاعات للقسم/التخصص: {selectedHallConstraintDepartmentKey}
                       </div>
 
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -6638,7 +6638,7 @@ style={{
                           })}
                         </div>
                       ) : (
-                        <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام.</div>
+                        <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام أو التخصصات.</div>
                       )}
 
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
@@ -6647,7 +6647,7 @@ style={{
                           onClick={() => clearDepartmentHallConstraint(selectedHallConstraintDepartmentKey)}
                           style={cardButtonStyle({ danger: true })}
                         >
-                          مسح تخصيص القسم
+                          مسح تخصيص القسم/التخصص
                         </button>
                       </div>
                     </div>
