@@ -5758,7 +5758,7 @@ style={{
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {[
-                  { value: "off", label: "بدون فصل إضافي" },
+                  { value: "off", label: "بدون فصل" },
                   { value: "soft", label: "فصل مرن (تفضيل بسيط)" },
                   { value: "strong", label: "فصل كامل (يفضل بقوة)" },
                 ].map((option) => {
@@ -6734,7 +6734,7 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -6870,7 +6870,7 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -7310,19 +7310,7 @@ style={{
                   إلغاء تثبيت الكل
                 </button>
 
-                <div
-                  style={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 16,
-                    padding: "10px 12px",
-                    background: "#F8FEFE",
-                    color: COLORS.muted,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  التثبيت يعني أن المقرر يبقى في موضعه الحالي حتى لو أعدت التوزيع لاحقًا.
-                </div>
-              </div>
+             </div>
 
               {!schedule.length ? (
                 <div
