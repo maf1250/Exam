@@ -4793,58 +4793,45 @@ const pickInvigilators = (course, slot) => {
       }
     });
 
-const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+const requiredSeats = Number(course.studentCount) || 0;
+    const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
 
-const maxRemainingAcrossSlots = diagnosis.totalSlots
-  ? slots.reduce(
-      (best, slot) =>
-        Math.max(
-          best,
-          getMaxRemainingAllowedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
-        ),
-      0
-    )
-  : 0;
+    const maxRemainingAcrossSlots = diagnosis.totalSlots
+      ? slots.reduce((best, slot) => {
+          const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
+            if (!canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)) return slotBest;
+            return Math.max(
+              slotBest,
+              getRemainingHallCapacityForSlot(hall, slot, hallUsageMap)
+            );
+          }, 0);
+
+          return Math.max(best, bestForSlot);
+        }, 0)
+      : 0;
+
+    const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
     const reasonParts = [];
 
-   const requiredSeats = Number(course.studentCount) || 0;
-const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+    if ((Number(maxAvailable) || 0) <= 0) {
+      return {
+        shortLabel: "لا توجد قاعة مناسبة",
+        detail:
+          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
+          `يحتاج ${requiredSeats} مقعدًا، ` +
+          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+      };
+    }
 
-const maxRemainingAcrossSlots = diagnosis.totalSlots
-  ? slots.reduce((best, slot) => {
-      const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
-        if (!canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)) return slotBest;
-        return Math.max(
-          slotBest,
-          getRemainingHallCapacityForSlot(hall, slot, hallUsageMap)
-        );
-      }, 0);
-
-      return Math.max(best, bestForSlot);
-    }, 0)
-  : 0;
-
-const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
-
-if ((Number(maxAvailable) || 0) <= 0) {
-  return {
-    shortLabel: "لا توجد قاعة مناسبة",
-    detail:
-      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
-      `يحتاج ${requiredSeats} مقعدًا، ` +
-      `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
-  };
-}
-
-if (!hasAnyFittableHallInAnySlot) {
-  return {
-    shortLabel: "لا توجد قاعة مناسبة",
-    detail:
-      `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. ` +
-      `يحتاج ${requiredSeats} مقعدًا، ` +
-      `وأكبر سعة متبقية فعلية بعد احتساب المقاعد المشغولة هي ${Number(maxRemainingAcrossSlots) || 0}.`,
-  };
-}
+    if (!hasAnyFittableHallInAnySlot) {
+      return {
+        shortLabel: "لا توجد قاعة مناسبة",
+        detail:
+          `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. ` +
+          `يحتاج ${requiredSeats} مقعدًا، ` +
+          `وأكبر سعة متبقية فعلية بعد احتساب المقاعد المشغولة هي ${Number(maxRemainingAcrossSlots) || 0}.`,
+      };
+    }
 
     if (diagnosis.studentConflict) {
       reasonParts.push(`تعارض متدربين في ${diagnosis.studentConflict} فترة`);
