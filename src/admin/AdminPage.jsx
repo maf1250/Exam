@@ -2013,7 +2013,7 @@ const periodOverlapWarning = useMemo(() => {
   function addHallConstraintCourseToList(courseKey) {
     if (!courseKey) return;
     setSelectedHallConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
-    setSelectedHallConstraintCourseKey(courseKey);
+    setSelectedHallConstraintCourseKey("");
   }
   function removeHallConstraintCourseFromList(courseKey) {
     if (!courseKey) return;
@@ -2038,7 +2038,7 @@ const periodOverlapWarning = useMemo(() => {
   function addInvigilatorConstraintCourseToList(courseKey) {
     if (!courseKey) return;
     setSelectedInvigilatorConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
-    setSelectedInvigilatorConstraintCourseKey(courseKey);
+    setSelectedInvigilatorConstraintCourseKey("");
   }
   function removeInvigilatorConstraintCourseFromList(courseKey) {
     if (!courseKey) return;
@@ -2180,7 +2180,7 @@ const periodOverlapWarning = useMemo(() => {
   function addConstraintCourseToList(courseKey) {
     if (!courseKey) return;
     setSelectedConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
-    setSelectedConstraintCourseKey(courseKey);
+    setSelectedConstraintCourseKey("");
   }
 
   function removeConstraintCourseFromList(courseKey) {
@@ -3456,26 +3456,15 @@ const baseLink = useMemo(() => {
   };
 
   useEffect(() => {
-    setLockGeneralStudiesStep(!includeAllDepartmentsAndMajors);
+    setLockGeneralStudiesStep(false);
   }, [includeAllDepartmentsAndMajors]);
 
   const handleIncludeAllDepartmentsAndMajorsChange = (checked) => {
-    if (!checked && !generalSchedule.length) {
-      showToast(
-        "يجب توزيع الدراسات العامة أولًا",
-        "لا يمكن تفعيل التوزيع الخاص بالأقسام والتخصصات قبل توزيع مقررات الدراسات العامة.",
-        "warning"
-      );
-      return;
-    }
-
     setIncludeAllDepartmentsAndMajors(checked);
     if (checked) {
       setExcludedDepartmentMajors([]);
-      setLockGeneralStudiesStep(false);
-    } else {
-      setLockGeneralStudiesStep(true);
     }
+    setLockGeneralStudiesStep(false);
   };
 
 
@@ -6272,91 +6261,140 @@ style={{
               </div>
             ) : null}
 
-            <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
-              <div style={{ fontWeight: 800, marginBottom: 10 }}>فترات الاختبار</div>
-              <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>تم دمج إعداد الفترات هنا أيضًا لتكون ضمن صفحة تعديل المقررات.</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                {periodConfigs.map((periodConfig, index) => {
-                  const startMinutes = parseTimeToMinutes(periodConfig.start);
-                  const endText = periodConfig.enabled === false || startMinutes === null ? "--:--" : minutesToTimeText(startMinutes + Number(periodConfig.duration || 0));
-                  const isRequired = index === 0;
-                  return (
-                    <div key={`period-config-step2-${index}`} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 10, background: periodConfig.enabled ? "#fff" : COLORS.bg2, display: "grid", gridTemplateColumns: "110px minmax(100px, 135px) minmax(100px, 135px) minmax(80px, 110px)", gap: 8, alignItems: "end", maxWidth: 560, opacity: periodConfig.enabled ? 1 : 0.78 }}>
-                      <div>
-                        <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 8 }}>الفترة {index + 1}</div>
-                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: isRequired ? COLORS.muted : COLORS.text }}>
-                          <input type="checkbox" checked={isRequired ? true : periodConfig.enabled !== false} disabled={isRequired} onChange={(e) => updatePeriodConfig(index, { enabled: e.target.checked })} />
-                          {isRequired ? "إلزامية" : "تفعيل"}
-                        </label>
-                      </div>
-                      <div>
-                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>البداية</div>
-                        <select value={periodConfig.start} disabled={periodConfig.enabled === false} onChange={(e) => updatePeriodConfig(index, { start: e.target.value })} style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}>
-                          {PERIOD_TIME_OPTIONS.map((timeValue) => <option key={timeValue} value={timeValue}>{timeValue}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>المدة</div>
-                        <select value={periodConfig.duration} disabled={periodConfig.enabled === false} onChange={(e) => updatePeriodConfig(index, { duration: Number(e.target.value) })} style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}>
-                          {PERIOD_DURATION_OPTIONS.map((durationValue) => <option key={durationValue} value={durationValue}>{durationValue} د</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>النهاية</div>
-                        <div style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, background: COLORS.bg2, fontWeight: 800, color: COLORS.primaryDark, fontSize: 14, textAlign: "center" }}>{endText}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {periodOverlapWarning ? <div style={{ marginTop: 10, border: `1px solid #FECACA`, background: COLORS.dangerBg, color: COLORS.danger, borderRadius: 14, padding: "10px 12px", fontWeight: 700, maxWidth: 560 }}>{periodOverlapWarning}</div> : null}
-            </div>
 
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
-              <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>يمكنك تفضيل قاعات محددة أو منعها أو قصر المقرر على قاعات محددة فقط.</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ flex: "1 1 320px" }}>
-                  <select value={selectedHallConstraintCourseKey} onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)} style={fieldStyle()}>
-                    <option value="">اختر المقرر</option>
-                    {allCourseOptions.map((course) => <option key={course.key} value={course.key}>{course.label}</option>)}
-                  </select>
-                </div>
-                <button type="button" onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)} style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })} disabled={!selectedHallConstraintCourseKey}>إضافة مقرر آخر</button>
+              <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
+                هذه الخيارات ليست مؤكدة؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
               </div>
-              {selectedHallConstraintCourseKeys.length ? <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+
+              <div style={{ maxWidth: 560, marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ flex: "0 1 320px", minWidth: 240 }}>
+                    <select
+                      value={selectedHallConstraintCourseKey}
+                      onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
+                      style={{ ...fieldStyle(), maxWidth: 320, padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
+                    >
+                      <option value="">اختر المقرر</option>
+                      {allCourseOptions.map((course) => (
+                        <option key={course.key} value={course.key}>
+                          {course.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)}
+                    style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })}
+                    disabled={!selectedHallConstraintCourseKey}
+                  >
+                    إضافة مقرر آخر
+                  </button>
+                </div>
+              </div>
+
+              {selectedHallConstraintCourseKeys.length ? (
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
                   {selectedHallConstraintCourseKeys.map((courseKey) => {
                     const course = allCourseOptions.find((item) => item.key === courseKey);
-                    const active = selectedHallConstraintCourseKey === courseKey;
-                    return <button key={courseKey} type="button" onClick={() => setSelectedHallConstraintCourseKey(courseKey)} style={cardButtonStyle({ active })}>{course?.label || courseKey}</button>;
+                    if (!course) return null;
+
+                    return (
+                      <div
+                        key={courseKey}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                          background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                          borderRadius: 999,
+                          padding: "8px 12px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                          style={{ border: "none", background: "transparent", cursor: "pointer", fontWeight: 800, color: COLORS.charcoal }}
+                        >
+                          {course.label}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeHallConstraintCourseFromList(courseKey)}
+                          style={{ border: "none", background: "transparent", cursor: "pointer", color: COLORS.danger, fontWeight: 900, fontSize: 16, lineHeight: 1 }}
+                          aria-label={`حذف ${course.label}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
                   })}
                 </div>
-                {selectedHallConstraintCourseKey ? (() => {
-                  const hallConstraint = courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults();
-                  return <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+              ) : null}
+
+              {selectedHallConstraintCourseKeys.length && selectedHallConstraintCourseKey ? (() => {
+                const hallConstraint = courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults();
+                return (
+                  <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                      {[{ value: "off", label: "بدون قيد" }, { value: "prefer", label: "تفضيل قاعات" }, { value: "block", label: "منع قاعات" }, { value: "only", label: "قصر على هذه القاعات فقط" }].map((option) => <button key={option.value} type="button" onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })} style={cardButtonStyle({ active: hallConstraint.mode === option.value })}>{option.label}</button>)}
-                      <button type="button" 
-                        onClick={() => {
-                          removeHallConstraintCourseFromList(selectedHallConstraintCourseKey)
-                        removeHallConstraintCourseFromList("");  
-                        }}
-                        style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
-                       
-  
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {normalizedExamHalls.map((hall) => {
-                        const selected = (hallConstraint.hallNames || []).includes(hall.name);
-                        return <button key={hall.id} type="button" onClick={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)} style={{ border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`, background: selected ? COLORS.primaryLight : "#fff", color: selected ? COLORS.primaryDark : COLORS.charcoalSoft, borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{selected ? `مختارة: ${hall.name}` : hall.name}</button>;
+                      {[
+                        { value: "off", label: "بدون قيد" },
+                        { value: "prefer", label: "تفضيل قاعات" },
+                        { value: "block", label: "منع قاعات" },
+                        { value: "only", label: "قصر على قاعات" },
+                      ].map((option) => {
+                        const active = hallConstraint.mode === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })}
+                            style={cardButtonStyle({ active })}
+                          >
+                            {option.label}
+                          </button>
+                        );
                       })}
                     </div>
-                  </div>;
-                })() : null}
-              </div> : null}
-            </div>
 
+                    <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>اختر القاعات المطلوبة لهذا المقرر:</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {normalizedExamHalls.length ? (
+                        normalizedExamHalls.map((hall) => {
+                          const selected = hallConstraint.hallNames.includes(hall.name);
+                          return (
+                            <button
+                              key={hall.id}
+                              type="button"
+                              onClick={() => toggleCourseHallConstraintValue(selectedHallConstraintCourseKey, hall.name)}
+                              style={{
+                                border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`,
+                                background: selected ? COLORS.primaryLight : "#fff",
+                                color: selected ? COLORS.primaryDark : COLORS.charcoalSoft,
+                                borderRadius: 999,
+                                padding: "8px 14px",
+                                cursor: "pointer",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {hall.name}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <span style={{ color: "#94A3B8" }}>أضف قاعات أولًا</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div style={{ color: COLORS.muted }}>اختر مقررًا ثم أضفه للقائمة لبدء ضبط القاعات الخاصة به.</div>
+              )}
+            </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
                 السابق
@@ -6631,47 +6669,143 @@ style={{
 
         <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, marginTop: 14, background: "#F8FEFE" }}>
           <div style={{ fontWeight: 800, marginBottom: 10 }}>تفضيل / منع / قصر مراقبين لمقرر معيّن</div>
-          <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>اختر المقرر ثم نوع القيد المطلوب. يمكن القصر على مراقبي القسم أو مراقبين محددين.</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ flex: "1 1 320px" }}>
-              <select value={selectedInvigilatorConstraintCourseKey} onChange={(e) => setSelectedInvigilatorConstraintCourseKey(e.target.value)} style={fieldStyle()}>
-                <option value="">اختر المقرر</option>
-                {allCourseOptions.map((course) => <option key={course.key} value={course.key}>{course.label}</option>)}
-              </select>
-            </div>
-            <button type="button" onClick={() => addInvigilatorConstraintCourseToList(selectedInvigilatorConstraintCourseKey)} style={cardButtonStyle({ disabled: !selectedInvigilatorConstraintCourseKey })} disabled={!selectedInvigilatorConstraintCourseKey}>إضافة مقرر آخر</button>
+          <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
+            هذه الخيارات ليست مؤكدة؛ سيحاول النظام مراعاتها قدر الإمكان أثناء التوزيع الآلي.
           </div>
-          {selectedInvigilatorConstraintCourseKeys.length ? <div style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+
+          <div style={{ maxWidth: 560, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ flex: "0 1 320px", minWidth: 240 }}>
+                <select
+                  value={selectedInvigilatorConstraintCourseKey}
+                  onChange={(e) => setSelectedInvigilatorConstraintCourseKey(e.target.value)}
+                  style={{ ...fieldStyle(), maxWidth: 320, padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
+                >
+                  <option value="">اختر المقرر</option>
+                  {allCourseOptions.map((course) => (
+                    <option key={course.key} value={course.key}>
+                      {course.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => addInvigilatorConstraintCourseToList(selectedInvigilatorConstraintCourseKey)}
+                style={cardButtonStyle({ disabled: !selectedInvigilatorConstraintCourseKey })}
+                disabled={!selectedInvigilatorConstraintCourseKey}
+              >
+                إضافة مقرر آخر
+              </button>
+            </div>
+          </div>
+
+          {selectedInvigilatorConstraintCourseKeys.length ? (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
               {selectedInvigilatorConstraintCourseKeys.map((courseKey) => {
                 const course = allCourseOptions.find((item) => item.key === courseKey);
-                const active = selectedInvigilatorConstraintCourseKey === courseKey;
-                return <button key={courseKey} type="button" onClick={() => setSelectedInvigilatorConstraintCourseKey(courseKey)} style={cardButtonStyle({ active })}>{course?.label || courseKey}</button>;
+                if (!course) return null;
+
+                return (
+                  <div
+                    key={courseKey}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      border: `1px solid ${selectedInvigilatorConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                      background: selectedInvigilatorConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                      borderRadius: 999,
+                      padding: "8px 12px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvigilatorConstraintCourseKey(courseKey)}
+                      style={{ border: "none", background: "transparent", cursor: "pointer", fontWeight: 800, color: COLORS.charcoal }}
+                    >
+                      {course.label}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeInvigilatorConstraintCourseFromList(courseKey)}
+                      style={{ border: "none", background: "transparent", cursor: "pointer", color: COLORS.danger, fontWeight: 900, fontSize: 16, lineHeight: 1 }}
+                      aria-label={`حذف ${course.label}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
               })}
             </div>
-            {selectedInvigilatorConstraintCourseKey ? (() => {
-              const invConstraint = courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults();
-              return <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
+          ) : null}
+
+          {selectedInvigilatorConstraintCourseKeys.length && selectedInvigilatorConstraintCourseKey ? (() => {
+            const invConstraint = courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults();
+            return (
+              <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
                   {[
                     { value: "off", label: "بدون قيد" },
                     { value: "prefer", label: "تفضيل مراقبين محددين" },
                     { value: "block", label: "منع مراقبين محددين" },
-                    { value: "prefer_department", label: "تفضيل مراقبي القسم" },
-                    { value: "only_department", label: "قصر على مراقبي القسم" },
+                    { value: "prefer_department", label: "تفضيل مراقبي نفس القسم" },
+                    { value: "only_department", label: "قصر على مراقبي نفس القسم" },
                     { value: "only_specific", label: "قصر على مراقبين محددين" },
-                  ].map((option) => <button key={option.value} type="button" onClick={() => updateCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey, { mode: option.value })} style={cardButtonStyle({ active: invConstraint.mode === option.value })}>{option.label}</button>)}
-                  <button type="button" onClick={() => removeInvigilatorConstraintCourseFromList(selectedInvigilatorConstraintCourseKey)} style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
-                </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {availableInvigilators.map((name) => {
-                    const selected = (invConstraint.invigilatorNames || []).includes(name);
-                    return <button key={name} type="button" onClick={() => toggleCourseInvigilatorConstraintValue(selectedInvigilatorConstraintCourseKey, name)} style={{ border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`, background: selected ? COLORS.primaryLight : "#fff", color: selected ? COLORS.primaryDark : COLORS.charcoalSoft, borderRadius: 999, padding: "8px 14px", cursor: "pointer", fontWeight: 700 }}>{selected ? `مختار: ${name}` : name}</button>;
+                  ].map((option) => {
+                    const active = invConstraint.mode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => updateCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey, { mode: option.value })}
+                        style={cardButtonStyle({ active })}
+                      >
+                        {option.label}
+                      </button>
+                    );
                   })}
                 </div>
-              </div>;
-            })() : null}
-          </div> : null}
+
+                {invConstraint.mode === "prefer" || invConstraint.mode === "block" || invConstraint.mode === "only_specific" ? (
+                  <>
+                    <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>اختر المراقبين المطلوبين:</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {invigilatorNames.length ? (
+                        invigilatorNames.map((name) => {
+                          const selected = invConstraint.invigilatorNames.includes(name);
+                          return (
+                            <button
+                              key={name}
+                              type="button"
+                              onClick={() => toggleCourseInvigilatorConstraintValue(selectedInvigilatorConstraintCourseKey, name)}
+                              style={{
+                                border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`,
+                                background: selected ? COLORS.primaryLight : "#fff",
+                                color: selected ? COLORS.primaryDark : COLORS.charcoalSoft,
+                                borderRadius: 999,
+                                padding: "8px 14px",
+                                cursor: "pointer",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {name}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: COLORS.muted, fontSize: 14 }}>سيتم الاعتماد على القسم الخاص بالمقرر دون الحاجة لاختيار أسماء محددة.</div>
+                )}
+              </div>
+            );
+          })() : (
+            <div style={{ color: COLORS.muted }}>اختر مقررًا ثم أضفه للقائمة لبدء ضبط المراقبين الخاصين به.</div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
@@ -6688,20 +6822,20 @@ style={{
           </button>
         </div>
       </div>
-    ) : (
-      <div
-        style={{
-          marginTop: 18,
-          border: `1px dashed ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 18,
-          color: COLORS.muted,
-          background: "#F8FEFE",
-        }}
-      >
-        تم إيقاف إضافة المراقبين تلقائيًا.
-      </div>
-    )}
+      ) : (
+        <div
+          style={{
+            marginTop: 18,
+            border: `1px dashed ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 18,
+            color: COLORS.muted,
+            background: "#F8FEFE",
+          }}
+        >
+          تم إيقاف إضافة المراقبين تلقائيًا.
+        </div>
+      )}
 
   </Card>
 )}
@@ -6710,9 +6844,10 @@ style={{
           <Card>
             <SectionHeader title="توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
-            {lockGeneralStudiesStep ? (
+            {!includeAllDepartmentsAndMajors ? (
               <div
                 style={{
+                  marginBottom: 16,
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 18,
                   padding: 18,
@@ -6721,11 +6856,10 @@ style={{
                   lineHeight: 1.9,
                 }}
               >
-                هذه الصفحة مقفلة لأنك اخترت توزيع قسم/تخصص محدد فقط.
-                مقررات الدراسات العامة مستقلة، لذلك لا يمكن تعديلها في هذه النسخة المخصصة للأقسام.
+                ستظل مقررات الدراسات العامة مستقلة عن توزيع التخصصات والأقسام، ويمكنك من هنا تنفيذ توزيعها متى احتجت.
               </div>
-            ) : (
-              <>
+            ) : null}
+
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
             </div>
@@ -6772,8 +6906,6 @@ style={{
                 التالي
               </button>
             </div>
-              </>
-            )}
           </Card>
         )}
 
