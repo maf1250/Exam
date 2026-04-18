@@ -5335,7 +5335,7 @@ style={{
           borderRadius: 18,
           padding: 14,
           background: "#fff",
-          maxWidth: 720,
+          maxWidth: 640,
         }}
       >
         <div
