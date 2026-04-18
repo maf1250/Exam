@@ -7402,7 +7402,7 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -7538,7 +7538,7 @@ style={{
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "العدد"].map((h) => (
+                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
