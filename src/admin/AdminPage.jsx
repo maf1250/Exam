@@ -2530,13 +2530,6 @@ const periodOverlapWarning = useMemo(() => {
     if (fittingHalls.length) {
       assignedHall = fittingHalls[0].name;
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
-    } else {
-      showToast(
-        "تعذر الإضافة",
-        "لا يمكن إضافة هذا المقرر يدويًا إلى هذه الفترة لأنه لا توجد قاعة مناسبة متاحة له.",
-        "error"
-      );
-      return;
     }
 
     const placedItem = {
