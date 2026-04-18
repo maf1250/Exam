@@ -2045,16 +2045,23 @@ const periodOverlapWarning = useMemo(() => {
     setSelectedHallConstraintCourseKey("");
   }
 
-  function removeHallConstraintCourseFromList(courseKey) {
-    if (!courseKey) return;
-    setSelectedHallConstraintCourseKeys((prev) => {
-      const next = prev.filter((key) => key !== courseKey);
-      if (selectedHallConstraintCourseKey === courseKey) {
-        setSelectedHallConstraintCourseKey(next[0] || "");
-      }
-      return next;
-    });
-  }
+function removeHallConstraintCourseFromList(courseKey) {
+  if (!courseKey) return;
+
+  setSelectedHallConstraintCourseKeys((prev) => {
+    const next = prev.filter((key) => key !== courseKey);
+    setSelectedHallConstraintCourseKey((current) =>
+      current === courseKey ? (next[0] || "") : current
+    );
+    return next;
+  });
+
+  setCourseHallConstraints((prev) => {
+    const next = { ...prev };
+    delete next[courseKey];
+    return next;
+  });
+}
 
   function getCourseHallConstraint(course) {
     return courseHallConstraints[course?.key] || getCourseHallConstraintDefaults();
@@ -5320,7 +5327,7 @@ style={{
             </div>
 
             <div style={{ marginTop: 18 }}>
-            <Card style={{ maxWidth: 760 }}>
+            <Card style={{ maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
     description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
@@ -5555,7 +5562,7 @@ style={{
 </Card>
             </div>
 
-            <div style={{ marginTop: 18, maxWidth: 760 }}>
+            <div style={{ marginTop: 18, maxWidth: 640 }}>
               <Card>
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر معيّن</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
@@ -5687,6 +5694,26 @@ style={{
                       >
                         مسح تخصيص هذا المقرر
                       </button>
+                      <button
+  type="button"
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    removeHallConstraintCourseFromList(courseKey);
+  }}
+  style={{
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    color: COLORS.danger,
+    fontWeight: 900,
+    fontSize: 16,
+    lineHeight: 1,
+  }}
+  aria-label={`حذف ${course.label}`}
+>
+  ×
+</button>
                     </div>
                   </div>
                 ) : null}
