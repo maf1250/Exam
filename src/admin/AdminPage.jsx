@@ -525,7 +525,19 @@ function getMaxAllowedHallCapacity(halls, course) {
 
   return Number.isFinite(maxCapacity) ? maxCapacity : 0;
 }
+function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
+  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
+    isHallAllowedForCourse(hall, course)
+  );
 
+  if (!allowedHalls.length) return 0;
+
+  const maxRemaining = Math.max(
+    ...allowedHalls.map((hall) => getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap))
+  );
+
+  return Number.isFinite(maxRemaining) ? maxRemaining : 0;
+}
 function normalizeExamHallsInput(examHalls) {
   return (examHalls || [])
     .map((hall) => {
@@ -4781,15 +4793,39 @@ const pickInvigilators = (course, slot) => {
       }
     });
 
-    const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+
+const maxRemainingAcrossSlots = diagnosis.totalSlots
+  ? slots.reduce(
+      (best, slot) =>
+        Math.max(
+          best,
+          getMaxRemainingAllowedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+        ),
+      0
+    )
+  : 0;
     const reasonParts = [];
 
     if ((Number(maxAvailable) || 0) <= 0) {
-      return {
-        shortLabel: "لا توجد قاعة مناسبة",
-        detail: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
-      };
-    }
+  return {
+    shortLabel: "لا توجد قاعة مناسبة",
+    detail:
+      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
+      `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
+      `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+  };
+}
+
+if ((Number(maxRemainingAcrossSlots) || 0) < (Number(course.studentCount) || 0)) {
+  return {
+    shortLabel: "لا توجد قاعة مناسبة",
+    detail:
+      `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. ` +
+      `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
+      `وأكبر سعة متبقية فعلية بعد احتساب المقاعد المشغولة هي ${Number(maxRemainingAcrossSlots) || 0}.`,
+  };
+}
 
     if (diagnosis.studentConflict) {
       reasonParts.push(`تعارض متدربين في ${diagnosis.studentConflict} فترة`);
@@ -5019,21 +5055,31 @@ sortedCoursesForInvigilation.forEach((course) => {
       assignedHall = assignedHallObj.name;
       reserveHallForCourseInSlot(assignedHallObj, course, bestSlot, hallUsageMap);
     } else {
-      const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+ 
+  const maxRemaining = getMaxRemainingAllowedHallCapacityForSlot(
+    hallsPool,
+    course,
+    bestSlot,
+    hallUsageMap
+  );
 
-      hallWarningItems.push({
-        courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
-        required: Number(course.studentCount) || 0,
-        maxAvailable,
-      });
-      notPlaced.push({
-        ...course,
-        unscheduledReason: `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متاحة هي ${Number(maxAvailable) || 0}.`,
-        unscheduledShortLabel: "لا توجد قاعة مناسبة",
-      });
+  hallWarningItems.push({
+    courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+    required: Number(course.studentCount) || 0,
+    maxAvailable: maxRemaining,
+  });
 
-      return;
-    }
+  notPlaced.push({
+    ...course,
+    unscheduledReason:
+      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. ` +
+      `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
+      `وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`,
+    unscheduledShortLabel: "لا توجد قاعة مناسبة",
+  });
+
+  return;
+}
   
     slotCoursesMap.get(bestSlot.id).push(course.key);
 const placedItem = {
