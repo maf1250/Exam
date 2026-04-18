@@ -2819,8 +2819,14 @@ const buildPersistedState = () => ({
   samePeriodGroups,
   maxExamsPerStudentPerDay,
   courseConstraints,
+  selectedConstraintCourseKey,
+  selectedConstraintCourseKeys,
   courseHallConstraints,
+  selectedHallConstraintCourseKey,
+  selectedHallConstraintCourseKeys,
   courseInvigilatorConstraints,
+  selectedInvigilatorConstraintCourseKey,
+  selectedInvigilatorConstraintCourseKeys,
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
@@ -2903,8 +2909,26 @@ const restorePersistedState = (saved) => {
   );
   setMaxExamsPerStudentPerDay(Math.max(1, Number(saved.maxExamsPerStudentPerDay) || 2));
   setCourseConstraints(saved.courseConstraints || {});
+  setSelectedConstraintCourseKey(saved.selectedConstraintCourseKey || "");
+  setSelectedConstraintCourseKeys(
+    Array.isArray(saved.selectedConstraintCourseKeys)
+      ? saved.selectedConstraintCourseKeys
+      : []
+  );
   setCourseHallConstraints(saved.courseHallConstraints || {});
+  setSelectedHallConstraintCourseKey(saved.selectedHallConstraintCourseKey || "");
+  setSelectedHallConstraintCourseKeys(
+    Array.isArray(saved.selectedHallConstraintCourseKeys)
+      ? saved.selectedHallConstraintCourseKeys
+      : []
+  );
   setCourseInvigilatorConstraints(saved.courseInvigilatorConstraints || {});
+  setSelectedInvigilatorConstraintCourseKey(saved.selectedInvigilatorConstraintCourseKey || "");
+  setSelectedInvigilatorConstraintCourseKeys(
+    Array.isArray(saved.selectedInvigilatorConstraintCourseKeys)
+      ? saved.selectedInvigilatorConstraintCourseKeys
+      : []
+  );
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
@@ -3086,8 +3110,14 @@ useEffect(() => {
   samePeriodGroups,
   maxExamsPerStudentPerDay,
   courseConstraints,
+  selectedConstraintCourseKey,
+  selectedConstraintCourseKeys,
   courseHallConstraints,
+  selectedHallConstraintCourseKey,
+  selectedHallConstraintCourseKeys,
   courseInvigilatorConstraints,
+  selectedInvigilatorConstraintCourseKey,
+  selectedInvigilatorConstraintCourseKeys,
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
@@ -5720,7 +5750,7 @@ style={{
               ) : null}
             </div>
 
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 18, maxWidth: 640 }}>
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
