@@ -4850,6 +4850,65 @@ const selectedStudentScheduleForPrint = useMemo(() => {
     excludedInvigilatorsForSelectedDepartments,
   ]);
 
+  const departmentTrainerNamesByCourseKey = useMemo(() => {
+    const splitTrainerNames = (trainerText) =>
+      String(trainerText || "")
+        .split("/")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+    const generalStudiesTrainerNames = Array.from(
+      new Set(
+        parsed.courses
+          .filter((course) => isGeneralStudiesCourse(course))
+          .flatMap((course) => splitTrainerNames(course.trainerText))
+      )
+    );
+
+    const normalizedAvailableInvigilators = new Set(
+      availableInvigilators.map((name) => normalizeArabic(name))
+    );
+
+    const result = {};
+
+    parsed.courses.forEach((course) => {
+      let trainerNames = [];
+
+      if (isGeneralStudiesCourse(course)) {
+        trainerNames = generalStudiesTrainerNames;
+      } else {
+        const courseRoots = normalizeDepartmentList(
+          Array.isArray(course.departmentRoots) && course.departmentRoots.length
+            ? course.departmentRoots
+            : getCourseDepartmentRoots(course)
+        );
+
+        trainerNames = Array.from(
+          new Set(
+            parsed.courses
+              .filter((candidateCourse) => !isGeneralStudiesCourse(candidateCourse))
+              .filter((candidateCourse) => {
+                const candidateRoots = normalizeDepartmentList(
+                  Array.isArray(candidateCourse.departmentRoots) && candidateCourse.departmentRoots.length
+                    ? candidateCourse.departmentRoots
+                    : getCourseDepartmentRoots(candidateCourse)
+                );
+
+                return candidateRoots.some((root) => courseRoots.includes(root));
+              })
+              .flatMap((candidateCourse) => splitTrainerNames(candidateCourse.trainerText))
+          )
+        );
+      }
+
+      result[course.key] = trainerNames.filter((name) =>
+        normalizedAvailableInvigilators.has(normalizeArabic(name))
+      );
+    });
+
+    return result;
+  }, [parsed.courses, availableInvigilators]);
+
   const availableDepartmentsForPrint = useMemo(() => {
     const map = new Map();
 
