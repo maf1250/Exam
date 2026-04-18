@@ -6237,78 +6237,7 @@ style={{
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 18,
-                    padding: 14,
-                    background: "#FCFEFE",
-                    marginBottom: 14,
-                  }}
-                >
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى المقرر</div>
-
-                  {selectedHallConstraintCourseKeys.length ? (
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                      {selectedHallConstraintCourseKeys.map((courseKey) => {
-                        const option = courseConstraintOptions.find((item) => item.key === courseKey);
-                        if (!option) return null;
-                        return (
-                          <div
-                            key={courseKey}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 8,
-                              border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
-                              background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
-                              color: COLORS.charcoal,
-                              borderRadius: 14,
-                              padding: "6px 8px 6px 12px",
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
-                              style={{
-                                border: "none",
-                                background: "transparent",
-                                color: "inherit",
-                                fontWeight: 800,
-                                cursor: "pointer",
-                                padding: 0,
-                              }}
-                            >
-                              {option.label}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                removeHallConstraintCourseFromList(courseKey);
-                              }}
-                              style={{
-                                border: "none",
-                                background: "transparent",
-                                cursor: "pointer",
-                                color: COLORS.danger,
-                                fontWeight: 900,
-                                fontSize: 16,
-                                lineHeight: 1,
-                                padding: 0,
-                              }}
-                              aria-label={`حذف ${option.label}`}
-                              title="حذف المقرر"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
+               
 
                   {selectedHallConstraintCourseKey ? (
                     <div
@@ -6389,7 +6318,78 @@ style={{
                     </div>
                   ) : null}
                 </div>
+ <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 18,
+                    padding: 14,
+                    background: "#FCFEFE",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى المقرر</div>
 
+                  {selectedHallConstraintCourseKeys.length ? (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      {selectedHallConstraintCourseKeys.map((courseKey) => {
+                        const option = courseConstraintOptions.find((item) => item.key === courseKey);
+                        if (!option) return null;
+                        return (
+                          <div
+                            key={courseKey}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                              border: `1px solid ${selectedHallConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                              background: selectedHallConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                              color: COLORS.charcoal,
+                              borderRadius: 14,
+                              padding: "6px 8px 6px 12px",
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedHallConstraintCourseKey(courseKey)}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                color: "inherit",
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                padding: 0,
+                              }}
+                            >
+                              {option.label}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeHallConstraintCourseFromList(courseKey);
+                              }}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                cursor: "pointer",
+                                color: COLORS.danger,
+                                fontWeight: 900,
+                                fontSize: 16,
+                                lineHeight: 1,
+                                padding: 0,
+                              }}
+                              aria-label={`حذف ${option.label}`}
+                              title="حذف المقرر"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 <div
                   style={{
                     border: `1px solid ${COLORS.border}`,
