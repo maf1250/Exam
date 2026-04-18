@@ -5347,9 +5347,11 @@ style={{
         key={hall.id}
         style={{
           border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 14,
-          background: "#fff",
+    borderRadius: 14,
+    padding: 10,
+    background: "#fff",
+    maxWidth: 560,
+    width: "100%",
         }}
       >
         <div
@@ -5374,40 +5376,43 @@ style={{
          
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gridTemplateColumns: "1fr 110px",
-            gap: 12,
-          }}
-        >
-          <input
-            value={hall.name}
-            onChange={(e) => updateExamHall(hall.id, { name: e.target.value })}
-            placeholder="اسم القاعة"
-                      style={{
-            ...fieldStyle(),
-            width: "100%",
-            fontWeight: 600,maxWidth: 310,}}
-          />
+       <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) 90px",
+    gap: 8,
+    alignItems: "end",
+  }}
+>
+  <input
+    value={hall.name}
+    onChange={(e) => updateExamHall(hall.id, { name: e.target.value })}
+    placeholder="اسم القاعة"
+    style={{
+      ...fieldStyle(),
+      padding: "10px 12px",
+      borderRadius: 12,
+      fontWeight: 600,
+      fontSize: 14,
+    }}
+  />
 
-          <input
-            type="number"
-            min="1"
-            value={hall.capacity}
-            onChange={(e) =>
-              updateExamHall(hall.id, { capacity: e.target.value })
-            }
-            placeholder="السعة"
-             style={{
-            ...fieldStyle(),
-            width: "100%",
-            textAlign: "center",
-            fontWeight: 800,
-              maxWidth: 110,
-          }}
-          />
-        </div>
+  <input
+    type="number"
+    min="1"
+    value={hall.capacity}
+    onChange={(e) => updateExamHall(hall.id, { capacity: e.target.value })}
+    placeholder="السعة"
+    style={{
+      ...fieldStyle(),
+      padding: "10px 12px",
+      borderRadius: 12,
+      textAlign: "center",
+      fontWeight: 800,
+      fontSize: 14,
+    }}
+  />
+</div>
 
         <div style={{ marginTop: 14 }}>
           <label
