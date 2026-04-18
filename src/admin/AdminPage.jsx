@@ -5614,7 +5614,7 @@ style={{
                 <input
                   type="number"
                   min="1"
-                  max="60"
+                  max="15"
                   value={numberOfDays}
                   onChange={(e) => setNumberOfDays(safeNum(e.target.value, 8))}
                   style={fieldStyle()}
