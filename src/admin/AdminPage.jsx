@@ -7387,7 +7387,7 @@ style={{
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
             </div>
-<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
               <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
                 السابق
               </button>
@@ -7523,7 +7523,7 @@ style={{
             <div style={{ marginBottom: 16, marginTop: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
             </div>
-<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
               <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                 السابق
               </button>
