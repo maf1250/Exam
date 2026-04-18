@@ -3546,20 +3546,6 @@ const invigilatorDepartmentRootsMap = useMemo(() => {
   return map;
 }, [parsed.filteredRows]);
 
-const generalStudiesInvigilatorsSet = useMemo(() => {
-  const set = new Set();
-
-  generalCourses.forEach((course) => {
-    String(course.trainerText || "")
-      .split("/")
-      .map((name) => name.trim())
-      .filter(Boolean)
-      .forEach((name) => set.add(normalizeArabic(name)));
-  });
-
-  return set;
-}, [generalCourses]);
-
 const availableDepartments = useMemo(() => {
   if (!parsed?.courses?.length) return [];
 
@@ -3724,6 +3710,20 @@ const selectedCourseB = useMemo(
 
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
+
+  const generalStudiesInvigilatorsSet = useMemo(() => {
+    const set = new Set();
+
+    generalCourses.forEach((course) => {
+      String(course.trainerText || "")
+        .split("/")
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .forEach((name) => set.add(normalizeArabic(name)));
+    });
+
+    return set;
+  }, [generalCourses]);
 
   const specializedCourses = useMemo(() => {
     const keys = new Set(generalCourses.map((c) => c.key));
