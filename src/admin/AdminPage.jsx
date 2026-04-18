@@ -510,11 +510,8 @@ function isHallValidForCourse(hall, course) {
 }
 
 function getMaxAllowedHallCapacity(halls, course) {
-  const allowedHalls = filterHallsByCourseHallConstraint(
-    (Array.isArray(halls) ? halls : []).filter((hall) =>
-      isHallAllowedForCourse(hall, course)
-    ),
-    course
+  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
+    isHallAllowedForCourse(hall, course)
   );
 
   if (!allowedHalls.length) return 0;
@@ -547,7 +544,7 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
 function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
   const allowedHalls = filterHallsByCourseHallConstraint(
     (Array.isArray(halls) ? halls : []).filter((hall) =>
-      isHallAllowedForCourse(hall, course)
+      canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap)
     ),
     course
   );
@@ -556,7 +553,7 @@ function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, ha
 
   const maxRemaining = Math.max(
     ...allowedHalls.map((hall) =>
-      getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap)
+      getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap)
     )
   );
 
@@ -4799,9 +4796,8 @@ const pickInvigilators = (course, slot) => {
         }
       }
 
-      const matchingHallCount = filterHallsByCourseHallConstraint(
-        hallsPool.filter((hall) => canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)),
-        course
+      const matchingHallCount = hallsPool.filter((hall) =>
+        canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
       ).length;
       if (!matchingHallCount) diagnosis.hallUnavailable += 1;
 
@@ -4841,7 +4837,7 @@ const requiredSeats = Number(course.studentCount) || 0;
 
     const maxRemainingAcrossSlots = diagnosis.totalSlots
       ? slots.reduce((best, slot) => {
-          const bestForSlot = filterHallsByCourseHallConstraint(hallsPool || [], course).reduce((slotBest, hall) => {
+          const bestForSlot = (hallsPool || []).reduce((slotBest, hall) => {
             return Math.max(
               slotBest,
               getEffectiveAssignableHallCapacityForSlot(hall, course, slot, hallUsageMap)
