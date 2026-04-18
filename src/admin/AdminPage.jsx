@@ -2326,7 +2326,7 @@ const periodOverlapWarning = useMemo(() => {
   function addHallConstraintCourseToList(courseKey) {
     if (!courseKey) return;
     setSelectedHallConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
-    setSelectedHallConstraintCourseKey("");
+    setSelectedHallConstraintCourseKey(courseKey);
   }
 
   function removeHallConstraintCourseFromList(courseKey) {
@@ -3541,7 +3541,7 @@ const importSavedSession = (file) => {
       if (sectionName !== "- / -") course.sectionNames.add(sectionName);
       splitBySlash(department).forEach((value) => {
   const clean = normalizeArabic(value);
-  if (clean && clean !== normalizeArabic("الدراسات العامة")) {
+  if (clean) {
     course.departmentRoots.add(clean);
   }
 });
@@ -3795,11 +3795,7 @@ const availableDepartments = useMemo(() => {
           .filter(Boolean);
       })
     )
-  )
-    .filter(
-      (d) => normalizeArabic(d) !== normalizeArabic("الدراسات العامة")
-    )
-    .sort((a, b) => a.localeCompare(b, "ar"));
+  ).sort((a, b) => a.localeCompare(b, "ar"));
 }, [parsed]);
   
 const detectedCollegeLocation = useMemo(() => {
@@ -6042,36 +6038,16 @@ style={{
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontWeight: 800,
-              color: COLORS.charcoal,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={hall.allowAllDepartments}
-              onChange={(e) =>
-                setHallAllDepartments(hall.id, e.target.checked)
-              }
-            />
-            متاحة لجميع الأقسام
-          
-                     <button
+          <button
             type="button"
             onClick={() => removeExamHall(hall.id)}
-           style={{
-    ...cardButtonStyle({ danger: true }),
-    marginInlineStart: 20, 
-  }}
+            style={{
+              ...cardButtonStyle({ danger: true }),
+              marginInlineStart: 0,
+            }}
           >
             حذف القاعة
           </button>
-          </label>
-
         </div>
 
         <div style={{ marginTop: 12 }}>
@@ -6128,68 +6104,6 @@ style={{
           </div>
         </div>
 
-        {!hall.allowAllDepartments && (
-          <div
-            style={{
-              marginTop: 12,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 14,
-              padding: 12,
-              background: COLORS.bg2,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 800,
-                color: COLORS.charcoal,
-                marginBottom: 10,
-              }}
-            >
-              الأقسام المسموح لها
-            </div>
-
-            {availableDepartments.length ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 8,
-                }}
-              >
-                {availableDepartments.map((dep) => {
-                  const checked = hall.allowedDepartments.includes(dep);
-
-                  return (
-                    <label
-                      key={dep}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
-                        background: checked ? COLORS.primaryLight : "#fff",
-                        borderRadius: 12,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleHallDepartment(hall.id, dep)}
-                      />
-                      <span>{dep}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ color: COLORS.muted }}>
-                لم يتم العثور على أقسام بعد. ارفع الملف أولًا ليتم جلب الأقسام تلقائيًا.
-              </div>
-            )}
-          </div>
-        )}
       </div>
     ))}
 
@@ -6226,7 +6140,7 @@ style={{
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <div style={{ flex: "0 1 340px", minWidth: 260 }}>
                         <select
-                          value={selectedHallConstraintCourseKey}
+                          value={hallConstraintOptions.some((course) => course.key === selectedHallConstraintCourseKey) ? selectedHallConstraintCourseKey : ""}
                           onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
                           style={{ ...fieldStyle(), maxWidth: 340 }}
                         >
@@ -6293,7 +6207,7 @@ style={{
                 {selectedHallConstraintCourseKeys.length ? (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
                     {selectedHallConstraintCourseKeys.map((courseKey) => {
-                      const option = hallConstraintOptions.find((item) => item.key === courseKey);
+                      const option = courseConstraintOptions.find((item) => item.key === courseKey);
                       if (!option) return null;
                       return (
                         <div
