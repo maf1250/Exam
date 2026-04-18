@@ -542,18 +542,15 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
 }
 
 function getMaxRemainingAllowedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
-  const allowedHalls = filterHallsByCourseHallConstraint(
-    (Array.isArray(halls) ? halls : []).filter((hall) =>
-      canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap)
-    ),
-    course
+  const allowedHalls = (Array.isArray(halls) ? halls : []).filter((hall) =>
+    isHallAllowedForCourse(hall, course)
   );
 
   if (!allowedHalls.length) return 0;
 
   const maxRemaining = Math.max(
     ...allowedHalls.map((hall) =>
-      getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap)
+      getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap)
     )
   );
 
