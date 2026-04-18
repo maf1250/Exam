@@ -1676,6 +1676,13 @@ function getCourseHallConstraintDefaults() {
   };
 }
 
+function getCourseInvigilatorConstraintDefaults() {
+  return {
+    mode: "off",
+    invigilatorNames: [],
+  };
+}
+
 function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
   const valid = new Set(validKeys || []);
   const allowedHallNames = new Set((validHallNames || []).map((name) => normalizeArabic(name)));
@@ -1712,6 +1719,32 @@ function sanitizeCourseConstraintsMap(map, validKeys) {
       avoidedDays: Array.from(new Set((value?.avoidedDays || []).filter(Boolean))),
       avoidedPeriods: Array.from(
         new Set((value?.avoidedPeriods || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0))
+      ),
+    };
+  });
+
+  return next;
+}
+
+function sanitizeCourseInvigilatorConstraintsMap(map, validKeys, validInvigilatorNames) {
+  const valid = new Set(validKeys || []);
+  const allowedInvigilatorNames = new Set((validInvigilatorNames || []).map((name) => normalizeArabic(name)));
+  const next = {};
+
+  Object.entries(map || {}).forEach(([courseKey, value]) => {
+    if (!valid.has(courseKey)) return;
+
+    next[courseKey] = {
+      mode:
+        value?.mode === "only" || value?.mode === "prefer" || value?.mode === "avoid"
+          ? value.mode
+          : "off",
+      invigilatorNames: Array.from(
+        new Set(
+          (value?.invigilatorNames || []).filter((name) =>
+            allowedInvigilatorNames.has(normalizeArabic(name))
+          )
+        )
       ),
     };
   });
@@ -1768,6 +1801,9 @@ const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState
 const [courseHallConstraints, setCourseHallConstraints] = useState({});
 const [selectedHallConstraintCourseKey, setSelectedHallConstraintCourseKey] = useState("");
 const [selectedHallConstraintCourseKeys, setSelectedHallConstraintCourseKeys] = useState([]);
+const [courseInvigilatorConstraints, setCourseInvigilatorConstraints] = useState({});
+const [selectedInvigilatorConstraintCourseKey, setSelectedInvigilatorConstraintCourseKey] = useState("");
+const [selectedInvigilatorConstraintCourseKeys, setSelectedInvigilatorConstraintCourseKeys] = useState([]);
 const [manualScheduleLocked, setManualScheduleLocked] = useState(false);
 const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMode] = useState("off");
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
@@ -2037,6 +2073,69 @@ const periodOverlapWarning = useMemo(() => {
       delete next[courseKey];
       return next;
     });
+  }
+
+  function updateCourseInvigilatorConstraint(courseKey, patch) {
+    if (!courseKey) return;
+    setCourseInvigilatorConstraints((prev) => ({
+      ...prev,
+      [courseKey]: {
+        ...getCourseInvigilatorConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+        ...patch,
+      },
+    }));
+  }
+
+  function toggleCourseInvigilatorConstraintValue(courseKey, invigilatorName) {
+    if (!courseKey || !invigilatorName) return;
+    setCourseInvigilatorConstraints((prev) => {
+      const current = {
+        ...getCourseInvigilatorConstraintDefaults(),
+        ...(prev[courseKey] || {}),
+      };
+      const nextInvigilatorNames = current.invigilatorNames.includes(invigilatorName)
+        ? current.invigilatorNames.filter((name) => name !== invigilatorName)
+        : [...current.invigilatorNames, invigilatorName];
+
+      return {
+        ...prev,
+        [courseKey]: {
+          ...current,
+          invigilatorNames: nextInvigilatorNames,
+        },
+      };
+    });
+  }
+
+  function clearCourseInvigilatorConstraint(courseKey) {
+    if (!courseKey) return;
+    setCourseInvigilatorConstraints((prev) => {
+      const next = { ...prev };
+      delete next[courseKey];
+      return next;
+    });
+  }
+
+  function addInvigilatorConstraintCourseToList(courseKey) {
+    if (!courseKey) return;
+    setSelectedInvigilatorConstraintCourseKeys((prev) => (prev.includes(courseKey) ? prev : [...prev, courseKey]));
+    setSelectedInvigilatorConstraintCourseKey("");
+  }
+
+  function removeInvigilatorConstraintCourseFromList(courseKey) {
+    if (!courseKey) return;
+    setSelectedInvigilatorConstraintCourseKeys((prev) => {
+      const next = prev.filter((key) => key !== courseKey);
+      if (selectedInvigilatorConstraintCourseKey === courseKey) {
+        setSelectedInvigilatorConstraintCourseKey(next[0] || "");
+      }
+      return next;
+    });
+  }
+
+  function getCourseInvigilatorConstraint(course) {
+    return courseInvigilatorConstraints[course?.key] || getCourseInvigilatorConstraintDefaults();
   }
 
   function addHallConstraintCourseToList(courseKey) {
@@ -2526,6 +2625,16 @@ const showToast = (title, description, type = "success", options = {}) => {
     toastTimerRef.current = window.setTimeout(() => setToast(null), duration);
   }
 };
+
+const hasImportedSf01 = rows.length > 0;
+const showSf01ImportFirstToast = () => {
+  showToast(
+    "لم يتم استيراد تقرير SF01",
+    "نأمل استيراد تقرير SF01 أولًا قبل توزيع مقررات الدراسات العامة أو مقررات التخصص.",
+    "error"
+  );
+};
+
 const serializeScheduleItem = (item) => ({
   ...item,
   students: Array.isArray(item.students)
@@ -2676,6 +2785,7 @@ const buildPersistedState = () => ({
   maxExamsPerStudentPerDay,
   courseConstraints,
   courseHallConstraints,
+  courseInvigilatorConstraints,
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
@@ -2759,6 +2869,7 @@ const restorePersistedState = (saved) => {
   setMaxExamsPerStudentPerDay(Math.max(1, Number(saved.maxExamsPerStudentPerDay) || 2));
   setCourseConstraints(saved.courseConstraints || {});
   setCourseHallConstraints(saved.courseHallConstraints || {});
+  setCourseInvigilatorConstraints(saved.courseInvigilatorConstraints || {});
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
@@ -2938,6 +3049,12 @@ useEffect(() => {
   examHalls,
   enableSamePeriodGroups,
   samePeriodGroups,
+  maxExamsPerStudentPerDay,
+  courseConstraints,
+  courseHallConstraints,
+  courseInvigilatorConstraints,
+  manualScheduleLocked,
+  generalSpecializedDaySeparationMode,
   hallWarnings,
   includeInvigilators,
   excludedInvigilators,
@@ -3643,7 +3760,12 @@ const selectedCourseB = useMemo(
     ? courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults()
     : getCourseHallConstraintDefaults();
 
+  const selectedCourseInvigilatorConstraint = selectedInvigilatorConstraintCourseKey
+    ? courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults()
+    : getCourseInvigilatorConstraintDefaults();
+
   const hallConstraintOptions = courseConstraintOptions;
+  const invigilatorConstraintOptions = courseConstraintOptions;
 
   const normalizedSamePeriodGroups = useMemo(() => {
     const validKeys = new Set(
@@ -3770,6 +3892,35 @@ const selectedCourseB = useMemo(
     }
   }, [courseHallConstraints, parsed.courses, normalizedExamHalls]);
 
+  useEffect(() => {
+    const validKeys = new Set(parsed.courses.map((course) => course.key));
+    setSelectedInvigilatorConstraintCourseKeys((prev) => prev.filter((key) => validKeys.has(key)));
+    setSelectedInvigilatorConstraintCourseKey((prev) => (prev && validKeys.has(prev) ? prev : ""));
+  }, [parsed.courses]);
+
+  useEffect(() => {
+    const validKeys = parsed.courses.map((course) => course.key);
+    const validInvigilatorNames = Array.from(
+      new Set(
+        (manualInvigilators
+          ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+          : parsed.invigilators
+        ).filter(Boolean)
+      )
+    );
+    const sanitized = sanitizeCourseInvigilatorConstraintsMap(
+      courseInvigilatorConstraints,
+      validKeys,
+      validInvigilatorNames
+    );
+    const currentJson = JSON.stringify(courseInvigilatorConstraints || {});
+    const nextJson = JSON.stringify(sanitized);
+
+    if (currentJson !== nextJson) {
+      setCourseInvigilatorConstraints(sanitized);
+    }
+  }, [courseInvigilatorConstraints, parsed.courses, parsed.invigilators, manualInvigilators]);
+
   const getRequiredInvigilatorsCount = (course) => {
     if (invigilationMode === "ratio") {
       const ratio = Math.max(1, Number(studentsPerInvigilator) || 20);
@@ -3782,7 +3933,7 @@ const resolveScheduledSlotId = (item) => item?.id || `${item?.dateISO}-${item?.p
 
 const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
   if (!rows.length) {
-    showToast("لا يوجد ملف", "ارفع ملف CSV أولاً.", "error");
+    showSf01ImportFirstToast();
     return [];
   }
 
@@ -3915,9 +4066,27 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
+  const invigilatorConstraint = getCourseInvigilatorConstraint(course);
+  const constrainedInvigilators = new Set(
+    (invigilatorConstraint.invigilatorNames || []).map((name) => normalizeArabic(name))
+  );
+
   const availableCandidates = invigilatorPool
     .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => {
+      const normalizedName = normalizeArabic(name);
+
+      if (invigilatorConstraint.mode === "only" && constrainedInvigilators.size) {
+        return constrainedInvigilators.has(normalizedName);
+      }
+
+      if (invigilatorConstraint.mode === "avoid" && constrainedInvigilators.size) {
+        return !constrainedInvigilators.has(normalizedName);
+      }
+
+      return true;
+    });
 
   // المرحلة 1: نختار فقط من ضمن من هم داخل هامش العدالة
   while (chosen.length < requiredCount) {
@@ -3927,6 +4096,11 @@ const pickInvigilators = (course, slot) => {
       .filter((name) => !chosen.includes(name))
       .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
       .sort((a, b) => {
+        const aPreferredByCourseConstraint =
+          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(a));
+        const bPreferredByCourseConstraint =
+          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(b));
+
         const aScore = rankInvigilatorForFairness(
           a,
           preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a))
@@ -3936,7 +4110,11 @@ const pickInvigilators = (course, slot) => {
           preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b))
         );
 
-        return aScore - bScore || a.localeCompare(b, "ar");
+        return (
+          Number(bPreferredByCourseConstraint) - Number(aPreferredByCourseConstraint) ||
+          aScore - bScore ||
+          a.localeCompare(b, "ar")
+        );
       });
 
     if (!fairCandidates.length) break;
@@ -3952,10 +4130,16 @@ const pickInvigilators = (course, slot) => {
         const aLoad = invigilatorLoad.get(a) || 0;
         const bLoad = invigilatorLoad.get(b) || 0;
 
+        const aPreferredByCourseConstraint =
+          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(a));
+        const bPreferredByCourseConstraint =
+          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(b));
+
         const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
         const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
 
         return (
+          Number(bPreferredByCourseConstraint) - Number(aPreferredByCourseConstraint) ||
           aLoad - bLoad ||
           Number(bTrainer) - Number(aTrainer) ||
           a.localeCompare(b, "ar")
@@ -4227,6 +4411,11 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
 };
 
 const generateGeneralSchedule = () => {
+  if (!hasImportedSf01) {
+    showSf01ImportFirstToast();
+    return;
+  }
+
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
   const sortedPlaced = [...placed].sort(
     (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
@@ -4250,6 +4439,11 @@ const generateGeneralSchedule = () => {
 };
 
 const generateSpecializedSchedule = () => {
+  if (!hasImportedSf01) {
+    showSf01ImportFirstToast();
+    return;
+  }
+
   const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
   setSpecializedSchedule(placed);
   setHallWarnings((prev) => {
@@ -5202,9 +5396,9 @@ style={{
                 />
               </div>
             </div>
-            <div style={{ marginTop: 18,  }}>
+            <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
-              <div style={{ display: "grid", gap: 10,  maxWidth: 640 }}>
+              <div style={{ display: "grid", gap: 10 }}>
                 {periodConfigs.map((periodConfig, index) => {
                   const startMinutes = parseTimeToMinutes(periodConfig.start);
                   const endText =
@@ -5319,7 +5513,7 @@ style={{
               ) : null}
             </div>
 
-            <div style={{ marginTop: 18,  maxWidth: 640}}>
+            <div style={{ marginTop: 18 }}>
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
@@ -6691,6 +6885,193 @@ style={{
               <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
             )}
           </div>
+        </div>
+
+
+        <div
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 14,
+            background: "#F8FEFE",
+          }}
+        >
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل / منع / قصر مراقبين لمقرر معيّن</div>
+          <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
+            هذه الخيارات خاصة بكل مقرر، وسيحاول النظام مراعاتها أثناء التوزيع الآلي. عند اختيار "قصر"، لن يختار النظام إلا من الأسماء المحددة لهذا المقرر.
+          </div>
+
+          <div style={{ maxWidth: 700, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ flex: "1 1 320px" }}>
+                <select
+                  value={selectedInvigilatorConstraintCourseKey}
+                  onChange={(e) => setSelectedInvigilatorConstraintCourseKey(e.target.value)}
+                  style={fieldStyle()}
+                >
+                  <option value="">اختر المقرر</option>
+                  {invigilatorConstraintOptions.map((course) => (
+                    <option key={course.key} value={course.key}>
+                      {course.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => addInvigilatorConstraintCourseToList(selectedInvigilatorConstraintCourseKey)}
+                style={cardButtonStyle({ disabled: !selectedInvigilatorConstraintCourseKey })}
+                disabled={!selectedInvigilatorConstraintCourseKey}
+              >
+                إضافة مقرر
+              </button>
+            </div>
+          </div>
+
+          {selectedInvigilatorConstraintCourseKeys.length ? (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+              {selectedInvigilatorConstraintCourseKeys.map((courseKey) => {
+                const option = invigilatorConstraintOptions.find((item) => item.key === courseKey);
+                if (!option) return null;
+
+                return (
+                  <div
+                    key={courseKey}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      border: `1px solid ${selectedInvigilatorConstraintCourseKey === courseKey ? COLORS.primaryDark : COLORS.border}`,
+                      background: selectedInvigilatorConstraintCourseKey === courseKey ? COLORS.primaryLight : "#fff",
+                      color: COLORS.charcoal,
+                      borderRadius: 14,
+                      padding: "6px 8px 6px 12px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvigilatorConstraintCourseKey(courseKey)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "inherit",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      {option.label}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => removeInvigilatorConstraintCourseFromList(courseKey)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        color: COLORS.danger,
+                        fontWeight: 900,
+                        fontSize: 16,
+                        lineHeight: 1,
+                        padding: 0,
+                      }}
+                      aria-label={`حذف ${option.label}`}
+                      title="حذف المقرر"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {selectedInvigilatorConstraintCourseKey ? (
+            <div
+              style={{
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 18,
+                padding: 16,
+                background: COLORS.bg2,
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                {[
+                  { value: "off", label: "بدون تخصيص" },
+                  { value: "prefer", label: "تفضيل مراقبين محددين" },
+                  { value: "avoid", label: "منع مراقبين محددين" },
+                  { value: "only", label: "قصر على مراقبين محددين" },
+                ].map((option) => {
+                  const active = selectedCourseInvigilatorConstraint.mode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        updateCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey, {
+                          mode: option.value,
+                        })
+                      }
+                      style={cardButtonStyle({ active })}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedCourseInvigilatorConstraint.mode === "off" ? (
+                <div style={{ color: COLORS.muted }}>لم يتم تفعيل تخصيص مراقبين لهذا المقرر.</div>
+              ) : availableInvigilators.length ? (
+                <>
+                  <div style={{ color: COLORS.muted, marginBottom: 12 }}>
+                    اختر الأسماء التي تريد تطبيقها على هذا المقرر.
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                    {availableInvigilators.map((name) => {
+                      const selected = selectedCourseInvigilatorConstraint.invigilatorNames.includes(name);
+
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() =>
+                            toggleCourseInvigilatorConstraintValue(selectedInvigilatorConstraintCourseKey, name)
+                          }
+                          style={{
+                            border: `1px solid ${selected ? COLORS.primaryDark : COLORS.border}`,
+                            background: selected ? COLORS.primaryLight : "#fff",
+                            color: selected ? COLORS.primaryDark : COLORS.charcoalSoft,
+                            borderRadius: 999,
+                            padding: "8px 14px",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {selected ? `✓ ${name}` : name}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => clearCourseInvigilatorConstraint(selectedInvigilatorConstraintCourseKey)}
+                      style={cardButtonStyle({ danger: true })}
+                    >
+                      حذف تخصيص هذا المقرر
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: COLORS.muted }}>لا توجد أسماء مراقبين متاحة حاليًا.</div>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
