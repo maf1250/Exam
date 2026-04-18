@@ -4845,16 +4845,31 @@ const selectedStudentScheduleForPrint = useMemo(() => {
         .map((name) => name.trim())
         .filter(Boolean);
 
-    const generalStudiesTrainerNames = Array.from(
-      new Set(
-        parsed.courses
-          .filter((course) => isGeneralStudiesCourse(course))
-          .flatMap((course) => splitTrainerNames(course.trainerText))
-      )
-    );
+    const normalizeTokens = (value) =>
+      splitBySlash(String(value || "").trim())
+        .map((item) => normalizeArabic(item))
+        .filter(Boolean);
 
     const normalizedAvailableInvigilators = new Set(
       availableInvigilators.map((name) => normalizeArabic(name))
+    );
+
+    const generalCourseKeys = new Set(
+      parsed.courses.filter((course) => isGeneralStudiesCourse(course)).map((course) => course.key)
+    );
+
+    const generalStudiesTrainerNames = Array.from(
+      new Set(
+        (parsed.filteredRows || [])
+          .filter((row) => {
+            const rowKey = [
+              normalizeArabic(String(row["المقرر"] ?? "").trim()),
+              normalizeArabic(String(row["اسم المقرر"] ?? "").trim()),
+            ].join("|");
+            return generalCourseKeys.has(rowKey);
+          })
+          .flatMap((row) => splitTrainerNames(row["المدرب"]))
+      )
     );
 
     const result = {};
@@ -4865,26 +4880,27 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       if (isGeneralStudiesCourse(course)) {
         trainerNames = generalStudiesTrainerNames;
       } else {
-        const courseRoots = normalizeDepartmentList(
-          Array.isArray(course.departmentRoots) && course.departmentRoots.length
-            ? course.departmentRoots
-            : getCourseDepartmentRoots(course)
+        const courseDepartments = new Set(
+          normalizeTokens(course.department).filter(
+            (token) => token !== normalizeArabic("الدراسات العامة")
+          )
         );
+        const courseMajors = new Set(normalizeTokens(course.major));
 
         trainerNames = Array.from(
           new Set(
-            parsed.courses
-              .filter((candidateCourse) => !isGeneralStudiesCourse(candidateCourse))
-              .filter((candidateCourse) => {
-                const candidateRoots = normalizeDepartmentList(
-                  Array.isArray(candidateCourse.departmentRoots) && candidateCourse.departmentRoots.length
-                    ? candidateCourse.departmentRoots
-                    : getCourseDepartmentRoots(candidateCourse)
-                );
+            (parsed.filteredRows || [])
+              .filter((row) => {
+                const rowDepartments = normalizeTokens(row["القسم"]);
+                const rowMajors = normalizeTokens(row["التخصص"]);
 
-                return candidateRoots.some((root) => courseRoots.includes(root));
+                const departmentMatches = rowDepartments.some((dep) => courseDepartments.has(dep));
+                if (!departmentMatches) return false;
+
+                if (!courseMajors.size) return true;
+                return rowMajors.some((major) => courseMajors.has(major));
               })
-              .flatMap((candidateCourse) => splitTrainerNames(candidateCourse.trainerText))
+              .flatMap((row) => splitTrainerNames(row["المدرب"]))
           )
         );
       }
@@ -4895,7 +4911,7 @@ const selectedStudentScheduleForPrint = useMemo(() => {
     });
 
     return result;
-  }, [parsed.courses, availableInvigilators]);
+  }, [parsed.courses, parsed.filteredRows, availableInvigilators]);
 
   const availableDepartmentsForPrint = useMemo(() => {
     const map = new Map();
