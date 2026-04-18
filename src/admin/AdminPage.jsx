@@ -1757,6 +1757,36 @@ function sanitizeCourseInvigilatorConstraintsMap(map, validKeys, validInvigilato
   return next;
 }
 
+function getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet) {
+  if (!course) return [];
+
+  if (isGeneralStudiesCourse(course)) {
+    return Array.from(generalStudiesInvigilatorsSet || []);
+  }
+
+  const depMajKey = `${normalizeArabic(course.department || "")}|${normalizeArabic(course.major || "")}`;
+
+  return Array.from(
+    new Set(
+      rows
+        .filter((row) => {
+          const rowDepartment = normalizeArabic(String(row["القسم"] || "").trim());
+          const rowMajor = normalizeArabic(String(row["التخصص"] || "").trim());
+          const rowTrainer = String(row["المدرب"] || "").trim();
+          if (!rowTrainer) return false;
+
+          const rowKey = `${rowDepartment}|${rowMajor}`;
+          return rowKey === depMajKey;
+        })
+        .flatMap((row) =>
+          String(row["المدرب"] || "")
+            .split("/")
+            .map((name) => name.trim())
+            .filter(Boolean)
+        )
+    )
+  );
+}
 export default function AdminPage() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -4118,7 +4148,7 @@ const pickInvigilators = (course, slot) => {
   const periodKey = getSlotPeriodKey(slot);
   const chosen = [];
 
-  const courseTrainerNames = course.trainerText
+  const courseTrainerNames = String(course.trainerText || "")
     .split("/")
     .map((name) => name.trim())
     .filter(Boolean);
@@ -4127,103 +4157,120 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
-  const invigilatorConstraint = getCourseInvigilatorConstraint(course);
-  const constrainedInvigilators = new Set(
-    (invigilatorConstraint.invigilatorNames || []).map((name) => normalizeArabic(name))
-  );
-  const departmentTrainerCandidates = new Set(
-    (departmentTrainerNamesByCourseKey?.[course.key] || [])
-      .map((name) => normalizeArabic(name))
-      .filter(Boolean)
-  );
-  const courseIsGeneralStudies = isGeneralStudiesCourse(course);
+  const constraint =
+    typeof getCourseInvigilatorConstraint === "function"
+      ? getCourseInvigilatorConstraint(course)
+      : { mode: "off", invigilatorNames: [] };
 
-  if (courseIsGeneralStudies && !departmentTrainerCandidates.size) {
-    invigilatorPool.forEach((name) => {
-      const normalizedName = normalizeArabic(name);
-      if (normalizedName && generalStudiesInvigilatorsSet.has(normalizedName)) {
-        departmentTrainerCandidates.add(normalizedName);
-      }
-    });
+  const baseCandidates = invigilatorPool
+    .filter(
+      (name) =>
+        !excludedInvigilators.some(
+          (ex) => normalizeArabic(ex) === normalizeArabic(name)
+        )
+    )
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+  const normalizedManualSet = new Set(
+    (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
+  );
+
+  const departmentTrainerSet = new Set(
+    (
+      (typeof getDepartmentTrainerNamesForCourse === "function"
+        ? getDepartmentTrainerNamesForCourse(course)
+        : []) || []
+    ).map((name) => normalizeArabic(name))
+  );
+
+  let constrainedCandidates = [...baseCandidates];
+  let strictOnlyMode = false;
+
+  switch (constraint.mode) {
+    case "only":
+      strictOnlyMode = true;
+      constrainedCandidates = baseCandidates.filter((name) =>
+        normalizedManualSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "avoid":
+      constrainedCandidates = baseCandidates.filter(
+        (name) => !normalizedManualSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "only_department_trainers":
+      strictOnlyMode = true;
+      constrainedCandidates = baseCandidates.filter((name) =>
+        departmentTrainerSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "avoid_department_trainers":
+      constrainedCandidates = baseCandidates.filter(
+        (name) => !departmentTrainerSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "prefer":
+    default:
+      constrainedCandidates = baseCandidates;
+      break;
   }
 
-  const availableCandidates = invigilatorPool
-    .filter((name) => !excludedInvigilators.some((ex) => normalizeArabic(ex) === normalizeArabic(name)))
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .filter((name) => {
-      const normalizedName = normalizeArabic(name);
+  const sortCandidates = (candidates) =>
+    [...candidates].sort((a, b) => {
+      const aScore = rankInvigilatorForFairness(
+        a,
+        preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(a))
+      );
+      const bScore = rankInvigilatorForFairness(
+        b,
+        preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(b))
+      );
 
-      if (invigilatorConstraint.mode === "only" && constrainedInvigilators.size) {
-        return constrainedInvigilators.has(normalizedName);
-      }
-
-      if (invigilatorConstraint.mode === "avoid" && constrainedInvigilators.size) {
-        return !constrainedInvigilators.has(normalizedName);
-      }
-
-      if (invigilatorConstraint.mode === "only_department_trainers") {
-        return departmentTrainerCandidates.has(normalizedName);
-      }
-
-      if (invigilatorConstraint.mode === "avoid_department_trainers") {
-        return !departmentTrainerCandidates.has(normalizedName);
-      }
-
-      return true;
+      return aScore - bScore || a.localeCompare(b, "ar");
     });
 
-  // المرحلة 1: نختار فقط من ضمن من هم داخل هامش العدالة
+  // المرحلة 1: ضمن هامش العدالة
   while (chosen.length < requiredCount) {
     const minLoad = getMinInvigilatorLoad();
 
-    const fairCandidates = availableCandidates
-      .filter((name) => !chosen.includes(name))
-      .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
-      .sort((a, b) => {
-        const aPreferredByCourseConstraint =
-          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(a));
-        const bPreferredByCourseConstraint =
-          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(b));
-
-        const aScore = rankInvigilatorForFairness(
-          a,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a))
-        );
-        const bScore = rankInvigilatorForFairness(
-          b,
-          preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b))
-        );
-
-        return (
-          Number(bPreferredByCourseConstraint) - Number(aPreferredByCourseConstraint) ||
-          aScore - bScore ||
-          a.localeCompare(b, "ar")
-        );
-      });
+    const fairCandidates = sortCandidates(
+      constrainedCandidates
+        .filter((name) => !chosen.includes(name))
+        .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
+    );
 
     if (!fairCandidates.length) break;
-
     chosen.push(fairCandidates[0]);
   }
 
-  // المرحلة 2: إذا لم يكتمل العدد، نكمل من الأقل حملًا مهما كان
+  // المرحلة 2:
+  // إذا كان القيد "قصر" فلا نخرج أبدًا خارج النطاق
+  // فقط نكمل من نفس النطاق المقيّد
   if (chosen.length < requiredCount) {
-    const fallbackCandidates = availableCandidates
+    const fallbackPool = strictOnlyMode
+      ? constrainedCandidates
+      : constrainedCandidates;
+
+    const fallbackCandidates = [...fallbackPool]
       .filter((name) => !chosen.includes(name))
       .sort((a, b) => {
         const aLoad = invigilatorLoad.get(a) || 0;
         const bLoad = invigilatorLoad.get(b) || 0;
 
-        const aPreferredByCourseConstraint =
-          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(a));
-        const bPreferredByCourseConstraint =
-          invigilatorConstraint.mode === "prefer" && constrainedInvigilators.has(normalizeArabic(b));
-
-        const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
-        const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
+        const aTrainer =
+          preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(a));
+        const bTrainer =
+          preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(b));
 
         return (
-          Number(bPreferredByCourseConstraint) - Number(aPreferredByCourseConstraint) ||
           aLoad - bLoad ||
           Number(bTrainer) - Number(aTrainer) ||
           a.localeCompare(b, "ar")
@@ -4247,6 +4294,7 @@ const pickInvigilators = (course, slot) => {
 
   return chosen;
 };
+  
   const scoreSlot = (course, slot) => {
     let hardConflict = false;
     let sameDayPenalty = 0;
