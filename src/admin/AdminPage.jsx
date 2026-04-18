@@ -6332,7 +6332,14 @@ style={{
                   return <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14, background: "#fff" }}>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
                       {[{ value: "off", label: "بدون قيد" }, { value: "prefer", label: "تفضيل قاعات" }, { value: "block", label: "منع قاعات" }, { value: "only", label: "قصر على هذه القاعات فقط" }].map((option) => <button key={option.value} type="button" onClick={() => updateCourseHallConstraint(selectedHallConstraintCourseKey, { mode: option.value })} style={cardButtonStyle({ active: hallConstraint.mode === option.value })}>{option.label}</button>)}
-                      <button type="button" onClick={() => removeHallConstraintCourseFromList(selectedHallConstraintCourseKey)} style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
+                      <button type="button" 
+                        onClick={() => {
+                          removeHallConstraintCourseFromList(selectedHallConstraintCourseKey)
+                        removeHallConstraintCourseFromList("");  
+                        }}
+                        style={cardButtonStyle({ danger: true })}>إزالة المقرر</button>
+                       
+  
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {normalizedExamHalls.map((hall) => {
