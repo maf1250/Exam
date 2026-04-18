@@ -1676,6 +1676,13 @@ function getCourseHallConstraintDefaults() {
   };
 }
 
+function getDepartmentHallConstraintDefaults() {
+  return {
+    mode: "off",
+    hallNames: [],
+  };
+}
+
 function getCourseInvigilatorConstraintDefaults() {
   return {
     mode: "off",
@@ -1692,6 +1699,28 @@ function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
     if (!valid.has(courseKey)) return;
 
     next[courseKey] = {
+      mode: value?.mode === "only" || value?.mode === "prefer" ? value.mode : "off",
+      hallNames: Array.from(
+        new Set(
+          (value?.hallNames || []).filter((name) => allowedHallNames.has(normalizeArabic(name)))
+        )
+      ),
+    };
+  });
+
+  return next;
+}
+
+function sanitizeDepartmentHallConstraintsMap(map, validDepartmentKeys, validHallNames) {
+  const valid = new Set((validDepartmentKeys || []).map((key) => normalizeArabic(key)));
+  const allowedHallNames = new Set((validHallNames || []).map((name) => normalizeArabic(name)));
+  const next = {};
+
+  Object.entries(map || {}).forEach(([departmentKey, value]) => {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!valid.has(normalizedDepartmentKey)) return;
+
+    next[normalizedDepartmentKey] = {
       mode: value?.mode === "only" || value?.mode === "prefer" ? value.mode : "off",
       hallNames: Array.from(
         new Set(
@@ -1834,8 +1863,11 @@ const [courseConstraints, setCourseConstraints] = useState({});
 const [selectedConstraintCourseKey, setSelectedConstraintCourseKey] = useState("");
 const [selectedConstraintCourseKeys, setSelectedConstraintCourseKeys] = useState([]);
 const [courseHallConstraints, setCourseHallConstraints] = useState({});
+const [departmentHallConstraints, setDepartmentHallConstraints] = useState({});
 const [selectedHallConstraintCourseKey, setSelectedHallConstraintCourseKey] = useState("");
 const [selectedHallConstraintCourseKeys, setSelectedHallConstraintCourseKeys] = useState([]);
+const [selectedHallConstraintDepartmentKey, setSelectedHallConstraintDepartmentKey] = useState("");
+const [selectedHallConstraintDepartmentKeys, setSelectedHallConstraintDepartmentKeys] = useState([]);
 const [courseInvigilatorConstraints, setCourseInvigilatorConstraints] = useState({});
 const [selectedInvigilatorConstraintCourseKey, setSelectedInvigilatorConstraintCourseKey] = useState("");
 const [selectedInvigilatorConstraintCourseKeys, setSelectedInvigilatorConstraintCourseKeys] = useState([]);
@@ -2110,6 +2142,124 @@ const periodOverlapWarning = useMemo(() => {
     });
   }
 
+  function updateDepartmentHallConstraint(departmentKey, patch) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!normalizedDepartmentKey) return;
+    setDepartmentHallConstraints((prev) => ({
+      ...prev,
+      [normalizedDepartmentKey]: {
+        ...getDepartmentHallConstraintDefaults(),
+        ...(prev[normalizedDepartmentKey] || {}),
+        ...patch,
+      },
+    }));
+  }
+
+  function toggleDepartmentHallConstraintValue(departmentKey, hallName) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!normalizedDepartmentKey || !hallName) return;
+    setDepartmentHallConstraints((prev) => {
+      const current = {
+        ...getDepartmentHallConstraintDefaults(),
+        ...(prev[normalizedDepartmentKey] || {}),
+      };
+      const nextHallNames = current.hallNames.includes(hallName)
+        ? current.hallNames.filter((name) => name !== hallName)
+        : [...current.hallNames, hallName];
+
+      return {
+        ...prev,
+        [normalizedDepartmentKey]: {
+          ...current,
+          hallNames: nextHallNames,
+        },
+      };
+    });
+  }
+
+  function clearDepartmentHallConstraint(departmentKey) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!normalizedDepartmentKey) return;
+    setDepartmentHallConstraints((prev) => {
+      const next = { ...prev };
+      delete next[normalizedDepartmentKey];
+      return next;
+    });
+  }
+
+  function addHallConstraintDepartmentToList(departmentKey) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!normalizedDepartmentKey) return;
+    setSelectedHallConstraintDepartmentKeys((prev) =>
+      prev.includes(normalizedDepartmentKey) ? prev : [...prev, normalizedDepartmentKey]
+    );
+    setSelectedHallConstraintDepartmentKey("");
+  }
+
+  function removeHallConstraintDepartmentFromList(departmentKey) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    if (!normalizedDepartmentKey) return;
+    setSelectedHallConstraintDepartmentKeys((prev) => {
+      const next = prev.filter((key) => key !== normalizedDepartmentKey);
+      if (normalizeArabic(selectedHallConstraintDepartmentKey) === normalizedDepartmentKey) {
+        setSelectedHallConstraintDepartmentKey("");
+      }
+      return next;
+    });
+  }
+
+  function getDepartmentHallConstraint(departmentKey) {
+    const normalizedDepartmentKey = normalizeArabic(departmentKey);
+    return departmentHallConstraints[normalizedDepartmentKey] || getDepartmentHallConstraintDefaults();
+  }
+
+  function getEffectiveHallConstraint(course) {
+    const courseConstraint = getCourseHallConstraint(course);
+    if (courseConstraint.mode !== "off" && (courseConstraint.hallNames || []).length) {
+      return courseConstraint;
+    }
+
+    const departmentRoots = normalizeDepartmentList(
+      Array.isArray(course?.departmentRoots) ? course.departmentRoots : getCourseDepartmentRoots(course)
+    );
+
+    const matchingDepartmentConstraints = departmentRoots
+      .map((departmentKey) => getDepartmentHallConstraint(departmentKey))
+      .filter((constraint) => constraint.mode !== "off" && (constraint.hallNames || []).length);
+
+    const onlyHallNames = Array.from(
+      new Set(
+        matchingDepartmentConstraints
+          .filter((constraint) => constraint.mode === "only")
+          .flatMap((constraint) => constraint.hallNames || [])
+      )
+    );
+
+    if (onlyHallNames.length) {
+      return {
+        mode: "only",
+        hallNames: onlyHallNames,
+      };
+    }
+
+    const preferredHallNames = Array.from(
+      new Set(
+        matchingDepartmentConstraints
+          .filter((constraint) => constraint.mode === "prefer")
+          .flatMap((constraint) => constraint.hallNames || [])
+      )
+    );
+
+    if (preferredHallNames.length) {
+      return {
+        mode: "prefer",
+        hallNames: preferredHallNames,
+      };
+    }
+
+    return getCourseHallConstraintDefaults();
+  }
+
   function updateCourseInvigilatorConstraint(courseKey, patch) {
     if (!courseKey) return;
     setCourseInvigilatorConstraints((prev) => ({
@@ -2195,7 +2345,7 @@ const periodOverlapWarning = useMemo(() => {
   }
 
   function filterHallsByCourseHallConstraint(halls, course) {
-    const constraint = getCourseHallConstraint(course);
+    const constraint = getEffectiveHallConstraint(course);
     const selectedNames = new Set((constraint.hallNames || []).map((name) => normalizeArabic(name)));
 
     if (constraint.mode === "only" && selectedNames.size) {
@@ -2206,7 +2356,7 @@ const periodOverlapWarning = useMemo(() => {
   }
 
   function sortHallsByCourseHallPreference(halls, course) {
-    const constraint = getCourseHallConstraint(course);
+    const constraint = getEffectiveHallConstraint(course);
     const selectedNames = new Set((constraint.hallNames || []).map((name) => normalizeArabic(name)));
 
     return [...halls].sort((a, b) => {
@@ -2613,6 +2763,12 @@ const handleUpload = (file) => {
       setCourseConstraints({});
       setSelectedConstraintCourseKey("");
       setSelectedConstraintCourseKeys([]);
+      setCourseHallConstraints({});
+      setDepartmentHallConstraints({});
+      setSelectedHallConstraintCourseKey("");
+      setSelectedHallConstraintCourseKeys([]);
+      setSelectedHallConstraintDepartmentKey("");
+      setSelectedHallConstraintDepartmentKeys([]);
       setManualScheduleLocked(false);
       setGeneralSpecializedDaySeparationMode("off");
       setDraggingScheduleItemId("");
@@ -2825,8 +2981,11 @@ const buildPersistedState = () => ({
   selectedConstraintCourseKey,
   selectedConstraintCourseKeys,
   courseHallConstraints,
+  departmentHallConstraints,
   selectedHallConstraintCourseKey,
   selectedHallConstraintCourseKeys,
+  selectedHallConstraintDepartmentKey,
+  selectedHallConstraintDepartmentKeys,
   courseInvigilatorConstraints,
   selectedInvigilatorConstraintCourseKey,
   selectedInvigilatorConstraintCourseKeys,
@@ -2920,10 +3079,17 @@ const restorePersistedState = (saved) => {
       : []
   );
   setCourseHallConstraints(saved.courseHallConstraints || {});
+  setDepartmentHallConstraints(saved.departmentHallConstraints || {});
   setSelectedHallConstraintCourseKey(saved.selectedHallConstraintCourseKey || "");
   setSelectedHallConstraintCourseKeys(
     Array.isArray(saved.selectedHallConstraintCourseKeys)
       ? saved.selectedHallConstraintCourseKeys
+      : []
+  );
+  setSelectedHallConstraintDepartmentKey(saved.selectedHallConstraintDepartmentKey || "");
+  setSelectedHallConstraintDepartmentKeys(
+    Array.isArray(saved.selectedHallConstraintDepartmentKeys)
+      ? saved.selectedHallConstraintDepartmentKeys
       : []
   );
   setCourseInvigilatorConstraints(saved.courseInvigilatorConstraints || {});
@@ -3117,8 +3283,11 @@ useEffect(() => {
   selectedConstraintCourseKey,
   selectedConstraintCourseKeys,
   courseHallConstraints,
+  departmentHallConstraints,
   selectedHallConstraintCourseKey,
   selectedHallConstraintCourseKeys,
+  selectedHallConstraintDepartmentKey,
+  selectedHallConstraintDepartmentKeys,
   courseInvigilatorConstraints,
   selectedInvigilatorConstraintCourseKey,
   selectedInvigilatorConstraintCourseKeys,
@@ -3886,11 +4055,20 @@ const selectedCourseB = useMemo(
     ? courseHallConstraints[selectedHallConstraintCourseKey] || getCourseHallConstraintDefaults()
     : getCourseHallConstraintDefaults();
 
+  const selectedDepartmentHallConstraint = selectedHallConstraintDepartmentKey
+    ? departmentHallConstraints[normalizeArabic(selectedHallConstraintDepartmentKey)] || getDepartmentHallConstraintDefaults()
+    : getDepartmentHallConstraintDefaults();
+
   const selectedCourseInvigilatorConstraint = selectedInvigilatorConstraintCourseKey
     ? courseInvigilatorConstraints[selectedInvigilatorConstraintCourseKey] || getCourseInvigilatorConstraintDefaults()
     : getCourseInvigilatorConstraintDefaults();
 
-  const hallConstraintOptions = courseConstraintOptions;
+  const hallConstraintOptions = courseConstraintOptions.filter(
+    (course) => !selectedHallConstraintCourseKeys.includes(course.key)
+  );
+  const hallConstraintDepartmentOptions = availableDepartments.filter(
+    (department) => !selectedHallConstraintDepartmentKeys.includes(normalizeArabic(department))
+  );
   const invigilatorConstraintOptions = courseConstraintOptions;
 
   const normalizedSamePeriodGroups = useMemo(() => {
@@ -4017,6 +4195,30 @@ const selectedCourseB = useMemo(
       setCourseHallConstraints(sanitized);
     }
   }, [courseHallConstraints, parsed.courses, normalizedExamHalls]);
+
+  useEffect(() => {
+    const validDepartments = new Set(availableDepartments.map((department) => normalizeArabic(department)));
+    setSelectedHallConstraintDepartmentKeys((prev) => prev.filter((key) => validDepartments.has(normalizeArabic(key))));
+    setSelectedHallConstraintDepartmentKey((prev) =>
+      prev && validDepartments.has(normalizeArabic(prev)) ? prev : ""
+    );
+  }, [availableDepartments]);
+
+  useEffect(() => {
+    const validDepartmentKeys = availableDepartments.map((department) => normalizeArabic(department));
+    const validHallNames = normalizedExamHalls.map((hall) => hall.name);
+    const sanitized = sanitizeDepartmentHallConstraintsMap(
+      departmentHallConstraints,
+      validDepartmentKeys,
+      validHallNames
+    );
+    const currentJson = JSON.stringify(departmentHallConstraints || {});
+    const nextJson = JSON.stringify(sanitized);
+
+    if (currentJson !== nextJson) {
+      setDepartmentHallConstraints(sanitized);
+    }
+  }, [departmentHallConstraints, availableDepartments, normalizedExamHalls]);
 
   useEffect(() => {
     const validKeys = new Set(parsed.courses.map((course) => course.key));
@@ -6011,31 +6213,80 @@ style={{
                   يمكنك هنا تحديد قاعات مفضلة لمقرر معيّن، أو قصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر.
                 </div>
 
-                <div style={{ maxWidth: 700, marginBottom: 14 }}>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    <div style={{ flex: "0 1 340px", minWidth: 260 }}>
-                      <select
-                        value={selectedHallConstraintCourseKey}
-                        onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
-                        style={{ ...fieldStyle(), maxWidth: 340 }}
-                      >
-                        <option value="">اختر المقرر</option>
-                        {hallConstraintOptions.map((course) => (
-                          <option key={course.key} value={course.key}>
-                            {course.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                <div style={{ display: "grid", gap: 16, marginBottom: 14 }}>
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 14,
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, marginBottom: 10 }}>إضافة تخصيص على مستوى المقرر</div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                        <select
+                          value={selectedHallConstraintCourseKey}
+                          onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
+                          style={{ ...fieldStyle(), maxWidth: 340 }}
+                        >
+                          <option value="">اختر المقرر</option>
+                          {hallConstraintOptions.map((course) => (
+                            <option key={course.key} value={course.key}>
+                              {course.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)}
-                      style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })}
-                      disabled={!selectedHallConstraintCourseKey}
-                    >
-                      إضافة مقرر
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => addHallConstraintCourseToList(selectedHallConstraintCourseKey)}
+                        style={cardButtonStyle({ disabled: !selectedHallConstraintCourseKey })}
+                        disabled={!selectedHallConstraintCourseKey}
+                      >
+                        إضافة مقرر
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 14,
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم</div>
+                    <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
+                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم.
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ flex: "0 1 340px", minWidth: 260 }}>
+                        <select
+                          value={selectedHallConstraintDepartmentKey}
+                          onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
+                          style={{ ...fieldStyle(), maxWidth: 340 }}
+                        >
+                          <option value="">اختر القسم</option>
+                          {hallConstraintDepartmentOptions.map((department) => (
+                            <option key={department} value={department}>
+                              {department}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addHallConstraintDepartmentToList(selectedHallConstraintDepartmentKey)}
+                        style={cardButtonStyle({ disabled: !selectedHallConstraintDepartmentKey })}
+                        disabled={!selectedHallConstraintDepartmentKey}
+                      >
+                        إضافة قسم
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -6101,6 +6352,151 @@ style={{
                   </div>
                 ) : null}
 
+                {selectedHallConstraintDepartmentKeys.length ? (
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                    {selectedHallConstraintDepartmentKeys.map((departmentKey) => {
+                      const label = availableDepartments.find(
+                        (item) => normalizeArabic(item) === normalizeArabic(departmentKey)
+                      ) || departmentKey;
+                      return (
+                        <div
+                          key={departmentKey}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            border: `1px solid ${normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey) ? COLORS.primaryDark : COLORS.border}`,
+                            background:
+                              normalizeArabic(selectedHallConstraintDepartmentKey) === normalizeArabic(departmentKey)
+                                ? COLORS.primaryLight
+                                : "#fff",
+                            color: COLORS.charcoal,
+                            borderRadius: 14,
+                            padding: "6px 8px 6px 12px",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setSelectedHallConstraintDepartmentKey(label)}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "inherit",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                          >
+                            {label}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeHallConstraintDepartmentFromList(departmentKey);
+                            }}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              color: COLORS.danger,
+                              fontWeight: 900,
+                              fontSize: 16,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                            aria-label={`حذف ${label}`}
+                            title="حذف القسم"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {selectedHallConstraintDepartmentKey ? (
+                  <div
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 18,
+                      padding: 16,
+                      background: "#fff",
+                      marginBottom: 14,
+                    }}
+                  >
+                    <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                      تخصيص القاعات للقسم: {selectedHallConstraintDepartmentKey}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      {[
+                        { value: "off", label: "بدون تخصيص" },
+                        { value: "prefer", label: "تفضيل قاعات محددة" },
+                        { value: "only", label: "قصر على قاعات محددة" },
+                      ].map((option) => {
+                        const active = selectedDepartmentHallConstraint.mode === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updateDepartmentHallConstraint(selectedHallConstraintDepartmentKey, { mode: option.value })}
+                            style={cardButtonStyle({ active })}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ fontWeight: 800, marginBottom: 8 }}>القاعات</div>
+                    {normalizedExamHalls.length ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                        {normalizedExamHalls.map((hall) => {
+                          const checked = selectedDepartmentHallConstraint.hallNames.includes(hall.name);
+                          return (
+                            <label
+                              key={`department-hall-${hall.id}`}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                background: checked ? COLORS.primaryLight : "#fff",
+                                borderRadius: 12,
+                                padding: "10px 12px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleDepartmentHallConstraintValue(selectedHallConstraintDepartmentKey, hall.name)}
+                              />
+                              <span>{hall.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام.</div>
+                    )}
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                      <button
+                        type="button"
+                        onClick={() => clearDepartmentHallConstraint(selectedHallConstraintDepartmentKey)}
+                        style={cardButtonStyle({ danger: true })}
+                      >
+                        مسح تخصيص القسم
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 {selectedHallConstraintCourseKey ? (
                   <div
                     style={{
@@ -6162,6 +6558,16 @@ style={{
                     ) : (
                       <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للمقررات.</div>
                     )}
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                      <button
+                        type="button"
+                        onClick={() => clearCourseHallConstraint(selectedHallConstraintCourseKey)}
+                        style={cardButtonStyle({ danger: true })}
+                      >
+                        مسح تخصيص المقرر
+                      </button>
+                    </div>
 
                     <div style={{ marginTop: 14 }}>
                       <button
