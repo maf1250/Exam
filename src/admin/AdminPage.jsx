@@ -422,14 +422,35 @@ function rowsToCsv(rows) {
   return [headers.join(","), ...rows.map((row) => headers.map((h) => esc(row[h])).join(","))].join("\n");
 }
 
+function sanitizeDownloadFilename(filename, fallback = "file") {
+  return String(filename || fallback)
+    .replace(/[\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim() || fallback;
+}
+
+function getTodayFileStamp() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function downloadFile(filename, content, mime) {
+  const safeFilename = sanitizeDownloadFilename(filename);
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = safeFilename;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 150);
 }
 
 function splitBySlash(value) {
@@ -3371,8 +3392,11 @@ const clearSavedState = async () => {
 
 const exportSavedSession = () => {
   const data = buildPersistedState();
+  const collegeLabel = sanitizeDownloadFilename(collegeNameInput || "الكلية التقنية", "الكلية التقنية");
+  const dateStamp = getTodayFileStamp();
+
   downloadFile(
-`ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية")} - ${todayText.replace(/\.[^.]+$/, "")}.json`,
+    `ملف الاختبارات النهائية - ${collegeLabel} - ${dateStamp}.json`,
     JSON.stringify(data, null, 2),
     "application/json;charset=utf-8"
   );
@@ -5327,8 +5351,11 @@ const availableMajorsForPrint = useMemo(() => {
         ? "all-departments"
         : normalizeArabic(printDepartmentFilter).replace(/\s+/g, "-");
 
+    const collegeLabel = sanitizeDownloadFilename(collegeNameInput || "الكلية التقنية", "الكلية التقنية");
+    const dateStamp = getTodayFileStamp();
+
     downloadFile(
-      `ملف الاختبارات النهائية - ${(collegeNameInput || "الكلية التقنية")} - ${todayText.replace(/\.[^.]+$/, "")}.csv`,
+      `ملف الاختبارات النهائية - ${collegeLabel} - ${dateStamp}.csv`,
       rowsToCsv(exportRows),
       "text/csv;charset=utf-8"
     );
