@@ -2567,8 +2567,7 @@ const periodOverlapWarning = useMemo(() => {
 
   function buildManualPlacementContext(currentSchedule = [], ignoreInstanceId = "") {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("
-").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
