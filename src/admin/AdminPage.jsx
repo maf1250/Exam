@@ -7065,7 +7065,7 @@ const headerBtn = (danger = false) => ({
           <Card>
             <SectionHeader
               title="رفع الملف والتفضيلات"
-              description="ارفع ملف SF01 أولًا، ثم فعّل فقط التفضيلات العامة التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء إعداداته التفصيلية من الصفحات التالية لتبقى الواجهة أخف وأوضح."
+              description="ارفع تقرير SF01 أولًا، ثم فعّل فقط التفضيلات العامة التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء إعداداته التفصيلية من الصفحات التالية لتبقى الواجهة أخف وأوضح."
             />
 
             <div
@@ -7105,7 +7105,7 @@ const headerBtn = (danger = false) => ({
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
               <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                رفع ملف SF01
+                رفع تقرير SF01
               </div>
               <div style={{ marginTop: 8, fontSize: 14, color: COLORS.muted, lineHeight: 1.9, maxWidth: 620 }}>
                 اسحب التقرير هنا أو اضغط للاختيار من جهازك. يدعم النظام ملفات CSV ويقرأ بيانات الوحدة تلقائيًا عند توفرها.
@@ -7275,7 +7275,7 @@ const headerBtn = (danger = false) => ({
                 ⬆
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                رفع ملف SF01
+                رفع تقرير SF01
               </div>
               <div style={{ marginTop: 8, fontSize: 14, color: COLORS.muted, lineHeight: 1.9, maxWidth: 620 }}>
                 اسحب التقرير هنا أو اضغط للاختيار من جهازك. يدعم النظام ملفات CSV ويقرأ بيانات الوحدة تلقائيًا عند توفرها.
