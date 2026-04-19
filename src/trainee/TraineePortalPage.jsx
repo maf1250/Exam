@@ -73,10 +73,10 @@ function openPrintWindow({ collegeName, selectedStudent }) {
       (item, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(item.courseName || "-")}</td>
-          <td>${escapeHtml(item.courseCode || "-")}</td>
           <td>${escapeHtml(item.gregorian || "-")}</td>
           <td>${escapeHtml(item.hijriNumeric || "-")}</td>
+          <td>${escapeHtml(item.courseName || "-")}</td>
+          <td>${escapeHtml(item.courseCode || "-")}</td>
           <td>${escapeHtml(item.period || "-")}</td>
           <td>${escapeHtml(item.timeText || "-")}</td>
           <td>${escapeHtml(item.examHall || "-")}</td>
