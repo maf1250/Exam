@@ -3053,6 +3053,7 @@ const periodOverlapWarning = useMemo(() => {
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
+  const [expandedUnscheduledKeys, setExpandedUnscheduledKeys] = useState({});
 const [courseAKey, setCourseAKey] = useState("");
 const [courseBKey, setCourseBKey] = useState("");
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
