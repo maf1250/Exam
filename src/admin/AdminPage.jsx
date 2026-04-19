@@ -2549,16 +2549,15 @@ const periodOverlapWarning = useMemo(() => {
         const key = getHallUsageKey(targetSlot, item.examHall);
         hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
       });
+const hallsAfterCanAssign = hallsPool.filter((hall) =>
+  canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap)
+);
 
-    const fittingHalls = sortHallsByCourseHallPreference(
-      filterHallsByCourseHallConstraint(
-        normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)),
-        course
-      ),
-      course
-    );
-    let assignedHall = "";
-   console.log("HALL_FILTER_DEBUG", {
+const hallsAfterConstraint = filterHallsByCourseHallConstraint(
+  hallsAfterCanAssign,
+  course
+);
+    console.log("HALL_FILTER_DEBUG", {
   course: course.courseName || course.courseCode,
   slot: getSlotPeriodKey(targetSlot),
   allHalls: (normalizedExamHalls || []).map((hall) => ({
@@ -2569,6 +2568,16 @@ const periodOverlapWarning = useMemo(() => {
   fittingHalls: fittingHalls.map((hall) => hall.name),
   courseHallConstraint: getCourseHallConstraint(course),
 });
+    
+    const fittingHalls = sortHallsByCourseHallPreference(
+      filterHallsByCourseHallConstraint(
+        normalizedExamHalls.filter((hall) => canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap)),
+        course
+      ),
+      course
+    );
+    let assignedHall = "";
+   
     if (fittingHalls.length) {
       assignedHall = fittingHalls[0].name;
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
