@@ -1140,16 +1140,13 @@ function getPrintBaseStyles() {
     }
 
     .day-col {
-      width: 170px;
+      width: 140px;
       font-weight: 800;
       background: #f8fafc;
     }
 
     .num-cell {
-      width: 22px;
-      min-width: 22px;
-      max-width: 22px;
-      white-space: nowrap;
+      width: 20px;
     }
 
     .course-cell {
@@ -1157,16 +1154,11 @@ function getPrintBaseStyles() {
     }
 
     .code-cell {
-      width: 78px;
+      width: 45px;
     }
 
     .hall-cell {
-        width: 70px;
-  min-width: 70px;
-  max-width: 70px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+      width: 90px;
     }
 
     .section-note {
@@ -1432,10 +1424,9 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
                 ${periodIds
                   .map(
                     () => `
-                      <th class="num-cell">م</th>
+                      <th>م</th>
                       <th>المقرر</th>
                       <th>الرمز</th>
-                      <th class="periodId">الفترة</th>
                       <th>المقر</th>
                     `
                   )
@@ -1640,7 +1631,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
         background:${getDayTheme(item.dayName).bg};
         color:${getDayTheme(item.dayName).text};
       ">
-        <td class="num-cell">${index + 1}</td>
+        <td>${index + 1}</td>
         <td>${item.courseName || ""}</td>
         <td>${item.courseCode || ""}</td>
         <td>${item.dayName || ""}</td>
@@ -1740,7 +1731,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
           <table>
             <thead>
               <tr>
-                <th class="num-cell">م</th>
+                <th>م</th>
                 <th>المقرر</th>
                 <th>الرمز</th>
                 <th>اليوم</th>
