@@ -4984,15 +4984,15 @@ const requiredSeats = Number(course.studentCount) || 0;
     const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
     const reasonParts = [];
 
-    if ((Number(maxAvailable) || 0) <= 0) {
-      return {
-        shortLabel: "لا توجد قاعة مناسبة",
-        detail:
-          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
-          `يحتاج ${requiredSeats} مقعدًا، ` +
-          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
-      };
-    }
+  if ((Number(maxRemaining) || 0) < requiredSeats) {
+  return {
+    shortLabel: "لا توجد قاعة مناسبة",
+    detail:
+      `لا توجد قاعة مناسبة لهذا المقرر في هذه الفترة. ` +
+      `يحتاج ${requiredSeats} مقعدًا، ` +
+      `وأكبر سعة قابلة للإسناد فعليًا ${Number(maxRemaining) || 0}.`,
+  };
+}
 
     if (!hasAnyFittableHallInAnySlot) {
       console.log("MAX_REMAINING_DEBUG", {
