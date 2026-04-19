@@ -5261,12 +5261,21 @@ sortedCoursesForInvigilation.forEach((course) => {
     halls: hallDebugSnapshot,
   });
 
-  const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
-    hallsPool,
+const maxRemaining = sortHallsByCourseHallPreference(
+  filterHallsByCourseHallConstraint(
+    hallsPool.filter((hall) => isHallAllowedForCourse(hall, course)),
+    course
+  ),
+  course
+).reduce((best, hall) => {
+  const remaining = getEffectiveAssignableHallCapacityForSlot(
+    hall,
     course,
     bestSlot,
     hallUsageMap
   );
+  return Math.max(best, remaining);
+}, 0);
 
   hallWarningItems.push({
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
