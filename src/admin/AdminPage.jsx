@@ -2726,7 +2726,7 @@ const periodOverlapWarning = useMemo(() => {
 
   function buildManualPlacementContext(currentSchedule = [], ignoreInstanceId = "") {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
@@ -2749,6 +2749,7 @@ const periodOverlapWarning = useMemo(() => {
 
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
+    const invigilatorDayLoad = new Map(invigilatorPool.map((name) => [name, new Map()]));
 
     (Array.isArray(currentSchedule) ? currentSchedule : [])
       .filter((item) => item && item.instanceId !== ignoreInstanceId)
@@ -2757,8 +2758,11 @@ const periodOverlapWarning = useMemo(() => {
         (item.invigilators || []).forEach((name) => {
           if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
           if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
+          if (!invigilatorDayLoad.has(name)) invigilatorDayLoad.set(name, new Map());
           invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
           invigilatorBusyPeriods.get(name).add(periodKey);
+          const dayLoadMap = invigilatorDayLoad.get(name);
+          dayLoadMap.set(item.dateISO, (dayLoadMap.get(item.dateISO) || 0) + 1);
         });
       });
 
@@ -2767,12 +2771,17 @@ const periodOverlapWarning = useMemo(() => {
       return values.length ? Math.min(...values) : 0;
     };
 
-    const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+    const getInvigilatorDayLoadForDate = (name, dateISO) =>
+      invigilatorDayLoad.get(name)?.get(dateISO) || 0;
+
+    const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
       const load = invigilatorLoad.get(name) || 0;
       const minLoad = getMinInvigilatorLoad();
+      const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
       const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+      const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
       const trainerBonus = preferTrainer ? -0.15 : 0;
-      return load + overloadPenalty + trainerBonus;
+      return load + overloadPenalty + sameDayPenalty + trainerBonus;
     };
 
     const pickInvigilatorsForSlot = (course, slot) => {
@@ -2857,11 +2866,13 @@ const periodOverlapWarning = useMemo(() => {
         [...candidates].sort((a, b) => {
           const aScore = rankInvigilatorForFairness(
             a,
+            slot,
             preferCourseTrainerInvigilation &&
               normalizedTrainerSet.has(normalizeArabic(a))
           );
           const bScore = rankInvigilatorForFairness(
             b,
+            slot,
             preferCourseTrainerInvigilation &&
               normalizedTrainerSet.has(normalizeArabic(b))
           );
@@ -2886,21 +2897,20 @@ const periodOverlapWarning = useMemo(() => {
         const fallbackCandidates = [...constrainedCandidates]
           .filter((name) => !chosen.includes(name))
           .sort((a, b) => {
-            const aLoad = invigilatorLoad.get(a) || 0;
-            const bLoad = invigilatorLoad.get(b) || 0;
-
-            const aTrainer =
+            const aScore = rankInvigilatorForFairness(
+              a,
+              slot,
               preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(a));
-            const bTrainer =
-              preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(b));
-
-            return (
-              aLoad - bLoad ||
-              Number(bTrainer) - Number(aTrainer) ||
-              a.localeCompare(b, "ar")
+                normalizedTrainerSet.has(normalizeArabic(a))
             );
+            const bScore = rankInvigilatorForFairness(
+              b,
+              slot,
+              preferCourseTrainerInvigilation &&
+                normalizedTrainerSet.has(normalizeArabic(b))
+            );
+
+            return aScore - bScore || a.localeCompare(b, "ar");
           });
 
         for (const name of fallbackCandidates) {
@@ -2913,9 +2923,14 @@ const periodOverlapWarning = useMemo(() => {
         if (!invigilatorBusyPeriods.has(name)) {
           invigilatorBusyPeriods.set(name, new Set());
         }
+        if (!invigilatorDayLoad.has(name)) {
+          invigilatorDayLoad.set(name, new Map());
+        }
 
         invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
         invigilatorBusyPeriods.get(name).add(periodKey);
+        const dayLoadMap = invigilatorDayLoad.get(name);
+        dayLoadMap.set(slot.dateISO, (dayLoadMap.get(slot.dateISO) || 0) + 1);
       });
 
       return chosen;
@@ -5170,6 +5185,7 @@ const hallsPool = normalizedExamHalls;
   const hallUsageMap = new Map();
   const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
   const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
+  const invigilatorDayLoad = new Map(invigilatorPool.map((name) => [name, new Map()]));
   const scheduledTypeByDate = new Map();
   const orderedDateIndexMap = new Map(
     Array.from(new Set(slots.map((slot) => slot.dateISO))).map((dateISO, index) => [dateISO, index])
@@ -5209,9 +5225,12 @@ const periodKey = getSlotPeriodKey(item);
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
 if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
+if (!invigilatorDayLoad.has(name)) invigilatorDayLoad.set(name, new Map());
 
 invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
 invigilatorBusyPeriods.get(name).add(periodKey);
+const dayLoadMap = invigilatorDayLoad.get(name);
+dayLoadMap.set(item.dateISO, (dayLoadMap.get(item.dateISO) || 0) + 1);
     });
 
     const itemTypeKey = isGeneralStudiesCourse(item) ? "general" : "specialized";
@@ -5226,17 +5245,23 @@ const getMinInvigilatorLoad = () => {
   const values = Array.from(invigilatorLoad.values());
   return values.length ? Math.min(...values) : 0;
 };
-const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+const getInvigilatorDayLoadForDate = (name, dateISO) =>
+  invigilatorDayLoad.get(name)?.get(dateISO) || 0;
+const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
   const load = invigilatorLoad.get(name) || 0;
   const minLoad = getMinInvigilatorLoad();
+  const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
 
   // عقوبة كبيرة إذا تجاوز الأدنى بأكثر من 1
   const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
 
+  // تقليل تكرار المراقب في نفس اليوم قدر الإمكان
+  const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
+
   // أفضلية بسيطة جدًا لمدرب المقرر بدون كسر العدالة
   const trainerBonus = preferTrainer ? -0.15 : 0;
 
-  return load + overloadPenalty + trainerBonus;
+  return load + overloadPenalty + sameDayPenalty + trainerBonus;
 };
 
 const pickInvigilators = (course, slot) => {
@@ -5321,11 +5346,13 @@ const pickInvigilators = (course, slot) => {
     [...candidates].sort((a, b) => {
       const aScore = rankInvigilatorForFairness(
         a,
+        slot,
         preferCourseTrainerInvigilation &&
           normalizedTrainerSet.has(normalizeArabic(a))
       );
       const bScore = rankInvigilatorForFairness(
         b,
+        slot,
         preferCourseTrainerInvigilation &&
           normalizedTrainerSet.has(normalizeArabic(b))
       );
@@ -5358,21 +5385,20 @@ const pickInvigilators = (course, slot) => {
     const fallbackCandidates = [...fallbackPool]
       .filter((name) => !chosen.includes(name))
       .sort((a, b) => {
-        const aLoad = invigilatorLoad.get(a) || 0;
-        const bLoad = invigilatorLoad.get(b) || 0;
-
-        const aTrainer =
+        const aScore = rankInvigilatorForFairness(
+          a,
+          slot,
           preferCourseTrainerInvigilation &&
-          normalizedTrainerSet.has(normalizeArabic(a));
-        const bTrainer =
-          preferCourseTrainerInvigilation &&
-          normalizedTrainerSet.has(normalizeArabic(b));
-
-        return (
-          aLoad - bLoad ||
-          Number(bTrainer) - Number(aTrainer) ||
-          a.localeCompare(b, "ar")
+            normalizedTrainerSet.has(normalizeArabic(a))
         );
+        const bScore = rankInvigilatorForFairness(
+          b,
+          slot,
+          preferCourseTrainerInvigilation &&
+            normalizedTrainerSet.has(normalizeArabic(b))
+        );
+
+        return aScore - bScore || a.localeCompare(b, "ar");
       });
 
     for (const name of fallbackCandidates) {
@@ -5385,9 +5411,14 @@ const pickInvigilators = (course, slot) => {
     if (!invigilatorBusyPeriods.has(name)) {
       invigilatorBusyPeriods.set(name, new Set());
     }
+    if (!invigilatorDayLoad.has(name)) {
+      invigilatorDayLoad.set(name, new Map());
+    }
 
     invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
     invigilatorBusyPeriods.get(name).add(periodKey);
+    const dayLoadMap = invigilatorDayLoad.get(name);
+    dayLoadMap.set(slot.dateISO, (dayLoadMap.get(slot.dateISO) || 0) + 1);
   });
 
   return chosen;
