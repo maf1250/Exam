@@ -2602,27 +2602,12 @@ const periodOverlapWarning = useMemo(() => {
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
     } else {
       const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-     const candidateHallsForMessage = sortHallsByCourseHallPreference(
-  filterHallsByCourseHallConstraint(
-    (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
-      isHallAllowedForCourse(hall, course)
-    ),
-    course
-  ),
-  course
-);
-
-const maxRemaining = candidateHallsForMessage.length
-  ? candidateHallsForMessage.reduce((best, hall) => {
-      const remaining = getEffectiveAssignableHallCapacityForSlot(
-        hall,
+      const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+        normalizedExamHalls,
         course,
-        bestSlot || slot,
+        targetSlot,
         hallUsageMap
       );
-      return Math.max(best, Number(remaining) || 0);
-    }, 0)
-  : 0;
 
       console.log("HALL_DEBUG_MANUAL_PLACE", {
         course: course.courseName || course.courseCode || course.key,
@@ -4942,29 +4927,13 @@ const pickInvigilators = (course, slot) => {
       const matchingHallCount = matchingHallDetails.filter((item) => item.canAssign && item.passesConstraint).length;
 
       if (!matchingHallCount) {
-   console.log("HALL_DEBUG_SLOT_SCAN", {
-  course: course.courseName,
-  requiredSeats,
-  slot: getSlotPeriodKey(slot),
-  hallConstraint: getCourseHallConstraintSummary(course),
-  halls: candidateHalls.map((hall) => ({
-    hall: hall.name,
-    hallId: hall.id,
-    remaining: getEffectiveAssignableHallCapacityForSlot(
-      hall,
-      course,
-      slot,
-      hallUsageMap
-    ),
-    canFit: getEffectiveAssignableHallCapacityForSlot(
-      hall,
-      course,
-      slot,
-      hallUsageMap
-    ) >= requiredSeats,
-  })),
-});
-        
+        console.log("HALL_DEBUG_SLOT_SCAN", {
+          course: course.courseName || course.courseCode || course.key,
+          requiredSeats: Number(course.studentCount) || 0,
+          slot: getSlotPeriodKey(slot),
+          hallConstraint: getEffectiveHallConstraintSummary(course),
+          halls: matchingHallDetails,
+        });
         diagnosis.hallUnavailable += 1;
       }
 
@@ -5016,30 +4985,30 @@ const requiredSeats = Number(course.studentCount) || 0;
     const reasonParts = [];
 
     if ((Number(maxAvailable) || 0) <= 0) {
-           console.log("MAX_REMAINING_DEBUG", {
-  course: course.courseName,
-  requiredSeats,
-  bestSlot: bestSlot ? getSlotPeriodKey(bestSlot) : null,
-  maxRemaining,
-});
       return {
-   
         shortLabel: "لا توجد قاعة مناسبة",
-       
- detail:
-      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
-      `يحتاج ${requiredSeats} مقعدًا، ` +
-      `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
-  };
-}
+        detail:
+          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
+          `يحتاج ${requiredSeats} مقعدًا، ` +
+          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+      };
+    }
 
     if (!hasAnyFittableHallInAnySlot) {
+      console.log("MAX_REMAINING_DEBUG", {
+        course: course.courseName,
+        requiredSeats,
+        maxAvailable,
+        maxRemainingAcrossSlots,
+        hallConstraint: hallConstraintSummary,
+      });
+
       return {
         shortLabel: "لا توجد قاعة مناسبة",
         detail:
           hallConstraintSummary.mode === "only"
-            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number(maxRemainingAcrossSlots) || 0}.`
-            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة متبقية فعلية بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number(maxRemainingAcrossSlots) || 0}.`,
+            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`
+            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`,
       };
     }
 
@@ -5300,21 +5269,12 @@ sortedCoursesForInvigilation.forEach((course) => {
     halls: hallDebugSnapshot,
   });
 
-const maxRemaining = sortHallsByCourseHallPreference(
-  filterHallsByCourseHallConstraint(
-    hallsPool.filter((hall) => isHallAllowedForCourse(hall, course)),
-    course
-  ),
-  course
-).reduce((best, hall) => {
-  const remaining = getEffectiveAssignableHallCapacityForSlot(
-    hall,
+  const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+    hallsPool,
     course,
     bestSlot,
     hallUsageMap
   );
-  return Math.max(best, remaining);
-}, 0);
 
   hallWarningItems.push({
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
@@ -9414,8 +9374,7 @@ style={{
                               fontSize: 13,
                             }}
                           >
-                            
-                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxRemaining}
+                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxAvailable}
                           </span>
                         ))}
                       </div>
