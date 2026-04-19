@@ -2558,14 +2558,14 @@ const periodOverlapWarning = useMemo(() => {
       course
     );
     let assignedHall = "";
-    console.log("HALL_FILTER_DEBUG", {
+   console.log("HALL_FILTER_DEBUG", {
   course: course.courseName || course.courseCode,
-  slot: getSlotPeriodKey(bestSlot || targetSlot),
-  allHalls: (hallsPool || []).map((hall) => ({
+  slot: getSlotPeriodKey(targetSlot),
+  allHalls: (normalizedExamHalls || []).map((hall) => ({
     name: hall.name,
     allowSharedAssignments: hall.allowSharedAssignments,
   })),
-  afterConstraintFilter: filterHallsByCourseHallConstraint(hallsPool, course).map((hall) => hall.name),
+  afterConstraintFilter: filterHallsByCourseHallConstraint(normalizedExamHalls, course).map((hall) => hall.name),
   fittingHalls: fittingHalls.map((hall) => hall.name),
   courseHallConstraint: getCourseHallConstraint(course),
 });
