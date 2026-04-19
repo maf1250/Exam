@@ -635,6 +635,29 @@ function reserveHallForCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
   hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + students);
 }
 
+function reserveSeatsInHallForSlot(hall, slotOrItem, hallUsageMap, seats) {
+  const seatCount = Number(seats) || 0;
+  if (!hall || seatCount <= 0) return;
+  const key = getHallUsageKey(slotOrItem, hall);
+  hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + seatCount);
+}
+
+function getScheduledItemHallAssignments(item) {
+  if (Array.isArray(item?.examHallAssignments) && item.examHallAssignments.length) {
+    return item.examHallAssignments
+      .map((entry) => ({
+        hallName: String(entry?.hallName || entry?.name || "").trim(),
+        seats: Number(entry?.seats) || 0,
+      }))
+      .filter((entry) => entry.hallName && entry.seats > 0);
+  }
+
+  const fallbackHall = String(item?.examHall || "").trim();
+  const fallbackSeats = Number(item?.studentCount) || 0;
+  if (!fallbackHall || fallbackSeats <= 0) return [];
+  return [{ hallName: fallbackHall, seats: fallbackSeats }];
+}
+
 function fieldStyle() {
   return {
     width: "100%",
@@ -1752,6 +1775,8 @@ function getCourseHallConstraintDefaults() {
   return {
     mode: "off",
     hallNames: [],
+    splitEnabled: false,
+    splitHallNames: [],
   };
 }
 
@@ -1782,6 +1807,12 @@ function sanitizeCourseHallConstraintsMap(map, validKeys, validHallNames) {
       hallNames: Array.from(
         new Set(
           (value?.hallNames || []).filter((name) => allowedHallNames.has(normalizeArabic(name)))
+        )
+      ),
+      splitEnabled: Boolean(value?.splitEnabled),
+      splitHallNames: Array.from(
+        new Set(
+          (value?.splitHallNames || []).filter((name) => allowedHallNames.has(normalizeArabic(name)))
         )
       ),
     };
@@ -2497,6 +2528,52 @@ const periodOverlapWarning = useMemo(() => {
   }
 
 
+  function getCourseSplitConstraint(course) {
+    const constraint = getCourseHallConstraint(course);
+    return {
+      enabled: Boolean(constraint?.splitEnabled),
+      hallNames: Array.from(
+        new Set((constraint?.splitHallNames || []).map((name) => String(name || "").trim()).filter(Boolean))
+      ),
+    };
+  }
+
+  function getSplitAssignableHallCombinationForSlot(halls, course, slotOrItem, hallUsageMap) {
+    const splitConstraint = getCourseSplitConstraint(course);
+    if (!splitConstraint.enabled || splitConstraint.hallNames.length < 2) return [];
+
+    const allowedNames = new Set(splitConstraint.hallNames.map((name) => normalizeArabic(name)));
+    const candidates = getConstrainedHallsForCourse(halls, course)
+      .filter((hall) => allowedNames.has(normalizeArabic(hall.name)))
+      .map((hall) => ({
+        hall,
+        remaining: getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap),
+      }))
+      .filter((item) => item.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining || Number(b.hall.capacity) - Number(a.hall.capacity));
+
+    const selected = [];
+    let remainingStudents = Number(course?.studentCount) || 0;
+
+    for (const item of candidates) {
+      const available = Number(item.remaining) || 0;
+      if (available <= 0) continue;
+
+      const assignedSeats = Math.min(remainingStudents, available);
+      if (assignedSeats <= 0) continue;
+
+      selected.push({
+        hall: item.hall,
+        seats: assignedSeats,
+      });
+      remainingStudents -= assignedSeats;
+
+      if (remainingStudents <= 0) break;
+    }
+
+    return remainingStudents <= 0 && selected.length >= 2 ? selected : [];
+  }
+
   function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
     if (!course || !targetSlotId) return [];
 
@@ -2768,10 +2845,12 @@ const periodOverlapWarning = useMemo(() => {
   function resolveManualPlacementResources(course, targetSlot, currentSchedule = [], ignoreInstanceId = "") {
     const hallUsageMap = new Map();
     (Array.isArray(currentSchedule) ? currentSchedule : [])
-      .filter((item) => item && item.instanceId !== ignoreInstanceId && item.id === targetSlot.id && item.examHall)
+      .filter((item) => item && item.instanceId !== ignoreInstanceId && item.id === targetSlot.id)
       .forEach((item) => {
-        const key = getHallUsageKey(targetSlot, item.examHall);
-        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
+        getScheduledItemHallAssignments(item).forEach((entry) => {
+          const key = getHallUsageKey(targetSlot, entry.hallName);
+          hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(entry.seats) || 0));
+        });
       });
 
     const fittingHalls = getAssignableConstrainedHallsForSlot(
@@ -2782,26 +2861,51 @@ const periodOverlapWarning = useMemo(() => {
     );
 
     let assignedHall = "";
+    let assignedHallAssignments = [];
     if (fittingHalls.length) {
       assignedHall = fittingHalls[0].name;
+      assignedHallAssignments = [
+        {
+          hallName: fittingHalls[0].name,
+          seats: Number(course.studentCount) || 0,
+        },
+      ];
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
     } else {
-      const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-      const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+      const splitAssignments = getSplitAssignableHallCombinationForSlot(
         normalizedExamHalls,
         course,
         targetSlot,
         hallUsageMap
       );
 
-      return {
-        ok: false,
-        reasonType: "hall",
-        reasonMessage:
-          hallConstraintSummary.mode === "only"
-            ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
-            : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
-      };
+      if (splitAssignments.length) {
+        assignedHallAssignments = splitAssignments.map((entry) => ({
+          hallName: entry.hall.name,
+          seats: entry.seats,
+        }));
+        assignedHall = assignedHallAssignments.map((entry) => entry.hallName).join(" + ");
+        splitAssignments.forEach((entry) => {
+          reserveSeatsInHallForSlot(entry.hall, targetSlot, hallUsageMap, entry.seats);
+        });
+      } else {
+        const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
+        const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+          normalizedExamHalls,
+          course,
+          targetSlot,
+          hallUsageMap
+        );
+
+        return {
+          ok: false,
+          reasonType: "hall",
+          reasonMessage:
+            hallConstraintSummary.mode === "only"
+              ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
+              : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
+        };
+      }
     }
 
     const { pickInvigilatorsForSlot } = buildManualPlacementContext(currentSchedule, ignoreInstanceId);
@@ -2819,6 +2923,7 @@ const periodOverlapWarning = useMemo(() => {
     return {
       ok: true,
       assignedHall,
+      assignedHallAssignments,
       invigilators: pickedInvigilators,
     };
   }
@@ -2860,6 +2965,7 @@ const periodOverlapWarning = useMemo(() => {
       scheduleTypes: Array.from(course.scheduleTypes || []),
       departmentRoots: Array.from(course.departmentRoots || []),
       examHall: assignedHall,
+      examHallAssignments: manualPlacement.assignedHallAssignments,
       invigilators: manualPlacement.invigilators,
       manualEdited: true,
       isPinned: false,
@@ -2927,6 +3033,7 @@ const periodOverlapWarning = useMemo(() => {
               ...item,
               ...targetSlot,
               examHall: manualPlacement.assignedHall,
+              examHallAssignments: manualPlacement.assignedHallAssignments,
               invigilators: manualPlacement.invigilators,
               manualEdited: true,
             }
@@ -3443,6 +3550,7 @@ const serializeScheduleItem = (item) => ({
   students: Array.isArray(item.students)
     ? item.students
     : Array.from(item.students || []),
+  examHallAssignments: getScheduledItemHallAssignments(item),
 });
 
 
@@ -3480,6 +3588,7 @@ const deserializeScheduleItem = (item) => ({
   ...item,
   instanceId: item.instanceId || makeScheduledInstanceId(),
   students: Array.isArray(item.students) ? item.students : [],
+  examHallAssignments: getScheduledItemHallAssignments(item),
 });
 
   const formatTrainees = (n) => {
@@ -4952,12 +5061,14 @@ const periodKey = getSlotPeriodKey(item);
     }
     slotCoursesMap.get(slotId).push(item.key);
 
-    const existingHall = hallsPool.find(
-      (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
-    );
-    if (existingHall && Number(item.studentCount) > 0) {
-      reserveHallForCourseInSlot(existingHall, item, item, hallUsageMap);
-    }
+    getScheduledItemHallAssignments(item).forEach((entry) => {
+      const existingHall = hallsPool.find(
+        (hall) => normalizeArabic(hall.name) === normalizeArabic(entry.hallName)
+      );
+      if (existingHall && Number(entry.seats) > 0) {
+        reserveSeatsInHallForSlot(existingHall, item, hallUsageMap, entry.seats);
+      }
+    });
 
     (item.invigilators || []).forEach((name) => {
       if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
@@ -5608,12 +5719,36 @@ sortedCoursesForInvigilation.forEach((course) => {
 
     let assignedHall = null;
     let assignedHallObj = null;
+    let assignedHallAssignments = [];
 
     if (fittingHalls.length) {
       assignedHallObj = fittingHalls[0];
       assignedHall = assignedHallObj.name;
+      assignedHallAssignments = [
+        {
+          hallName: assignedHallObj.name,
+          seats: Number(course.studentCount) || 0,
+        },
+      ];
       reserveHallForCourseInSlot(assignedHallObj, course, bestSlot, hallUsageMap);
     } else {
+      const splitAssignments = getSplitAssignableHallCombinationForSlot(
+        hallsPool,
+        course,
+        bestSlot,
+        hallUsageMap
+      );
+
+      if (splitAssignments.length) {
+        assignedHallAssignments = splitAssignments.map((entry) => ({
+          hallName: entry.hall.name,
+          seats: entry.seats,
+        }));
+        assignedHall = assignedHallAssignments.map((entry) => entry.hallName).join(" + ");
+        splitAssignments.forEach((entry) => {
+          reserveSeatsInHallForSlot(entry.hall, bestSlot, hallUsageMap, entry.seats);
+        });
+      } else {
  
   const constrainedHallNames = new Set(
     getConstrainedHallsForCourse(hallsPool, course).map((hall) => normalizeArabic(hall.name))
@@ -5670,6 +5805,7 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   return;
 }
+    }
   
     slotCoursesMap.get(bestSlot.id).push(course.key);
 const pickedInvigilators = pickInvigilators(course, bestSlot);
@@ -5696,6 +5832,7 @@ const placedItem = {
   scheduleTypes: Array.from(course.scheduleTypes || []),
   departmentRoots: Array.from(course.departmentRoots || []),
   examHall: assignedHall,
+  examHallAssignments: assignedHallAssignments,
   invigilators: pickedInvigilators,
   manualEdited: false,
   isPinned: false,
@@ -7310,6 +7447,98 @@ style={{
                         <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للمقررات.</div>
                       )}
 
+
+                      <div
+                        style={{
+                          marginTop: 14,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 14,
+                          padding: 14,
+                          background: COLORS.bg2,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedCourseHallConstraint.splitEnabled)}
+                              onChange={(e) =>
+                                updateCourseHallConstraint(selectedHallConstraintCourseKey, {
+                                  splitEnabled: e.target.checked,
+                                })
+                              }
+                            />
+                            <span>تفعيل/إلغاء تقسيم المقرر</span>
+                          </label>
+
+                          <span
+                            title="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل."
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 999,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: COLORS.primaryLight,
+                              color: COLORS.primaryDark,
+                              border: `1px solid ${COLORS.primaryBorder}`,
+                              fontWeight: 900,
+                              cursor: "help",
+                            }}
+                          >
+                            ؟
+                          </span>
+                        </div>
+
+                        <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
+                          اختر القاعات التي يمكن للنظام أن يجمع بينها لهذا المقرر عند الحاجة.
+                        </div>
+
+                        {normalizedExamHalls.length ? (
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                            {normalizedExamHalls.map((hall) => {
+                              const checked = (selectedCourseHallConstraint.splitHallNames || []).includes(hall.name);
+                              return (
+                                <label
+                                  key={`course-split-hall-${hall.id}`}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                    background: checked ? COLORS.primaryLight : "#fff",
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    cursor: selectedCourseHallConstraint.splitEnabled ? "pointer" : "not-allowed",
+                                    opacity: selectedCourseHallConstraint.splitEnabled ? 1 : 0.65,
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={!selectedCourseHallConstraint.splitEnabled}
+                                    onChange={() => {
+                                      const currentSplitHallNames = Array.isArray(selectedCourseHallConstraint.splitHallNames)
+                                        ? selectedCourseHallConstraint.splitHallNames
+                                        : [];
+                                      const nextSplitHallNames = currentSplitHallNames.includes(hall.name)
+                                        ? currentSplitHallNames.filter((name) => name !== hall.name)
+                                        : [...currentSplitHallNames, hall.name];
+
+                                      updateCourseHallConstraint(selectedHallConstraintCourseKey, {
+                                        splitHallNames: nextSplitHallNames,
+                                      });
+                                    }}
+                                  />
+                                  <span>{hall.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
                         <button
                           type="button"
@@ -7509,6 +7738,98 @@ style={{
                       ) : (
                         <div style={{ color: COLORS.muted }}>أضف القاعات أولًا حتى تتمكن من تخصيصها للأقسام أو التخصصات.</div>
                       )}
+
+
+                      <div
+                        style={{
+                          marginTop: 14,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 14,
+                          padding: 14,
+                          background: COLORS.bg2,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedCourseHallConstraint.splitEnabled)}
+                              onChange={(e) =>
+                                updateCourseHallConstraint(selectedHallConstraintCourseKey, {
+                                  splitEnabled: e.target.checked,
+                                })
+                              }
+                            />
+                            <span>تفعيل/إلغاء تقسيم المقرر</span>
+                          </label>
+
+                          <span
+                            title="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل."
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 999,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: COLORS.primaryLight,
+                              color: COLORS.primaryDark,
+                              border: `1px solid ${COLORS.primaryBorder}`,
+                              fontWeight: 900,
+                              cursor: "help",
+                            }}
+                          >
+                            ؟
+                          </span>
+                        </div>
+
+                        <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
+                          اختر القاعات التي يمكن للنظام أن يجمع بينها لهذا المقرر عند الحاجة.
+                        </div>
+
+                        {normalizedExamHalls.length ? (
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                            {normalizedExamHalls.map((hall) => {
+                              const checked = (selectedCourseHallConstraint.splitHallNames || []).includes(hall.name);
+                              return (
+                                <label
+                                  key={`course-split-hall-${hall.id}`}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    border: `1px solid ${checked ? COLORS.primaryBorder : COLORS.border}`,
+                                    background: checked ? COLORS.primaryLight : "#fff",
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    cursor: selectedCourseHallConstraint.splitEnabled ? "pointer" : "not-allowed",
+                                    opacity: selectedCourseHallConstraint.splitEnabled ? 1 : 0.65,
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={!selectedCourseHallConstraint.splitEnabled}
+                                    onChange={() => {
+                                      const currentSplitHallNames = Array.isArray(selectedCourseHallConstraint.splitHallNames)
+                                        ? selectedCourseHallConstraint.splitHallNames
+                                        : [];
+                                      const nextSplitHallNames = currentSplitHallNames.includes(hall.name)
+                                        ? currentSplitHallNames.filter((name) => name !== hall.name)
+                                        : [...currentSplitHallNames, hall.name];
+
+                                      updateCourseHallConstraint(selectedHallConstraintCourseKey, {
+                                        splitHallNames: nextSplitHallNames,
+                                      });
+                                    }}
+                                  />
+                                  <span>{hall.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
 
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
                         <button
