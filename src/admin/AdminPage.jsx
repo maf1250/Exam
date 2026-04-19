@@ -5321,10 +5321,25 @@ const pickInvigilators = (course, slot) => {
       let slotLevelConflict = false;
       let slotInvigilatorShortage = false;
       let slotAvoidedConstraint = false;
+      const slotBlockingStudents = [];
+      const slotBlockingStudentIds = new Set();
 
       course.students.forEach((studentId) => {
         const usedSlots = studentSlotMap.get(studentId) || new Set();
-        if (usedSlots.has(slot.id)) slotStudentConflict = true;
+        if (usedSlots.has(slot.id)) {
+          slotStudentConflict = true;
+          if (!slotBlockingStudentIds.has(studentId)) {
+            slotBlockingStudentIds.add(studentId);
+            slotBlockingStudents.push(
+              preciseStudentInfoMap.get(studentId) || {
+                id: studentId,
+                name: 'بدون اسم',
+                department: '-',
+                major: '-',
+              }
+            );
+          }
+        }
 
         const dayMap = studentDayMap.get(studentId) || new Map();
         const sameDayCount = dayMap.get(slot.dateISO) || 0;
@@ -5339,6 +5354,9 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
+          blockingStudents: slotBlockingStudents
+            .slice()
+            .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'ar') || String(a?.id || '').localeCompare(String(b?.id || ''), 'ar')),
         });
       }
       if (slotDailyLimit) {
@@ -11214,7 +11232,9 @@ style={{
                   <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
                 ) : null}
                 {Array.isArray(slot.blockingStudents) && slot.blockingStudents.length ? (
-                  <div><strong>المتدربون المتأثرون:</strong> {slot.blockingStudents.map((student) => student?.name || student?.id || student).join("، ")}</div>
+                  <div>
+                    <strong>أسماء المتدربين المتعارضين:</strong> {slot.blockingStudents.map((student) => student?.name || student?.id || student).join("، ")}
+                  </div>
                 ) : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
                 {slot.availableInvigilatorsCount != null ? <div><strong>المراقبون المتاحون فعليًا:</strong> {slot.availableInvigilatorsCount}</div> : null}
