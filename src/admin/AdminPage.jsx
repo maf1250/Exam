@@ -4972,34 +4972,33 @@ const requiredSeats = Number(course.studentCount) || 0;
     const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
 
     const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-    const maxRemainingAcrossSlots = diagnosis.totalSlots
-      ? slots.reduce((best, slot) => {
-          return Math.max(
-            best,
-            getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
-          );
-        }, 0)
-      : 0;
+    const maxRemainingAcrossSlots = (Array.isArray(slots) ? slots : []).reduce(
+  (bestAcrossSlots, slotItem) => {
 
-    const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
-    const reasonParts = [];
-const candidateHallsForMessage = sortHallsByCourseHallPreference(
-  filterHallsByCourseHallConstraint(
-    (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
-      isHallAllowedForCourse(hall, course)
-    ),
-    course
-  ),
-  course
+    const candidateHalls = sortHallsByCourseHallPreference(
+      filterHallsByCourseHallConstraint(
+        (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
+          isHallAllowedForCourse(hall, course)
+        ),
+        course
+      ),
+      course
+    );
+
+    const maxInThisSlot = candidateHalls.reduce((best, hall) => {
+      const computed = getEffectiveAssignableHallCapacityForSlot(
+        hall,
+        course,
+        slotItem,
+        hallUsageMap
+      );
+      return Math.max(best, Number(computed) || 0);
+    }, 0);
+
+    return Math.max(bestAcrossSlots, maxInThisSlot);
+  },
+  0
 );
-
-const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
-  const computed = getEffectiveAssignableHallCapacityForSlot(
-    hall,
-    course,
-     slot,
-    hallUsageMap
-  );
   return Math.max(best, Number(computed) || 0);
 }, 0);
   if ((Number(maxRemaining) || 0) < requiredSeats) {
@@ -5008,7 +5007,11 @@ const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
     detail:
       `لا توجد قاعة مناسبة لهذا المقرر في هذه الفترة. ` +
       `يحتاج ${requiredSeats} مقعدًا، ` +
-      `وأكبر سعة قابلة للإسناد فعليًا ${Number(maxRemaining) || 0}.`,
+      `وأكبر سعة قابلة للإسناد فعليًا ${
+  Number.isFinite(Number(maxRemainingAcrossSlots))
+    ? Number(maxRemainingAcrossSlots)
+    : 0
+}`,
   };
 }
 
