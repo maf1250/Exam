@@ -4983,7 +4983,25 @@ const requiredSeats = Number(course.studentCount) || 0;
 
     const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
     const reasonParts = [];
+const candidateHallsForMessage = sortHallsByCourseHallPreference(
+  filterHallsByCourseHallConstraint(
+    (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
+      isHallAllowedForCourse(hall, course)
+    ),
+    course
+  ),
+  course
+);
 
+const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
+  const computed = getEffectiveAssignableHallCapacityForSlot(
+    hall,
+    course,
+    bestSlot || slot,
+    hallUsageMap
+  );
+  return Math.max(best, Number(computed) || 0);
+}, 0);
   if ((Number(maxRemaining) || 0) < requiredSeats) {
   return {
     shortLabel: "لا توجد قاعة مناسبة",
