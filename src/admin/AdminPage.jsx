@@ -1146,7 +1146,7 @@ function getPrintBaseStyles() {
     }
 
     .num-cell {
-      width: 20px;
+      width: 15px;
     }
 
     .course-cell {
@@ -1154,11 +1154,11 @@ function getPrintBaseStyles() {
     }
 
     .code-cell {
-      width: 45px;
+      width: 30px;
     }
 
     .hall-cell {
-      width: 90px;
+      width: 70px;
     }
 
     .section-note {
