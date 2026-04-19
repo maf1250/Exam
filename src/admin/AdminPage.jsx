@@ -3276,7 +3276,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
   const [courseLevels, setCourseLevels] = useState({});
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
-  const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(true);
+  const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(false);
   const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
@@ -3964,7 +3964,7 @@ const restorePersistedState = (saved) => {
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
   setCourseLevels(saved.courseLevels || {});
-  setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? true);
+  setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? false);
   setGeneralSchedule((saved.generalSchedule || []).map(deserializeScheduleItem));
   setSpecializedSchedule((saved.specializedSchedule || []).map(deserializeScheduleItem));
   setSchedule((saved.schedule || []).map(deserializeScheduleItem));
@@ -7241,7 +7241,7 @@ const headerBtn = (danger = false) => ({
           <Card>
             <SectionHeader
               title="الخصائص العامة"
-              description="هذه الصفحة مخصصة للإعدادات العامة الأساسية للجدولة مثل البيانات العامة والفترات والقاعات، وتبقى هذه الخصائص مرئية لأنها أساسية في الإعداد."
+              description="هذه الصفحة مخصصة للإعدادات العامة الأساسية للجدولة مثل البيانات العامة والفترات والقاعات."
             />
 
 
@@ -7415,7 +7415,7 @@ const headerBtn = (danger = false) => ({
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
-    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة، علمً بأنه لا يمكن توزيع المقررات دون إضافة قاعات."
+    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة، علمًا بأنه لا يمكن توزيع المقررات دون إضافة قاعات."
   />
 
   <div style={{ display: "grid", gap: 14 }}>
@@ -9386,7 +9386,7 @@ const headerBtn = (danger = false) => ({
 
         {currentStep === 6 && (
           <Card>
-            <SectionHeader title="توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع مقررات التخصص." />
+            <SectionHeader title="توزيع مقررات التخصص" description="بعد الانتهاء من توزيع مقررات الدراسات العامة، يمكنك مقررات التخصص." />
 
             <div style={{ marginTop: 4 }}>
               <label
