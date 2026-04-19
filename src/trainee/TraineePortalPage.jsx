@@ -75,7 +75,6 @@ function openPrintWindow({ collegeName, selectedStudent }) {
           <td>${index + 1}</td>
           <td>${escapeHtml(item.courseName || "-")}</td>
           <td>${escapeHtml(item.courseCode || "-")}</td>
-          <td>${escapeHtml(item.dayName || "-")}</td>
           <td>${escapeHtml(item.gregorian || "-")}</td>
           <td>${escapeHtml(item.hijriNumeric || "-")}</td>
           <td>${escapeHtml(item.period || "-")}</td>
@@ -232,11 +231,10 @@ function openPrintWindow({ collegeName, selectedStudent }) {
         <thead>
           <tr>
             <th>م</th>
+            <th>اليوم والتاريخ</th>
+            <th>التاريخ الهجري</th>
             <th>المقرر</th>
             <th>الرمز</th>
-            <th>اليوم</th>
-            <th>التاريخ الميلادي</th>
-            <th>التاريخ الهجري</th>
             <th>الفترة</th>
             <th>الوقت</th>
             <th>المقر</th>
@@ -284,7 +282,7 @@ export default function TraineePortalPage() {
 
         const res = await fetch(`/colleges/${normalizedSlug}.json`);
         if (!res.ok) {
-          throw new Error("تعذر تحميل بيانات الكلية");
+          throw new Error("تعذر تحميل بيانات الوحدة التدريبية");
         }
 
         const data = await res.json();
@@ -294,7 +292,7 @@ export default function TraineePortalPage() {
       } catch (err) {
         if (!cancelled) {
           setCollegeData(null);
-          setError("لا توجد بيانات منشورة لهذه الكلية أو أن الرابط غير صحيح.");
+          setError("لا توجد بيانات منشورة لهذه الوحدة التدريبية أو أن الرابط غير صحيح.");
         }
       } finally {
         if (!cancelled) {
@@ -694,11 +692,10 @@ export default function TraineePortalPage() {
                         <tr style={{ background: "#F2FCFB" }}>
                           {[
                             "م",
+                            "اليوم والتاريخ",
+                            "التاريخ الهجري",
                             "المقرر",
                             "الرمز",
-                            "اليوم",
-                            "التاريخ الميلادي",
-                            "التاريخ الهجري",
                             "الفترة",
                             "الوقت",
                             "المقر",
@@ -723,11 +720,10 @@ export default function TraineePortalPage() {
                         {(selectedStudent.schedule || []).map((item, index) => (
                           <tr key={`${item.courseCode || item.courseName || index}-${index}`}>
                             <Cell>{index + 1}</Cell>
-                            <Cell>{item.courseName}</Cell>
-                            <Cell>{item.courseCode}</Cell>
-                            <Cell>{item.dayName}</Cell>
                             <Cell>{item.gregorian}</Cell>
                             <Cell>{item.hijriNumeric}</Cell>
+                            <Cell>{item.courseName}</Cell>
+                            <Cell>{item.courseCode}</Cell>
                             <Cell>{item.period}</Cell>
                             <Cell>{item.timeText}</Cell>
                             <Cell>{item.examHall}</Cell>
