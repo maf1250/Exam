@@ -2574,6 +2574,19 @@ const periodOverlapWarning = useMemo(() => {
     return remainingStudents <= 0 && selected.length >= 2 ? selected : [];
   }
 
+  function canAssignCourseToSlotWithSplit(halls, course, slotOrItem, hallUsageMap) {
+    const singleHallMatches = getAssignableConstrainedHallsForSlot(halls, course, slotOrItem, hallUsageMap);
+    if (singleHallMatches.length) return true;
+    return getSplitAssignableHallCombinationForSlot(halls, course, slotOrItem, hallUsageMap).length >= 2;
+  }
+
+  function getMaxAssignableCapacityForSlotIncludingSplit(halls, course, slotOrItem, hallUsageMap) {
+    const singleHallCapacity = getMaxRemainingConstrainedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap);
+    const splitAssignments = getSplitAssignableHallCombinationForSlot(halls, course, slotOrItem, hallUsageMap);
+    const splitCapacity = splitAssignments.reduce((sum, entry) => sum + (Number(entry.seats) || 0), 0);
+    return Math.max(singleHallCapacity, splitCapacity);
+  }
+
   function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
     if (!course || !targetSlotId) return [];
 
@@ -5361,7 +5374,7 @@ const pickInvigilators = (course, slot) => {
         };
       });
 
-      const matchingHallCount = matchingHallDetails.filter((item) => item.canAssign && item.passesConstraint).length;
+      const matchingHallCount = canAssignCourseToSlotWithSplit(hallsPool, course, slot, hallUsageMap) ? 1 : 0;
 
       if (!matchingHallCount) {
         console.log("HALL_DEBUG_SLOT_SCAN", {
@@ -5434,7 +5447,7 @@ const requiredSeats = Number(course.studentCount) || 0;
       ? slots.reduce((best, slot) => {
           return Math.max(
             best,
-            getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+            getMaxAssignableCapacityForSlotIncludingSplit(hallsPool, course, slot, hallUsageMap)
           );
         }, 0)
       : 0;
@@ -5465,8 +5478,8 @@ const requiredSeats = Number(course.studentCount) || 0;
         shortLabel: "لا توجد قاعة مناسبة",
         detail:
           hallConstraintSummary.mode === "only"
-            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`
-            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`,
+            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب التقسيم والمقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`
+            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد احتساب التقسيم والمقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`,
       };
     }
 
@@ -5568,9 +5581,7 @@ const requiredSeats = Number(course.studentCount) || 0;
       }
     }
 
-    const matchingHallCount = hallsPool.filter((hall) =>
-      canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
-    ).length;
+    const matchingHallCount = canAssignCourseToSlotWithSplit(hallsPool, course, slot, hallUsageMap) ? 1 : 0;
 
     if (!matchingHallCount) {
       return Number.POSITIVE_INFINITY;
@@ -5660,7 +5671,7 @@ sortedCoursesForInvigilation.forEach((course) => {
     ? slots.reduce((best, slot) => {
         return Math.max(
           best,
-          getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+          getMaxAssignableCapacityForSlotIncludingSplit(hallsPool, course, slot, hallUsageMap)
         );
       }, 0)
     : 0;
@@ -5672,7 +5683,7 @@ sortedCoursesForInvigilation.forEach((course) => {
     maxRemainingAcrossSlots,
     hallsBySlot: slots.map((slot) => ({
       slot: getSlotPeriodKey(slot),
-      maxRemaining: getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap),
+      maxRemaining: getMaxAssignableCapacityForSlotIncludingSplit(hallsPool, course, slot, hallUsageMap),
     })),
   });
 
