@@ -532,13 +532,18 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
   const hallCapacity = Number(hall?.capacity);
   if (!Number.isFinite(hallCapacity) || hallCapacity <= 0) return 0;
 
+  const requiredSeats = Number(course?.studentCount) || 0;
   const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall)) || 0;
   const rawRemaining = hallCapacity - used;
+  const remainingBeforeConstraint = Math.max(0, rawRemaining);
   const computedRemaining = hall.allowSharedAssignments
-    ? Math.max(0, rawRemaining)
+    ? remainingBeforeConstraint
     : (used > 0 ? 0 : hallCapacity);
+  const canFitSingleHall = computedRemaining >= requiredSeats;
 
   console.log("HALL_DEBUG", {
+    course: course?.courseName || course?.courseCode || course?.key || "",
+    requiredSeats,
     hall: hall.name,
     hallId: hall.id || null,
     allowSharedAssignments: hall.allowSharedAssignments,
@@ -546,9 +551,9 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
     capacity: hallCapacity,
     used,
     rawRemaining,
-    remainingBeforeConstraint: Math.max(0, rawRemaining),
+    remainingBeforeConstraint,
     computedRemaining,
-    canFitSingleHall: computedRemaining >= (Number(course?.studentCount) || 0),
+    canFitSingleHall,
   });
 
   return computedRemaining;
