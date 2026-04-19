@@ -2565,6 +2565,265 @@ const periodOverlapWarning = useMemo(() => {
     );
   }
 
+  function buildManualPlacementContext(currentSchedule = [], ignoreInstanceId = "") {
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split("
+").map((name) => name.trim()).filter(Boolean)
+      : parsed.invigilators;
+
+    const invigilatorPool = [
+      ...new Set(
+        baseInvigilators.filter((name) => {
+          const normalizedName = normalizeArabic(name);
+
+          const manuallyExcluded = excludedInvigilators.some(
+            (excluded) => normalizeArabic(excluded) === normalizedName
+          );
+
+          const excludedBecauseGeneralStudiesOnly =
+            !includeAllDepartmentsAndMajors &&
+            excludedInvigilatorsForSelectedDepartments.has(normalizedName);
+
+          return !manuallyExcluded && !excludedBecauseGeneralStudiesOnly;
+        })
+      ),
+    ];
+
+    const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
+    const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
+
+    (Array.isArray(currentSchedule) ? currentSchedule : [])
+      .filter((item) => item && item.instanceId !== ignoreInstanceId)
+      .forEach((item) => {
+        const periodKey = getSlotPeriodKey(item);
+        (item.invigilators || []).forEach((name) => {
+          if (!invigilatorLoad.has(name)) invigilatorLoad.set(name, 0);
+          if (!invigilatorBusyPeriods.has(name)) invigilatorBusyPeriods.set(name, new Set());
+          invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+          invigilatorBusyPeriods.get(name).add(periodKey);
+        });
+      });
+
+    const getMinInvigilatorLoad = () => {
+      const values = Array.from(invigilatorLoad.values());
+      return values.length ? Math.min(...values) : 0;
+    };
+
+    const rankInvigilatorForFairness = (name, preferTrainer = false) => {
+      const load = invigilatorLoad.get(name) || 0;
+      const minLoad = getMinInvigilatorLoad();
+      const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+      const trainerBonus = preferTrainer ? -0.15 : 0;
+      return load + overloadPenalty + trainerBonus;
+    };
+
+    const pickInvigilatorsForSlot = (course, slot) => {
+      if (!includeInvigilators) return [];
+
+      const requiredCount = getRequiredInvigilatorsCount(course);
+      const periodKey = getSlotPeriodKey(slot);
+      const chosen = [];
+
+      const courseTrainerNames = String(course.trainerText || "")
+        .split("/")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+      const normalizedTrainerSet = new Set(
+        courseTrainerNames.map((name) => normalizeArabic(name))
+      );
+
+      const constraint =
+        typeof getCourseInvigilatorConstraint === "function"
+          ? getCourseInvigilatorConstraint(course)
+          : { mode: "off", invigilatorNames: [] };
+
+      const baseCandidates = invigilatorPool
+        .filter(
+          (name) =>
+            !excludedInvigilators.some(
+              (ex) => normalizeArabic(ex) === normalizeArabic(name)
+            )
+        )
+        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+      const normalizedManualSet = new Set(
+        (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
+      );
+
+      const departmentTrainerSet = new Set(
+        (
+          (typeof getDepartmentTrainerNamesForCourse === "function"
+            ? getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet)
+            : []) || []
+        ).map((name) => normalizeArabic(name))
+      );
+
+      let constrainedCandidates = [...baseCandidates];
+      let strictOnlyMode = false;
+
+      switch (constraint.mode) {
+        case "only":
+          strictOnlyMode = true;
+          constrainedCandidates = baseCandidates.filter((name) =>
+            normalizedManualSet.has(normalizeArabic(name))
+          );
+          break;
+
+        case "avoid":
+          constrainedCandidates = baseCandidates.filter(
+            (name) => !normalizedManualSet.has(normalizeArabic(name))
+          );
+          break;
+
+        case "only_department_trainers":
+          strictOnlyMode = true;
+          constrainedCandidates = baseCandidates.filter((name) =>
+            departmentTrainerSet.has(normalizeArabic(name))
+          );
+          break;
+
+        case "avoid_department_trainers":
+          constrainedCandidates = baseCandidates.filter(
+            (name) => !departmentTrainerSet.has(normalizeArabic(name))
+          );
+          break;
+
+        case "prefer":
+        default:
+          constrainedCandidates = baseCandidates;
+          break;
+      }
+
+      const sortCandidates = (candidates) =>
+        [...candidates].sort((a, b) => {
+          const aScore = rankInvigilatorForFairness(
+            a,
+            preferCourseTrainerInvigilation &&
+              normalizedTrainerSet.has(normalizeArabic(a))
+          );
+          const bScore = rankInvigilatorForFairness(
+            b,
+            preferCourseTrainerInvigilation &&
+              normalizedTrainerSet.has(normalizeArabic(b))
+          );
+
+          return aScore - bScore || a.localeCompare(b, "ar");
+        });
+
+      while (chosen.length < requiredCount) {
+        const minLoad = getMinInvigilatorLoad();
+
+        const fairCandidates = sortCandidates(
+          constrainedCandidates
+            .filter((name) => !chosen.includes(name))
+            .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
+        );
+
+        if (!fairCandidates.length) break;
+        chosen.push(fairCandidates[0]);
+      }
+
+      if (chosen.length < requiredCount) {
+        const fallbackCandidates = [...constrainedCandidates]
+          .filter((name) => !chosen.includes(name))
+          .sort((a, b) => {
+            const aLoad = invigilatorLoad.get(a) || 0;
+            const bLoad = invigilatorLoad.get(b) || 0;
+
+            const aTrainer =
+              preferCourseTrainerInvigilation &&
+              normalizedTrainerSet.has(normalizeArabic(a));
+            const bTrainer =
+              preferCourseTrainerInvigilation &&
+              normalizedTrainerSet.has(normalizeArabic(b));
+
+            return (
+              aLoad - bLoad ||
+              Number(bTrainer) - Number(aTrainer) ||
+              a.localeCompare(b, "ar")
+            );
+          });
+
+        for (const name of fallbackCandidates) {
+          if (chosen.length >= requiredCount) break;
+          chosen.push(name);
+        }
+      }
+
+      chosen.forEach((name) => {
+        if (!invigilatorBusyPeriods.has(name)) {
+          invigilatorBusyPeriods.set(name, new Set());
+        }
+
+        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+        invigilatorBusyPeriods.get(name).add(periodKey);
+      });
+
+      return chosen;
+    };
+
+    return { pickInvigilatorsForSlot };
+  }
+
+  function resolveManualPlacementResources(course, targetSlot, currentSchedule = [], ignoreInstanceId = "") {
+    const hallUsageMap = new Map();
+    (Array.isArray(currentSchedule) ? currentSchedule : [])
+      .filter((item) => item && item.instanceId !== ignoreInstanceId && item.id === targetSlot.id && item.examHall)
+      .forEach((item) => {
+        const key = getHallUsageKey(targetSlot, item.examHall);
+        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
+      });
+
+    const fittingHalls = getAssignableConstrainedHallsForSlot(
+      normalizedExamHalls,
+      course,
+      targetSlot,
+      hallUsageMap
+    );
+
+    let assignedHall = "";
+    if (fittingHalls.length) {
+      assignedHall = fittingHalls[0].name;
+      reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
+    } else {
+      const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
+      const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+        normalizedExamHalls,
+        course,
+        targetSlot,
+        hallUsageMap
+      );
+
+      return {
+        ok: false,
+        reasonType: "hall",
+        reasonMessage:
+          hallConstraintSummary.mode === "only"
+            ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
+            : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
+      };
+    }
+
+    const { pickInvigilatorsForSlot } = buildManualPlacementContext(currentSchedule, ignoreInstanceId);
+    const pickedInvigilators = pickInvigilatorsForSlot(course, targetSlot);
+    const requiredInvigilators = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
+
+    if (includeInvigilators && pickedInvigilators.length < requiredInvigilators) {
+      return {
+        ok: false,
+        reasonType: "invigilators",
+        reasonMessage: `تعذر وضع المقرر في هذه الفترة لعدم توفر عدد كافٍ من المراقبين. المطلوب ${requiredInvigilators}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+      };
+    }
+
+    return {
+      ok: true,
+      assignedHall,
+      invigilators: pickedInvigilators,
+    };
+  }
+
   function placeUnscheduledCourseInSlot(courseKey, targetSlotId) {
     if (manualScheduleLocked) return;
 
@@ -2582,56 +2841,13 @@ const periodOverlapWarning = useMemo(() => {
       return;
     }
 
-    const hallUsageMap = new Map();
-    schedule
-      .filter((item) => item.id === targetSlotId && item.examHall)
-      .forEach((item) => {
-        const key = getHallUsageKey(targetSlot, item.examHall);
-        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
-      });
-
-    const fittingHalls = getAssignableConstrainedHallsForSlot(
-      normalizedExamHalls,
-      course,
-      targetSlot,
-      hallUsageMap
-    );
-    let assignedHall = "";
-    if (fittingHalls.length) {
-      assignedHall = fittingHalls[0].name;
-      reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
-    } else {
-      const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-      const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
-        normalizedExamHalls,
-        course,
-        targetSlot,
-        hallUsageMap
-      );
-
-      console.log("HALL_DEBUG_MANUAL_PLACE", {
-        course: course.courseName || course.courseCode || course.key,
-        requiredSeats: Number(course.studentCount) || 0,
-        slot: getSlotPeriodKey(targetSlot),
-        hallConstraint: hallConstraintSummary,
-        halls: normalizedExamHalls.map((hall) => ({
-          hall: hall.name,
-          allowedForCourse: isHallAllowedForCourse(hall, course),
-          passesConstraint: getConstrainedHallsForCourse([hall], course).length > 0,
-          canAssign: canAssignHallToCourseInSlot(hall, course, targetSlot, hallUsageMap),
-          computedRemaining: getEffectiveAssignableHallCapacityForSlot(hall, course, targetSlot, hallUsageMap),
-        })),
-      });
-
-      showToast(
-        "تعذر الإسناد اليدوي",
-        hallConstraintSummary.mode === "only"
-          ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
-          : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
-        "error"
-      );
+    const manualPlacement = resolveManualPlacementResources(course, targetSlot, schedule);
+    if (!manualPlacement.ok) {
+      showToast("تعذر الإسناد اليدوي", manualPlacement.reasonMessage, "error");
       return;
     }
+
+    const assignedHall = manualPlacement.assignedHall;
 
     const placedItem = {
       ...course,
@@ -2645,7 +2861,7 @@ const periodOverlapWarning = useMemo(() => {
       scheduleTypes: Array.from(course.scheduleTypes || []),
       departmentRoots: Array.from(course.departmentRoots || []),
       examHall: assignedHall,
-      invigilators: [],
+      invigilators: manualPlacement.invigilators,
       manualEdited: true,
       isPinned: false,
     };
@@ -2700,11 +2916,19 @@ const periodOverlapWarning = useMemo(() => {
         return prev;
       }
 
+      const manualPlacement = resolveManualPlacementResources(sourceItem, targetSlot, prev, itemId);
+      if (!manualPlacement.ok) {
+        showToast("تعذر النقل", manualPlacement.reasonMessage, "error");
+        return prev;
+      }
+
       return prev.map((item) =>
         item.instanceId === itemId
           ? {
               ...item,
               ...targetSlot,
+              examHall: manualPlacement.assignedHall,
+              invigilators: manualPlacement.invigilators,
               manualEdited: true,
             }
           : item
@@ -5311,6 +5535,18 @@ sortedCoursesForInvigilation.forEach((course) => {
 }
   
     slotCoursesMap.get(bestSlot.id).push(course.key);
+const pickedInvigilators = pickInvigilators(course, bestSlot);
+const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
+
+if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
+  notPlaced.push({
+    ...course,
+    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+    unscheduledShortLabel: "لا يوجد مراقبون كافيون",
+  });
+  return;
+}
+
 const placedItem = {
   ...course,
   ...bestSlot,
@@ -5323,7 +5559,7 @@ const placedItem = {
   scheduleTypes: Array.from(course.scheduleTypes || []),
   departmentRoots: Array.from(course.departmentRoots || []),
   examHall: assignedHall,
-  invigilators: pickInvigilators(course, bestSlot),
+  invigilators: pickedInvigilators,
   manualEdited: false,
   isPinned: false,
 };
@@ -5336,25 +5572,7 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
 
   newPlaced.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount);
 
-  const underCoveredCoursesCount = includeInvigilators
-    ? newPlaced.filter((item) => (item.invigilators?.length || 0) < getRequiredInvigilatorsCount(item)).length
-    : 0;
-
-  if (includeInvigilators && underCoveredCoursesCount > 0) {
-    showToast(
-      "ملاحظة على توزيع المراقبين",
-      `تمت جدولة ${underCoveredCoursesCount} مقرر بعدد مراقبين أقل من المطلوب بسبب محدودية التوفر في بعض الفترات.`,
-      "warning",
-      {
-        actions: [
-          {
-            label: "فتح المعاينة",
-            onClick: () => openUnscheduledCoursesPreview(false),
-          },
-        ],
-      }
-    );
-  }
+  const underCoveredCoursesCount = 0;
 
   setPreviewPage(0);
   return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
