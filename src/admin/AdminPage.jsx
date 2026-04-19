@@ -1161,7 +1161,12 @@ function getPrintBaseStyles() {
     }
 
     .hall-cell {
-      width: 90px;
+        width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
     }
 
     .section-note {
@@ -1430,6 +1435,7 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
                       <th class="num-cell">م</th>
                       <th>المقرر</th>
                       <th>الرمز</th>
+                      <th class="periodId">الفترة</th>
                       <th>المقر</th>
                     `
                   )
