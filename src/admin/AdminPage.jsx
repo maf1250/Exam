@@ -3345,6 +3345,46 @@ const formatSlotBadgeLabel = (slot) => {
   return segments.join(" - ");
 };
 
+const formatInvigilatorNamesLabel = (names) => {
+  const list = Array.from(new Set((Array.isArray(names) ? names : []).map((name) => String(name || "").trim()).filter(Boolean)));
+  return list.length ? list.join("، ") : "لا يوجد مراقب متاح";
+};
+
+const formatHallConflictReason = (hall) => {
+  if (!hall) return "";
+  if (!hall.allowedForCourse) return "غير مسموحة لهذا المقرر";
+  if (!hall.passesConstraint) return "مستبعدة بسبب قيد القاعات";
+  if (hall.canAssign) return "متاحة";
+  if ((Number(hall.effectiveRemaining) || 0) <= 0) {
+    return hall.allowSharedAssignments ? "مقاعدها مشغولة بالكامل" : "مستخدمة في هذه الفترة";
+  }
+  if (!hall.canFitSingleHall) {
+    return `المتبقي ${Number(hall.effectiveRemaining) || 0} من ${Number(hall.capacity) || 0}`;
+  }
+  return "غير متاحة";
+};
+
+const getSlotExtraDetails = (slot, groupKey) => {
+  if (!slot) return [];
+  if (groupKey === "invigilatorShortage") {
+    const availableNames = Array.from(new Set((Array.isArray(slot.availableInvigilators) ? slot.availableInvigilators : []).map((name) => String(name || "").trim()).filter(Boolean)));
+    return [
+      availableNames.length
+        ? `المتاح: ${availableNames.join("، ")}`
+        : "لا يوجد مراقب متاح في هذه الفترة",
+    ];
+  }
+
+  if (groupKey === "hallUnavailable") {
+    const hallConflicts = Array.isArray(slot.hallConflicts) ? slot.hallConflicts : [];
+    return hallConflicts
+      .filter((hall) => hall && hall.hall)
+      .map((hall) => `${hall.hall}: ${formatHallConflictReason(hall)}`);
+  }
+
+  return [];
+};
+
 const getUnscheduledReasonBreakdown = (course) => {
   const details = course?.unscheduledReasonDetails || {};
 
@@ -5252,6 +5292,21 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
+          hallConflicts: matchingHallDetails
+            .filter((item) => item.allowedForCourse || item.passesConstraint || item.remainingBeforeConstraint > 0 || item.effectiveRemaining > 0)
+            .map((item) => ({
+              hall: item.hall,
+              hallId: item.hallId || null,
+              allowSharedAssignments: Boolean(item.allowSharedAssignments),
+              allowedForCourse: Boolean(item.allowedForCourse),
+              passesConstraint: Boolean(item.passesConstraint),
+              capacity: Number(item.capacity) || 0,
+              used: Number(item.used) || 0,
+              remainingBeforeConstraint: Number(item.remainingBeforeConstraint) || 0,
+              effectiveRemaining: Number(item.effectiveRemaining) || 0,
+              canFitSingleHall: Boolean(item.canFitSingleHall),
+              canAssign: Boolean(item.canAssign),
+            })),
         });
       }
 
@@ -5268,6 +5323,10 @@ const pickInvigilators = (course, slot) => {
             dayName: slot.dayName,
             period: slot.period,
             timeText: slot.timeText,
+            availableInvigilators: invigilatorPool.filter(
+              (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+            ),
+            requiredInvigilators,
           });
           slotInvigilatorShortage = true;
         }
@@ -5552,12 +5611,7 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
-      key: course.key,
-      courseCode: course.courseCode || "",
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
-      department: course.department || "",
-      major: course.major || "",
-      departmentRoots: Array.isArray(course.departmentRoots) ? Array.from(course.departmentRoots) : [],
       required: Number(course.studentCount) || 0,
       maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
@@ -5661,10 +5715,24 @@ const pickedInvigilators = pickInvigilators(course, bestSlot);
 const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
+  const availableInvigilatorsLabel = formatInvigilatorNamesLabel(pickedInvigilators);
   notPlaced.push({
     ...course,
-    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}. ${pickedInvigilators.length ? `المتاحون: ${availableInvigilatorsLabel}.` : "لا يوجد مراقب متاح في هذه الفترة."}`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
+    unscheduledReasonDetails: {
+      invigilatorShortageSlots: [
+        {
+          slotId: bestSlot.id,
+          dateISO: bestSlot.dateISO,
+          dayName: bestSlot.dayName,
+          period: bestSlot.period,
+          timeText: bestSlot.timeText,
+          availableInvigilators: Array.from(pickedInvigilators || []),
+          requiredInvigilators: requiredInvigilatorsCount,
+        },
+      ],
+    },
   });
   return;
 }
@@ -5805,55 +5873,47 @@ const generateSpecializedSchedule = () => {
   setCurrentStep(6);
 };
 
-const previewItemMatchesFilters = (item) => {
-  if (!item) return false;
-
-  const departmentOk =
-    printDepartmentFilter === "__all__" ||
-    (() => {
-      const target = normalizeArabic(printDepartmentFilter);
-      const roots = Array.isArray(item.departmentRoots)
-        ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
-        : [];
-
-      if (roots.includes(target)) return true;
-
-      const directDepartmentMatch = splitBySlash(item.department)
-        .map((dep) => normalizeArabic(dep))
-        .filter(Boolean)
-        .includes(target);
-
-      if (directDepartmentMatch) return true;
-
-      if (isGeneralStudiesCourse(item)) {
-        return roots.some((root) => root.includes(target));
-      }
-
-      return false;
-    })();
-
-  const majorOk =
-    printMajorFilter === "__all__" ||
-    splitBySlash(item.major)
-      .map((major) => normalizeArabic(major))
-      .filter(Boolean)
-      .includes(normalizeArabic(printMajorFilter));
-
-  return departmentOk && majorOk;
-};
-
 const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter(previewItemMatchesFilters);
+  return schedule.filter((item) => {
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      (() => {
+        const target = normalizeArabic(printDepartmentFilter);
+        const roots = item.departmentRoots || [];
+
+        if (roots.includes(target)) return true;
+
+        if (isGeneralStudiesCourse(item)) {
+          return roots.some((r) => r.includes(target));
+        }
+
+        return false;
+      })();
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
+  });
 }, [schedule, printDepartmentFilter, printMajorFilter]);
 const filteredSortedCourses = useMemo(() => {
-  return parsed.courses.filter(previewItemMatchesFilters);
+  return parsed.courses.filter((item) => {
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
+  });
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
-const filteredUnscheduledForPreview = useMemo(() => {
-  return unscheduled.filter(previewItemMatchesFilters);
-}, [unscheduled, printDepartmentFilter, printMajorFilter]);
-const filteredHallWarningsForPreview = useMemo(() => {
-  return hallWarnings.filter(previewItemMatchesFilters);
-}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9450,7 +9510,7 @@ style={{
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
                 <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {filteredUnscheduledForPreview.length ? (
+                  {unscheduled.length ? (
                     unscheduled.map((course, index) => (
                       <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={() => {
                         setDraggingUnscheduledCourseKey(course.key);
@@ -9714,7 +9774,7 @@ style={{
                     </div>
                   ) : null}
 
-                  {filteredHallWarningsForPreview.length ? (
+                  {hallWarnings.length ? (
                     <div
                       style={{
                         marginBottom: 18,
@@ -9727,7 +9787,7 @@ style={{
                     >
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>تنبيهات القاعات</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {filteredHallWarningsForPreview.map((item, index) => (
+                        {hallWarnings.map((item, index) => (
                           <span
                             key={`${item.courseName}-${index}`}
                             style={{
@@ -9767,10 +9827,10 @@ style={{
                         </button>
                       </div>
                       <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
-                        {buildUnscheduledSummaryText(filteredUnscheduledForPreview)}
+                        {buildUnscheduledSummaryText(unscheduled)}
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
-                        {filteredUnscheduledForPreview.map((course) => {
+                        {unscheduled.map((course) => {
                           const reasonInfo = normalizeUnscheduledReason(course);
                           return (
                             <div
@@ -9871,22 +9931,37 @@ style={{
                                       <div style={{ fontWeight: 800, color: COLORS.warning, marginBottom: 8 }}>
                                         {group.title}
                                       </div>
-                                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                        {group.slots.map((slot) => (
-                                          <span
-                                            key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
-                                            style={{
-                                              background: "#fff",
-                                              border: "1px solid #FED7AA",
-                                              borderRadius: 999,
-                                              padding: "6px 10px",
-                                              fontSize: 12,
-                                              color: COLORS.text,
-                                            }}
-                                          >
-                                            {formatSlotBadgeLabel(slot)}
-                                          </span>
-                                        ))}
+                                      <div style={{ display: "grid", gap: 8 }}>
+                                        {group.slots.map((slot) => {
+                                          const extraDetails = getSlotExtraDetails(slot, group.key);
+                                          return (
+                                            <div
+                                              key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
+                                              style={{
+                                                background: "#fff",
+                                                border: "1px solid #FED7AA",
+                                                borderRadius: 14,
+                                                padding: "8px 10px",
+                                                fontSize: 12,
+                                                color: COLORS.text,
+                                              }}
+                                            >
+                                              <div style={{ fontWeight: 700 }}>{formatSlotBadgeLabel(slot)}</div>
+                                              {extraDetails.length ? (
+                                                <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
+                                                  {extraDetails.map((line, index) => (
+                                                    <div
+                                                      key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}-extra-${index}`}
+                                                      style={{ color: COLORS.charcoalSoft, lineHeight: 1.7 }}
+                                                    >
+                                                      {line}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   ))}
