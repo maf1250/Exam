@@ -5634,7 +5634,12 @@ sortedCoursesForInvigilation.forEach((course) => {
   );
 
   hallWarningItems.push({
+    courseKey: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+    courseCode: course.courseCode || "",
+    department: course.department || "",
+    major: course.major || "",
+    departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
     required: Number(course.studentCount) || 0,
     maxAvailable: maxRemaining,
   });
@@ -5841,39 +5846,47 @@ const filteredSortedCourses = useMemo(() => {
     return departmentOk && majorOk;
   });
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
+
+const matchesPreviewFilters = (item) => {
+  if (!item) return false;
+
+  const selectedDepartmentNormalized =
+    printDepartmentFilter === "__all__" ? "" : normalizeArabic(printDepartmentFilter);
+  const selectedMajorNormalized =
+    printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
+
+  const departmentRoots = Array.isArray(item.departmentRoots)
+    ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
+    : [];
+  const departmentValues = [
+    ...splitBySlash(item.department),
+    ...splitBySlash(item.sectionName),
+  ]
+    .map((value) => normalizeArabic(value))
+    .filter(Boolean);
+
+  const majorValues = splitBySlash(item.major)
+    .map((value) => normalizeArabic(value))
+    .filter(Boolean);
+
+  const departmentOk =
+    printDepartmentFilter === "__all__" ||
+    departmentRoots.includes(selectedDepartmentNormalized) ||
+    departmentValues.includes(selectedDepartmentNormalized);
+
+  const majorOk =
+    printMajorFilter === "__all__" ||
+    majorValues.includes(selectedMajorNormalized);
+
+  return departmentOk && majorOk;
+};
+
 const filteredUnscheduledForPreview = useMemo(() => {
-  return unscheduled.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
+  return unscheduled.filter((item) => matchesPreviewFilters(item));
 }, [unscheduled, printDepartmentFilter, printMajorFilter]);
+
 const filteredHallWarningsForPreview = useMemo(() => {
-  return hallWarnings.filter((item) => {
-    const departmentRoots = Array.isArray(item?.departmentRoots)
-      ? item.departmentRoots
-      : getCourseDepartmentRoots(item);
-
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      departmentRoots.includes(normalizeArabic(printDepartmentFilter));
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item?.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
+  return hallWarnings.filter((item) => matchesPreviewFilters(item));
 }, [hallWarnings, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
