@@ -9607,7 +9607,7 @@ style={{
                               fontSize: 13,
                             }}
                           >
-                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxAvailable}
+                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxAvailable} في {item.slot}
                           </span>
                         ))}
                       </div>
