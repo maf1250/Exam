@@ -564,7 +564,7 @@ console.log({
   capacity: hallCapacity,
   used: used,
   remaining: hall.allowSharedAssignments,
-    test: maxRemainingAcrossSlots
+    
     ? Math.max(0, hallCapacity - used)
     : (used > 0 ? 0 : hallCapacity),
 });
