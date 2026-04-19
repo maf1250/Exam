@@ -990,15 +990,37 @@ function openPrintWindow(title, html) {
   printWindow.document.close();
   printWindow.document.title = title;
 
+  const fitCellTexts = () => {
+    const elements = printWindow.document.querySelectorAll(".cell-text");
+
+    elements.forEach((el) => {
+      const parent = el.parentElement;
+      if (!parent) return;
+
+      let fontSize = parseFloat(printWindow.getComputedStyle(el).fontSize || "11");
+      const minFontSize = 8;
+      let guard = 0;
+
+      while (el.scrollWidth > parent.clientWidth && fontSize > minFontSize && guard < 20) {
+        fontSize -= 0.5;
+        el.style.fontSize = `${fontSize}px`;
+        guard += 1;
+      }
+    });
+  };
+
   const triggerPrint = () => {
-    printWindow.focus();
-    printWindow.print();
+    fitCellTexts();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 300);
   };
 
   if (printWindow.document.readyState === "complete") {
-    setTimeout(triggerPrint, 300);
+    setTimeout(triggerPrint, 150);
   } else {
-    printWindow.onload = () => setTimeout(triggerPrint, 300);
+    printWindow.onload = () => setTimeout(triggerPrint, 150);
   }
 
   return printWindow;
@@ -1140,25 +1162,41 @@ function getPrintBaseStyles() {
     }
 
     .day-col {
-      width: 140px;
+      width: 170px;
       font-weight: 800;
       background: #f8fafc;
     }
 
     .num-cell {
-      width: 15px;
+      width: var(--num-col-width, 40px);
+      white-space: nowrap;
+      font-weight: 800;
     }
 
     .course-cell {
-      width: 150px;
+      width: var(--course-col-width, 180px);
+      white-space: nowrap;
+      overflow: hidden;
     }
 
     .code-cell {
-      width: 30px;
+      width: var(--code-col-width, 110px);
+      white-space: nowrap;
+      font-weight: 700;
     }
 
     .hall-cell {
-      width: 70px;
+      width: var(--hall-col-width, 150px);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .cell-text {
+      display: inline-block;
+      max-width: 100%;
+      white-space: nowrap;
+      line-height: 1.35;
+      vertical-align: middle;
     }
 
     .section-note {
@@ -1264,16 +1302,16 @@ const renderPeriodColumns = (day, periodId, rowIndex) => {
 
   return `
     <td class="num-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
-      ${rowIndex + 1}
+      <span class="cell-text">${rowIndex + 1}</span>
     </td>
     <td class="course-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
-      ${item.courseName || ""}
+      <span class="cell-text">${item.courseName || ""}</span>
     </td>
     <td class="code-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
-      ${item.courseCode || ""}
+      <span class="cell-text">${item.courseCode || ""}</span>
     </td>
     <td class="hall-cell" style="background:${dayTheme.bg}; color:${dayTheme.text};">
-      ${item.examHall || defaultExamHall}
+      <span class="cell-text">${item.examHall || defaultExamHall}</span>
     </td>
   `;
 };
@@ -1338,6 +1376,14 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
   const tableFontSize = compactMode ? "9px" : "11px";
   const tablePadding = compactMode ? "4px 3px" : "6px 5px";
   const pageMargin = compactMode ? "6mm" : "10mm";
+  const dynamicLayout =
+    periodIds.length <= 2
+      ? { num: "40px", course: "200px", code: "110px", hall: "150px", zoom: compactMode ? "0.9" : "1" }
+      : periodIds.length === 3
+      ? { num: "38px", course: "180px", code: "106px", hall: "146px", zoom: compactMode ? "0.84" : "0.94" }
+      : periodIds.length === 4
+      ? { num: "34px", course: "150px", code: "94px", hall: "122px", zoom: compactMode ? "0.8" : "0.88" }
+      : { num: "30px", course: "132px", code: "84px", hall: "110px", zoom: compactMode ? "0.76" : "0.84" };
 
   const instructions = [
     "يجب على المتدرب الحضور إلى قاعة الاختبار قبل موعد الاختبار بـ 15 دقيقة.",
@@ -1362,12 +1408,20 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
           }
 
           body {
-            zoom: ${compactMode ? "0.86" : "1"};
+            zoom: ${dynamicLayout.zoom};
+          }
+
+          table {
+            --num-col-width: ${dynamicLayout.num};
+            --course-col-width: ${dynamicLayout.course};
+            --code-col-width: ${dynamicLayout.code};
+            --hall-col-width: ${dynamicLayout.hall};
           }
 
           th, td {
             font-size: ${tableFontSize};
             padding: ${tablePadding};
+            white-space: nowrap;
           }
 
           .college-name {
