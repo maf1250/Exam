@@ -7137,7 +7137,15 @@ const headerBtn = (danger = false) => ({
                 فعّل فقط الخصائص التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء بطاقته التفصيلية من الصفحات التالية حتى لا تتكدس الواجهة على المستخدم.
               </div>
 
-              <div style={{ display: "inline-flex", gap: 12, maxWidth: 650, minWidth: 500 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: 12,
+                  width: "100%",
+                  maxWidth: 920,
+                }}
+              >
                 {[
                   {
                     key: "hall",
@@ -7189,20 +7197,37 @@ const headerBtn = (danger = false) => ({
                     onChange: setShowInvigilatorConstraintPreference,
                   },
                 ].map((item) => (
-                  <div key={item.key} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 16, background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-                    <div style={{ flex: "1 1 420px", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                      <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9 }}>{item.title}</div>
+                  <div
+                    key={item.key}
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 20,
+                      padding: 16,
+                      background: "#fff",
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      gap: 14,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9, wordBreak: "break-word" }}>
+                          {item.title}
+                        </div>
+                      </div>
                       <TooltipIcon text={item.tooltip} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>{item.checked ? "مفعّل" : "معطّل"}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
+                      <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>
+                        {item.checked ? "مفعّل" : "معطّل"}
+                      </span>
                       <Switch checked={item.checked} onChange={item.onChange} />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            {/*    ) : null} */}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
@@ -7216,130 +7241,9 @@ const headerBtn = (danger = false) => ({
           <Card>
             <SectionHeader
               title="الخصائص العامة"
-              description="هذه الصفحة مخصصة للإعدادات العامة للجدولة مثل البيانات الأساسية والفترات والقاعات وبقية الخصائص المتقدمة عند الحاجة."
+              description="هذه الصفحة مخصصة للإعدادات العامة الأساسية للجدولة مثل البيانات العامة والفترات والقاعات، وتبقى هذه الخصائص مرئية لأنها أساسية في الإعداد."
             />
 
-            <div
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragActive(true);
-              }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragActive(false);
-                handleUpload(e.dataTransfer.files?.[0]);
-              }}
-              style={{
-                marginTop: 4,
-                borderRadius: 26,
-                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
-                background: dragActive
-                  ? "linear-gradient(135deg, #E7F8F7 0%, #F7FBFB 100%)"
-                  : "linear-gradient(135deg, #FCFFFF 0%, #F7FBFB 100%)",
-                minHeight: 170,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                textAlign: "center",
-                cursor: "pointer",
-                padding: "28px 20px",
-                boxShadow: dragActive ? "0 16px 36px rgba(20,123,131,0.10)" : "inset 0 1px 0 rgba(255,255,255,0.7)",
-                transition: "all 180ms ease",
-              }}
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".csv,text/csv"
-                style={{ display: "none" }}
-                onChange={(e) => handleUpload(e.target.files?.[0])}
-              />
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: dragActive ? COLORS.primaryDark : COLORS.primaryLight,
-                  color: dragActive ? "#fff" : COLORS.primaryDark,
-                  fontSize: 28,
-                  fontWeight: 900,
-                  marginBottom: 14,
-                }}
-              >
-                ⬆
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
-                رفع تقرير SF01
-              </div>
-              <div style={{ marginTop: 8, fontSize: 14, color: COLORS.muted, lineHeight: 1.9, maxWidth: 620 }}>
-                اسحب التقرير هنا أو اضغط للاختيار من جهازك. يدعم النظام ملفات CSV ويقرأ بيانات الوحدة تلقائيًا عند توفرها.
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16, justifyContent: "center" }}>
-                <span
-                  style={{
-                    background: "#fff",
-                    border: `1px solid ${COLORS.border}`,
-                    color: COLORS.charcoalSoft,
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  CSV فقط
-                </span>
-                <span
-                  style={{
-                    background: "#fff",
-                    border: `1px solid ${COLORS.border}`,
-                    color: COLORS.charcoalSoft,
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  سحب وإفلات أو اختيار يدوي
-                </span>
-              </div>
-              {fileName ? (
-                <div
-                  style={{
-                    marginTop: 16,
-                    background: COLORS.primaryDark,
-                    color: "#fff",
-                    padding: "10px 16px",
-                    borderRadius: 999,
-                    fontWeight: 800,
-                    maxWidth: "100%",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  الملف الحالي: {fileName}
-                </div>
-              ) : null}
-            </div>
-
-            {parsed.missingColumns.length ? (
-              <div
-                style={{
-                  marginTop: 14,
-                  borderRadius: 18,
-                  padding: 14,
-                  background: COLORS.dangerBg,
-                  border: "1px solid #FECACA",
-                  color: COLORS.danger,
-                }}
-              >
-                الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
-              </div>
-            ) : null}
 
             <div
               style={{
@@ -7389,46 +7293,8 @@ const headerBtn = (danger = false) => ({
               </div>
             </div>
 
-            <div
-              style={{
-                marginTop: 18,
-                border: `1px solid ${showAdvancedManagementOptions ? COLORS.primaryBorder : COLORS.border}`,
-                borderRadius: 22,
-                padding: 18,
-                background: showAdvancedManagementOptions ? COLORS.primaryLight : "#fff",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 14,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ flex: "1 1 320px" }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>
-                    خصائص إدارة الاختبارات النهائية
-                  </div>
-                  <div style={{ color: COLORS.muted, lineHeight: 1.9, marginTop: 6 }}>
-                    هذه الخيارات مخصصة للمستخدمين الذين يحتاجون إعدادات أكثر تقدمًا مثل الفترات والقاعات والتخصيصات وقيود التوزيع. يمكنك إظهارها أو إخفاؤها في أي وقت، وسيتم حفظ حالتها ضمن الاسترجاع والاستيراد والتصدير.
-                  </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedManagementOptions((prev) => !prev)}
-                  style={cardButtonStyle({ active: showAdvancedManagementOptions })}
-                >
-                  {showAdvancedManagementOptions ? "إخفاء الخصائص المتقدمة" : "إظهار الخصائص المتقدمة"}
-                </button>
-              </div>
-            </div>
-
-            {showAdvancedManagementOptions ? (
-              <>
-            <div style={{ marginTop: 18 }}>
+                        <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
               <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
                 {periodConfigs.map((periodConfig, index) => {
@@ -8331,8 +8197,6 @@ const headerBtn = (danger = false) => ({
                 استبعاد المنسحبين والمطوي قيدهم
               </label>
             </div>
-              </>
-            ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(3)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
