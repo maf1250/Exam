@@ -10751,7 +10751,7 @@ style={{
           <div style={{ color: COLORS.muted, lineHeight: 1.8 }}>
             <div><strong>المقرر:</strong> {selectedUnscheduledReasonModal.courseName}</div>
             <div><strong>الرمز:</strong> {selectedUnscheduledReasonModal.courseCode || "-"}</div>
-            <div><strong>التصنيف:</strong> {selectedUnscheduledReasonModal.shortLabel || "-"}</div>
+            <div><strong>التصنيف الرئيسي:</strong> {selectedUnscheduledReasonModal.shortLabel || "-"}</div>
           </div>
         </div>
         <button
