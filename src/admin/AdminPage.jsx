@@ -563,7 +563,7 @@ console.log({
   slot: getSlotPeriodKey(slotOrItem),
   capacity: hallCapacity,
   used: used,
-  remaining: hall.allowSharedAssignments,
+  remaining: hall.allowSharedAssignments
     
     ? Math.max(0, hallCapacity - used)
     : (used > 0 ? 0 : hallCapacity),
