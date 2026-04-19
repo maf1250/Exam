@@ -9315,7 +9315,7 @@ const headerBtn = (danger = false) => ({
 
 {currentStep === 5 && (
           <Card>
-            <SectionHeader title="توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
+            <SectionHeader title="توزيع مقررات الدراسات العامة" description="يتم توزيع مقررات الدراسات العامة أولًا." />
 
             {lockGeneralStudiesStep ? (
               <div
