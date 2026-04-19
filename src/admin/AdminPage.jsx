@@ -4942,13 +4942,29 @@ const pickInvigilators = (course, slot) => {
       const matchingHallCount = matchingHallDetails.filter((item) => item.canAssign && item.passesConstraint).length;
 
       if (!matchingHallCount) {
-        console.log("HALL_DEBUG_SLOT_SCAN", {
-          course: course.courseName || course.courseCode || course.key,
-          requiredSeats: Number(course.studentCount) || 0,
-          slot: getSlotPeriodKey(slot),
-          hallConstraint: getEffectiveHallConstraintSummary(course),
-          halls: matchingHallDetails,
-        });
+   console.log("HALL_DEBUG_SLOT_SCAN", {
+  course: course.courseName,
+  requiredSeats,
+  slot: getSlotPeriodKey(slot),
+  hallConstraint: getCourseHallConstraintSummary(course),
+  halls: candidateHalls.map((hall) => ({
+    hall: hall.name,
+    hallId: hall.id,
+    remaining: getEffectiveAssignableHallCapacityForSlot(
+      hall,
+      course,
+      slot,
+      hallUsageMap
+    ),
+    canFit: getEffectiveAssignableHallCapacityForSlot(
+      hall,
+      course,
+      slot,
+      hallUsageMap
+    ) >= requiredSeats,
+  })),
+});
+        
         diagnosis.hallUnavailable += 1;
       }
 
@@ -9398,6 +9414,7 @@ style={{
                               fontSize: 13,
                             }}
                           >
+                            
                             {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxRemaining}
                           </span>
                         ))}
