@@ -7140,7 +7140,7 @@ const headerBtn = (danger = false) => ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(490px, 1fr))",
                   gap: 12,
                   width: "100%",
                   maxWidth: 920,
@@ -7415,7 +7415,7 @@ const headerBtn = (danger = false) => ({
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
-    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
+    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة، علمً بأنه لا يمكن توزيع المقررات دون إضافة قاعات."
   />
 
   <div style={{ display: "grid", gap: 14 }}>
@@ -8197,9 +8197,11 @@ const headerBtn = (danger = false) => ({
                 استبعاد المنسحبين والمطوي قيدهم
               </label>
             </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={() => setCurrentStep(3)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
+ <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+              <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
+                السابق
+              </button>
+              <button onClick={() => setCurrentStep(3)}  style={cardButtonStyle({ active: true })}>
                 التالي: تعديل المقررات
               </button>
             </div>
@@ -8210,89 +8212,10 @@ const headerBtn = (danger = false) => ({
           <Card>
             <SectionHeader
               title="تعديل المقررات"
-              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الجدولة في نفس اليوم."
+              description="استبعد المقررات التي لا تريد إدخالها في الجدولة، ويمكنك أيضًا تحديد مستويات المقررات لمنع مقررات المستوى الواحد من الجدولة في نفس اليوم (الخصائص مخفية افتراضيًا ويمكن تفعيلها في صفحة التفضيلات)."
             />
 
-            <div style={{ marginTop: 4 }}>
-              <label
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 14,
-                  background: "#fff",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={includeAllDepartmentsAndMajors}
-                  onChange={(e) => handleIncludeAllDepartmentsAndMajorsChange(e.target.checked)}
-                />
-                توزيع جميع التخصصات والأقسام
-              </label>
-            </div>
-
-            {!includeAllDepartmentsAndMajors ? (
-              <div
-                style={{
-                  marginTop: 18,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 18,
-                  padding: 14,
-                  background: "#F8FEFE",
-                }}
-              >
-                <div
-                  style={{
-                    marginBottom: 12,
-                    background: COLORS.warningBg,
-                    color: COLORS.warning,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14,
-                    padding: 12,
-                    lineHeight: 1.8,
-                    fontSize: 14,
-                  }}
-                >
-                  لن تظهر الدراسات العامة ضمن هذه القائمة لأنها مستقلة عن الأقسام والتخصصات.
-                  وعند توزيع قسم محدد سيتم قفل صفحة الدراسات العامة حتى لا يتم تعديلها.
-                </div>
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
-                <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                  اختر القسم أو التخصص الذي لا تريد دخوله في التوزيع، ويمكنك الضغط مرة أخرى لإعادته.
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
-                  {departmentMajorOptions.length ? (
-                    departmentMajorOptions.map((item) => {
-                      const excluded = excludedDepartmentMajors.includes(item.key);
-                      return (
-                        <button
-                          key={item.key}
-                          onClick={() => toggleExcludedDepartmentMajor(item.key)}
-                          style={{
-                            border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
-                            background: excluded ? COLORS.dangerBg : "#fff",
-                            color: excluded ? COLORS.danger : COLORS.charcoalSoft,
-                            borderRadius: 999,
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {excluded ? `مستبعد: ${item.label}` : item.label}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
+          
             {showCourseExclusionsPreference ? (
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
