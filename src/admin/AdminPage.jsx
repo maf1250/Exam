@@ -622,17 +622,26 @@ function canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
   if (!hall || !course) return false;
   if (!isHallAllowedForCourse(hall, course)) return false;
 
-  const students = Number(course.studentCount);
-  if (!Number.isFinite(students) || students <= 0) return false;
+  const remaining = getEffectiveAssignableHallCapacityForSlot(
+    hall,
+    course,
+    slotOrItem,
+    hallUsageMap
+  );
 
-  if (hall.allowSharedAssignments) {
-    return getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap) >= students;
-  }
+  const allowedByConstraint = filterHallsByCourseHallConstraint([hall], course).length > 0;
 
-  const alreadyUsed = (hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0) > 0;
-  if (alreadyUsed) return false;
+  console.log("CAN_ASSIGN_DEBUG", {
+    hall: hall.name,
+    course: course.courseName || course.courseCode,
+    slot: getSlotPeriodKey(slotOrItem),
+    remaining,
+    studentCount: Number(course.studentCount) || 0,
+    allowedByConstraint,
+    finalPass: remaining >= (Number(course.studentCount) || 0) && allowedByConstraint,
+  });
 
-  return Number(hall.capacity) >= students;
+  return remaining >= (Number(course.studentCount) || 0) && allowedByConstraint;
 }
 
 function reserveHallForCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
