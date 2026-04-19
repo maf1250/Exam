@@ -3470,8 +3470,7 @@ const formatSlotBadgeLabel = (slot) => {
 
 const getUnscheduledReasonBreakdown = (course) => {
   const details = course?.unscheduledReasonDetails || {};
-
-  return [
+  const groups = [
     {
       key: "studentConflict",
       title: "فترات تعارض المتدربين",
@@ -3502,7 +3501,30 @@ const getUnscheduledReasonBreakdown = (course) => {
       title: "فترات متأثرة بقيود التفضيل أو التجنب",
       slots: Array.isArray(details.avoidedConstraintSlots) ? details.avoidedConstraintSlots : [],
     },
+    {
+      key: "generic",
+      title: "تفاصيل السبب",
+      slots: Array.isArray(details.genericSlots) ? details.genericSlots : [],
+    },
   ].filter((item) => item.slots.length);
+
+  if (groups.length) return groups;
+
+  const reasonDetail = String(course?.unscheduledReason || "").trim();
+  if (!reasonDetail) return [];
+
+  return [
+    {
+      key: "genericFallback",
+      title: "تفاصيل السبب",
+      slots: [
+        {
+          reason: reasonDetail,
+          summary: "تم تسجيل هذا السبب للمقرر غير المجدول، ويمكن مراجعته هنا.",
+        },
+      ],
+    },
+  ];
 };
 
 const openUnscheduledReasonModal = (course, group) => {
@@ -5812,6 +5834,30 @@ sortedCoursesForInvigilation.forEach((course) => {
         ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال في هذه الفترة. ${hallConstraintSummary.label}. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
         : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
     unscheduledShortLabel: "لا توجد قاعة مناسبة",
+    unscheduledReasonDetails: {
+      hallUnavailableSlots: [
+        {
+          slotId: bestSlot?.id || null,
+          dateISO: bestSlot?.dateISO || "",
+          dayName: bestSlot?.dayName || "",
+          period: bestSlot?.period || null,
+          timeText: bestSlot?.timeText || "",
+          summary: hallConstraintSummary.mode === "only"
+            ? `تم فحص أفضل فترة ممكنة بعد تطبيق قيد القاعات: ${hallConstraintSummary.label || "قيد فعّال"}.`
+            : "تم فحص أفضل فترة ممكنة لكن لم تتوفر سعة كافية في القاعات المتاحة.",
+          reason: hallConstraintSummary.mode === "only"
+            ? `القاعات المقيدة للمقرر لم توفر سعة كافية. المطلوب ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`
+            : `القاعات المتاحة في هذه الفترة لم توفر سعة كافية. المطلوب ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية هي ${Number(maxRemaining) || 0}.`,
+          hallMessages: hallDebugSnapshot.map((hall) => {
+            const allowedText = hall.allowedForCourse ? "مسموح للمقرر" : "غير مسموح للمقرر";
+            const constraintText = hall.passesConstraint ? "داخل القيد" : "خارج القيد";
+            const usedSeats = Number(hall.used) || 0;
+            const remainingSeats = Number.isFinite(Number(hall.computedRemaining)) ? Number(hall.computedRemaining) : 0;
+            return `${hall.hall}: السعة ${Number(hall.capacity) || 0}، المشغول ${usedSeats}، المتاح فعليًا ${remainingSeats}، ${allowedText}، ${constraintText}`;
+          }),
+        },
+      ],
+    },
   });
 
   return;
@@ -5827,6 +5873,22 @@ if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount
     ...course,
     unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
+    unscheduledReasonDetails: {
+      invigilatorShortageSlots: [
+        {
+          slotId: bestSlot?.id || null,
+          dateISO: bestSlot?.dateISO || "",
+          dayName: bestSlot?.dayName || "",
+          period: bestSlot?.period || null,
+          timeText: bestSlot?.timeText || "",
+          reason: `المطلوب ${requiredInvigilatorsCount} مراقب/مراقبين، والمتاح فعليًا ${pickedInvigilators.length}.`,
+          summary: "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.",
+          requiredInvigilatorsCount,
+          availableInvigilatorsCount: pickedInvigilators.length,
+          availableInvigilators: pickedInvigilators,
+        },
+      ],
+    },
   });
   return;
 }
@@ -10153,6 +10215,7 @@ style={{
                       <div style={{ display: "grid", gap: 10 }}>
                         {filteredUnscheduledForPreview.map((course) => {
                           const reasonInfo = normalizeUnscheduledReason(course);
+                          const breakdownGroups = getUnscheduledReasonBreakdown(course);
                           return (
                             <div
                               key={course.key}
@@ -10231,7 +10294,7 @@ style={{
                                   {reasonInfo.detail}
                                 </button>
                               </div>
-                              {expandedUnscheduledCourseKeys.includes(course.key) && getUnscheduledReasonBreakdown(course).length ? (
+                              {expandedUnscheduledCourseKeys.includes(course.key) && breakdownGroups.length ? (
                                 <div
                                   style={{
                                     marginTop: 10,
@@ -10248,7 +10311,7 @@ style={{
                                   >
                                     اضغط على أي بند لعرض التفاصيل الدقيقة في نافذة مستقلة.
                                   </div>
-                                  {getUnscheduledReasonBreakdown(course).map((group) => (
+                                  {breakdownGroups.map((group) => (
                                     <button
                                       type="button"
                                       key={`${course.key}-${group.key}`}
