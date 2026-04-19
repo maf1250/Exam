@@ -5190,15 +5190,31 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   
       if (!bestSlot || !Number.isFinite(bestScore)) {
-  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+  const maxRemainingAcrossSlots = slots.length
+    ? slots.reduce((best, slot) => {
+        return Math.max(
+          best,
+          getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+        );
+      }, 0)
+    : 0;
+
+  console.log("MAX_REMAINING_DEBUG", {
+    course: course.courseName || course.courseCode || course.key,
+    requiredSeats: Number(course.studentCount) || 0,
+    slot: null,
+    maxRemainingAcrossSlots,
+    hallsBySlot: slots.map((slot) => ({
+      slot: getSlotPeriodKey(slot),
+      maxRemaining: getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap),
+    })),
+  });
+
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       required: Number(course.studentCount) || 0,
-      maxAvailable:
-        Number.isFinite(maxAvailable) && maxAvailable < Number.MAX_SAFE_INTEGER
-          ? maxAvailable
-          : 0,
+      maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
   }
   const diagnosis = diagnoseUnscheduledCourse(course);
