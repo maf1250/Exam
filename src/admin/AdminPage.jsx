@@ -4972,48 +4972,27 @@ const requiredSeats = Number(course.studentCount) || 0;
     const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
 
     const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-    const maxRemainingAcrossSlots = (Array.isArray(slots) ? slots : []).reduce(
-  (bestAcrossSlots, slotItem) => {
+    const maxRemainingAcrossSlots = diagnosis.totalSlots
+      ? slots.reduce((best, slot) => {
+          return Math.max(
+            best,
+            getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+          );
+        }, 0)
+      : 0;
 
-    const candidateHalls = sortHallsByCourseHallPreference(
-      filterHallsByCourseHallConstraint(
-        (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
-          isHallAllowedForCourse(hall, course)
-        ),
-        course
-      ),
-      course
-    );
+    const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
+    const reasonParts = [];
 
-    const maxInThisSlot = candidateHalls.reduce((best, hall) => {
-      const computed = getEffectiveAssignableHallCapacityForSlot(
-        hall,
-        course,
-        slotItem,
-        hallUsageMap
-      );
-      return Math.max(best, Number(computed) || 0);
-    }, 0);
-
-    return Math.max(bestAcrossSlots, maxInThisSlot);
-  },
-  0
-);
-  return Math.max(best, Number(computed) || 0);
-}, 0);
-  if ((Number(maxRemaining) || 0) < requiredSeats) {
-  return {
-    shortLabel: "لا توجد قاعة مناسبة",
-    detail:
-      `لا توجد قاعة مناسبة لهذا المقرر في هذه الفترة. ` +
-      `يحتاج ${requiredSeats} مقعدًا، ` +
-      `وأكبر سعة قابلة للإسناد فعليًا ${
-  Number.isFinite(Number(maxRemainingAcrossSlots))
-    ? Number(maxRemainingAcrossSlots)
-    : 0
-}`,
-  };
-}
+    if ((Number(maxAvailable) || 0) <= 0) {
+      return {
+        shortLabel: "لا توجد قاعة مناسبة",
+        detail:
+          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
+          `يحتاج ${requiredSeats} مقعدًا، ` +
+          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+      };
+    }
 
     if (!hasAnyFittableHallInAnySlot) {
       console.log("MAX_REMAINING_DEBUG", {
