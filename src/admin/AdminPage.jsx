@@ -10173,7 +10173,7 @@ const headerBtn = (danger = false) => ({
                     onClick={() => setPreviewTab("sortedCourses")}
                     style={cardButtonStyle({ active: previewTab === "sortedCourses" })}
                   >
-                    المقررات المرتبة
+                    تعارضات المقررات
                   </button>
 
                   <button
