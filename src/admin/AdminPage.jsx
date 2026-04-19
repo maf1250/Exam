@@ -1900,7 +1900,7 @@ export default function AdminPage() {
   const topRef = useRef(null);
 const pendingRestoreRef = useRef(null);
   const toastTimerRef = useRef(null);
-  const [expandedUnscheduledKeys, setExpandedUnscheduledKeys] = useState(new Set());
+  
   const [selectedConflicts, setSelectedConflicts] = useState(null);
   const [selectedConflictStudents, setSelectedConflictStudents] = useState(null);
   const [selectedManualMoveConflicts, setSelectedManualMoveConflicts] = useState(null);
@@ -1985,17 +1985,7 @@ const updatePeriodConfig = (index, patch) => {
     });
   });
 };
-const toggleUnscheduledDetails = (courseKey) => {
-  setExpandedUnscheduledKeys((prev) => {
-    const next = new Set(prev);
-    if (next.has(courseKey)) {
-      next.delete(courseKey);
-    } else {
-      next.add(courseKey);
-    }
-    return next;
-  });
-};
+
 const periodOverlapWarning = useMemo(() => {
   const normalized = periodConfigs
     .map((item, index) => {
@@ -2577,7 +2567,8 @@ const periodOverlapWarning = useMemo(() => {
 
   function buildManualPlacementContext(currentSchedule = [], ignoreInstanceId = "") {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("
+").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
@@ -9783,52 +9774,6 @@ style={{
                                 <div style={{ fontWeight: 900, color: COLORS.text }}>
                                   {course.courseName} <span style={{ color: COLORS.muted, fontWeight: 700 }}>- {course.courseCode}</span>
                                 </div>
-                                <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  }}
->
-  <button
-    type="button"
-    onClick={(e) => {
-      e.stopPropagation();
-      toggleUnscheduledDetails(course.key);
-    }}
-    style={{
-      border: `1px solid ${COLORS.primaryBorder}`,
-      background: expandedUnscheduledKeys.has(course.key) ? COLORS.primaryLight : "#fff",
-      color: COLORS.primaryDark,
-      borderRadius: 12,
-      padding: "8px 12px",
-      fontWeight: 800,
-      cursor: "pointer",
-      flexShrink: 0,
-    }}
-  >
-    {expandedUnscheduledKeys.has(course.key) ? "إخفاء التفاصيل" : "عرض التفاصيل"}
-  </button>
-
-  <div
-    onClick={() => toggleUnscheduledDetails(course.key)}
-    style={{
-      flex: 1,
-      minWidth: 260,
-      cursor: "pointer",
-    }}
-  >
-    <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
-      {course.courseName}
-    </div>
-    <div style={{ color: COLORS.muted, marginTop: 4 }}>
-      {course.courseCode}
-    </div>
-  </div>
-</div>
-
                                 <span
                                   style={{
                                     background: COLORS.warningBg,
@@ -9843,24 +9788,56 @@ style={{
                                   {reasonInfo.shortLabel}
                                 </span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => toggleExpandedUnscheduledCourse(course.key)}
+                              <div
                                 style={{
                                   marginTop: 8,
-                                  background: "transparent",
-                                  border: "none",
-                                  padding: 0,
-                                  color: COLORS.muted,
-                                  lineHeight: 1.8,
-                                  fontSize: 14,
-                                  cursor: "pointer",
-                                  textAlign: "right",
-                                  width: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  direction: "ltr",
                                 }}
                               >
-                                {reasonInfo.detail}
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandedUnscheduledCourse(course.key)}
+                                  style={{
+                                    border: `1px solid ${COLORS.primaryBorder}`,
+                                    background: expandedUnscheduledCourseKeys.includes(course.key)
+                                      ? COLORS.primaryLight
+                                      : "#fff",
+                                    color: COLORS.primaryDark,
+                                    borderRadius: 12,
+                                    padding: "8px 12px",
+                                    fontWeight: 800,
+                                    cursor: "pointer",
+                                    flexShrink: 0,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {expandedUnscheduledCourseKeys.includes(course.key)
+                                    ? "إخفاء التفاصيل"
+                                    : "عرض التفاصيل"}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandedUnscheduledCourse(course.key)}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    padding: 0,
+                                    color: COLORS.muted,
+                                    lineHeight: 1.8,
+                                    fontSize: 14,
+                                    cursor: "pointer",
+                                    textAlign: "right",
+                                    width: "100%",
+                                    direction: "rtl",
+                                  }}
+                                >
+                                  {reasonInfo.detail}
+                                </button>
+                              </div>
                               {expandedUnscheduledCourseKeys.includes(course.key) && getUnscheduledReasonBreakdown(course).length ? (
                                 <div
                                   style={{
