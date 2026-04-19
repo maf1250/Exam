@@ -759,6 +759,67 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
+function TooltipIcon({ text }) {
+  return (
+    <div
+      title={text}
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        background: "#EEF6F6",
+        border: "1px solid #A8DDDA",
+        color: "#0E2730",
+        fontWeight: 900,
+        fontSize: 13,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "help",
+        userSelect: "none",
+        flex: "0 0 auto",
+      }}
+    >
+      ?
+    </div>
+  );
+}
+
+function Switch({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      aria-pressed={checked}
+      style={{
+        width: 56,
+        height: 32,
+        borderRadius: 999,
+        border: `1px solid ${checked ? COLORS.primaryDark : COLORS.border}`,
+        background: checked ? COLORS.primaryDark : "#E5E7EB",
+        position: "relative",
+        cursor: "pointer",
+        transition: "all 180ms ease",
+        padding: 0,
+        flex: "0 0 auto",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 3,
+          insetInlineStart: checked ? 27 : 3,
+          width: 24,
+          height: 24,
+          borderRadius: "50%",
+          background: "#fff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          transition: "all 180ms ease",
+        }}
+      />
+    </button>
+  );
+}
 function StatBox({ label, value }) {
   return (
     <div
@@ -1997,6 +2058,13 @@ const stepNineCardStyle = {
 };
 const [hallWarnings, setHallWarnings] = useState([]);
 const [showAdvancedManagementOptions, setShowAdvancedManagementOptions] = useState(false);
+const [showHallConstraintPreferences, setShowHallConstraintPreferences] = useState(false);
+const [showCourseExclusionsPreference, setShowCourseExclusionsPreference] = useState(true);
+const [showGeneralSpecializedSeparationPreference, setShowGeneralSpecializedSeparationPreference] = useState(false);
+const [showSamePeriodPreference, setShowSamePeriodPreference] = useState(false);
+const [showCourseTimePreference, setShowCourseTimePreference] = useState(false);
+const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreference] = useState(false);
+const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 
 const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
@@ -3260,6 +3328,13 @@ const handleUpload = (file) => {
       setSelectedUnscheduledReasonModal(null);
       setHallWarnings([]);
       setShowAdvancedManagementOptions(false);
+      setShowHallConstraintPreferences(false);
+      setShowCourseExclusionsPreference(true);
+      setShowGeneralSpecializedSeparationPreference(false);
+      setShowSamePeriodPreference(false);
+      setShowCourseTimePreference(false);
+      setShowAvoidSameLevelSameDayPreference(false);
+      setShowInvigilatorConstraintPreference(false);
       setEnableSamePeriodGroups(false);
       setSamePeriodGroups([]);
       setDraggingSamePeriodCourseKey("");
@@ -3325,7 +3400,7 @@ const showToast = (title, description, type = "success", options = {}) => {
 
 const openUnscheduledCoursesPreview = (focusReason = false) => {
   setPreviewTab("schedule");
-  setCurrentStep(8);
+  setCurrentStep(9);
   setPreviewPage(0);
 
   window.requestAnimationFrame(() => {
@@ -3748,6 +3823,13 @@ const buildPersistedState = () => ({
   generalSpecializedDaySeparationMode,
   hallWarnings,
   showAdvancedManagementOptions,
+  showHallConstraintPreferences,
+  showCourseExclusionsPreference,
+  showGeneralSpecializedSeparationPreference,
+  showSamePeriodPreference,
+  showCourseTimePreference,
+  showAvoidSameLevelSameDayPreference,
+  showInvigilatorConstraintPreference,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -3859,6 +3941,13 @@ const restorePersistedState = (saved) => {
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setShowAdvancedManagementOptions(saved.showAdvancedManagementOptions ?? false);
+  setShowHallConstraintPreferences(saved.showHallConstraintPreferences ?? false);
+  setShowCourseExclusionsPreference(saved.showCourseExclusionsPreference ?? true);
+  setShowGeneralSpecializedSeparationPreference(saved.showGeneralSpecializedSeparationPreference ?? false);
+  setShowSamePeriodPreference(saved.showSamePeriodPreference ?? false);
+  setShowCourseTimePreference(saved.showCourseTimePreference ?? false);
+  setShowAvoidSameLevelSameDayPreference(saved.showAvoidSameLevelSameDayPreference ?? false);
+  setShowInvigilatorConstraintPreference(saved.showInvigilatorConstraintPreference ?? false);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
   setExcludedInvigilators(saved.excludedInvigilators || []);
   setExcludeInactive(saved.excludeInactive ?? true);
@@ -4052,6 +4141,13 @@ useEffect(() => {
   generalSpecializedDaySeparationMode,
   hallWarnings,
   showAdvancedManagementOptions,
+  showHallConstraintPreferences,
+  showCourseExclusionsPreference,
+  showGeneralSpecializedSeparationPreference,
+  showSamePeriodPreference,
+  showCourseTimePreference,
+  showAvoidSameLevelSameDayPreference,
+  showInvigilatorConstraintPreference,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -5982,7 +6078,7 @@ const generateGeneralSchedule = () => {
   } else {
     showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
   }
-  setCurrentStep(5);
+  setCurrentStep(6);
 };
 
 const generateSpecializedSchedule = () => {
@@ -6050,7 +6146,7 @@ const generateSpecializedSchedule = () => {
   } else {
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
   }
-  setCurrentStep(6);
+  setCurrentStep(7);
 };
 
 const filteredScheduleForPrint = useMemo(() => {
@@ -6930,17 +7026,18 @@ const headerBtn = (danger = false) => ({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10, marginBottom: 20 }}>
           {[
   { id: 1, label: "1. رفع الملف والتفضيلات" },
-  { id: 2, label: "2. المقررات" },
-  { id: 3, label: "3. المراقبون" },
-  { id: 4, label: "4. مقررات الدراسات العامة" },
-  { id: 5, label: "5. مقررات التخصص" },
-  { id: 6, label: "6. تحليل تعارض مقررين" },
-  { id: 7, label: "7. التعديل اليدوي" },
-  { id: 8, label: "8. المعاينة" },
-  { id: 9, label: "9. الطباعة" },
-  { id: 10, label: "10. التصدير وبوابة المتدربين" },
+  { id: 2, label: "2. الخصائص العامة" },
+  { id: 3, label: "3. المقررات" },
+  { id: 4, label: "4. المراقبون" },
+  { id: 5, label: "5. مقررات الدراسات العامة" },
+  { id: 6, label: "6. مقررات التخصص" },
+  { id: 7, label: "7. تحليل تعارض مقررين" },
+  { id: 8, label: "8. التعديل اليدوي" },
+  { id: 9, label: "9. المعاينة" },
+  { id: 10, label: "10. الطباعة" },
+  { id: 11, label: "11. التصدير وبوابة المتدربين" },
 ].map((step) => {
-            const isLockedGeneralStudies = step.id === 4 && lockGeneralStudiesStep;
+            const isLockedGeneralStudies = step.id === 5 && lockGeneralStudiesStep;
 
             return (
               <StepButton
@@ -6967,8 +7064,159 @@ const headerBtn = (danger = false) => ({
         {currentStep === 1 && (
           <Card>
             <SectionHeader
-              title="رفع الملف والتفضيلات"
-              description="ارفع تقرير SF01 وحدد التفضيلات الأساسية أولًا، ويمكنك إظهار خصائص إدارة الاختبارات النهائية المتقدمة عند الحاجة فقط."
+              title="الخصائص العامة"
+              description="ارفع ملف SF01 أولًا، ثم فعّل فقط التفضيلات العامة التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء إعداداته التفصيلية من الصفحات التالية لتبقى الواجهة أخف وأوضح."
+            />
+
+            <div
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+                handleUpload(e.dataTransfer.files?.[0]);
+              }}
+              style={{
+                marginTop: 4,
+                borderRadius: 26,
+                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
+                background: dragActive ? "linear-gradient(135deg, #E7F8F7 0%, #F7FBFB 100%)" : "linear-gradient(135deg, #FCFFFF 0%, #F7FBFB 100%)",
+                minHeight: 160,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                textAlign: "center",
+                cursor: "pointer",
+                padding: "28px 20px",
+                boxShadow: dragActive ? "0 16px 36px rgba(20,123,131,0.10)" : "inset 0 1px 0 rgba(255,255,255,0.7)",
+                transition: "all 180ms ease",
+              }}
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={(e) => handleUpload(e.target.files?.[0])}
+              />
+              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
+                رفع ملف SF01
+              </div>
+              <div style={{ marginTop: 8, fontSize: 14, color: COLORS.muted, lineHeight: 1.9, maxWidth: 620 }}>
+                اسحب التقرير هنا أو اضغط للاختيار من جهازك. يدعم النظام ملفات CSV ويقرأ بيانات الوحدة تلقائيًا عند توفرها.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16, justifyContent: "center" }}>
+                <span style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.charcoalSoft, padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700 }}>
+                  CSV فقط
+                </span>
+                <span style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.charcoalSoft, padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700 }}>
+                  سحب وإفلات أو اختيار يدوي
+                </span>
+              </div>
+              {fileName ? (
+                <div style={{ marginTop: 16, background: COLORS.primaryDark, color: "#fff", padding: "10px 16px", borderRadius: 999, fontWeight: 800, maxWidth: "100%", wordBreak: "break-word" }}>
+                  الملف الحالي: {fileName}
+                </div>
+              ) : null}
+            </div>
+
+            {parsed.missingColumns.length ? (
+              <div style={{ marginTop: 14, borderRadius: 18, padding: 14, background: COLORS.dangerBg, border: "1px solid #FECACA", color: COLORS.danger }}>
+                الأعمدة الناقصة: {parsed.missingColumns.join("، ")}
+              </div>
+            ) : null}
+
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.charcoal, marginBottom: 8 }}>التفضيلات العامة للمستخدم</div>
+              <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
+                فعّل فقط الخصائص التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء بطاقته التفصيلية من الصفحات التالية حتى لا تتكدس الواجهة على المستخدم.
+              </div>
+
+              <div style={{ display: "grid", gap: 12 }}>
+                {[
+                  {
+                    key: "hall",
+                    title: "تفضيل أو قصر القاعات لمقرر أو قسم معيّن / تفعيل أو إلغاء تقسيم المقرر بين أكثر من قاعة",
+                    tooltip: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
+                    checked: showHallConstraintPreferences,
+                    onChange: setShowHallConstraintPreferences,
+                  },
+                  {
+                    key: "exclude",
+                    title: "استبعاد مقررات من الجدول",
+                    tooltip: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية مستبعدة افتراضيًا حسب منطق النظام الحالي إن كانت معرفة في البيانات.",
+                    checked: showCourseExclusionsPreference,
+                    onChange: setShowCourseExclusionsPreference,
+                  },
+                  {
+                    key: "sep",
+                    title: "فصل أيام الدراسات العامة عن التخصص",
+                    tooltip: "يُظهر إعدادات الفصل بين أيام مقررات الدراسات العامة وأيام مقررات التخصص لتخفيف الضغط على المتدربين.",
+                    checked: showGeneralSpecializedSeparationPreference,
+                    onChange: setShowGeneralSpecializedSeparationPreference,
+                  },
+                  {
+                    key: "same",
+                    title: "محاولة إدراج مقررات محددة في نفس الفترة",
+                    tooltip: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
+                    checked: showSamePeriodPreference,
+                    onChange: setShowSamePeriodPreference,
+                  },
+                  {
+                    key: "time",
+                    title: "تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)",
+                    tooltip: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
+                    checked: showCourseTimePreference,
+                    onChange: setShowCourseTimePreference,
+                  },
+                  {
+                    key: "level",
+                    title: "تجنب وضع مقررات من المستوى نفسه في نفس اليوم",
+                    tooltip: "يُظهر إعدادات تحديد مستويات المقررات حتى يحاول النظام عدم جمع مقررات المستوى نفسه في يوم واحد.",
+                    checked: showAvoidSameLevelSameDayPreference,
+                    onChange: setShowAvoidSameLevelSameDayPreference,
+                  },
+                  {
+                    key: "inv",
+                    title: "تفضيل / منع / قصر مراقبين لمقرر معيّن",
+                    tooltip: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
+                    checked: showInvigilatorConstraintPreference,
+                    onChange: setShowInvigilatorConstraintPreference,
+                  },
+                ].map((item) => (
+                  <div key={item.key} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 16, background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 420px", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9 }}>{item.title}</div>
+                      <TooltipIcon text={item.tooltip} />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>{item.checked ? "مفعّل" : "معطّل"}</span>
+                      <Switch checked={item.checked} onChange={item.onChange} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            ) : null}
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+              <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
+                التالي: الخصائص العامة
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {currentStep === 2 && (
+          <Card>
+            <SectionHeader
+              title="الخصائص العامة"
+              description="هذه الصفحة مخصصة للإعدادات العامة للجدولة مثل البيانات الأساسية والفترات والقاعات وبقية الخصائص المتقدمة عند الحاجة."
             />
 
             <div
@@ -7451,6 +7699,7 @@ const headerBtn = (danger = false) => ({
 </Card>
             </div>
 
+            {showHallConstraintPreferences ? (
             <div style={{ marginTop: 18, maxWidth: 640 }}>
               <Card>
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر أو قسم معيّن</div>
@@ -8039,6 +8288,7 @@ const headerBtn = (danger = false) => ({
 
               </Card>
             </div>
+            ) : null}
 
             <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>أيام الاختبارات</div>
@@ -8085,14 +8335,14 @@ const headerBtn = (danger = false) => ({
             ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
+              <button onClick={() => setCurrentStep(3)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
                 التالي: تعديل المقررات
               </button>
             </div>
           </Card>
         )}
 
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Card>
             <SectionHeader
               title="تعديل المقررات"
@@ -8179,6 +8429,7 @@ const headerBtn = (danger = false) => ({
               </div>
             ) : null}
 
+            {showCourseExclusionsPreference ? (
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: 14 }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مقررات من الجدول</div>
               <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
@@ -8212,7 +8463,9 @@ const headerBtn = (danger = false) => ({
                 )}
               </div>
             </div>
+            ) : null}
 
+            {showGeneralSpecializedSeparationPreference ? (
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>فصل أيام الدراسات العامة عن التخصص</div>
               <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.9, marginBottom: 12 }}>
@@ -8239,7 +8492,9 @@ const headerBtn = (danger = false) => ({
                 })}
               </div>
             </div>
+            ) : null}
 
+            {showSamePeriodPreference ? (
             <div style={{ marginTop: 18, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 16, background: "#F8FEFE" }}>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                 <label
@@ -8432,7 +8687,9 @@ const headerBtn = (danger = false) => ({
                 </div>
               ) : null}
             </div>
+            ) : null}
 
+            {showCourseTimePreference ? (
             <div
               style={{
                 marginTop: 18,
@@ -8605,7 +8862,10 @@ const headerBtn = (danger = false) => ({
                 </div>
               ) : null}
             </div>
+            ) : null}
 
+            {showAvoidSameLevelSameDayPreference ? (
+            <>
             <div style={{ marginTop: 18 }}>
               <label
                 style={{
@@ -8746,19 +9006,21 @@ const headerBtn = (danger = false) => ({
                 </div>
               </div>
             ) : null}
+            </>
+            ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
                 السابق
               </button>
-              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle({ active: true })}>
+              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
                 التالي: المراقبون
               </button>
             </div>
           </Card>
         )}
 
-  {currentStep === 3 && (
+  {currentStep === 4 && (
   <Card>
     <SectionHeader
       title="المراقبون"
@@ -9020,6 +9282,7 @@ const headerBtn = (danger = false) => ({
         </div>
 
 
+        {showInvigilatorConstraintPreference ? (
         <div
           style={{
             border: `1px solid ${COLORS.border}`,
@@ -9229,15 +9492,16 @@ const headerBtn = (danger = false) => ({
             </div>
           ) : null}
         </div>
+        ) : null}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button type="button" onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+          <button type="button" onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
             السابق
           </button>
 
           <button
             type="button"
-            onClick={() => setCurrentStep(4)}
+            onClick={() => setCurrentStep(5)}
             style={cardButtonStyle({ active: true })}
           >
             التالي: الدراسات العامة
@@ -9262,7 +9526,7 @@ const headerBtn = (danger = false) => ({
   </Card>
 )}
 
-{currentStep === 4 && (
+{currentStep === 5 && (
           <Card>
             <SectionHeader title="توزيع مقررات الدراسات العامة" description="سيتم توزيع مقررات الدراسات العامة أولًا." />
 
@@ -9286,13 +9550,13 @@ const headerBtn = (danger = false) => ({
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
             </div>
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
-              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                 السابق
               </button>
               <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
                 توزيع مقررات الدراسات العامة
               </button>
-              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
                 التالي
               </button>
             </div>
@@ -9333,7 +9597,7 @@ const headerBtn = (danger = false) => ({
           </Card>
         )}
 
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <Card>
             <SectionHeader title="توزيع مقررات التخصص" description="بعد الانتهاء من الدراسات العامة، وزّع مقررات التخصص." />
 
@@ -9422,13 +9686,13 @@ const headerBtn = (danger = false) => ({
               عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
             </div>
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
                 السابق
               </button>
               <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
                 توزيع مقررات التخصص
               </button>
-              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
                 التالي
               </button>
             </div>
@@ -9467,7 +9731,7 @@ const headerBtn = (danger = false) => ({
           </Card>
         )}
 
-{currentStep === 6 && (
+{currentStep === 7 && (
   <Card>
     <SectionHeader
       title="تحليل تعارض مقررين محددين"
@@ -9804,17 +10068,17 @@ const headerBtn = (danger = false) => ({
       </div>
     )}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-      <button onClick={() => setCurrentStep(5)} style={cardButtonStyle()}>
+      <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
         السابق
       </button>
-      <button onClick={() => setCurrentStep(7)} style={cardButtonStyle({ active: true })}>
+      <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
         التالي: التعديل اليدوي
       </button>
     </div>
   </Card>
 )}
           
-        {currentStep === 7 && (
+        {currentStep === 8 && (
           <div style={{ marginTop: 20 }}>
             <Card>
               <SectionHeader
@@ -10060,10 +10324,10 @@ const headerBtn = (danger = false) => ({
               </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
+                <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
                   السابق
                 </button>
-                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle({ active: true })}>
+                <button onClick={() => setCurrentStep(9)} style={cardButtonStyle({ active: true })}>
                   التالي: المعاينة
                 </button>
               </div>
@@ -10071,7 +10335,7 @@ const headerBtn = (danger = false) => ({
           </div>
         )}
 
-        {currentStep === 8 && (
+        {currentStep === 9 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
@@ -10159,7 +10423,7 @@ const headerBtn = (danger = false) => ({
 
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
+                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
                     السابق
                   </button>
                   <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
@@ -10325,7 +10589,7 @@ const headerBtn = (danger = false) => ({
                         <div style={{ fontWeight: 900 }}>مقررات لم يتم جدولة اختبارها</div>
                         <button
                           type="button"
-                          onClick={() => setCurrentStep(7)}
+                          onClick={() => setCurrentStep(8)}
                           style={{ ...cardButtonStyle(), padding: "8px 14px", borderRadius: 12 }}
                         >
                           فتح صفحة المعالجة اليدوية
@@ -10682,7 +10946,7 @@ const headerBtn = (danger = false) => ({
             )}
           </>
         )}
-        {currentStep === 9 && (
+        {currentStep === 10 && (
           <div style={{ marginTop: 20 }}>
             <Card>
               <SectionHeader
@@ -10913,7 +11177,7 @@ const headerBtn = (danger = false) => ({
               </label>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+                <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
                   السابق
                 </button>
 
@@ -10961,7 +11225,7 @@ const headerBtn = (danger = false) => ({
                 >
                   طباعة جدول المراقبين
                 </button>
-                 <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
+                 <button onClick={() => setCurrentStep(11)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
       </button>
               </div>
@@ -10971,7 +11235,7 @@ const headerBtn = (danger = false) => ({
 
         </div>
   
-{currentStep === 10 && (
+{currentStep === 11 && (
   <Card>
     <SectionHeader
       title="تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
@@ -11226,7 +11490,7 @@ const headerBtn = (danger = false) => ({
     <br />
 
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
+      <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
         السابق
       </button>
     </div>
