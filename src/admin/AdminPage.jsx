@@ -1934,6 +1934,7 @@ const pendingRestoreRef = useRef(null);
     allowSharedAssignments: false,
   },
 ]);
+const [allowCourseSplitAcrossHalls, setAllowCourseSplitAcrossHalls] = useState(false);
 const [enableSamePeriodGroups, setEnableSamePeriodGroups] = useState(false);
 const [samePeriodGroups, setSamePeriodGroups] = useState([]);
 const [draggingSamePeriodCourseKey, setDraggingSamePeriodCourseKey] = useState("");
@@ -2496,6 +2497,125 @@ const periodOverlapWarning = useMemo(() => {
     return Number.isFinite(maxRemaining) ? maxRemaining : 0;
   }
 
+  function getTotalRemainingConstrainedHallCapacityForSlot(halls, course, slotOrItem, hallUsageMap) {
+    return getConstrainedHallsForCourse(halls, course).reduce((sum, hall) => {
+      return sum + Math.max(0, getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap));
+    }, 0);
+  }
+
+  function distributeSeatsAcrossHalls(totalSeats, hallsWithRemaining) {
+    const total = Math.max(0, Number(totalSeats) || 0);
+    if (!total || !Array.isArray(hallsWithRemaining) || !hallsWithRemaining.length) return [];
+
+    const working = hallsWithRemaining
+      .map((item) => ({
+        hall: item.hall,
+        remaining: Math.max(0, Number(item.remaining) || 0),
+        assigned: 0,
+      }))
+      .filter((item) => item.remaining > 0);
+
+    let seatsLeft = total;
+
+    while (seatsLeft > 0) {
+      const available = working.filter((item) => item.remaining > item.assigned);
+      if (!available.length) break;
+
+      const evenShare = Math.max(1, Math.floor(seatsLeft / available.length));
+      let movedThisRound = 0;
+
+      available.forEach((item, index) => {
+        const capacityLeft = item.remaining - item.assigned;
+        const preferredShare = index < seatsLeft % available.length ? evenShare + 1 : evenShare;
+        const take = Math.min(capacityLeft, Math.max(1, preferredShare));
+        item.assigned += take;
+        seatsLeft -= take;
+        movedThisRound += take;
+      });
+
+      if (!movedThisRound) {
+        const fallback = available[0];
+        fallback.assigned += 1;
+        seatsLeft -= 1;
+      }
+    }
+
+    return seatsLeft > 0 ? [] : working.filter((item) => item.assigned > 0);
+  }
+
+  function getAssignableHallPlanForSlot(halls, course, slotOrItem, hallUsageMap, allowSplitAcrossHalls = false) {
+    const constrainedHalls = sortHallsByCourseHallPreference(
+      getConstrainedHallsForCourse(halls, course),
+      course
+    );
+
+    const singleHallOptions = constrainedHalls.filter((hall) =>
+      canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap)
+    );
+
+    if (singleHallOptions.length) {
+      return {
+        ok: true,
+        halls: [{ hall: singleHallOptions[0], assigned: Number(course?.studentCount) || 0 }],
+        split: false,
+      };
+    }
+
+    if (!allowSplitAcrossHalls) {
+      return { ok: false, halls: [], split: false };
+    }
+
+    const hallsWithRemaining = constrainedHalls
+      .map((hall) => ({
+        hall,
+        remaining: getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap),
+      }))
+      .filter((item) => item.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining || a.hall.name.localeCompare(b.hall.name, 'ar'));
+
+    const totalRemaining = hallsWithRemaining.reduce((sum, item) => sum + item.remaining, 0);
+    const requiredSeats = Number(course?.studentCount) || 0;
+
+    if (totalRemaining < requiredSeats) {
+      return { ok: false, halls: [], split: false, totalRemaining };
+    }
+
+    const selected = [];
+    let running = 0;
+    for (const item of hallsWithRemaining) {
+      selected.push(item);
+      running += item.remaining;
+      if (running >= requiredSeats) break;
+    }
+
+    const distributed = distributeSeatsAcrossHalls(requiredSeats, selected);
+    if (!distributed.length) {
+      return { ok: false, halls: [], split: false, totalRemaining };
+    }
+
+    return {
+      ok: true,
+      halls: distributed,
+      split: distributed.length > 1,
+      totalRemaining,
+    };
+  }
+
+  function reserveHallPlanForCourseInSlot(hallPlan, slotOrItem, hallUsageMap) {
+    (Array.isArray(hallPlan) ? hallPlan : []).forEach((item) => {
+      if (!item?.hall || !item?.assigned) return;
+      const key = getHallUsageKey(slotOrItem, item.hall);
+      hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.assigned) || 0));
+    });
+  }
+
+  function formatHallPlanLabel(hallPlan) {
+    return (Array.isArray(hallPlan) ? hallPlan : [])
+      .map((item) => item?.hall?.name)
+      .filter(Boolean)
+      .join(' + ');
+  }
+
 
   function getManualMoveConflictItems(course, targetSlotId, ignoredInstanceId = "") {
     if (!course || !targetSlotId) return [];
@@ -2768,26 +2888,43 @@ const periodOverlapWarning = useMemo(() => {
   function resolveManualPlacementResources(course, targetSlot, currentSchedule = [], ignoreInstanceId = "") {
     const hallUsageMap = new Map();
     (Array.isArray(currentSchedule) ? currentSchedule : [])
-      .filter((item) => item && item.instanceId !== ignoreInstanceId && item.id === targetSlot.id && item.examHall)
+      .filter((item) => item && item.instanceId !== ignoreInstanceId && item.id === targetSlot.id)
       .forEach((item) => {
-        const key = getHallUsageKey(targetSlot, item.examHall);
-        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
+        if (Array.isArray(item.assignedHalls) && item.assignedHalls.length) {
+          reserveHallPlanForCourseInSlot(item.assignedHalls, targetSlot, hallUsageMap);
+        } else if (item.examHall) {
+          const key = getHallUsageKey(targetSlot, item.examHall);
+          hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(item.studentCount) || 0));
+        }
       });
 
-    const fittingHalls = getAssignableConstrainedHallsForSlot(
+    const hallPlanResult = getAssignableHallPlanForSlot(
       normalizedExamHalls,
       course,
       targetSlot,
-      hallUsageMap
+      hallUsageMap,
+      allowCourseSplitAcrossHalls
     );
 
     let assignedHall = "";
-    if (fittingHalls.length) {
-      assignedHall = fittingHalls[0].name;
-      reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
+    let assignedHalls = [];
+    if (hallPlanResult.ok) {
+      assignedHall = formatHallPlanLabel(hallPlanResult.halls);
+      assignedHalls = hallPlanResult.halls.map((item) => ({
+        hall: item.hall.name,
+        hallId: item.hall.id || null,
+        assigned: item.assigned,
+      }));
+      reserveHallPlanForCourseInSlot(hallPlanResult.halls, targetSlot, hallUsageMap);
     } else {
       const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
       const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
+        normalizedExamHalls,
+        course,
+        targetSlot,
+        hallUsageMap
+      );
+      const totalRemaining = getTotalRemainingConstrainedHallCapacityForSlot(
         normalizedExamHalls,
         course,
         targetSlot,
@@ -2799,8 +2936,8 @@ const periodOverlapWarning = useMemo(() => {
         reasonType: "hall",
         reasonMessage:
           hallConstraintSummary.mode === "only"
-            ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
-            : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
+            ? `تعذر وضع المقرر في هذه الفترة لأن قيد القاعات الفعّال هو: ${hallConstraintSummary.label}. ${allowCourseSplitAcrossHalls ? `إجمالي السعة المتبقية القابلة للإسناد بعد تطبيق القيد هو ${Number(totalRemaining) || 0}.` : `أكبر سعة متبقية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`}`
+            : `تعذر وضع المقرر في هذه الفترة لعدم توفر قاعة مناسبة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، ${allowCourseSplitAcrossHalls ? `وإجمالي السعة المتبقية القابلة للإسناد بعد تطبيق القيود هو ${Number(totalRemaining) || 0}.` : `وأكبر سعة متبقية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`}`,
       };
     }
 
@@ -2819,6 +2956,7 @@ const periodOverlapWarning = useMemo(() => {
     return {
       ok: true,
       assignedHall,
+      assignedHalls,
       invigilators: pickedInvigilators,
     };
   }
@@ -2860,6 +2998,7 @@ const periodOverlapWarning = useMemo(() => {
       scheduleTypes: Array.from(course.scheduleTypes || []),
       departmentRoots: Array.from(course.departmentRoots || []),
       examHall: assignedHall,
+  assignedHalls,
       invigilators: manualPlacement.invigilators,
       manualEdited: true,
       isPinned: false,
@@ -2927,6 +3066,7 @@ const periodOverlapWarning = useMemo(() => {
               ...item,
               ...targetSlot,
               examHall: manualPlacement.assignedHall,
+              assignedHalls: manualPlacement.assignedHalls || [],
               invigilators: manualPlacement.invigilators,
               manualEdited: true,
             }
@@ -3480,6 +3620,7 @@ const deserializeScheduleItem = (item) => ({
   ...item,
   instanceId: item.instanceId || makeScheduledInstanceId(),
   students: Array.isArray(item.students) ? item.students : [],
+  assignedHalls: Array.isArray(item.assignedHalls) ? item.assignedHalls : [],
 });
 
   const formatTrainees = (n) => {
@@ -3583,6 +3724,7 @@ const buildPersistedState = () => ({
   periodConfigs,
   periodsText,
   examHalls,
+  allowCourseSplitAcrossHalls,
   enableSamePeriodGroups,
   samePeriodGroups,
   maxExamsPerStudentPerDay,
@@ -3669,6 +3811,7 @@ const restorePersistedState = (saved) => {
           },
         ]
   );
+  setAllowCourseSplitAcrossHalls(Boolean(saved.allowCourseSplitAcrossHalls));
   setEnableSamePeriodGroups(saved.enableSamePeriodGroups ?? false);
   setSamePeriodGroups(
     Array.isArray(saved.samePeriodGroups)
@@ -4955,7 +5098,14 @@ const periodKey = getSlotPeriodKey(item);
     const existingHall = hallsPool.find(
       (hall) => normalizeArabic(hall.name) === normalizeArabic(item.examHall)
     );
-    if (existingHall && Number(item.studentCount) > 0) {
+    if (Array.isArray(item.assignedHalls) && item.assignedHalls.length) {
+      item.assignedHalls.forEach((hallItem) => {
+        const matchedHall = hallsPool.find((hall) => (hallItem.hallId && hall.id === hallItem.hallId) || normalizeArabic(hall.name) === normalizeArabic(hallItem.hall));
+        if (!matchedHall || !(Number(hallItem.assigned) > 0)) return;
+        const key = getHallUsageKey(item, matchedHall);
+        hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + (Number(hallItem.assigned) || 0));
+      });
+    } else if (existingHall && Number(item.studentCount) > 0) {
       reserveHallForCourseInSlot(existingHall, item, item, hallUsageMap);
     }
 
@@ -5250,7 +5400,13 @@ const pickInvigilators = (course, slot) => {
         };
       });
 
-      const matchingHallCount = matchingHallDetails.filter((item) => item.canAssign && item.passesConstraint).length;
+      const singleHallCount = matchingHallDetails.filter((item) => item.canAssign && item.passesConstraint).length;
+      const totalConstrainedRemaining = matchingHallDetails
+        .filter((item) => item.passesConstraint)
+        .reduce((sum, item) => sum + Math.max(0, Number(item.effectiveRemaining) || 0), 0);
+      const matchingHallCount = allowCourseSplitAcrossHalls
+        ? (singleHallCount || totalConstrainedRemaining >= (Number(course.studentCount) || 0) ? 1 : 0)
+        : singleHallCount;
 
       if (!matchingHallCount) {
         console.log("HALL_DEBUG_SLOT_SCAN", {
@@ -5327,8 +5483,18 @@ const requiredSeats = Number(course.studentCount) || 0;
           );
         }, 0)
       : 0;
+    const totalRemainingAcrossSlots = diagnosis.totalSlots
+      ? slots.reduce((best, slot) => {
+          return Math.max(
+            best,
+            getTotalRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+          );
+        }, 0)
+      : 0;
 
-    const hasAnyFittableHallInAnySlot = maxRemainingAcrossSlots >= requiredSeats;
+    const hasAnyFittableHallInAnySlot = allowCourseSplitAcrossHalls
+      ? totalRemainingAcrossSlots >= requiredSeats
+      : maxRemainingAcrossSlots >= requiredSeats;
     const reasonParts = [];
 
     if ((Number(maxAvailable) || 0) <= 0) {
@@ -5354,8 +5520,8 @@ const requiredSeats = Number(course.studentCount) || 0;
         shortLabel: "لا توجد قاعة مناسبة",
         detail:
           hallConstraintSummary.mode === "only"
-            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`
-            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`,
+            ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، ${allowCourseSplitAcrossHalls ? `وإجمالي السعة القابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هو ${Number.isFinite(Number(totalRemainingAcrossSlots)) ? Number(totalRemainingAcrossSlots) : 0}.` : `وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`}`
+            : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، ${allowCourseSplitAcrossHalls ? `وإجمالي السعة القابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هو ${Number.isFinite(Number(totalRemainingAcrossSlots)) ? Number(totalRemainingAcrossSlots) : 0}.` : `وأكبر سعة قابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`}`,
       };
     }
 
@@ -5457,11 +5623,15 @@ const requiredSeats = Number(course.studentCount) || 0;
       }
     }
 
-    const matchingHallCount = hallsPool.filter((hall) =>
-      canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap)
-    ).length;
+    const hallPlanResult = getAssignableHallPlanForSlot(
+      hallsPool,
+      course,
+      slot,
+      hallUsageMap,
+      allowCourseSplitAcrossHalls
+    );
 
-    if (!matchingHallCount) {
+    if (!hallPlanResult.ok) {
       return Number.POSITIVE_INFINITY;
     }
 
@@ -5553,15 +5723,25 @@ sortedCoursesForInvigilation.forEach((course) => {
         );
       }, 0)
     : 0;
+  const totalRemainingAcrossSlots = slots.length
+    ? slots.reduce((best, slot) => {
+        return Math.max(
+          best,
+          getTotalRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap)
+        );
+      }, 0)
+    : 0;
 
   console.log("MAX_REMAINING_DEBUG", {
     course: course.courseName || course.courseCode || course.key,
     requiredSeats: Number(course.studentCount) || 0,
     slot: null,
     maxRemainingAcrossSlots,
+    totalRemainingAcrossSlots,
     hallsBySlot: slots.map((slot) => ({
       slot: getSlotPeriodKey(slot),
       maxRemaining: getMaxRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap),
+      totalRemaining: getTotalRemainingConstrainedHallCapacityForSlot(hallsPool, course, slot, hallUsageMap),
     })),
   });
 
@@ -5569,7 +5749,7 @@ sortedCoursesForInvigilation.forEach((course) => {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       required: Number(course.studentCount) || 0,
-      maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
+      maxAvailable: Number.isFinite(Number(allowCourseSplitAcrossHalls ? totalRemainingAcrossSlots : maxRemainingAcrossSlots)) ? Number(allowCourseSplitAcrossHalls ? totalRemainingAcrossSlots : maxRemainingAcrossSlots) : 0,
     });
   }
   const diagnosis = diagnoseUnscheduledCourse(course);
@@ -5592,27 +5772,25 @@ sortedCoursesForInvigilation.forEach((course) => {
     });
 
     const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-    const fittingHalls = getAssignableConstrainedHallsForSlot(
+    const hallPlanResult = getAssignableHallPlanForSlot(
       hallsPool,
       course,
       bestSlot,
-      hallUsageMap
-    ).sort((a, b) => {
-      const aPreferred = hallConstraintSummary.mode === "prefer" && hallConstraintSummary.hallNames.some((name) => normalizeArabic(name) === normalizeArabic(a.name)) ? 1 : 0;
-      const bPreferred = hallConstraintSummary.mode === "prefer" && hallConstraintSummary.hallNames.some((name) => normalizeArabic(name) === normalizeArabic(b.name)) ? 1 : 0;
-      if (aPreferred !== bPreferred) return bPreferred - aPreferred;
-      const aRemaining = getRemainingHallCapacityForSlot(a, bestSlot, hallUsageMap);
-      const bRemaining = getRemainingHallCapacityForSlot(b, bestSlot, hallUsageMap);
-      return aRemaining - bRemaining || Number(a.capacity) - Number(b.capacity);
-    });
+      hallUsageMap,
+      allowCourseSplitAcrossHalls
+    );
 
     let assignedHall = null;
-    let assignedHallObj = null;
+    let assignedHalls = [];
 
-    if (fittingHalls.length) {
-      assignedHallObj = fittingHalls[0];
-      assignedHall = assignedHallObj.name;
-      reserveHallForCourseInSlot(assignedHallObj, course, bestSlot, hallUsageMap);
+    if (hallPlanResult.ok) {
+      assignedHall = formatHallPlanLabel(hallPlanResult.halls);
+      assignedHalls = hallPlanResult.halls.map((item) => ({
+        hall: item.hall.name,
+        hallId: item.hall.id || null,
+        assigned: item.assigned,
+      }));
+      reserveHallPlanForCourseInSlot(hallPlanResult.halls, bestSlot, hallUsageMap);
     } else {
  
   const constrainedHallNames = new Set(
@@ -5647,6 +5825,12 @@ sortedCoursesForInvigilation.forEach((course) => {
     bestSlot,
     hallUsageMap
   );
+  const totalRemaining = getTotalRemainingConstrainedHallCapacityForSlot(
+    hallsPool,
+    course,
+    bestSlot,
+    hallUsageMap
+  );
 
   hallWarningItems.push({
     courseKey: course.key,
@@ -5656,15 +5840,15 @@ sortedCoursesForInvigilation.forEach((course) => {
     major: course.major || "",
     departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
     required: Number(course.studentCount) || 0,
-    maxAvailable: maxRemaining,
+    maxAvailable: allowCourseSplitAcrossHalls ? totalRemaining : maxRemaining,
   });
 
   notPlaced.push({
     ...course,
     unscheduledReason:
       hallConstraintSummary.mode === "only"
-        ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال في هذه الفترة. ${hallConstraintSummary.label}. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
-        : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
+        ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال في هذه الفترة. ${hallConstraintSummary.label}. يحتاج ${Number(course.studentCount) || 0} مقعدًا، ${allowCourseSplitAcrossHalls ? `وإجمالي السعة المتبقية الفعلية بعد تطبيق القيد هو ${Number(totalRemaining) || 0}.` : `وأكبر سعة متبقية فعلية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`}`
+        : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، ${allowCourseSplitAcrossHalls ? `وإجمالي السعة المتبقية الفعلية بعد تطبيق القيود هو ${Number(totalRemaining) || 0}.` : `وأكبر سعة متبقية فعلية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`}`,
     unscheduledShortLabel: "لا توجد قاعة مناسبة",
   });
 
@@ -6971,10 +7155,62 @@ style={{
             <Card style={{maxWidth: 640 }}>
   <SectionHeader
     title="قاعات الاختبار"
-    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة."
+    description="أضف القاعات وحدد الأقسام المسموح لها لكل قاعة. ويمكنك تفعيل خيار مشاركة القاعة لبعض القاعات فقط إذا كانت سعتها تسمح بأكثر من مقرر في نفس الفترة، كما يمكنك السماح بتقسيم المقرر على أكثر من قاعة عند الحاجة."
   />
 
   <div style={{ display: "grid", gap: 14 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        borderRadius: 18,
+        padding: "12px 14px",
+        background: COLORS.bg2,
+      }}
+    >
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontWeight: 800,
+          color: COLORS.charcoal,
+          cursor: "pointer",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={allowCourseSplitAcrossHalls}
+          onChange={(e) => setAllowCourseSplitAcrossHalls(e.target.checked)}
+        />
+        السماح بتقسيم المقرر على أكثر من قاعة
+      </label>
+
+      <div
+        title="مثال: إذا كان المقرر فيه 100 متدرب ولا توجد قاعة واحدة تتسع لهم، يمكن للنظام تقسيمهم على قاعتين أو أكثر وتوزيعهم بينهم بشكل مناسب حسب السعة المتاحة."
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#EEF6F6",
+          border: "1px solid #A8DDDA",
+          color: "#0E2730",
+          fontWeight: 900,
+          fontSize: 13,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "help",
+          userSelect: "none",
+        }}
+      >
+        ?
+      </div>
+    </div>
+
     {examHalls.map((hall, index) => (
       <div
         key={hall.id}
