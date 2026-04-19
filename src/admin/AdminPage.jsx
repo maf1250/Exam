@@ -525,6 +525,30 @@ function getMaxAllowedHallCapacity(halls, course) {
 
   return Number.isFinite(maxCapacity) ? maxCapacity : 0;
 }
+function buildHallUsageMapForSlot(slotOrSlotId, schedule, slots = []) {
+  const usageMap = new Map();
+
+  const slot =
+    typeof slotOrSlotId === "string"
+      ? slots.find((item) => item.id === slotOrSlotId)
+      : slotOrSlotId;
+
+  if (!slot) return usageMap;
+
+  const targetPeriodKey = getSlotPeriodKey(slot);
+
+  (Array.isArray(schedule) ? schedule : [])
+    .filter((item) => getSlotPeriodKey(item) === targetPeriodKey && item.examHall)
+    .forEach((item) => {
+      const key = getHallUsageKey(slot, item.examHall);
+      usageMap.set(
+        key,
+        (usageMap.get(key) || 0) + (Number(item.studentCount) || 0)
+      );
+    });
+
+  return usageMap;
+}
 function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hallUsageMap) {
   if (!hall || !course) return 0;
   if (!isHallAllowedForCourse(hall, course)) return 0;
@@ -5053,8 +5077,20 @@ sortedCoursesForInvigilation.forEach((course) => {
     });
 
   
-      if (!bestSlot || !Number.isFinite(bestScore)) {
-  const maxAvailable = getMaxAllowedHallCapacity(hallsPool, course);
+if (!bestSlot || !Number.isFinite(bestScore)) {
+  const maxAvailable = Math.max(
+    0,
+    ...slots.map((slot) => {
+      const slotHallUsageMap = buildHallUsageMapForSlot(slot, schedule, slots);
+      return getMaxRemainingAllowedHallCapacityForSlot(
+        hallsPool,
+        course,
+        slot,
+        slotHallUsageMap
+      );
+    })
+  );
+
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
@@ -5065,11 +5101,14 @@ sortedCoursesForInvigilation.forEach((course) => {
           : 0,
     });
   }
-  const diagnosis = diagnoseUnscheduledCourse(course);
+
   notPlaced.push({
     ...course,
-    unscheduledReason: diagnosis.detail,
-    unscheduledShortLabel: diagnosis.shortLabel,
+    unscheduledReason:
+      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. ` +
+      `يحتاج ${Number(course.studentCount) || 0} مقعدًا، ` +
+      `وأكبر سعة متبقية فعلية هي ${Number(maxAvailable) || 0}.`,
+    unscheduledShortLabel: "لا توجد قاعة مناسبة",
   });
   return;
 }
