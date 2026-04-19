@@ -2602,7 +2602,7 @@ const periodOverlapWarning = useMemo(() => {
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
     } else {
       const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-      const candidateHallsForMessage = sortHallsByCourseHallPreference(
+     const candidateHallsForMessage = sortHallsByCourseHallPreference(
   filterHallsByCourseHallConstraint(
     (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
       isHallAllowedForCourse(hall, course)
@@ -2612,15 +2612,17 @@ const periodOverlapWarning = useMemo(() => {
   course
 );
 
-const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
-  const remaining = getEffectiveAssignableHallCapacityForSlot(
-    hall,
-    course,
-    bestSlot,
-    hallUsageMap
-  );
-  return Math.max(best, Number(remaining) || 0);
-}, 0);
+const maxRemaining = candidateHallsForMessage.length
+  ? candidateHallsForMessage.reduce((best, hall) => {
+      const remaining = getEffectiveAssignableHallCapacityForSlot(
+        hall,
+        course,
+        bestSlot || slot,
+        hallUsageMap
+      );
+      return Math.max(best, Number(remaining) || 0);
+    }, 0)
+  : 0;
 
       console.log("HALL_DEBUG_MANUAL_PLACE", {
         course: course.courseName || course.courseCode || course.key,
@@ -4998,14 +5000,22 @@ const requiredSeats = Number(course.studentCount) || 0;
     const reasonParts = [];
 
     if ((Number(maxAvailable) || 0) <= 0) {
+           console.log("MAX_REMAINING_DEBUG", {
+  course: course.courseName,
+  requiredSeats,
+  bestSlot: bestSlot ? getSlotPeriodKey(bestSlot) : null,
+  maxRemaining,
+});
       return {
+   
         shortLabel: "لا توجد قاعة مناسبة",
-        detail:
-          `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
-          `يحتاج ${requiredSeats} مقعدًا، ` +
-          `وأكبر سعة مسموحة هي ${Number(maxRemaining) || 0}.`,
-      };
-    }
+       
+ detail:
+      `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
+      `يحتاج ${requiredSeats} مقعدًا، ` +
+      `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+  };
+}
 
     if (!hasAnyFittableHallInAnySlot) {
       return {
