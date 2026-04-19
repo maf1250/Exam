@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import {
   generateTraineeLink,
@@ -5553,13 +5553,11 @@ sortedCoursesForInvigilation.forEach((course) => {
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       key: course.key,
-      courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       courseCode: course.courseCode || "",
+      courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       department: course.department || "",
       major: course.major || "",
-      sectionName: course.sectionName || "",
-      departmentRoots: Array.from(course.departmentRoots || []),
-      majors: Array.from(course.majors || []),
+      departmentRoots: Array.isArray(course.departmentRoots) ? Array.from(course.departmentRoots) : [],
       required: Number(course.studentCount) || 0,
       maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
@@ -5641,14 +5639,7 @@ sortedCoursesForInvigilation.forEach((course) => {
   );
 
   hallWarningItems.push({
-    key: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
-    courseCode: course.courseCode || "",
-    department: course.department || "",
-    major: course.major || "",
-    sectionName: course.sectionName || "",
-    departmentRoots: Array.from(course.departmentRoots || []),
-    majors: Array.from(course.majors || []),
     required: Number(course.studentCount) || 0,
     maxAvailable: maxRemaining,
   });
@@ -5759,7 +5750,7 @@ const generateSpecializedSchedule = () => {
     const combined = [...(prev || []), ...(nextHallWarnings || [])];
     const map = new Map();
     combined.forEach((item) => {
-      const key = item?.key || `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      const key = `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
       if (!map.has(key)) {
         map.set(key, item);
       }
@@ -5814,93 +5805,55 @@ const generateSpecializedSchedule = () => {
   setCurrentStep(6);
 };
 
-const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (() => {
-        const target = normalizeArabic(printDepartmentFilter);
-        const roots = item.departmentRoots || [];
-
-        if (roots.includes(target)) return true;
-
-        if (isGeneralStudiesCourse(item)) {
-          return roots.some((r) => r.includes(target));
-        }
-
-        return false;
-      })();
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
-}, [schedule, printDepartmentFilter, printMajorFilter]);
-const filteredSortedCourses = useMemo(() => {
-  return parsed.courses.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
-}, [parsed.courses, printDepartmentFilter, printMajorFilter]);
-
-const previewItemMatchesFilters = useCallback((item) => {
+const previewItemMatchesFilters = (item) => {
   if (!item) return false;
 
-  const targetDepartment =
-    printDepartmentFilter === "__all__" ? "" : normalizeArabic(printDepartmentFilter);
-  const targetMajor =
-    printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
-
-  const departmentRoots = Array.isArray(item.departmentRoots)
-    ? item.departmentRoots.map((value) => normalizeArabic(value)).filter(Boolean)
-    : getCourseDepartmentRoots(item);
-
-  const itemDepartments = [
-    ...splitBySlash(item.department),
-    ...splitBySlash(item.sectionName),
-    ...splitBySlash(item.departmentLabel),
-  ]
-    .map((value) => normalizeArabic(value))
-    .filter(Boolean);
-
-  const itemMajors = [
-    ...splitBySlash(item.major),
-    ...(Array.isArray(item.majors) ? item.majors : []),
-  ]
-    .map((value) => normalizeArabic(value))
-    .filter(Boolean);
-
   const departmentOk =
-    !targetDepartment ||
-    departmentRoots.includes(targetDepartment) ||
-    itemDepartments.includes(targetDepartment);
+    printDepartmentFilter === "__all__" ||
+    (() => {
+      const target = normalizeArabic(printDepartmentFilter);
+      const roots = Array.isArray(item.departmentRoots)
+        ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
+        : [];
+
+      if (roots.includes(target)) return true;
+
+      const directDepartmentMatch = splitBySlash(item.department)
+        .map((dep) => normalizeArabic(dep))
+        .filter(Boolean)
+        .includes(target);
+
+      if (directDepartmentMatch) return true;
+
+      if (isGeneralStudiesCourse(item)) {
+        return roots.some((root) => root.includes(target));
+      }
+
+      return false;
+    })();
 
   const majorOk =
-    !targetMajor || itemMajors.includes(targetMajor);
+    printMajorFilter === "__all__" ||
+    splitBySlash(item.major)
+      .map((major) => normalizeArabic(major))
+      .filter(Boolean)
+      .includes(normalizeArabic(printMajorFilter));
 
   return departmentOk && majorOk;
-}, [printDepartmentFilter, printMajorFilter]);
+};
 
+const filteredScheduleForPrint = useMemo(() => {
+  return schedule.filter(previewItemMatchesFilters);
+}, [schedule, printDepartmentFilter, printMajorFilter]);
+const filteredSortedCourses = useMemo(() => {
+  return parsed.courses.filter(previewItemMatchesFilters);
+}, [parsed.courses, printDepartmentFilter, printMajorFilter]);
 const filteredUnscheduledForPreview = useMemo(() => {
-  return (unscheduled || []).filter((item) => previewItemMatchesFilters(item));
-}, [unscheduled, previewItemMatchesFilters]);
-
+  return unscheduled.filter(previewItemMatchesFilters);
+}, [unscheduled, printDepartmentFilter, printMajorFilter]);
 const filteredHallWarningsForPreview = useMemo(() => {
-  return (hallWarnings || []).filter((item) => previewItemMatchesFilters(item));
-}, [hallWarnings, previewItemMatchesFilters]);
+  return hallWarnings.filter(previewItemMatchesFilters);
+}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
