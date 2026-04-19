@@ -558,14 +558,16 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
 
   const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0;
 console.log({
-    hall: hall.name,
-    slot: getSlotPeriodKey(slotOrItem),
-    capacity: hallCapacity,
-    used: used,
-    remaining: hall.allowSharedAssignments
-      ? Math.max(0, hallCapacity - used)
-      : (used > 0 ? 0 : hallCapacity),
-  });
+  hall: hall.name,
+  allowSharedAssignments: hall.allowSharedAssignments,
+  slot: getSlotPeriodKey(slotOrItem),
+  capacity: hallCapacity,
+  used: used,
+  remaining: hall.allowSharedAssignments
+    test: maxRemainingAcrossSlots,
+    ? Math.max(0, hallCapacity - used)
+    : (used > 0 ? 0 : hallCapacity),
+});
   if (hall.allowSharedAssignments) {
     return Math.max(0, hallCapacity - used);
   }
