@@ -5856,6 +5856,25 @@ const filteredUnscheduledForPreview = useMemo(() => {
     return departmentOk && majorOk;
   });
 }, [unscheduled, printDepartmentFilter, printMajorFilter]);
+const filteredHallWarningsForPreview = useMemo(() => {
+  return hallWarnings.filter((item) => {
+    const departmentRoots = Array.isArray(item?.departmentRoots)
+      ? item.departmentRoots
+      : getCourseDepartmentRoots(item);
+
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      departmentRoots.includes(normalizeArabic(printDepartmentFilter));
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item?.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
+  });
+}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9716,7 +9735,7 @@ style={{
                     </div>
                   ) : null}
 
-                  {hallWarnings.length ? (
+                  {filteredHallWarningsForPreview.length ? (
                     <div
                       style={{
                         marginBottom: 18,
@@ -9729,7 +9748,7 @@ style={{
                     >
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>تنبيهات القاعات</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {hallWarnings.map((item, index) => (
+                        {filteredHallWarningsForPreview.map((item, index) => (
                           <span
                             key={`${item.courseName}-${index}`}
                             style={{
