@@ -2059,7 +2059,7 @@ const stepNineCardStyle = {
 const [hallWarnings, setHallWarnings] = useState([]);
 const [showAdvancedManagementOptions, setShowAdvancedManagementOptions] = useState(false);
 const [showHallConstraintPreferences, setShowHallConstraintPreferences] = useState(false);
-const [showCourseExclusionsPreference, setShowCourseExclusionsPreference] = useState(true);
+const [showCourseExclusionsPreference, setShowCourseExclusionsPreference] = useState(false);
 const [showGeneralSpecializedSeparationPreference, setShowGeneralSpecializedSeparationPreference] = useState(false);
 const [showSamePeriodPreference, setShowSamePeriodPreference] = useState(false);
 const [showCourseTimePreference, setShowCourseTimePreference] = useState(false);
@@ -3329,7 +3329,7 @@ const handleUpload = (file) => {
       setHallWarnings([]);
       setShowAdvancedManagementOptions(false);
       setShowHallConstraintPreferences(false);
-      setShowCourseExclusionsPreference(true);
+      setShowCourseExclusionsPreference(false);
       setShowGeneralSpecializedSeparationPreference(false);
       setShowSamePeriodPreference(false);
       setShowCourseTimePreference(false);
@@ -3942,7 +3942,7 @@ const restorePersistedState = (saved) => {
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setShowAdvancedManagementOptions(saved.showAdvancedManagementOptions ?? false);
   setShowHallConstraintPreferences(saved.showHallConstraintPreferences ?? false);
-  setShowCourseExclusionsPreference(saved.showCourseExclusionsPreference ?? true);
+  setShowCourseExclusionsPreference(saved.showCourseExclusionsPreference ?? false);
   setShowGeneralSpecializedSeparationPreference(saved.showGeneralSpecializedSeparationPreference ?? false);
   setShowSamePeriodPreference(saved.showSamePeriodPreference ?? false);
   setShowCourseTimePreference(saved.showCourseTimePreference ?? false);
@@ -7064,7 +7064,7 @@ const headerBtn = (danger = false) => ({
         {currentStep === 1 && (
           <Card>
             <SectionHeader
-              title="الخصائص العامة"
+              title="رفع الملف والتفضيلات"
               description="ارفع ملف SF01 أولًا، ثم فعّل فقط التفضيلات العامة التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء إعداداته التفصيلية من الصفحات التالية لتبقى الواجهة أخف وأوضح."
             />
 
@@ -7137,7 +7137,7 @@ const headerBtn = (danger = false) => ({
                 فعّل فقط الخصائص التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء بطاقته التفصيلية من الصفحات التالية حتى لا تتكدس الواجهة على المستخدم.
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "flex", gap: 12, maxWidth: 450 }}>
                 {[
                   {
                     key: "hall",
@@ -7202,7 +7202,7 @@ const headerBtn = (danger = false) => ({
                 ))}
               </div>
             </div>
-            ) : null}
+            {/*    ) : null} */}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
