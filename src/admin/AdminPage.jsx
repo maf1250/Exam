@@ -2602,12 +2602,25 @@ const periodOverlapWarning = useMemo(() => {
       reserveHallForCourseInSlot(fittingHalls[0], course, targetSlot, hallUsageMap);
     } else {
       const hallConstraintSummary = getEffectiveHallConstraintSummary(course);
-      const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
-        normalizedExamHalls,
-        course,
-        targetSlot,
-        hallUsageMap
-      );
+      const candidateHallsForMessage = sortHallsByCourseHallPreference(
+  filterHallsByCourseHallConstraint(
+    (Array.isArray(hallsPool) ? hallsPool : []).filter((hall) =>
+      isHallAllowedForCourse(hall, course)
+    ),
+    course
+  ),
+  course
+);
+
+const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
+  const remaining = getEffectiveAssignableHallCapacityForSlot(
+    hall,
+    course,
+    bestSlot,
+    hallUsageMap
+  );
+  return Math.max(best, Number(remaining) || 0);
+}, 0);
 
       console.log("HALL_DEBUG_MANUAL_PLACE", {
         course: course.courseName || course.courseCode || course.key,
@@ -4990,7 +5003,7 @@ const requiredSeats = Number(course.studentCount) || 0;
         detail:
           `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
           `يحتاج ${requiredSeats} مقعدًا، ` +
-          `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
+          `وأكبر سعة مسموحة هي ${Number(maxRemaining) || 0}.`,
       };
     }
 
@@ -9375,7 +9388,7 @@ style={{
                               fontSize: 13,
                             }}
                           >
-                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxAvailable}
+                            {item.courseName} يحتاج قاعة بسعة {item.required}، أكبر سعة قابلة للإسناد فعليًا {item.maxRemaining}
                           </span>
                         ))}
                       </div>
