@@ -3094,6 +3094,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
 const [expandedUnscheduledCourseKeys, setExpandedUnscheduledCourseKeys] = useState([]);
+const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useState(null);
   const [hasImportedSessionFile, setHasImportedSessionFile] = useState(false);
   const [pendingRestore, setPendingRestore] = useState(null);
   const [didRestore, setDidRestore] = useState(false);
@@ -3134,6 +3135,8 @@ const handleUpload = (file) => {
       setGeneralSchedule([]);
       setSpecializedSchedule([]);
       setUnscheduled([]);
+      setExpandedUnscheduledCourseKeys([]);
+      setSelectedUnscheduledReasonModal(null);
       setHallWarnings([]);
       setEnableSamePeriodGroups(false);
       setSamePeriodGroups([]);
@@ -3345,69 +3348,6 @@ const formatSlotBadgeLabel = (slot) => {
   return segments.join(" - ");
 };
 
-const getUnscheduledSlotDetailLines = (groupKey, slot) => {
-  if (!slot) return [];
-
-  if (groupKey === "studentConflict") {
-    const students = Array.isArray(slot.blockingStudents) ? slot.blockingStudents : [];
-    return students.length
-      ? students.map((student) => `${student.name || "بدون اسم"} (${student.id || "-"})`)
-      : ["يوجد متدربون لديهم اختبار آخر في هذه الفترة."];
-  }
-
-  if (groupKey === "dailyLimit") {
-    const students = Array.isArray(slot.blockingStudents) ? slot.blockingStudents : [];
-    return students.length
-      ? students.map((student) => `${student.name || "بدون اسم"} (${student.id || "-"}) بلغ الحد اليومي`)
-      : ["يوجد متدربون بلغوا الحد اليومي المسموح من الاختبارات."];
-  }
-
-  if (groupKey === "levelConflict") {
-    const conflicts = Array.isArray(slot.conflictingCourses) ? slot.conflictingCourses : [];
-    return conflicts.length
-      ? conflicts.map((item) => `${item.courseName || "مقرر"} - ${item.courseCode || ""}`.trim())
-      : ["يوجد مقرر آخر من نفس المستوى في اليوم نفسه."];
-  }
-
-  if (groupKey === "hallUnavailable") {
-    const halls = Array.isArray(slot.hallStatuses) ? slot.hallStatuses : [];
-    return halls.length
-      ? halls.map((hall) => {
-          const reasons = Array.isArray(hall.reasons) && hall.reasons.length ? hall.reasons.join("، ") : "غير قابلة للإسناد";
-          return `${hall.hall || "قاعة"}: السعة ${hall.capacity || 0}، المشغول ${hall.used || 0}، المتبقي ${hall.remainingBeforeConstraint || 0}، القابل فعليًا ${hall.effectiveRemaining || 0} — ${reasons}`;
-        })
-      : ["لا توجد قاعة مناسبة في هذه الفترة."];
-  }
-
-  if (groupKey === "invigilatorShortage") {
-    const lines = [];
-    if (Number.isFinite(Number(slot.requiredInvigilators))) {
-      lines.push(`المطلوب: ${Number(slot.requiredInvigilators) || 0}`);
-    }
-    if (Number.isFinite(Number(slot.availableInvigilatorsCount))) {
-      lines.push(`المتاح فعليًا: ${Number(slot.availableInvigilatorsCount) || 0}`);
-    }
-    const available = Array.isArray(slot.availableInvigilators) ? slot.availableInvigilators : [];
-    if (available.length) {
-      lines.push(`الأسماء المتاحة: ${available.join("، ")}`);
-    }
-    const constrained = Array.isArray(slot.constrainedAvailableInvigilators) ? slot.constrainedAvailableInvigilators : [];
-    if (constrained.length && constrained.join("|") !== available.join("|")) {
-      lines.push(`الأسماء المتاحة بعد القيود: ${constrained.join("، ")}`);
-    }
-    return lines.length ? lines : ["لا يوجد عدد كافٍ من المراقبين في هذه الفترة."];
-  }
-
-  if (groupKey === "avoidedConstraint") {
-    const lines = [];
-    if (slot.avoidedDay) lines.push(`اليوم ضمن الأيام المتجنبة: ${slot.avoidedDay}`);
-    if (slot.avoidedPeriod) lines.push(`الفترة ضمن الفترات المتجنبة: الفترة ${slot.avoidedPeriod}`);
-    return lines.length ? lines : ["هذه الفترة متأثرة بقيود التفضيل أو التجنب."];
-  }
-
-  return [];
-};
-
 const getUnscheduledReasonBreakdown = (course) => {
   const details = course?.unscheduledReasonDetails || {};
 
@@ -3443,6 +3383,18 @@ const getUnscheduledReasonBreakdown = (course) => {
       slots: Array.isArray(details.avoidedConstraintSlots) ? details.avoidedConstraintSlots : [],
     },
   ].filter((item) => item.slots.length);
+};
+
+const openUnscheduledReasonModal = (course, group) => {
+  if (!course || !group) return;
+  setSelectedUnscheduledReasonModal({
+    courseKey: course.key,
+    courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+    courseCode: course.courseCode || "",
+    shortLabel: normalizeUnscheduledReason(course).shortLabel,
+    reasonDetail: normalizeUnscheduledReason(course).detail,
+    group,
+  });
 };
 
 const normalizeUnscheduledReason = (course) => {
@@ -5194,87 +5146,6 @@ const pickInvigilators = (course, slot) => {
   return chosen;
 };
   
-  const getInvigilatorAvailabilitySnapshot = (course, slot) => {
-    const periodKey = getSlotPeriodKey(slot);
-    const courseTrainerNames = String(course.trainerText || "")
-      .split("/")
-      .map((name) => name.trim())
-      .filter(Boolean);
-
-    const normalizedTrainerSet = new Set(
-      courseTrainerNames.map((name) => normalizeArabic(name))
-    );
-
-    const constraint =
-      typeof getCourseInvigilatorConstraint === "function"
-        ? getCourseInvigilatorConstraint(course)
-        : { mode: "off", invigilatorNames: [] };
-
-    const baseCandidates = invigilatorPool
-      .filter(
-        (name) =>
-          !excludedInvigilators.some(
-            (ex) => normalizeArabic(ex) === normalizeArabic(name)
-          )
-      )
-      .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
-
-    const normalizedManualSet = new Set(
-      (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
-    );
-
-    const departmentTrainerSet = new Set(
-      (
-        (typeof getDepartmentTrainerNamesForCourse === "function"
-          ? getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet)
-          : []) || []
-      ).map((name) => normalizeArabic(name))
-    );
-
-    let constrainedCandidates = [...baseCandidates];
-
-    switch (constraint.mode) {
-      case "only":
-        constrainedCandidates = baseCandidates.filter((name) =>
-          normalizedManualSet.has(normalizeArabic(name))
-        );
-        break;
-      case "avoid":
-        constrainedCandidates = baseCandidates.filter(
-          (name) => !normalizedManualSet.has(normalizeArabic(name))
-        );
-        break;
-      case "only_department_trainers":
-        constrainedCandidates = baseCandidates.filter((name) =>
-          departmentTrainerSet.has(normalizeArabic(name))
-        );
-        break;
-      case "avoid_department_trainers":
-        constrainedCandidates = baseCandidates.filter(
-          (name) => !departmentTrainerSet.has(normalizeArabic(name))
-        );
-        break;
-      case "prefer":
-      default:
-        constrainedCandidates = baseCandidates;
-        break;
-    }
-
-    const sortedConstrained = [...constrainedCandidates].sort((a, b) => {
-      const aLoad = invigilatorLoad.get(a) || 0;
-      const bLoad = invigilatorLoad.get(b) || 0;
-      const aTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(a));
-      const bTrainer = preferCourseTrainerInvigilation && normalizedTrainerSet.has(normalizeArabic(b));
-      return aLoad - bLoad || Number(bTrainer) - Number(aTrainer) || a.localeCompare(b, "ar");
-    });
-
-    return {
-      availableInvigilators: baseCandidates,
-      constrainedAvailableInvigilators: sortedConstrained,
-      availableInvigilatorsCount: sortedConstrained.length,
-    };
-  };
-
   const diagnoseUnscheduledCourse = (course) => {
     const diagnosis = {
       totalSlots: slots.length,
@@ -5315,14 +5186,6 @@ const pickInvigilators = (course, slot) => {
       });
 
       if (slotStudentConflict) {
-        const blockingStudents = Array.from(course.students || [])
-          .filter((studentId) => (studentSlotMap.get(studentId) || new Set()).has(slot.id))
-          .map((studentId) => preciseStudentInfoMap.get(studentId) || {
-            id: studentId,
-            name: "بدون اسم",
-            department: "-",
-            major: "-",
-          });
         diagnosis.studentConflict += 1;
         diagnosis.studentConflictSlots.push({
           slotId: slot.id,
@@ -5330,18 +5193,9 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          blockingStudents,
         });
       }
       if (slotDailyLimit) {
-        const blockingStudents = Array.from(course.students || [])
-          .filter((studentId) => ((studentDayMap.get(studentId) || new Map()).get(slot.dateISO) || 0) >= sameDayLimit)
-          .map((studentId) => preciseStudentInfoMap.get(studentId) || {
-            id: studentId,
-            name: "بدون اسم",
-            department: "-",
-            major: "-",
-          });
         diagnosis.dailyLimit += 1;
         diagnosis.dailyLimitSlots.push({
           slotId: slot.id,
@@ -5349,7 +5203,6 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          blockingStudents,
         });
       }
 
@@ -5365,13 +5218,6 @@ const pickInvigilators = (course, slot) => {
             dayName: slot.dayName,
             period: slot.period,
             timeText: slot.timeText,
-            conflictingCourses: [...basePlaced, ...newPlaced]
-              .filter((item) => item.dateISO === slot.dateISO && courseLevels[item.key] === courseLevel)
-              .map((item) => ({
-                key: item.key,
-                courseName: item.courseName || "",
-                courseCode: item.courseCode || "",
-              })),
           });
           slotLevelConflict = true;
         }
@@ -5421,24 +5267,6 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          hallStatuses: matchingHallDetails.map((item) => ({
-            hall: item.hall,
-            hallId: item.hallId,
-            capacity: item.capacity,
-            used: item.used,
-            remainingBeforeConstraint: item.remainingBeforeConstraint,
-            effectiveRemaining: item.effectiveRemaining,
-            reasons: [
-              !item.allowedForCourse ? "غير مسموحة لهذا المقرر" : null,
-              !item.passesConstraint ? "مستبعدة بسبب قيد القاعات" : null,
-              item.allowedForCourse && item.passesConstraint && item.effectiveRemaining < (Number(course.studentCount) || 0)
-                ? "السعة المتبقية لا تكفي"
-                : null,
-              item.allowedForCourse && item.passesConstraint && !item.canAssign && item.effectiveRemaining >= (Number(course.studentCount) || 0)
-                ? "مشغولة أو غير قابلة للإسناد في هذه الفترة"
-                : null,
-            ].filter(Boolean),
-          })),
         });
       }
 
@@ -5449,17 +5277,12 @@ const pickInvigilators = (course, slot) => {
         ).length;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
-          const invigilatorSnapshot = getInvigilatorAvailabilitySnapshot(course, slot);
           diagnosis.invigilatorShortageSlots.push({
             slotId: slot.id,
             dateISO: slot.dateISO,
             dayName: slot.dayName,
             period: slot.period,
             timeText: slot.timeText,
-            requiredInvigilators,
-            availableInvigilatorsCount: invigilatorSnapshot.availableInvigilatorsCount,
-            availableInvigilators: invigilatorSnapshot.availableInvigilators,
-            constrainedAvailableInvigilators: invigilatorSnapshot.constrainedAvailableInvigilators,
           });
           slotInvigilatorShortage = true;
         }
@@ -5476,8 +5299,6 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          avoidedDay: courseConstraint.avoidedDays.includes(slot.dayName) ? slot.dayName : "",
-          avoidedPeriod: courseConstraint.avoidedPeriods.includes(slot.period) ? slot.period : "",
         });
         slotAvoidedConstraint = true;
       }
@@ -5517,14 +5338,6 @@ const requiredSeats = Number(course.studentCount) || 0;
           `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة أصلًا. ` +
           `يحتاج ${requiredSeats} مقعدًا، ` +
           `وأكبر سعة مسموحة هي ${Number(maxAvailable) || 0}.`,
-        details: {
-          studentConflictSlots: diagnosis.studentConflictSlots,
-          dailyLimitSlots: diagnosis.dailyLimitSlots,
-          hallUnavailableSlots: diagnosis.hallUnavailableSlots,
-          levelConflictSlots: diagnosis.levelConflictSlots,
-          invigilatorShortageSlots: diagnosis.invigilatorShortageSlots,
-          avoidedConstraintSlots: diagnosis.avoidedConstraintSlots,
-        },
       };
     }
 
@@ -5543,14 +5356,6 @@ const requiredSeats = Number(course.studentCount) || 0;
           hallConstraintSummary.mode === "only"
             ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال. ${hallConstraintSummary.label}. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد تطبيق القيد واحتساب المقاعد المشغولة هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`
             : `لا توجد قاعة مناسبة لهذا المقرر في الفترات الحالية. يحتاج ${requiredSeats} مقعدًا، وأكبر سعة قابلة للإسناد فعليًا بعد احتساب المقاعد المشغولة وتطبيق القيود هي ${Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0}.`,
-        details: {
-          studentConflictSlots: diagnosis.studentConflictSlots,
-          dailyLimitSlots: diagnosis.dailyLimitSlots,
-          hallUnavailableSlots: diagnosis.hallUnavailableSlots,
-          levelConflictSlots: diagnosis.levelConflictSlots,
-          invigilatorShortageSlots: diagnosis.invigilatorShortageSlots,
-          avoidedConstraintSlots: diagnosis.avoidedConstraintSlots,
-        },
       };
     }
 
@@ -5577,14 +5382,6 @@ const requiredSeats = Number(course.studentCount) || 0;
       return {
         shortLabel: "تعذر الجدولة",
         detail: "تعذر العثور على فترة مناسبة لهذا المقرر ضمن الإعدادات الحالية.",
-        details: {
-          studentConflictSlots: diagnosis.studentConflictSlots,
-          dailyLimitSlots: diagnosis.dailyLimitSlots,
-          hallUnavailableSlots: diagnosis.hallUnavailableSlots,
-          levelConflictSlots: diagnosis.levelConflictSlots,
-          invigilatorShortageSlots: diagnosis.invigilatorShortageSlots,
-          avoidedConstraintSlots: diagnosis.avoidedConstraintSlots,
-        },
       };
     }
 
@@ -5869,33 +5666,6 @@ sortedCoursesForInvigilation.forEach((course) => {
         ? `لا توجد قاعة مناسبة لهذا المقرر بعد تطبيق قيد القاعات الفعّال في هذه الفترة. ${hallConstraintSummary.label}. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيد هي ${Number(maxRemaining) || 0}.`
         : `لا توجد قاعة مناسبة لهذا المقرر ضمن القاعات المتاحة في هذه الفترة. يحتاج ${Number(course.studentCount) || 0} مقعدًا، وأكبر سعة متبقية فعلية بعد تطبيق القيود هي ${Number(maxRemaining) || 0}.`,
     unscheduledShortLabel: "لا توجد قاعة مناسبة",
-    unscheduledReasonDetails: {
-      hallUnavailableSlots: [{
-        slotId: bestSlot.id,
-        dateISO: bestSlot.dateISO,
-        dayName: bestSlot.dayName,
-        period: bestSlot.period,
-        timeText: bestSlot.timeText,
-        hallStatuses: hallDebugSnapshot.map((item) => ({
-          hall: item.hall,
-          hallId: item.hallId,
-          capacity: item.capacity,
-          used: item.used,
-          remainingBeforeConstraint: item.remainingBeforeConstraint,
-          effectiveRemaining: item.computedRemaining,
-          reasons: [
-            !item.allowedForCourse ? "غير مسموحة لهذا المقرر" : null,
-            !item.passesConstraint ? "مستبعدة بسبب قيد القاعات" : null,
-            item.allowedForCourse && item.passesConstraint && item.computedRemaining < (Number(course.studentCount) || 0)
-              ? "السعة المتبقية لا تكفي"
-              : null,
-            item.allowedForCourse && item.passesConstraint && !item.canAssign && item.computedRemaining >= (Number(course.studentCount) || 0)
-              ? "مشغولة أو غير قابلة للإسناد في هذه الفترة"
-              : null,
-          ].filter(Boolean),
-        })),
-      }],
-    },
   });
 
   return;
@@ -5906,24 +5676,10 @@ const pickedInvigilators = pickInvigilators(course, bestSlot);
 const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
-  const invigilatorSnapshot = getInvigilatorAvailabilitySnapshot(course, bestSlot);
   notPlaced.push({
     ...course,
     unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
-    unscheduledReasonDetails: {
-      invigilatorShortageSlots: [{
-        slotId: bestSlot.id,
-        dateISO: bestSlot.dateISO,
-        dayName: bestSlot.dayName,
-        period: bestSlot.period,
-        timeText: bestSlot.timeText,
-        requiredInvigilators: requiredInvigilatorsCount,
-        availableInvigilatorsCount: invigilatorSnapshot.availableInvigilatorsCount,
-        availableInvigilators: invigilatorSnapshot.availableInvigilators,
-        constrainedAvailableInvigilators: invigilatorSnapshot.constrainedAvailableInvigilators,
-      }],
-    },
   });
   return;
 }
@@ -10148,55 +9904,60 @@ style={{
                                   style={{
                                     marginTop: 10,
                                     display: "grid",
-                                    gap: 10,
+                                    gap: 8,
                                   }}
                                 >
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: COLORS.muted,
+                                      lineHeight: 1.8,
+                                    }}
+                                  >
+                                    اضغط على أي بند لعرض التفاصيل الدقيقة في نافذة مستقلة.
+                                  </div>
                                   {getUnscheduledReasonBreakdown(course).map((group) => (
-                                    <div
+                                    <button
+                                      type="button"
                                       key={`${course.key}-${group.key}`}
+                                      onClick={() => openUnscheduledReasonModal(course, group)}
                                       style={{
-                                        background: COLORS.warningBg,
+                                        width: "100%",
+                                        background: "#fff",
                                         border: "1px solid #FED7AA",
                                         borderRadius: 14,
-                                        padding: 10,
+                                        padding: "10px 12px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 10,
+                                        cursor: "pointer",
+                                        textAlign: "right",
                                       }}
                                     >
-                                      <div style={{ fontWeight: 800, color: COLORS.warning, marginBottom: 8 }}>
-                                        {group.title}
+                                      <div style={{ display: "grid", gap: 4 }}>
+                                        <div style={{ fontWeight: 800, color: COLORS.warning }}>
+                                          {group.title}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: COLORS.muted }}>
+                                          اضغط لعرض التفاصيل الدقيقة
+                                        </div>
                                       </div>
-                                      <div style={{ display: "grid", gap: 8 }}>
-                                        {group.slots.map((slot) => {
-                                          const detailLines = getUnscheduledSlotDetailLines(group.key, slot);
-                                          return (
-                                            <div
-                                              key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
-                                              style={{
-                                                background: "#fff",
-                                                border: "1px solid #FED7AA",
-                                                borderRadius: 14,
-                                                padding: 10,
-                                              }}
-                                            >
-                                              <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.text, marginBottom: detailLines.length ? 8 : 0 }}>
-                                                {formatSlotBadgeLabel(slot)}
-                                              </div>
-                                              {detailLines.length ? (
-                                                <div style={{ display: "grid", gap: 4 }}>
-                                                  {detailLines.map((line, index) => (
-                                                    <div
-                                                      key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}-line-${index}`}
-                                                      style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.8 }}
-                                                    >
-                                                      • {line}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              ) : null}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
+                                      <span
+                                        style={{
+                                          background: COLORS.warningBg,
+                                          border: "1px solid #FED7AA",
+                                          color: COLORS.warning,
+                                          borderRadius: 999,
+                                          padding: "4px 10px",
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                          whiteSpace: "nowrap",
+                                        }}
+                                      >
+                                        {group.slots.length} {group.slots.length === 1 ? "فترة" : "فترات"}
+                                      </span>
+                                    </button>
                                   ))}
                                 </div>
                               ) : null}
@@ -10955,7 +10716,123 @@ style={{
   </Card>
 )}
  
-       {selectedConflicts && (
+       {selectedUnscheduledReasonModal && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(20,123,131,0.22)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      zIndex: 9999,
+    }}
+    onClick={() => setSelectedUnscheduledReasonModal(null)}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 20,
+        padding: 22,
+        width: "min(860px, 100%)",
+        maxHeight: "78vh",
+        overflowY: "auto",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        boxShadow: "0 20px 50px rgba(20,123,131,0.18)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+        <div>
+          <h4 style={{ margin: "0 0 8px", color: COLORS.primaryDark, fontWeight: 900, fontSize: 18 }}>
+            {selectedUnscheduledReasonModal.group?.title || "تفاصيل سبب عدم الجدولة"}
+          </h4>
+          <div style={{ color: COLORS.muted, lineHeight: 1.8 }}>
+            <div><strong>المقرر:</strong> {selectedUnscheduledReasonModal.courseName}</div>
+            <div><strong>الرمز:</strong> {selectedUnscheduledReasonModal.courseCode || "-"}</div>
+            <div><strong>التصنيف:</strong> {selectedUnscheduledReasonModal.shortLabel || "-"}</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSelectedUnscheduledReasonModal(null)}
+          style={{
+            border: `1px solid ${COLORS.border}`,
+            background: "#fff",
+            color: COLORS.charcoal,
+            borderRadius: 12,
+            padding: "8px 12px",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          إغلاق
+        </button>
+      </div>
+
+      <div
+        style={{
+          background: COLORS.warningBg,
+          border: "1px solid #FED7AA",
+          borderRadius: 14,
+          padding: 12,
+          color: COLORS.text,
+          lineHeight: 1.9,
+          marginBottom: 14,
+        }}
+      >
+        {selectedUnscheduledReasonModal.reasonDetail}
+      </div>
+
+      {!selectedUnscheduledReasonModal.group?.slots?.length ? (
+        <p style={{ color: COLORS.muted, margin: 0 }}>لا توجد تفاصيل إضافية لهذا البند.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {selectedUnscheduledReasonModal.group.slots.map((slot, index) => (
+            <div
+              key={`${selectedUnscheduledReasonModal.courseKey}-${selectedUnscheduledReasonModal.group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}` || index}`}
+              style={{
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 14,
+                padding: 12,
+                background: "#fff",
+              }}
+            >
+              <div style={{ fontWeight: 800, color: COLORS.primaryDark, marginBottom: 8 }}>
+                {formatSlotBadgeLabel(slot)}
+              </div>
+              <div style={{ display: "grid", gap: 6, color: COLORS.text, fontSize: 14, lineHeight: 1.8 }}>
+                {slot.reason ? <div><strong>السبب:</strong> {slot.reason}</div> : null}
+                {slot.summary ? <div><strong>الملخص:</strong> {slot.summary}</div> : null}
+                {Array.isArray(slot.hallMessages) && slot.hallMessages.length ? (
+                  <div>
+                    <strong>تفاصيل القاعات:</strong>
+                    <ul style={{ margin: "6px 0 0", paddingRight: 18 }}>
+                      {slot.hallMessages.map((message, messageIndex) => (
+                        <li key={`${messageIndex}-${message}`}>{message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
+                  <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
+                ) : null}
+                {Array.isArray(slot.blockingStudents) && slot.blockingStudents.length ? (
+                  <div><strong>المتدربون المتأثرون:</strong> {slot.blockingStudents.map((student) => student?.name || student?.id || student).join("، ")}</div>
+                ) : null}
+                {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
+                {slot.availableInvigilatorsCount != null ? <div><strong>المراقبون المتاحون فعليًا:</strong> {slot.availableInvigilatorsCount}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+{selectedConflicts && (
   <div
     style={{
       position: "fixed",
