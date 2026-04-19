@@ -7137,7 +7137,7 @@ const headerBtn = (danger = false) => ({
                 فعّل فقط الخصائص التي تحتاجها. عند إلغاء أي خيار سيتم إخفاء بطاقته التفصيلية من الصفحات التالية حتى لا تتكدس الواجهة على المستخدم.
               </div>
 
-              <div style={{ display: "flex", gap: 12, maxWidth: 450 }}>
+              <div style={{ display: "flex", gap: 12, maxWidth: 650, minWidth: 500 }}>
                 {[
                   {
                     key: "hall",
