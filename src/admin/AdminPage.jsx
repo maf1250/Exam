@@ -5841,6 +5841,21 @@ const filteredSortedCourses = useMemo(() => {
     return departmentOk && majorOk;
   });
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
+const filteredUnscheduledForPreview = useMemo(() => {
+  return unscheduled.filter((item) => {
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
+
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
+  });
+}, [unscheduled, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9437,7 +9452,7 @@ style={{
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
                 <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {unscheduled.length ? (
+                  {filteredUnscheduledForPreview.length ? (
                     unscheduled.map((course, index) => (
                       <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={() => {
                         setDraggingUnscheduledCourseKey(course.key);
@@ -9754,10 +9769,10 @@ style={{
                         </button>
                       </div>
                       <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
-                        {buildUnscheduledSummaryText(unscheduled)}
+                        {buildUnscheduledSummaryText(filteredUnscheduledForPreview)}
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
-                        {unscheduled.map((course) => {
+                        {filteredUnscheduledForPreview.map((course) => {
                           const reasonInfo = normalizeUnscheduledReason(course);
                           return (
                             <div
