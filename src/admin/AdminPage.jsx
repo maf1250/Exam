@@ -1207,11 +1207,11 @@ function getPrintBaseStyles() {
     }
 
     .num-cell {
-      width: 34px;
+      width: 19px;
     }
 
     .course-cell {
-      width: 150px;
+      width: 170px;
     }
 
     .code-cell {
@@ -6626,7 +6626,7 @@ const availableMajorsForPrint = useMemo(() => {
     }
 
     const exportRows = filteredScheduleForPrint.map((item) => ({
-      الكلية: parsed.collegeName,
+      الوحدة: parsed.collegeName,
       القسم: item.department,
       التخصص: item.major,
       الشعبة: item.sectionName,
@@ -7254,12 +7254,12 @@ const headerBtn = (danger = false) => ({
               }}
             >
               <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الكلية</div>
+                <div style={{ marginBottom: 8, fontWeight: 800 }}>اسم الوحدة (يمكن تعديله)</div>
                 <input
                   value={collegeNameInput}
                   onChange={(e) => setCollegeNameInput(e.target.value)}
                   style={fieldStyle()}
-                  placeholder="اكتب اسم الكلية"
+                  placeholder="اكتب اسم الوحدة"
                 />
               </div>
 
@@ -11102,7 +11102,7 @@ const headerBtn = (danger = false) => ({
           <div>
             يجب التأكد من أن الوحدة الخاصة بك موجودة في المربع الخاص بالتعرف على
             الوحدة تلقائيًا، وفي حال عدم التعرف عليها يمكن اختيار مدينة الوحدة من
-            القائمة المنسدلة في مربع تحديد الكلية.
+            القائمة المنسدلة في مربع تحديد الوحدة.
           </div>
         {/*
           <div style={{ marginTop: 12 }}>
@@ -11165,12 +11165,12 @@ const headerBtn = (danger = false) => ({
   type="button"
   onClick={() => {
     if (!effectiveCollegeLocation) {
-      showToast("تعذر تحديد الكلية", "اختر المدينة أولًا أو عدّل اسم الوحدة.", "error");
+      showToast("تعذر تحديد الوحدة", "اختر المدينة أولًا أو عدّل اسم الوحدة.", "error");
       return;
     }
 
     if (!baseLink) {
-      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الكلية.", "error");
+      showToast("تعذر إنشاء الرابط", "تعذر تحديد رمز الوحدة.", "error");
       return;
     }
 
@@ -11186,7 +11186,7 @@ const headerBtn = (danger = false) => ({
         </div>
       </div>
 
-{/* تحديد الكلية */}
+{/* تحديد الوحدة */}
       <div
         style={{
           ...stepNineCardStyle,
@@ -11197,7 +11197,7 @@ const headerBtn = (danger = false) => ({
         <div style={{ fontSize: 18 }}>🏫</div>
 
         <div style={{ width: "100%",  display: "flex", flexDirection: "column", gap: 6}}>
-          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الكلية</div>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الوحدة</div>
 
           {effectiveCollegeLocation ? (
             <div
@@ -11207,7 +11207,7 @@ const headerBtn = (danger = false) => ({
                 marginBottom: 8,
               }}
             >
-              تم التعرف على الكلية: {effectiveCollegeLocation}
+              تم التعرف على الوحدة: {effectiveCollegeLocation}
               {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
             </div>
           ) : (
@@ -11218,7 +11218,7 @@ const headerBtn = (danger = false) => ({
                 marginBottom: 8,
               }}
             >
-              تعذر التعرف على الكلية تلقائيًا. اختر المدينة يدويًا.
+              تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
             </div>
           )}
 
