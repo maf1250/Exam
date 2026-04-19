@@ -3345,46 +3345,6 @@ const formatSlotBadgeLabel = (slot) => {
   return segments.join(" - ");
 };
 
-const formatInvigilatorNamesLabel = (names) => {
-  const list = Array.from(new Set((Array.isArray(names) ? names : []).map((name) => String(name || "").trim()).filter(Boolean)));
-  return list.length ? list.join("، ") : "لا يوجد مراقب متاح";
-};
-
-const formatHallConflictReason = (hall) => {
-  if (!hall) return "";
-  if (!hall.allowedForCourse) return "غير مسموحة لهذا المقرر";
-  if (!hall.passesConstraint) return "مستبعدة بسبب قيد القاعات";
-  if (hall.canAssign) return "متاحة";
-  if ((Number(hall.effectiveRemaining) || 0) <= 0) {
-    return hall.allowSharedAssignments ? "مقاعدها مشغولة بالكامل" : "مستخدمة في هذه الفترة";
-  }
-  if (!hall.canFitSingleHall) {
-    return `المتبقي ${Number(hall.effectiveRemaining) || 0} من ${Number(hall.capacity) || 0}`;
-  }
-  return "غير متاحة";
-};
-
-const getSlotExtraDetails = (slot, groupKey) => {
-  if (!slot) return [];
-  if (groupKey === "invigilatorShortage") {
-    const availableNames = Array.from(new Set((Array.isArray(slot.availableInvigilators) ? slot.availableInvigilators : []).map((name) => String(name || "").trim()).filter(Boolean)));
-    return [
-      availableNames.length
-        ? `المتاح: ${availableNames.join("، ")}`
-        : "لا يوجد مراقب متاح في هذه الفترة",
-    ];
-  }
-
-  if (groupKey === "hallUnavailable") {
-    const hallConflicts = Array.isArray(slot.hallConflicts) ? slot.hallConflicts : [];
-    return hallConflicts
-      .filter((hall) => hall && hall.hall)
-      .map((hall) => `${hall.hall}: ${formatHallConflictReason(hall)}`);
-  }
-
-  return [];
-};
-
 const getUnscheduledReasonBreakdown = (course) => {
   const details = course?.unscheduledReasonDetails || {};
 
@@ -5260,6 +5220,7 @@ const pickInvigilators = (course, slot) => {
         );
         const canAssign = canAssignHallToCourseInSlot(hall, course, slot, hallUsageMap);
 
+        const usedSeats = hallUsageMap.get(getHallUsageKey(slot, hall)) || 0;
         return {
           hall: hall.name,
           hallId: hall.id || null,
@@ -5267,7 +5228,8 @@ const pickInvigilators = (course, slot) => {
           allowedForCourse: isHallAllowedForCourse(hall, course),
           passesConstraint: constrainedHallNames.has(normalizeArabic(hall.name)),
           capacity: Number(hall.capacity) || 0,
-          used: hallUsageMap.get(getHallUsageKey(slot, hall)) || 0,
+          used: usedSeats,
+          rawRemaining: (Number(hall.capacity) || 0) - usedSeats,
           remainingBeforeConstraint: getRemainingHallCapacityForSlot(hall, slot, hallUsageMap),
           effectiveRemaining,
           canFitSingleHall: effectiveRemaining >= (Number(course.studentCount) || 0),
@@ -5292,21 +5254,36 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          hallConflicts: matchingHallDetails
-            .filter((item) => item.allowedForCourse || item.passesConstraint || item.remainingBeforeConstraint > 0 || item.effectiveRemaining > 0)
-            .map((item) => ({
+          halls: matchingHallDetails.map((item) => {
+            let reason = "";
+            if (!item.allowedForCourse) {
+              reason = "غير مسموحة لهذا المقرر";
+            } else if (!item.passesConstraint) {
+              reason = "مستبعدة بسبب قيد القاعات";
+            } else if (item.canAssign) {
+              reason = "متاحة";
+            } else if (!item.allowSharedAssignments && (Number(item.used) || 0) > 0) {
+              reason = "مشغولة بالكامل في هذه الفترة";
+            } else if ((Number(item.effectiveRemaining) || 0) < (Number(course.studentCount) || 0)) {
+              reason = `المتبقي ${Number(item.effectiveRemaining) || 0} أقل من المطلوب ${Number(course.studentCount) || 0}`;
+            } else {
+              reason = "غير متاحة في هذه الفترة";
+            }
+
+            return {
               hall: item.hall,
-              hallId: item.hallId || null,
-              allowSharedAssignments: Boolean(item.allowSharedAssignments),
-              allowedForCourse: Boolean(item.allowedForCourse),
-              passesConstraint: Boolean(item.passesConstraint),
+              hallId: item.hallId,
               capacity: Number(item.capacity) || 0,
               used: Number(item.used) || 0,
               remainingBeforeConstraint: Number(item.remainingBeforeConstraint) || 0,
               effectiveRemaining: Number(item.effectiveRemaining) || 0,
-              canFitSingleHall: Boolean(item.canFitSingleHall),
+              allowedForCourse: Boolean(item.allowedForCourse),
+              passesConstraint: Boolean(item.passesConstraint),
+              allowSharedAssignments: Boolean(item.allowSharedAssignments),
               canAssign: Boolean(item.canAssign),
-            })),
+              reason,
+            };
+          }),
         });
       }
 
@@ -5317,16 +5294,18 @@ const pickInvigilators = (course, slot) => {
         ).length;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
+          const availableInvigilators = invigilatorPool.filter(
+            (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+          );
           diagnosis.invigilatorShortageSlots.push({
             slotId: slot.id,
             dateISO: slot.dateISO,
             dayName: slot.dayName,
             period: slot.period,
             timeText: slot.timeText,
-            availableInvigilators: invigilatorPool.filter(
-              (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
-            ),
             requiredInvigilators,
+            availableInvigilatorsCount,
+            availableInvigilators: Array.from(availableInvigilators),
           });
           slotInvigilatorShortage = true;
         }
@@ -5611,7 +5590,12 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
+      key: course.key,
+      courseCode: course.courseCode || "",
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+      department: course.department || "",
+      major: course.major || "",
+      departmentRoots: Array.isArray(course.departmentRoots) ? Array.from(course.departmentRoots) : [],
       required: Number(course.studentCount) || 0,
       maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
@@ -5715,24 +5699,10 @@ const pickedInvigilators = pickInvigilators(course, bestSlot);
 const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
-  const availableInvigilatorsLabel = formatInvigilatorNamesLabel(pickedInvigilators);
   notPlaced.push({
     ...course,
-    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}. ${pickedInvigilators.length ? `المتاحون: ${availableInvigilatorsLabel}.` : "لا يوجد مراقب متاح في هذه الفترة."}`,
+    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
-    unscheduledReasonDetails: {
-      invigilatorShortageSlots: [
-        {
-          slotId: bestSlot.id,
-          dateISO: bestSlot.dateISO,
-          dayName: bestSlot.dayName,
-          period: bestSlot.period,
-          timeText: bestSlot.timeText,
-          availableInvigilators: Array.from(pickedInvigilators || []),
-          requiredInvigilators: requiredInvigilatorsCount,
-        },
-      ],
-    },
   });
   return;
 }
@@ -5873,47 +5843,55 @@ const generateSpecializedSchedule = () => {
   setCurrentStep(6);
 };
 
+const previewItemMatchesFilters = (item) => {
+  if (!item) return false;
+
+  const departmentOk =
+    printDepartmentFilter === "__all__" ||
+    (() => {
+      const target = normalizeArabic(printDepartmentFilter);
+      const roots = Array.isArray(item.departmentRoots)
+        ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
+        : [];
+
+      if (roots.includes(target)) return true;
+
+      const directDepartmentMatch = splitBySlash(item.department)
+        .map((dep) => normalizeArabic(dep))
+        .filter(Boolean)
+        .includes(target);
+
+      if (directDepartmentMatch) return true;
+
+      if (isGeneralStudiesCourse(item)) {
+        return roots.some((root) => root.includes(target));
+      }
+
+      return false;
+    })();
+
+  const majorOk =
+    printMajorFilter === "__all__" ||
+    splitBySlash(item.major)
+      .map((major) => normalizeArabic(major))
+      .filter(Boolean)
+      .includes(normalizeArabic(printMajorFilter));
+
+  return departmentOk && majorOk;
+};
+
 const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (() => {
-        const target = normalizeArabic(printDepartmentFilter);
-        const roots = item.departmentRoots || [];
-
-        if (roots.includes(target)) return true;
-
-        if (isGeneralStudiesCourse(item)) {
-          return roots.some((r) => r.includes(target));
-        }
-
-        return false;
-      })();
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
+  return schedule.filter(previewItemMatchesFilters);
 }, [schedule, printDepartmentFilter, printMajorFilter]);
 const filteredSortedCourses = useMemo(() => {
-  return parsed.courses.filter((item) => {
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      (item.departmentRoots || []).includes(normalizeArabic(printDepartmentFilter));
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      splitBySlash(item.major).some(
-        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-      );
-
-    return departmentOk && majorOk;
-  });
+  return parsed.courses.filter(previewItemMatchesFilters);
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
+const filteredUnscheduledForPreview = useMemo(() => {
+  return unscheduled.filter(previewItemMatchesFilters);
+}, [unscheduled, printDepartmentFilter, printMajorFilter]);
+const filteredHallWarningsForPreview = useMemo(() => {
+  return hallWarnings.filter(previewItemMatchesFilters);
+}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9510,7 +9488,7 @@ style={{
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
                 <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {unscheduled.length ? (
+                  {filteredUnscheduledForPreview.length ? (
                     unscheduled.map((course, index) => (
                       <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={() => {
                         setDraggingUnscheduledCourseKey(course.key);
@@ -9774,7 +9752,7 @@ style={{
                     </div>
                   ) : null}
 
-                  {hallWarnings.length ? (
+                  {filteredHallWarningsForPreview.length ? (
                     <div
                       style={{
                         marginBottom: 18,
@@ -9787,7 +9765,7 @@ style={{
                     >
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>تنبيهات القاعات</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {hallWarnings.map((item, index) => (
+                        {filteredHallWarningsForPreview.map((item, index) => (
                           <span
                             key={`${item.courseName}-${index}`}
                             style={{
@@ -9827,10 +9805,10 @@ style={{
                         </button>
                       </div>
                       <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
-                        {buildUnscheduledSummaryText(unscheduled)}
+                        {buildUnscheduledSummaryText(filteredUnscheduledForPreview)}
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
-                        {unscheduled.map((course) => {
+                        {filteredUnscheduledForPreview.map((course) => {
                           const reasonInfo = normalizeUnscheduledReason(course);
                           return (
                             <div
@@ -9932,36 +9910,59 @@ style={{
                                         {group.title}
                                       </div>
                                       <div style={{ display: "grid", gap: 8 }}>
-                                        {group.slots.map((slot) => {
-                                          const extraDetails = getSlotExtraDetails(slot, group.key);
-                                          return (
-                                            <div
-                                              key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
-                                              style={{
-                                                background: "#fff",
-                                                border: "1px solid #FED7AA",
-                                                borderRadius: 14,
-                                                padding: "8px 10px",
-                                                fontSize: 12,
-                                                color: COLORS.text,
-                                              }}
-                                            >
-                                              <div style={{ fontWeight: 700 }}>{formatSlotBadgeLabel(slot)}</div>
-                                              {extraDetails.length ? (
-                                                <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-                                                  {extraDetails.map((line, index) => (
-                                                    <div
-                                                      key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}-extra-${index}`}
-                                                      style={{ color: COLORS.charcoalSoft, lineHeight: 1.7 }}
-                                                    >
-                                                      {line}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              ) : null}
+                                        {group.slots.map((slot) => (
+                                          <div
+                                            key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
+                                            style={{
+                                              background: "#fff",
+                                              border: "1px solid #FED7AA",
+                                              borderRadius: 14,
+                                              padding: "10px 12px",
+                                              fontSize: 12,
+                                              color: COLORS.text,
+                                              lineHeight: 1.8,
+                                            }}
+                                          >
+                                            <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                                              {formatSlotBadgeLabel(slot)}
                                             </div>
-                                          );
-                                        })}
+                                            {group.key === "invigilatorShortage" && Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
+                                              <div style={{ color: COLORS.charcoalSoft }}>
+                                                المراقبون المتاحون: {slot.availableInvigilators.join("، ")}
+                                              </div>
+                                            ) : null}
+                                            {group.key === "invigilatorShortage" ? (
+                                              <div style={{ color: COLORS.charcoalSoft }}>
+                                                المطلوب: {Number(slot.requiredInvigilators) || 0}، المتاح فعليًا: {Number(slot.availableInvigilatorsCount) || 0}
+                                              </div>
+                                            ) : null}
+                                            {group.key === "hallUnavailable" && Array.isArray(slot.halls) && slot.halls.length ? (
+                                              <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
+                                                {slot.halls.map((hall) => (
+                                                  <div
+                                                    key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}-${hall.hallId || hall.hall}`}
+                                                    style={{
+                                                      border: "1px solid #FDE68A",
+                                                      background: "#FFFBEB",
+                                                      borderRadius: 12,
+                                                      padding: "8px 10px",
+                                                    }}
+                                                  >
+                                                    <div style={{ fontWeight: 800 }}>
+                                                      {hall.hall}
+                                                    </div>
+                                                    <div style={{ color: COLORS.charcoalSoft }}>
+                                                      {hall.reason}
+                                                    </div>
+                                                    <div style={{ color: COLORS.charcoalSoft, fontSize: 11 }}>
+                                                      السعة: {Number(hall.capacity) || 0}، المشغول: {Number(hall.used) || 0}، المتبقي قبل القيد: {Number(hall.remainingBeforeConstraint) || 0}، القابل للإسناد فعليًا: {Number(hall.effectiveRemaining) || 0}
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        ))}
                                       </div>
                                     </div>
                                   ))}
