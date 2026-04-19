@@ -5552,7 +5552,14 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
+      key: course.key,
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+      courseCode: course.courseCode || "",
+      department: course.department || "",
+      major: course.major || "",
+      sectionName: course.sectionName || "",
+      departmentRoots: Array.from(course.departmentRoots || []),
+      majors: Array.from(course.majors || []),
       required: Number(course.studentCount) || 0,
       maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
@@ -5634,12 +5641,14 @@ sortedCoursesForInvigilation.forEach((course) => {
   );
 
   hallWarningItems.push({
-    courseKey: course.key,
+    key: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
     courseCode: course.courseCode || "",
     department: course.department || "",
     major: course.major || "",
-    departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
+    sectionName: course.sectionName || "",
+    departmentRoots: Array.from(course.departmentRoots || []),
+    majors: Array.from(course.majors || []),
     required: Number(course.studentCount) || 0,
     maxAvailable: maxRemaining,
   });
@@ -5750,7 +5759,7 @@ const generateSpecializedSchedule = () => {
     const combined = [...(prev || []), ...(nextHallWarnings || [])];
     const map = new Map();
     combined.forEach((item) => {
-      const key = `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      const key = item?.key || `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
       if (!map.has(key)) {
         map.set(key, item);
       }
@@ -5847,47 +5856,51 @@ const filteredSortedCourses = useMemo(() => {
   });
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
 
-const matchesPreviewFilters = (item) => {
+const previewItemMatchesFilters = useCallback((item) => {
   if (!item) return false;
 
-  const selectedDepartmentNormalized =
+  const targetDepartment =
     printDepartmentFilter === "__all__" ? "" : normalizeArabic(printDepartmentFilter);
-  const selectedMajorNormalized =
+  const targetMajor =
     printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
 
   const departmentRoots = Array.isArray(item.departmentRoots)
-    ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
-    : [];
-  const departmentValues = [
+    ? item.departmentRoots.map((value) => normalizeArabic(value)).filter(Boolean)
+    : getCourseDepartmentRoots(item);
+
+  const itemDepartments = [
     ...splitBySlash(item.department),
     ...splitBySlash(item.sectionName),
+    ...splitBySlash(item.departmentLabel),
   ]
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
-  const majorValues = splitBySlash(item.major)
+  const itemMajors = [
+    ...splitBySlash(item.major),
+    ...(Array.isArray(item.majors) ? item.majors : []),
+  ]
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
   const departmentOk =
-    printDepartmentFilter === "__all__" ||
-    departmentRoots.includes(selectedDepartmentNormalized) ||
-    departmentValues.includes(selectedDepartmentNormalized);
+    !targetDepartment ||
+    departmentRoots.includes(targetDepartment) ||
+    itemDepartments.includes(targetDepartment);
 
   const majorOk =
-    printMajorFilter === "__all__" ||
-    majorValues.includes(selectedMajorNormalized);
+    !targetMajor || itemMajors.includes(targetMajor);
 
   return departmentOk && majorOk;
-};
+}, [printDepartmentFilter, printMajorFilter]);
 
 const filteredUnscheduledForPreview = useMemo(() => {
-  return unscheduled.filter((item) => matchesPreviewFilters(item));
-}, [unscheduled, printDepartmentFilter, printMajorFilter]);
+  return (unscheduled || []).filter((item) => previewItemMatchesFilters(item));
+}, [unscheduled, previewItemMatchesFilters]);
 
 const filteredHallWarningsForPreview = useMemo(() => {
-  return hallWarnings.filter((item) => matchesPreviewFilters(item));
-}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
+  return (hallWarnings || []).filter((item) => previewItemMatchesFilters(item));
+}, [hallWarnings, previewItemMatchesFilters]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
