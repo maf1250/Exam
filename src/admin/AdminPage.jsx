@@ -2567,7 +2567,8 @@ const periodOverlapWarning = useMemo(() => {
 
   function buildManualPlacementContext(currentSchedule = [], ignoreInstanceId = "") {
     const baseInvigilators = manualInvigilators
-      ? manualInvigilators.split("\n").map((name) => name.trim()).filter(Boolean)
+      ? manualInvigilators.split("
+").map((name) => name.trim()).filter(Boolean)
       : parsed.invigilators;
 
     const invigilatorPool = [
@@ -3053,7 +3054,6 @@ const periodOverlapWarning = useMemo(() => {
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
-  const [expandedUnscheduledKeys, setExpandedUnscheduledKeys] = useState({});
 const [courseAKey, setCourseAKey] = useState("");
 const [courseBKey, setCourseBKey] = useState("");
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
@@ -3094,6 +3094,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [unscheduled, setUnscheduled] = useState([]);
+const [expandedUnscheduledCourseKeys, setExpandedUnscheduledCourseKeys] = useState([]);
   const [hasImportedSessionFile, setHasImportedSessionFile] = useState(false);
   const [pendingRestore, setPendingRestore] = useState(null);
   const [didRestore, setDidRestore] = useState(false);
@@ -3326,6 +3327,62 @@ const buildUnscheduledSummaryText = (notPlaced = []) => {
   ].join(" ");
 };
 
+const toggleExpandedUnscheduledCourse = (courseKey) => {
+  if (!courseKey) return;
+  setExpandedUnscheduledCourseKeys((prev) =>
+    prev.includes(courseKey)
+      ? prev.filter((key) => key !== courseKey)
+      : [...prev, courseKey]
+  );
+};
+
+const formatSlotBadgeLabel = (slot) => {
+  if (!slot) return "";
+  const day = String(slot.dayName || "").trim();
+  const date = String(slot.dateISO || "").trim();
+  const period = Number(slot.period) || "";
+  const time = String(slot.timeText || "").trim();
+  const segments = [day, date ? `(${date})` : "", period ? `الفترة ${period}` : "", time || ""].filter(Boolean);
+  return segments.join(" - ");
+};
+
+const getUnscheduledReasonBreakdown = (course) => {
+  const details = course?.unscheduledReasonDetails || {};
+
+  return [
+    {
+      key: "studentConflict",
+      title: "فترات تعارض المتدربين",
+      slots: Array.isArray(details.studentConflictSlots) ? details.studentConflictSlots : [],
+    },
+    {
+      key: "dailyLimit",
+      title: "فترات بلوغ الحد اليومي للمتدربين",
+      slots: Array.isArray(details.dailyLimitSlots) ? details.dailyLimitSlots : [],
+    },
+    {
+      key: "hallUnavailable",
+      title: "فترات عدم توفر قاعة مناسبة",
+      slots: Array.isArray(details.hallUnavailableSlots) ? details.hallUnavailableSlots : [],
+    },
+    {
+      key: "levelConflict",
+      title: "فترات تعارض المستوى",
+      slots: Array.isArray(details.levelConflictSlots) ? details.levelConflictSlots : [],
+    },
+    {
+      key: "invigilatorShortage",
+      title: "فترات عدم كفاية المراقبين",
+      slots: Array.isArray(details.invigilatorShortageSlots) ? details.invigilatorShortageSlots : [],
+    },
+    {
+      key: "avoidedConstraint",
+      title: "فترات متأثرة بقيود التفضيل أو التجنب",
+      slots: Array.isArray(details.avoidedConstraintSlots) ? details.avoidedConstraintSlots : [],
+    },
+  ].filter((item) => item.slots.length);
+};
+
 const normalizeUnscheduledReason = (course) => {
   const reason = String(course?.unscheduledReason || "").trim();
   if (!reason) {
@@ -3356,14 +3413,6 @@ const normalizeUnscheduledReason = (course) => {
     shortLabel: fallbackShortLabel || "سبب غير محدد",
     detail: reason,
   };
-};
-
-const toggleUnscheduledDetails = (courseKey) => {
-  if (!courseKey) return;
-  setExpandedUnscheduledKeys((prev) => ({
-    ...prev,
-    [courseKey]: !prev[courseKey],
-  }));
 };
 
 const hasImportedSf01 = rows.length > 0;
@@ -5093,6 +5142,12 @@ const pickInvigilators = (course, slot) => {
       hallOnlyBlock: 0,
       invigilatorShortage: 0,
       avoidedConstraint: 0,
+      studentConflictSlots: [],
+      dailyLimitSlots: [],
+      levelConflictSlots: [],
+      hallUnavailableSlots: [],
+      invigilatorShortageSlots: [],
+      avoidedConstraintSlots: [],
     };
 
     const courseConstraint = courseConstraints[course.key] || getCourseConstraintDefaults();
@@ -5116,8 +5171,26 @@ const pickInvigilators = (course, slot) => {
         if (sameDayCount >= sameDayLimit) slotDailyLimit = true;
       });
 
-      if (slotStudentConflict) diagnosis.studentConflict += 1;
-      if (slotDailyLimit) diagnosis.dailyLimit += 1;
+      if (slotStudentConflict) {
+        diagnosis.studentConflict += 1;
+        diagnosis.studentConflictSlots.push({
+          slotId: slot.id,
+          dateISO: slot.dateISO,
+          dayName: slot.dayName,
+          period: slot.period,
+          timeText: slot.timeText,
+        });
+      }
+      if (slotDailyLimit) {
+        diagnosis.dailyLimit += 1;
+        diagnosis.dailyLimitSlots.push({
+          slotId: slot.id,
+          dateISO: slot.dateISO,
+          dayName: slot.dayName,
+          period: slot.period,
+          timeText: slot.timeText,
+        });
+      }
 
       if (!slotStudentConflict && !slotDailyLimit && avoidSameLevelSameDay && courseLevel) {
         const sameDateSameLevelExists = [...basePlaced, ...newPlaced].some(
@@ -5125,6 +5198,13 @@ const pickInvigilators = (course, slot) => {
         );
         if (sameDateSameLevelExists) {
           diagnosis.levelConflict += 1;
+          diagnosis.levelConflictSlots.push({
+            slotId: slot.id,
+            dateISO: slot.dateISO,
+            dayName: slot.dayName,
+            period: slot.period,
+            timeText: slot.timeText,
+          });
           slotLevelConflict = true;
         }
       }
@@ -5167,6 +5247,13 @@ const pickInvigilators = (course, slot) => {
           halls: matchingHallDetails,
         });
         diagnosis.hallUnavailable += 1;
+        diagnosis.hallUnavailableSlots.push({
+          slotId: slot.id,
+          dateISO: slot.dateISO,
+          dayName: slot.dayName,
+          period: slot.period,
+          timeText: slot.timeText,
+        });
       }
 
       if (includeInvigilators) {
@@ -5176,6 +5263,13 @@ const pickInvigilators = (course, slot) => {
         ).length;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
+          diagnosis.invigilatorShortageSlots.push({
+            slotId: slot.id,
+            dateISO: slot.dateISO,
+            dayName: slot.dayName,
+            period: slot.period,
+            timeText: slot.timeText,
+          });
           slotInvigilatorShortage = true;
         }
       }
@@ -5185,6 +5279,13 @@ const pickInvigilators = (course, slot) => {
         courseConstraint.avoidedPeriods.includes(slot.period)
       ) {
         diagnosis.avoidedConstraint += 1;
+        diagnosis.avoidedConstraintSlots.push({
+          slotId: slot.id,
+          dateISO: slot.dateISO,
+          dayName: slot.dayName,
+          period: slot.period,
+          timeText: slot.timeText,
+        });
         slotAvoidedConstraint = true;
       }
 
@@ -5282,6 +5383,14 @@ const requiredSeats = Number(course.studentCount) || 0;
     return {
       shortLabel: rankedReason?.[0] || "تعذر الجدولة",
       detail: `تعذر جدولة هذا المقرر بعد فحص ${diagnosis.totalSlots} فترة متاحة: ${reasonParts.join("، ")}.`,
+      details: {
+        studentConflictSlots: diagnosis.studentConflictSlots,
+        dailyLimitSlots: diagnosis.dailyLimitSlots,
+        hallUnavailableSlots: diagnosis.hallUnavailableSlots,
+        levelConflictSlots: diagnosis.levelConflictSlots,
+        invigilatorShortageSlots: diagnosis.invigilatorShortageSlots,
+        avoidedConstraintSlots: diagnosis.avoidedConstraintSlots,
+      },
     };
   };
 
@@ -5454,6 +5563,7 @@ sortedCoursesForInvigilation.forEach((course) => {
     ...course,
     unscheduledReason: diagnosis.detail,
     unscheduledShortLabel: diagnosis.shortLabel,
+    unscheduledReasonDetails: diagnosis.details || null,
   });
   return;
 }
@@ -9339,34 +9449,23 @@ style={{
                       }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked || !canEditManualCourse(course) ? "default" : "grab", opacity: !canEditManualCourse(course) ? 0.72 : (draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1) }}>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ fontWeight: 800 }}>{course.courseName}</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                            <button
-                              type="button"
-                              onClick={() => toggleUnscheduledDetails(course.key)}
-                              style={{ ...cardButtonStyle(), padding: "6px 12px", borderRadius: 12, fontSize: 13 }}
-                            >
-                              {expandedUnscheduledKeys[course.key] ? "إخفاء التفاصيل" : "عرض التفاصيل"}
-                            </button>
-                            <span
-                              style={{
-                                background: COLORS.warningBg,
-                                border: "1px solid #FED7AA",
-                                color: COLORS.warning,
-                                borderRadius: 999,
-                                padding: "3px 10px",
-                                fontSize: 12,
-                                fontWeight: 800,
-                              }}
-                            >
-                              {normalizeUnscheduledReason(course).shortLabel}
-                            </span>
-                          </div>
+                          <span
+                            style={{
+                              background: COLORS.warningBg,
+                              border: "1px solid #FED7AA",
+                              color: COLORS.warning,
+                              borderRadius: 999,
+                              padding: "3px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {normalizeUnscheduledReason(course).shortLabel}
+                          </span>
                         </div>
-                        {expandedUnscheduledKeys[course.key] ? (
-                          <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
-                            {normalizeUnscheduledReason(course).detail}
-                          </div>
-                        ) : null}
+                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
+                          {normalizeUnscheduledReason(course).detail}
+                        </div>
                         {!canEditManualCourse(course) ? (
                           <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
                         ) : null}
@@ -9656,7 +9755,7 @@ style={{
                         </button>
                       </div>
                       <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
-                        {buildUnscheduledSummaryText(unscheduled)} يمكنك الضغط على زر "عرض التفاصيل" أسفل كل مقرر لمعرفة الفترات والأسباب بالتفصيل.
+                        {buildUnscheduledSummaryText(unscheduled)}
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
                         {unscheduled.map((course) => {
@@ -9675,32 +9774,78 @@ style={{
                                 <div style={{ fontWeight: 900, color: COLORS.text }}>
                                   {course.courseName} <span style={{ color: COLORS.muted, fontWeight: 700 }}>- {course.courseCode}</span>
                                 </div>
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleUnscheduledDetails(course.key)}
-                                    style={{ ...cardButtonStyle(), padding: "6px 12px", borderRadius: 12, fontSize: 13 }}
-                                  >
-                                    {expandedUnscheduledKeys[course.key] ? "إخفاء التفاصيل" : "عرض التفاصيل"}
-                                  </button>
-                                  <span
-                                    style={{
-                                      background: COLORS.warningBg,
-                                      border: "1px solid #FED7AA",
-                                      color: COLORS.warning,
-                                      borderRadius: 999,
-                                      padding: "4px 10px",
-                                      fontSize: 12,
-                                      fontWeight: 800,
-                                    }}
-                                  >
-                                    {reasonInfo.shortLabel}
-                                  </span>
-                                </div>
+                                <span
+                                  style={{
+                                    background: COLORS.warningBg,
+                                    border: "1px solid #FED7AA",
+                                    color: COLORS.warning,
+                                    borderRadius: 999,
+                                    padding: "4px 10px",
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {reasonInfo.shortLabel}
+                                </span>
                               </div>
-                              {expandedUnscheduledKeys[course.key] ? (
-                                <div style={{ marginTop: 8, color: COLORS.muted, lineHeight: 1.8, fontSize: 14 }}>
-                                  {reasonInfo.detail}
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandedUnscheduledCourse(course.key)}
+                                style={{
+                                  marginTop: 8,
+                                  background: "transparent",
+                                  border: "none",
+                                  padding: 0,
+                                  color: COLORS.muted,
+                                  lineHeight: 1.8,
+                                  fontSize: 14,
+                                  cursor: "pointer",
+                                  textAlign: "right",
+                                  width: "100%",
+                                }}
+                              >
+                                {reasonInfo.detail}
+                              </button>
+                              {expandedUnscheduledCourseKeys.includes(course.key) && getUnscheduledReasonBreakdown(course).length ? (
+                                <div
+                                  style={{
+                                    marginTop: 10,
+                                    display: "grid",
+                                    gap: 10,
+                                  }}
+                                >
+                                  {getUnscheduledReasonBreakdown(course).map((group) => (
+                                    <div
+                                      key={`${course.key}-${group.key}`}
+                                      style={{
+                                        background: COLORS.warningBg,
+                                        border: "1px solid #FED7AA",
+                                        borderRadius: 14,
+                                        padding: 10,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: COLORS.warning, marginBottom: 8 }}>
+                                        {group.title}
+                                      </div>
+                                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                        {group.slots.map((slot) => (
+                                          <span
+                                            key={`${course.key}-${group.key}-${slot.slotId || `${slot.dateISO}-${slot.period}`}`}
+                                            style={{
+                                              background: "#fff",
+                                              border: "1px solid #FED7AA",
+                                              borderRadius: 999,
+                                              padding: "6px 10px",
+                                              fontSize: 12,
+                                              color: COLORS.text,
+                                            }}
+                                          >
+                                            {formatSlotBadgeLabel(slot)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               ) : null}
                             </div>
