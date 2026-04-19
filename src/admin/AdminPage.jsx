@@ -1996,6 +1996,7 @@ const stepNineCardStyle = {
   maxWidth: 700,
 };
 const [hallWarnings, setHallWarnings] = useState([]);
+const [showAdvancedManagementOptions, setShowAdvancedManagementOptions] = useState(false);
 
 const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
@@ -3258,6 +3259,7 @@ const handleUpload = (file) => {
       setExpandedUnscheduledCourseKeys([]);
       setSelectedUnscheduledReasonModal(null);
       setHallWarnings([]);
+      setShowAdvancedManagementOptions(false);
       setEnableSamePeriodGroups(false);
       setSamePeriodGroups([]);
       setDraggingSamePeriodCourseKey("");
@@ -3745,6 +3747,7 @@ const buildPersistedState = () => ({
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
+  showAdvancedManagementOptions,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -3855,6 +3858,7 @@ const restorePersistedState = (saved) => {
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
+  setShowAdvancedManagementOptions(saved.showAdvancedManagementOptions ?? false);
   setIncludeInvigilators(saved.includeInvigilators ?? true);
   setExcludedInvigilators(saved.excludedInvigilators || []);
   setExcludeInactive(saved.excludeInactive ?? true);
@@ -4047,6 +4051,7 @@ useEffect(() => {
   manualScheduleLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
+  showAdvancedManagementOptions,
   includeInvigilators,
   excludedInvigilators,
   excludeInactive,
@@ -6924,7 +6929,7 @@ const headerBtn = (danger = false) => ({
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10, marginBottom: 20 }}>
           {[
-  { id: 1, label: "1. رفع الملف" },
+  { id: 1, label: "1. رفع الملف والتفضيلات" },
   { id: 2, label: "2. المقررات" },
   { id: 3, label: "3. المراقبون" },
   { id: 4, label: "4. مقررات الدراسات العامة" },
@@ -6962,8 +6967,8 @@ const headerBtn = (danger = false) => ({
         {currentStep === 1 && (
           <Card>
             <SectionHeader
-              title="رفع الملف والإعدادات العامة"
-              description="حدد تاريخ البداية وعدد الأيام وأوقات الفترات والقاعات، ثم ارفع تقرير SF01."
+              title="رفع الملف والتفضيلات"
+              description="ارفع تقرير SF01 وحدد التفضيلات الأساسية أولًا، ويمكنك إظهار خصائص إدارة الاختبارات النهائية المتقدمة عند الحاجة فقط."
             />
 
             <div
@@ -6978,19 +6983,24 @@ const headerBtn = (danger = false) => ({
                 setDragActive(false);
                 handleUpload(e.dataTransfer.files?.[0]);
               }}
-style={{
-  height: 75,          
-  borderRadius: 20,    
-  border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
-  background: dragActive ? COLORS.primaryLight : "#FCFFFF",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexDirection: "column",
-  textAlign: "center",
-  cursor: "pointer",
-  padding: "10px",     
-}}
+              style={{
+                marginTop: 4,
+                borderRadius: 26,
+                border: `2px dashed ${dragActive ? COLORS.primaryDark : COLORS.primaryBorder}`,
+                background: dragActive
+                  ? "linear-gradient(135deg, #E7F8F7 0%, #F7FBFB 100%)"
+                  : "linear-gradient(135deg, #FCFFFF 0%, #F7FBFB 100%)",
+                minHeight: 170,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                textAlign: "center",
+                cursor: "pointer",
+                padding: "28px 20px",
+                boxShadow: dragActive ? "0 16px 36px rgba(20,123,131,0.10)" : "inset 0 1px 0 rgba(255,255,255,0.7)",
+                transition: "all 180ms ease",
+              }}
             >
               <input
                 ref={fileRef}
@@ -6999,19 +7009,71 @@ style={{
                 style={{ display: "none" }}
                 onChange={(e) => handleUpload(e.target.files?.[0])}
               />
-              <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>اسحب التقرير هنا أو اضغط للاختيار</div>
-              <div style={{ marginTop: 4, fontSize: 11, color: COLORS.muted }}>CSV فقط</div>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: dragActive ? COLORS.primaryDark : COLORS.primaryLight,
+                  color: dragActive ? "#fff" : COLORS.primaryDark,
+                  fontSize: 28,
+                  fontWeight: 900,
+                  marginBottom: 14,
+                }}
+              >
+                ⬆
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.charcoal }}>
+                رفع ملف SF01
+              </div>
+              <div style={{ marginTop: 8, fontSize: 14, color: COLORS.muted, lineHeight: 1.9, maxWidth: 620 }}>
+                اسحب التقرير هنا أو اضغط للاختيار من جهازك. يدعم النظام ملفات CSV ويقرأ بيانات الوحدة تلقائيًا عند توفرها.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16, justifyContent: "center" }}>
+                <span
+                  style={{
+                    background: "#fff",
+                    border: `1px solid ${COLORS.border}`,
+                    color: COLORS.charcoalSoft,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  CSV فقط
+                </span>
+                <span
+                  style={{
+                    background: "#fff",
+                    border: `1px solid ${COLORS.border}`,
+                    color: COLORS.charcoalSoft,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  سحب وإفلات أو اختيار يدوي
+                </span>
+              </div>
               {fileName ? (
                 <div
                   style={{
-                    marginTop: 12,
+                    marginTop: 16,
                     background: COLORS.primaryDark,
                     color: "#fff",
-                    padding: "8px 14px",
+                    padding: "10px 16px",
                     borderRadius: 999,
+                    fontWeight: 800,
+                    maxWidth: "100%",
+                    wordBreak: "break-word",
                   }}
                 >
-                  {fileName}
+                  الملف الحالي: {fileName}
                 </div>
               ) : null}
             </div>
@@ -7078,6 +7140,46 @@ style={{
                 />
               </div>
             </div>
+
+            <div
+              style={{
+                marginTop: 18,
+                border: `1px solid ${showAdvancedManagementOptions ? COLORS.primaryBorder : COLORS.border}`,
+                borderRadius: 22,
+                padding: 18,
+                background: showAdvancedManagementOptions ? COLORS.primaryLight : "#fff",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 14,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ flex: "1 1 320px" }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.charcoal }}>
+                    خصائص إدارة الاختبارات النهائية
+                  </div>
+                  <div style={{ color: COLORS.muted, lineHeight: 1.9, marginTop: 6 }}>
+                    هذه الخيارات مخصصة للمستخدمين الذين يحتاجون إعدادات أكثر تقدمًا مثل الفترات والقاعات والتخصيصات وقيود التوزيع. يمكنك إظهارها أو إخفاؤها في أي وقت، وسيتم حفظ حالتها ضمن الاسترجاع والاستيراد والتصدير.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedManagementOptions((prev) => !prev)}
+                  style={cardButtonStyle({ active: showAdvancedManagementOptions })}
+                >
+                  {showAdvancedManagementOptions ? "إخفاء الخصائص المتقدمة" : "إظهار الخصائص المتقدمة"}
+                </button>
+              </div>
+            </div>
+
+            {showAdvancedManagementOptions ? (
+              <>
             <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
               <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
@@ -7979,6 +8081,8 @@ style={{
                 استبعاد المنسحبين والمطوي قيدهم
               </label>
             </div>
+              </>
+            ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
               <button onClick={() => setCurrentStep(2)} disabled={!rows.length} style={cardButtonStyle({ active: true, disabled: !rows.length })}>
