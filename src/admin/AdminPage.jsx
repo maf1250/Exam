@@ -532,7 +532,7 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
   const hallCapacity = Number(hall?.capacity);
   if (!Number.isFinite(hallCapacity) || hallCapacity <= 0) return 0;
 
-  const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0;
+  const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall)) || 0;
   const rawRemaining = hallCapacity - used;
   const computedRemaining = hall.allowSharedAssignments
     ? Math.max(0, rawRemaining)
@@ -540,12 +540,15 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
 
   console.log("HALL_DEBUG", {
     hall: hall.name,
+    hallId: hall.id || null,
     allowSharedAssignments: hall.allowSharedAssignments,
     slot: getSlotPeriodKey(slotOrItem),
     capacity: hallCapacity,
     used,
     rawRemaining,
+    remainingBeforeConstraint: Math.max(0, rawRemaining),
     computedRemaining,
+    canFitSingleHall: computedRemaining >= (Number(course?.studentCount) || 0),
   });
 
   return computedRemaining;
@@ -582,15 +585,25 @@ function normalizeExamHallsInput(examHalls) {
     .filter((hall) => hall.name && hall.capacity > 0);
 }
 
-function getHallUsageKey(slotOrItem, hallName) {
-  return `${getSlotPeriodKey(slotOrItem)}__${normalizeArabic(hallName)}`;
+function getHallIdentity(hallOrName) {
+  if (hallOrName && typeof hallOrName === "object") {
+    const hallId = String(hallOrName.id || "").trim();
+    if (hallId) return `id:${hallId}`;
+    return `name:${normalizeArabic(hallOrName.name || "")}`;
+  }
+
+  return `name:${normalizeArabic(hallOrName || "")}`;
+}
+
+function getHallUsageKey(slotOrItem, hallOrName) {
+  return `${getSlotPeriodKey(slotOrItem)}__${getHallIdentity(hallOrName)}`;
 }
 
 function getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap) {
   const hallCapacity = Number(hall?.capacity);
   if (!Number.isFinite(hallCapacity) || hallCapacity <= 0) return 0;
 
-  const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0;
+  const used = hallUsageMap.get(getHallUsageKey(slotOrItem, hall)) || 0;
   return Math.max(0, hallCapacity - used);
 }
 
@@ -605,7 +618,7 @@ function canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
     return getRemainingHallCapacityForSlot(hall, slotOrItem, hallUsageMap) >= students;
   }
 
-  const alreadyUsed = (hallUsageMap.get(getHallUsageKey(slotOrItem, hall.name)) || 0) > 0;
+  const alreadyUsed = (hallUsageMap.get(getHallUsageKey(slotOrItem, hall)) || 0) > 0;
   if (alreadyUsed) return false;
 
   return Number(hall.capacity) >= students;
@@ -613,7 +626,7 @@ function canAssignHallToCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
 
 function reserveHallForCourseInSlot(hall, course, slotOrItem, hallUsageMap) {
   const students = Number(course?.studentCount) || 0;
-  const key = getHallUsageKey(slotOrItem, hall.name);
+  const key = getHallUsageKey(slotOrItem, hall);
   hallUsageMap.set(key, (hallUsageMap.get(key) || 0) + students);
 }
 
@@ -4893,12 +4906,15 @@ const pickInvigilators = (course, slot) => {
 
         return {
           hall: hall.name,
+          hallId: hall.id || null,
           allowSharedAssignments: hall.allowSharedAssignments,
           allowedForCourse: isHallAllowedForCourse(hall, course),
           passesConstraint: constrainedHallNames.has(normalizeArabic(hall.name)),
           capacity: Number(hall.capacity) || 0,
-          used: hallUsageMap.get(getHallUsageKey(slot, hall.name)) || 0,
+          used: hallUsageMap.get(getHallUsageKey(slot, hall)) || 0,
+          remainingBeforeConstraint: getRemainingHallCapacityForSlot(hall, slot, hallUsageMap),
           effectiveRemaining,
+          canFitSingleHall: effectiveRemaining >= (Number(course.studentCount) || 0),
           canAssign,
         };
       });
@@ -5219,13 +5235,16 @@ sortedCoursesForInvigilation.forEach((course) => {
   );
   const hallDebugSnapshot = hallsPool.map((hall) => ({
     hall: hall.name,
+    hallId: hall.id || null,
     allowSharedAssignments: hall.allowSharedAssignments,
     allowedForCourse: isHallAllowedForCourse(hall, course),
     passesConstraint: constrainedHallNames.has(normalizeArabic(hall.name)),
     capacity: Number(hall.capacity) || 0,
-    used: hallUsageMap.get(getHallUsageKey(bestSlot, hall.name)) || 0,
-    rawRemaining: (Number(hall.capacity) || 0) - (hallUsageMap.get(getHallUsageKey(bestSlot, hall.name)) || 0),
+    used: hallUsageMap.get(getHallUsageKey(bestSlot, hall)) || 0,
+    rawRemaining: (Number(hall.capacity) || 0) - (hallUsageMap.get(getHallUsageKey(bestSlot, hall)) || 0),
+    remainingBeforeConstraint: getRemainingHallCapacityForSlot(hall, bestSlot, hallUsageMap),
     computedRemaining: getEffectiveAssignableHallCapacityForSlot(hall, course, bestSlot, hallUsageMap),
+    canFitSingleHall: getEffectiveAssignableHallCapacityForSlot(hall, course, bestSlot, hallUsageMap) >= (Number(course.studentCount) || 0),
     canAssign: canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap),
   }));
 
