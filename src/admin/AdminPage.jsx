@@ -5552,14 +5552,14 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
-      key: course.key,
-      courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+      courseKey: course.key || "",
       courseCode: course.courseCode || "",
-      required: Number(course.studentCount) || 0,
-      maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
+      courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
       department: course.department || "",
       major: course.major || "",
-      departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
+      departmentRoots: Array.from(course.departmentRoots || []),
+      required: Number(course.studentCount) || 0,
+      maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
   }
   const diagnosis = diagnoseUnscheduledCourse(course);
@@ -5639,7 +5639,12 @@ sortedCoursesForInvigilation.forEach((course) => {
   );
 
   hallWarningItems.push({
+    courseKey: course.key || "",
+    courseCode: course.courseCode || "",
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+    department: course.department || "",
+    major: course.major || "",
+    departmentRoots: Array.from(course.departmentRoots || []),
     required: Number(course.studentCount) || 0,
     maxAvailable: maxRemaining,
   });
@@ -5847,53 +5852,26 @@ const filteredSortedCourses = useMemo(() => {
   });
 }, [parsed.courses, printDepartmentFilter, printMajorFilter]);
 
-const matchesPreviewFilters = (itemLike) => {
-  if (!itemLike) return false;
-
-  const departmentOk =
-    printDepartmentFilter === "__all__" ||
-    (() => {
-      const target = normalizeArabic(printDepartmentFilter);
-      const roots = Array.isArray(itemLike.departmentRoots)
-        ? itemLike.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
-        : getCourseDepartmentRoots(itemLike);
-
-      if (roots.includes(target)) return true;
-
-      if (isGeneralStudiesCourse(itemLike)) {
-        return roots.some((root) => root.includes(target));
-      }
-
-      return false;
-    })();
-
-  const majorOk =
-    printMajorFilter === "__all__" ||
-    splitBySlash(itemLike.major).some(
-      (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
-    );
-
-  return departmentOk && majorOk;
-};
-
-const filteredUnscheduledForPreview = useMemo(() => {
-  return unscheduled.filter((item) => matchesPreviewFilters(item));
-}, [unscheduled, printDepartmentFilter, printMajorFilter]);
-
 const filteredHallWarningsForPreview = useMemo(() => {
   return hallWarnings.filter((item) => {
-    if (matchesPreviewFilters(item)) return true;
+    const warningRoots = Array.isArray(item?.departmentRoots)
+      ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
+      : getCourseDepartmentRoots(item).map((root) => normalizeArabic(root)).filter(Boolean);
 
-    const matchedCourse = parsed.courses.find((course) =>
-      course.key && item?.key
-        ? course.key === item.key
-        : normalizeArabic(course.courseName || "") === normalizeArabic(item.courseName || "") &&
-          normalizeArabic(course.courseCode || "") === normalizeArabic(item.courseCode || "")
-    );
+    const departmentOk =
+      printDepartmentFilter === "__all__" ||
+      warningRoots.includes(normalizeArabic(printDepartmentFilter));
 
-    return matchesPreviewFilters(matchedCourse);
+    const majorOk =
+      printMajorFilter === "__all__" ||
+      splitBySlash(item?.major).some(
+        (major) => normalizeArabic(major) === normalizeArabic(printMajorFilter)
+      );
+
+    return departmentOk && majorOk;
   });
-}, [hallWarnings, parsed.courses, printDepartmentFilter, printMajorFilter]);
+}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
+
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9769,7 +9747,7 @@ style={{
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {filteredHallWarningsForPreview.map((item, index) => (
                           <span
-                            key={`${item.courseName}-${index}`}
+                            key={`${item.courseKey || item.courseCode || item.courseName}-${index}`}
                             style={{
                               background: "#fff",
                               border: "1px solid #FECACA",
@@ -9807,10 +9785,10 @@ style={{
                         </button>
                       </div>
                       <div style={{ color: COLORS.warning, opacity: 0.92, lineHeight: 1.8, marginBottom: 12 }}>
-                        {buildUnscheduledSummaryText(filteredUnscheduledForPreview)}
+                        {buildUnscheduledSummaryText(unscheduled)}
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
-                        {filteredUnscheduledForPreview.map((course) => {
+                        {unscheduled.map((course) => {
                           const reasonInfo = normalizeUnscheduledReason(course);
                           return (
                             <div
