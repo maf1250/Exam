@@ -11179,7 +11179,7 @@ const headerBtn = (danger = false) => ({
   }}
   style={cardButtonStyle()}
 >
-  نسخ رابط المتدربين
+  نسخ رابط بوابة المتدربين
 </button>
            
           </div>
