@@ -11231,9 +11231,73 @@ style={{
                 {Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
                   <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
                 ) : null}
-                {Array.isArray(slot.blockingStudents) && slot.blockingStudents.length ? (
-                  <div>
-                    <strong>أسماء المتدربين المتعارضين:</strong> {slot.blockingStudents.map((student) => student?.name || student?.id || student).join("، ")}
+                {Array.isArray(slot.blockingStudents) ? (
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontWeight: 800, marginBottom: 8, color: COLORS.charcoal }}>
+                      المتدربون المتعارضون
+                    </div>
+                    {slot.blockingStudents.length ? (
+                      <div
+                        style={{
+                          overflowX: "auto",
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 12,
+                          background: "#F8FAFC",
+                        }}
+                      >
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            tableLayout: "fixed",
+                            background: "#fff",
+                          }}
+                        >
+                          <thead>
+                            <tr style={{ background: COLORS.primaryLight }}>
+                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 56 }}>#</th>
+                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>اسم المتدرب</th>
+                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 120 }}>الرقم</th>
+                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>القسم</th>
+                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>التخصص</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {slot.blockingStudents.map((student, studentIndex) => (
+                              <tr key={`${student?.id || student?.name || "student"}-${studentIndex}`}>
+                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
+                                  {studentIndex + 1}
+                                </td>
+                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                  {student?.name || "-"}
+                                </td>
+                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center" }}>
+                                  {student?.id || "-"}
+                                </td>
+                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                  {student?.department || "-"}
+                                </td>
+                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                  {student?.major || "-"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          border: `1px dashed ${COLORS.border}`,
+                          borderRadius: 12,
+                          padding: 12,
+                          background: "#fff",
+                          color: COLORS.muted,
+                        }}
+                      >
+                        لا توجد أسماء متدربين محفوظة لهذا التعارض في هذه الفترة.
+                      </div>
+                    )}
                   </div>
                 ) : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
