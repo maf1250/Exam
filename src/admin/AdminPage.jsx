@@ -4997,7 +4997,7 @@ const maxRemaining = candidateHallsForMessage.reduce((best, hall) => {
   const computed = getEffectiveAssignableHallCapacityForSlot(
     hall,
     course,
-    bestSlot || slot,
+     slot,
     hallUsageMap
   );
   return Math.max(best, Number(computed) || 0);
