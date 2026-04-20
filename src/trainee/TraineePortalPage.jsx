@@ -90,35 +90,41 @@ function fieldStyle() {
 function openPrintWindow({ collegeName, selectedStudent }) {
   const instructions = getInstructions();
   const today = new Date().toLocaleDateString("ar-SA");
-  const rowsHtml = (selectedStudent?.schedule || [])
-    .map((item, index) => {
-      const deprivationStatus = getDeprivationStatus(item);
-      const isDeprived = Boolean(deprivationStatus);
+ const rowsHtml = (selectedStudent?.schedule || [])
+  .map((item, index) => {
+    const deprivationStatus = getDeprivationStatus(item);
+    const isDeprived = Boolean(deprivationStatus);
 
-      return `
-        <tr style="${isDeprived ? "background:#FEF2F2;color:#B42318;font-weight:700;" : ""}">
-          <td>${index + 1}</td>
-          <td>${escapeHtml(item.gregorian || "-")}</td>
-          <td>${escapeHtml(item.hijriNumeric || "-")}</td>
-          <td>
-            ${escapeHtml(item.courseName || "-")}
-            ${
-              isDeprived
-                ? `<div style="margin-top:4px;font-size:10px;font-weight:800;color:#B42318;">${escapeHtml(
-                    deprivationStatus
-                  )}</div>`
-                : ""
-            }
-          </td>
-          <td>${escapeHtml(item.courseCode || "-")}</td>
-          <td>${escapeHtml(item.period || "-")}</td>
-          <td>${escapeHtml(item.timeText || "-")}</td>
-          <td>${escapeHtml(item.examHall || "-")}</td>
-        </tr>
-      `;
-    })
-    .join("");
+    const cellStyle = isDeprived
+      ? 'background:#FEF2F2;color:#B42318;font-weight:700;'
+      : '';
 
+    return `
+      <tr>
+        <td style="${cellStyle}">${index + 1}</td>
+        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
+        
+        <td style="${cellStyle}">
+          <div>${escapeHtml(item.courseName || "-")}</div>
+          
+          ${
+            isDeprived
+              ? `<div style="margin-top:4px;font-size:10px;font-weight:900;color:#B42318;">
+                   ${escapeHtml(deprivationStatus)}
+                 </div>`
+              : ""
+          }
+        </td>
+
+        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.timeText || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.examHall || "-")}</td>
+      </tr>
+    `;
+  })
+  .join("");
   const html = `
   <!doctype html>
   <html lang="ar" dir="rtl">
