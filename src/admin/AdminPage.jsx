@@ -6550,7 +6550,7 @@ const generateSpecializedSchedule = () => {
   });
   if (notPlaced.length || shouldWarnAboutMissingImportedSession) {
     const messageParts = [`تم توزيع ${formatCourseCountLabel(placed.length)}.`];
-
+  
     if (notPlaced.length) {
       messageParts.push(buildUnscheduledSummaryText(notPlaced));
     }
@@ -6562,6 +6562,7 @@ const generateSpecializedSchedule = () => {
     showToast(
       shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
       messageParts.join(" ").trim(),
+      setCurrentStep(6);
       "warning",
       {
         persistent: true,
