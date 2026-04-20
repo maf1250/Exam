@@ -3005,14 +3005,7 @@ const periodOverlapWarning = useMemo(() => {
 
       
       const baseCandidates = scopedPool
-        baseCandidates.forEach((name) => {
-  console.log("CANDIDATE", {
-    name,
-    courseName: course?.courseName,
-    department: course?.department,
-    major: course?.major,
-  });
-});
+        
         .filter(
           (name) =>
             !excludedInvigilators.some(
@@ -3020,7 +3013,16 @@ const periodOverlapWarning = useMemo(() => {
             )
         )
         .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
-
+      
+baseCandidates.forEach((name) => {
+  console.log("CANDIDATE", {
+    name,
+    courseName: course?.courseName,
+    department: course?.department,
+    major: course?.major,
+  });
+});
+      
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
       );
