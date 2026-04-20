@@ -706,20 +706,7 @@ function getEffectiveAssignableHallCapacityForSlot(hall, course, slotOrItem, hal
     : (used > 0 ? 0 : hallCapacity);
   const canFitSingleHall = computedRemaining >= requiredSeats;
 
-  console.log("HALL_DEBUG", {
-    course: course?.courseName || course?.courseCode || course?.key || "",
-    requiredSeats,
-    hall: hall.name,
-    hallId: hall.id || null,
-    allowSharedAssignments: hall.allowSharedAssignments,
-    slot: getSlotPeriodKey(slotOrItem),
-    capacity: hallCapacity,
-    used,
-    rawRemaining,
-    remainingBeforeConstraint,
-    computedRemaining,
-    canFitSingleHall,
-  });
+
 
   return computedRemaining;
 }
@@ -1728,8 +1715,9 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
  const buildDayCell = (inv, day) => {
-   console.log(inv.items);
-  const matches = inv.items
+console.log("INV ITEMS FULL:", JSON.stringify(inv.items, null, 2));
+   
+   const matches = inv.items
     .filter((item) => item.dateISO === day.dateISO)
     .sort((a, b) => a.period - b.period);
 
@@ -5755,13 +5743,6 @@ const pickInvigilators = (course, slot) => {
       const matchingHallCount = canAssignCourseToSlotWithSplit(hallsPool, course, slot, hallUsageMap) ? 1 : 0;
 
       if (!matchingHallCount) {
-        console.log("HALL_DEBUG_SLOT_SCAN", {
-          course: course.courseName || course.courseCode || course.key,
-          requiredSeats: Number(course.studentCount) || 0,
-          slot: getSlotPeriodKey(slot),
-          hallConstraint: getEffectiveHallConstraintSummary(course),
-          halls: matchingHallDetails,
-        });
         diagnosis.hallUnavailable += 1;
         diagnosis.hallUnavailableSlots.push({
           slotId: slot.id,
