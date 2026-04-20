@@ -2303,8 +2303,12 @@ const [showSamePeriodPreference, setShowSamePeriodPreference] = useState(false);
 const [showCourseTimePreference, setShowCourseTimePreference] = useState(false);
 const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreference] = useState(false);
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
+const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
+const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
 
-const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
+  
+  
+  const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
 const updatePeriodConfig = (index, patch) => {
   setPeriodConfigs((prev) => {
@@ -2324,6 +2328,19 @@ const updatePeriodConfig = (index, patch) => {
   });
 };
 
+  const allInvigilators = useMemo(() => {
+  return Array.from(
+    new Set(
+      rows.flatMap((row) =>
+        String(row["المدرب"] || "")
+          .split("/")
+          .map((n) => n.trim())
+          .filter(Boolean)
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b, "ar"));
+}, [rows]);
+  
 const periodOverlapWarning = useMemo(() => {
   const normalized = periodConfigs
     .map((item, index) => {
@@ -3064,23 +3081,48 @@ const periodOverlapWarning = useMemo(() => {
           ? getCourseInvigilatorConstraint(course)
           : { mode: "off", invigilatorNames: [] };
 
-      const scopedPool = isGeneralStudiesCourse(course)
-        ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-            ? generalStudiesScopedInvigilatorPool
-            : invigilatorPool)
-        : (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-          !includeAllDepartmentsAndMajors
-            ? specializedScopedInvigilatorPool
-            : invigilatorPool);
+     let strictPool = [];
+let extraPool = [];
 
-      const baseCandidates = scopedPool
-        .filter(
-          (name) =>
-            !excludedInvigilators.some(
-              (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            )
-        )
-        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+const isGeneral = isGeneralStudiesCourse(course);
+
+// الدراسات العامة
+if (isGeneral) {
+  strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+    ? generalStudiesScopedInvigilatorPool
+    : invigilatorPool;
+
+  extraPool = generalStudiesExtraInvigilators;
+}
+// التخصص
+else {
+  strictPool =
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors
+      ? specializedScopedInvigilatorPool
+      : invigilatorPool;
+
+  extraPool = specializedExtraInvigilators;
+}
+
+const strictCandidates = strictPool
+  .filter(
+    (name) =>
+      !excludedInvigilators.some(
+        (ex) => normalizeArabic(ex) === normalizeArabic(name)
+      )
+  )
+  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+const extraCandidates = extraPool
+  .filter(
+    (name) =>
+      !excludedInvigilators.some(
+        (ex) => normalizeArabic(ex) === normalizeArabic(name)
+      )
+  )
+  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+  .filter((name) => !strictCandidates.includes(name));
 
       if (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors) {
         console.warn("INVIGILATOR_SCOPE_DEBUG", {
@@ -3107,7 +3149,7 @@ const periodOverlapWarning = useMemo(() => {
         ).map((name) => normalizeArabic(name))
       );
 
-      let constrainedCandidates = [...baseCandidates];
+      let constrainedCandidates = [...strictCandidates];
       let strictOnlyMode = false;
 
       if (
@@ -3214,16 +3256,20 @@ const periodOverlapWarning = useMemo(() => {
         }
       }
 
-      if (!hardFairnessForThisCourse && chosen.length < requiredCount) {
-        const fallbackCandidates = sortCandidates(
-          constrainedCandidates.filter((name) => !chosen.includes(name))
-        );
+      if (chosen.length < requiredCount) {
+  const extraFairCandidates = sortCandidates(
+    extraCandidates.filter((name) => !chosen.includes(name))
+  );
 
-        for (const name of fallbackCandidates) {
-          if (chosen.length >= requiredCount) break;
-          chosen.push(name);
-        }
-      }
+  for (const name of extraFairCandidates) {
+    if (chosen.length >= requiredCount) break;
+    chosen.push(name);
+  }
+}
+      
+     if (chosen.length < requiredCount) {
+  return [];
+}
 
       chosen.forEach((name) => {
         if (!invigilatorBusyPeriods.has(name)) {
@@ -4171,6 +4217,8 @@ const buildPersistedState = () => ({
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
   restrictGeneralStudiesInvigilationToGeneralStudiesTrainers,
+  specializedExtraInvigilators,
+  generalStudiesExtraInvigilators,
   excludedDepartmentMajors,
   lockGeneralStudiesStep,
   printDepartmentFilter,
@@ -4198,6 +4246,8 @@ const restorePersistedState = (saved) => {
   setStartDate(saved.startDate || "");
   setNumberOfDays(saved.numberOfDays || 8);
   setSelectedDays(saved.selectedDays || ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
+  setSpecializedExtraInvigilators(Array.isArray(saved.specializedExtraInvigilators) ? saved.specializedExtraInvigilators : []);
+setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigilators) ? saved.generalStudiesExtraInvigilators : []);
   setPeriodConfigs(
     Array.isArray(saved.periodConfigs) && saved.periodConfigs.length
       ? getDefaultPeriodConfigs().map((defaultItem, index) => ({
@@ -4493,6 +4543,8 @@ useEffect(() => {
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
   restrictGeneralStudiesInvigilationToGeneralStudiesTrainers,
+  specializedExtraInvigilators,
+generalStudiesExtraInvigilators,
   excludedDepartmentMajors,
   lockGeneralStudiesStep,
   printDepartmentFilter,
@@ -4556,6 +4608,7 @@ const clearSavedState = async () => {
   setStorageMode("localStorage");
 
   showToast("تم المسح", "تم حذف النسخة المحفوظة من المتصفح.", "success");
+  window.location.reload();
 };
 
 const exportSavedSession = () => {
@@ -9817,16 +9870,59 @@ const headerBtn = (danger = false) => ({
                 />
               </div>
             </div>
+              {restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors ? (
+  <Card style={{ marginTop: 14 }}>
+    <SectionHeader
+      title="مراقبون إضافيون مسموح بهم عند الحاجة"
+      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي القسم/التخصص بعد تطبيق الحصر."
+    />
+
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+      <button
+        type="button"
+        onClick={() => setGeneralStudiesExtraInvigilators(allInvigilators)}
+        style={cardButtonStyle()}
+      >
+        تحديد الكل
+      </button>
+      <button
+        type="button"
+        onClick={() => setGeneralStudiesExtraInvigilators([])}
+        style={cardButtonStyle()}
+      >
+        إلغاء الكل
+      </button>
+    </div>
+
+    <div style={{ maxHeight: 240, overflow: "auto", display: "grid", gap: 8 }}>
+      {allInvigilators.map((name) => {
+        const checked = generalStudiesExtraInvigilators.includes(name);
+        return (
+          <label key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() =>
+                setGeneralStudiesExtraInvigilators((prev) =>
+                  checked ? prev.filter((n) => n !== name) : [...prev, name]
+                )
+              }
+            />
+            <span>{name}</span>
+          </label>
+        );
+      })}
+    </div>
+  </Card>
+) : null}  
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
               <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                 السابق
               </button>
               <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع مقررات الدراسات العامة
+                بدء توزيع مقررات الدراسات العامة
               </button>
-              <button onClick={() => setCurrentStep(6)} style={cardButtonStyle()}>
-                التالي
-              </button>
+             
             </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -9943,7 +10039,51 @@ const headerBtn = (danger = false) => ({
                     />
                   </div>
                 </div>
+{restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors ? (
+  <Card style={{ marginTop: 14 }}>
+    <SectionHeader
+      title="مراقبون إضافيون مسموح بهم عند الحاجة"
+      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي القسم/التخصص بعد تطبيق الحصر."
+    />
 
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+      <button
+        type="button"
+        onClick={() => setSpecializedExtraInvigilators(allInvigilators)}
+        style={cardButtonStyle()}
+      >
+        تحديد الكل
+      </button>
+      <button
+        type="button"
+        onClick={() => setSpecializedExtraInvigilators([])}
+        style={cardButtonStyle()}
+      >
+        إلغاء الكل
+      </button>
+    </div>
+
+    <div style={{ maxHeight: 240, overflow: "auto", display: "grid", gap: 8 }}>
+      {allInvigilators.map((name) => {
+        const checked = specializedExtraInvigilators.includes(name);
+        return (
+          <label key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() =>
+                setSpecializedExtraInvigilators((prev) =>
+                  checked ? prev.filter((n) => n !== name) : [...prev, name]
+                )
+              }
+            />
+            <span>{name}</span>
+          </label>
+        );
+      })}
+    </div>
+  </Card>
+) : null}
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
                 <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
                   اختر القسم أو التخصص الذي لا تريد دخوله في توزيع مقررات التخصص، ويمكنك الضغط مرة أخرى لإعادته.
