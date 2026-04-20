@@ -2946,13 +2946,17 @@ const periodOverlapWarning = useMemo(() => {
     const getInvigilatorDayLoadForDate = (name, dateISO) =>
       invigilatorDayLoad.get(name)?.get(dateISO) || 0;
 
-    const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
+    const rankInvigilatorForFairness = (name, slot, preferTrainer = false, hardFairness = false) => {
       const load = invigilatorLoad.get(name) || 0;
       const minLoad = getMinInvigilatorLoad();
       const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
-      const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
-      const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
-      const trainerBonus = preferTrainer ? -0.15 : 0;
+      const overloadPenalty = hardFairness
+        ? (load > minLoad ? 100000 : 0)
+        : (load > minLoad + 1 ? 1000 : 0);
+      const sameDayPenalty = hardFairness
+        ? (dayLoad > 0 ? 50 + dayLoad * 25 : 0)
+        : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
+      const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
       return load + overloadPenalty + sameDayPenalty + trainerBonus;
     };
 
@@ -2977,7 +2981,16 @@ const periodOverlapWarning = useMemo(() => {
           ? getCourseInvigilatorConstraint(course)
           : { mode: "off", invigilatorNames: [] };
 
-      const baseCandidates = invigilatorPool
+      const allowedSpecializedTrainerSet = new Set(
+        (allowedSpecializedDepartmentTrainerNames || []).map((name) => normalizeArabic(name))
+      );
+      const courseIsSpecialized = !isGeneralStudiesCourse(course);
+      const strictSpecializedMode =
+        specializedOnlyDepartmentTrainers &&
+        !includeAllDepartmentsAndMajors &&
+        courseIsSpecialized;
+
+      let baseCandidates = invigilatorPool
         .filter(
           (name) =>
             !excludedInvigilators.some(
@@ -2985,6 +2998,12 @@ const periodOverlapWarning = useMemo(() => {
             )
         )
         .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+      if (strictSpecializedMode) {
+        baseCandidates = baseCandidates.filter((name) =>
+          allowedSpecializedTrainerSet.has(normalizeArabic(name))
+        );
+      }
 
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
@@ -3034,19 +3053,30 @@ const periodOverlapWarning = useMemo(() => {
           break;
       }
 
+      if (strictSpecializedMode) {
+        strictOnlyMode = true;
+        constrainedCandidates = constrainedCandidates.filter((name) =>
+          allowedSpecializedTrainerSet.has(normalizeArabic(name))
+        );
+      }
+
+      const hardFairnessForThisCourse = strictSpecializedMode;
+
       const sortCandidates = (candidates) =>
         [...candidates].sort((a, b) => {
           const aScore = rankInvigilatorForFairness(
             a,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(a))
+              normalizedTrainerSet.has(normalizeArabic(a)),
+            hardFairnessForThisCourse
           );
           const bScore = rankInvigilatorForFairness(
             b,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(b))
+              normalizedTrainerSet.has(normalizeArabic(b)),
+            hardFairnessForThisCourse
           );
 
           return aScore - bScore || a.localeCompare(b, "ar");
@@ -3058,7 +3088,11 @@ const periodOverlapWarning = useMemo(() => {
         const fairCandidates = sortCandidates(
           constrainedCandidates
             .filter((name) => !chosen.includes(name))
-            .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
+            .filter((name) =>
+              hardFairnessForThisCourse
+                ? (invigilatorLoad.get(name) || 0) <= minLoad
+                : (invigilatorLoad.get(name) || 0) <= minLoad + 1
+            )
         );
 
         if (!fairCandidates.length) break;
@@ -3073,13 +3107,15 @@ const periodOverlapWarning = useMemo(() => {
               a,
               slot,
               preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(a))
+                normalizedTrainerSet.has(normalizeArabic(a)),
+              hardFairnessForThisCourse
             );
             const bScore = rankInvigilatorForFairness(
               b,
               slot,
               preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(b))
+                normalizedTrainerSet.has(normalizeArabic(b)),
+              hardFairnessForThisCourse
             );
 
             return aScore - bScore || a.localeCompare(b, "ar");
@@ -3458,6 +3494,7 @@ const [courseBKey, setCourseBKey] = useState("");
     );
   }
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
+  const [specializedOnlyDepartmentTrainers, setSpecializedOnlyDepartmentTrainers] = useState(false);
   const [lockGeneralStudiesStep, setLockGeneralStudiesStep] = useState(false);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
@@ -4028,6 +4065,7 @@ const buildPersistedState = () => ({
   excludedCourses,
   includeAllDepartmentsAndMajors,
   excludedDepartmentMajors,
+  specializedOnlyDepartmentTrainers,
   lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
@@ -4146,6 +4184,7 @@ const restorePersistedState = (saved) => {
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
+  setSpecializedOnlyDepartmentTrainers(saved.specializedOnlyDepartmentTrainers ?? false);
   setLockGeneralStudiesStep(saved.lockGeneralStudiesStep ?? false);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
@@ -4346,6 +4385,7 @@ useEffect(() => {
   excludedCourses,
   includeAllDepartmentsAndMajors,
   excludedDepartmentMajors,
+  specializedOnlyDepartmentTrainers,
   lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
@@ -4957,6 +4997,7 @@ const baseLink = useMemo(() => {
     setIncludeAllDepartmentsAndMajors(checked);
     if (checked) {
       setExcludedDepartmentMajors([]);
+      setSpecializedOnlyDepartmentTrainers(false);
       setLockGeneralStudiesStep(false);
     } else {
       setLockGeneralStudiesStep(true);
@@ -5035,6 +5076,53 @@ const selectedCourseB = useMemo(
 
     return new Set(names.map((name) => normalizeArabic(name)));
   }, [includeAllDepartmentsAndMajors, generalCourses]);
+
+  const allowedSpecializedDepartmentTrainerNames = useMemo(() => {
+    if (includeAllDepartmentsAndMajors) return [];
+    if (!rows.length) return [];
+
+    const allowedKeys = new Set(
+      (departmentMajorOptions || [])
+        .filter((item) => !excludedDepartmentMajors.includes(item.key))
+        .map((item) => item.key)
+    );
+
+    return Array.from(
+      new Set(
+        rows
+          .filter((row) => {
+            const department = String(row["القسم"] || "").trim();
+            const major = String(row["التخصص"] || "").trim();
+            const trainer = String(row["المدرب"] || "").trim();
+            if (!trainer) return false;
+
+            if (normalizeArabic(department) === normalizeArabic("الدراسات العامة")) {
+              return false;
+            }
+
+            const rowKeys = [];
+            splitBySlash(department || "-").forEach((dep) => {
+              splitBySlash(major || "-").forEach((maj) => {
+                rowKeys.push(`${normalizeArabic(String(dep || "").trim() || "-")}|${normalizeArabic(String(maj || "").trim() || "-")}`);
+              });
+            });
+
+            return rowKeys.some((key) => allowedKeys.has(key));
+          })
+          .flatMap((row) =>
+            String(row["المدرب"] || "")
+              .split("/")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          )
+      )
+    ).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [
+    includeAllDepartmentsAndMajors,
+    rows,
+    departmentMajorOptions,
+    excludedDepartmentMajors,
+  ]);
 
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
@@ -6176,9 +6264,22 @@ const pickedInvigilators = pickInvigilators(course, bestSlot);
 const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
+  const strictDepartmentInvigilatorsOnly =
+    specializedOnlyDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors &&
+    !isGeneralStudiesCourse(course);
+
+  const invigilatorShortageReason = strictDepartmentInvigilatorsOnly
+    ? `لا يوجد عدد كافٍ من مدربي الأقسام/التخصصات المحددة لإسناد هذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`
+    : `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`;
+
+  const invigilatorShortageSummary = strictDepartmentInvigilatorsOnly
+    ? "تم اختيار الفترة مبدئيًا، لكن مدربي الأقسام/التخصصات المحددة المتاحين فيها لا يكفون لإسناد هذا المقرر."
+    : "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.";
+
   notPlaced.push({
     ...course,
-    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+    unscheduledReason: invigilatorShortageReason,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
     unscheduledReasonDetails: {
       invigilatorShortageSlots: [
@@ -6189,10 +6290,11 @@ if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount
           period: bestSlot?.period || null,
           timeText: bestSlot?.timeText || "",
           reason: `المطلوب ${requiredInvigilatorsCount} مراقب/مراقبين، والمتاح فعليًا ${pickedInvigilators.length}.`,
-          summary: "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.",
+          summary: invigilatorShortageSummary,
           requiredInvigilatorsCount,
           availableInvigilatorsCount: pickedInvigilators.length,
           availableInvigilators: pickedInvigilators,
+          strictDepartmentInvigilatorsOnly,
         },
       ],
     },
@@ -9671,6 +9773,33 @@ const headerBtn = (danger = false) => ({
                   ) : (
                     <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
                   )}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: 14,
+                    borderRadius: 18,
+                    background: "#F8FCFC",
+                    border: `1px solid ${COLORS.primaryBorder}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 6 }}>
+                        حصر المراقبات على مدربي الأقسام المحددة فقط
+                      </div>
+                      <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
+                        عند التفعيل، لن يسمح النظام بإسناد أي مراقب من خارج مدربي الأقسام/التخصصات الداخلة في توزيع مقررات التخصص،
+                        وسيتم تشديد العدالة بينهم بدرجة عالية جدًا. إذا لم يكفِ العدد فسيظهر المقرر ضمن غير المجدول بدل إدخال مراقبين من خارج القسم.
+                      </div>
+                    </div>
+
+                    <Switch
+                      checked={specializedOnlyDepartmentTrainers}
+                      onChange={setSpecializedOnlyDepartmentTrainers}
+                    />
+                  </div>
                 </div>
               </div>
             ) : null}
