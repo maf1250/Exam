@@ -3173,33 +3173,33 @@ if (
       switch (constraint.mode) {
         case "only":
           strictOnlyMode = true;
-          constrainedCandidates = strictCandidates.filter((name) =>
+          constrainedCandidates = baseCandidates.filter((name) =>
             normalizedManualSet.has(normalizeArabic(name))
           );
           break;
 
         case "avoid":
-          constrainedCandidates = strictCandidates.filter(
+          constrainedCandidates = baseCandidates.filter(
             (name) => !normalizedManualSet.has(normalizeArabic(name))
           );
           break;
 
         case "only_department_trainers":
           strictOnlyMode = true;
-          constrainedCandidates = strictCandidates.filter((name) =>
+          constrainedCandidates = baseCandidates.filter((name) =>
             departmentTrainerSet.has(normalizeArabic(name))
           );
           break;
 
         case "avoid_department_trainers":
-          constrainedCandidates = strictCandidates.filter(
+          constrainedCandidates = baseCandidates.filter(
             (name) => !departmentTrainerSet.has(normalizeArabic(name))
           );
           break;
 
         case "prefer":
         default:
-          constrainedCandidates = strictCandidates;
+          constrainedCandidates = baseCandidates;
           break;
       }
 
@@ -5710,6 +5710,55 @@ const rankInvigilatorForFairness = (
   return load + overloadPenalty + sameDayPenalty + trainerBonus;
 };
 
+const getEffectiveInvigilatorCandidateGroups = (course, slot) => {
+  const periodKey = slot ? getSlotPeriodKey(slot) : "";
+  const isGeneral = isGeneralStudiesCourse(course);
+
+  let strictPool = [];
+  let extraPool = [];
+
+  if (isGeneral) {
+    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? generalStudiesScopedInvigilatorPool
+      : invigilatorPool;
+    extraPool = generalStudiesExtraInvigilators;
+  } else {
+    strictPool =
+      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors
+        ? specializedScopedInvigilatorPool
+        : invigilatorPool;
+    extraPool = specializedExtraInvigilators;
+  }
+
+  const excludedSet = new Set(
+    (Array.isArray(excludedInvigilators) ? excludedInvigilators : []).map((name) =>
+      normalizeArabic(name)
+    )
+  );
+
+  const strictCandidates = strictPool
+    .filter((name) => !excludedSet.has(normalizeArabic(name)))
+    .filter((name) => !periodKey || !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+  const strictCandidateNormalized = new Set(
+    strictCandidates.map((name) => normalizeArabic(name))
+  );
+
+  const extraCandidates = (Array.isArray(extraPool) ? extraPool : [])
+    .filter((name) => !excludedSet.has(normalizeArabic(name)))
+    .filter((name) => !periodKey || !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => !strictCandidateNormalized.has(normalizeArabic(name)));
+
+  return {
+    isGeneral,
+    strictPool,
+    extraPool,
+    strictCandidates,
+    extraCandidates,
+  };
+};
+
 const pickInvigilators = (course, slot) => {
   if (!includeInvigilators) return [];
 
@@ -5731,45 +5780,13 @@ const pickInvigilators = (course, slot) => {
       ? getCourseInvigilatorConstraint(course)
       : { mode: "off", invigilatorNames: [] };
 
-  let strictPool = [];
-  let extraPool = [];
-
-  const isGeneral = isGeneralStudiesCourse(course);
-
-  if (isGeneral) {
-    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-      ? generalStudiesScopedInvigilatorPool
-      : invigilatorPool;
-
-    extraPool = generalStudiesExtraInvigilators;
-  } else {
-    strictPool =
-      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-      !includeAllDepartmentsAndMajors
-        ? specializedScopedInvigilatorPool
-        : invigilatorPool;
-
-    extraPool = specializedExtraInvigilators;
-  }
-
-  const strictCandidates = strictPool
-    .filter(
-      (name) =>
-        !excludedInvigilators.some(
-          (ex) => normalizeArabic(ex) === normalizeArabic(name)
-        )
-    )
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
-
-  const extraCandidates = extraPool
-    .filter(
-      (name) =>
-        !excludedInvigilators.some(
-          (ex) => normalizeArabic(ex) === normalizeArabic(name)
-        )
-    )
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .filter((name) => !strictCandidates.includes(name));
+  const {
+    isGeneral,
+    strictPool,
+    extraPool,
+    strictCandidates,
+    extraCandidates,
+  } = getEffectiveInvigilatorCandidateGroups(course, slot);
 
   if (
     restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
@@ -5853,9 +5870,8 @@ const pickInvigilators = (course, slot) => {
   const hardFairnessForThisCourse =
     (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
       !includeAllDepartmentsAndMajors &&
-      !isGeneralStudiesCourse(course)) ||
-    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
-      isGeneralStudiesCourse(course));
+      !isGeneral) ||
+    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers && isGeneral);
 
   const sortCandidates = (candidates) =>
     [...candidates].sort((a, b) => {
@@ -5909,9 +5925,21 @@ const pickInvigilators = (course, slot) => {
       chosen.push(name);
     }
   }
-if (chosen.length < requiredCount) {
- return [];
-}
+
+  if (!strictOnlyMode && chosen.length < requiredCount) {
+    const extraFairCandidates = sortCandidates(
+      extraCandidates.filter((name) => !chosen.includes(name))
+    );
+
+    for (const name of extraFairCandidates) {
+      if (chosen.length >= requiredCount) break;
+      chosen.push(name);
+    }
+  }
+
+  if (chosen.length < requiredCount) {
+    return [];
+  }
 
   chosen.forEach((name) => {
     if (!invigilatorBusyPeriods.has(name)) {
@@ -5929,8 +5957,8 @@ if (chosen.length < requiredCount) {
 
   return chosen;
 };
-  
-  const diagnoseUnscheduledCourse = (course) => {
+
+const diagnoseUnscheduledCourse = (course) => {
     const diagnosis = {
       totalSlots: slots.length,
       studentConflict: 0,
@@ -6067,9 +6095,11 @@ if (chosen.length < requiredCount) {
 
       if (includeInvigilators) {
         const periodKey = getSlotPeriodKey(slot);
-        const availableInvigilatorsCount = invigilatorPool.filter(
-          (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
-        ).length;
+        const { strictCandidates, extraCandidates } = getEffectiveInvigilatorCandidateGroups(course, slot);
+        const availableInvigilatorsCount = new Set([
+          ...strictCandidates.map((name) => normalizeArabic(name)),
+          ...extraCandidates.map((name) => normalizeArabic(name)),
+        ]).size;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
           diagnosis.invigilatorShortageSlots.push({
@@ -6235,9 +6265,11 @@ const requiredSeats = Number(course.studentCount) || 0;
     if (courseConstraint.avoidedPeriods.includes(slot.period)) score += 55;
 
     if (includeInvigilators) {
-      const availableInvigilatorsCount = invigilatorPool.filter(
-        (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
-      ).length;
+      const { strictCandidates, extraCandidates } = getEffectiveInvigilatorCandidateGroups(course, slot);
+      const availableInvigilatorsCount = new Set([
+        ...strictCandidates.map((name) => normalizeArabic(name)),
+        ...extraCandidates.map((name) => normalizeArabic(name)),
+      ]).size;
 
       if (availableInvigilatorsCount < requiredInvigilators) {
         score += (requiredInvigilators - availableInvigilatorsCount) * 50;
