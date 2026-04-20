@@ -5153,20 +5153,6 @@ const selectedCourseB = useMemo(
 
   const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
 
-  const generalStudiesInvigilatorsSet = useMemo(() => {
-    const set = new Set();
-
-    generalCourses.forEach((course) => {
-      String(course.trainerText || "")
-        .split("/")
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .forEach((name) => set.add(normalizeArabic(name)));
-    });
-
-    return set;
-  }, [generalCourses]);
-
   const specializedCourses = useMemo(() => {
     const keys = new Set(generalCourses.map((c) => c.key));
     return parsed.courses.filter((course) => !keys.has(course.key));
@@ -5194,18 +5180,29 @@ const selectedCourseB = useMemo(
     );
   }, [specializedVisibleDepartmentTrainerNames]);
 
-  const excludedInvigilatorsForSelectedDepartments = useMemo(() => {
-    if (includeAllDepartmentsAndMajors) return new Set();
+  const generalStudiesInvigilatorsSet = useMemo(() => {
+    const set = new Set();
 
-    const names = generalCourses.flatMap((course) =>
+    generalCourses.forEach((course) => {
       String(course.trainerText || "")
         .split("/")
         .map((name) => name.trim())
         .filter(Boolean)
-    );
+        .forEach((name) => {
+          const normalizedName = normalizeArabic(name);
+          if (!normalizedName) return;
+          if (specializedVisibleDepartmentTrainerNameSet.has(normalizedName)) return;
+          set.add(normalizedName);
+        });
+    });
 
-    return new Set(names.map((name) => normalizeArabic(name)));
-  }, [includeAllDepartmentsAndMajors, generalCourses]);
+    return set;
+  }, [generalCourses, specializedVisibleDepartmentTrainerNameSet]);
+
+  const excludedInvigilatorsForSelectedDepartments = useMemo(() => {
+    if (includeAllDepartmentsAndMajors) return new Set();
+    return new Set(generalStudiesInvigilatorsSet);
+  }, [includeAllDepartmentsAndMajors, generalStudiesInvigilatorsSet]);
 
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
@@ -9803,7 +9800,7 @@ const headerBtn = (danger = false) => ({
                     حصر المراقبين على مدربي مقررات الدراسات العامة فقط
                   </div>
                   <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
-                    عند التفعيل لن يتم إسناد مراقبة مقررات الدراسات العامة إلا إلى المدربين الذين أُسندت لهم مقررات دراسات عامة فعليًا. وإذا كان المدرب يدرّس دراسات عامة وتخصص فسيبقى ضمن الجهتين معًا.
+                    عند التفعيل لن يتم إسناد مراقبة مقررات الدراسات العامة إلا إلى المدربين الذين أُسندت لهم مقررات دراسات عامة فقط. وإذا كان المدرب يدرّس دراسات عامة وتخصص فسيُستبعد من توزيع الدراسات العامة ويُترك لتوزيع التخصص.
                   </div>
                   <div style={{ marginTop: 8, color: COLORS.warning, fontSize: 13, lineHeight: 1.8, fontWeight: 700 }}>
                     ملاحظة: عند تفعيل هذا الخيار، إذا لم يكفِ عدد مدربي مقررات الدراسات العامة في فترة معيّنة فلن تتم جدولة المقرر في تلك الفترة، ولن يتم الاستعانة بمدربين من خارج الدراسات العامة.
