@@ -10039,6 +10039,40 @@ const headerBtn = (danger = false) => ({
                     />
                   </div>
                 </div>
+                <div style={{ fontWeight: 800, marginBottom: 10, marginTop: 20 }}>استبعاد أقسام / تخصصات من التوزيع</div>
+                <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+                  اختر القسم أو التخصص الذي لا تريد دخوله في توزيع مقررات التخصص، ويمكنك الضغط مرة أخرى لإعادته.
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
+                  {departmentMajorOptions.length ? (
+                    departmentMajorOptions.map((item) => {
+                      const excluded = excludedDepartmentMajors.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => toggleExcludedDepartmentMajor(item.key)}
+                          style={{
+                            border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
+                            background: excluded ? COLORS.dangerBg : "#fff",
+                            color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                            borderRadius: 999,
+                            padding: "8px 14px",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {excluded ? `مستبعد: ${item.label}` : item.label}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            
 {restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors ? (
   <Card style={{ marginTop: 14 }}>
     <SectionHeader
@@ -10084,39 +10118,7 @@ const headerBtn = (danger = false) => ({
     </div>
   </Card>
 ) : null}
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
-                <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-                  اختر القسم أو التخصص الذي لا تريد دخوله في توزيع مقررات التخصص، ويمكنك الضغط مرة أخرى لإعادته.
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 260, overflow: "auto" }}>
-                  {departmentMajorOptions.length ? (
-                    departmentMajorOptions.map((item) => {
-                      const excluded = excludedDepartmentMajors.includes(item.key);
-                      return (
-                        <button
-                          key={item.key}
-                          onClick={() => toggleExcludedDepartmentMajor(item.key)}
-                          style={{
-                            border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
-                            background: excluded ? COLORS.dangerBg : "#fff",
-                            color: excluded ? COLORS.danger : COLORS.charcoalSoft,
-                            borderRadius: 999,
-                            padding: "8px 14px",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {excluded ? `مستبعد: ${item.label}` : item.label}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
-                  )}
-                </div>
-              </div>
-            ) : null}
+                
 
             <div style={{ marginBottom: 16, marginTop: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات التخصص: <strong>{specializedCourses.length}</strong>
