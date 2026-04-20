@@ -9541,7 +9541,6 @@ const headerBtn = (danger = false) => ({
       )}
     </div>
   </div> </div>
-  </div> 
 
         <div
           style={{
