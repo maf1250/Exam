@@ -123,15 +123,6 @@ const rowsHtml = (selectedStudent?.schedule || [])
                   <span>🚫</span>
                   <span>(محروم)</span>
                 </div>
-
-                <div style="
-                  margin-top:3px;
-                  font-size:10px;
-                  color:#7A271A;
-                  font-weight:700;
-                ">
-                  ${escapeHtml(deprivationStatus)}
-                </div>
               `
               : ""
           }
@@ -803,7 +794,7 @@ export default function TraineePortalPage() {
                                       fontWeight: 900,
                                     }}
                                   >
-                                    🚫 محروم — {deprivationStatus}
+                                    🚫 محروم
                                   </div>
                                 ) : null}
                               </Cell>
