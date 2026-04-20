@@ -9472,7 +9472,7 @@ const headerBtn = (danger = false) => ({
             gap: 10,
             border: `1px solid ${COLORS.border}`,
             borderRadius: 18,
-            padding: "10px 14px",
+            padding: "8px 12px",
             position: "relative",
             background: "#fff",
             minHeight: 30,
