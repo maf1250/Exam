@@ -803,7 +803,7 @@ export default function TraineePortalPage() {
                                       fontWeight: 900,
                                     }}
                                   >
-                                    {deprivationStatus}
+                                    🚫 محروم — {deprivationStatus}
                                   </div>
                                 ) : null}
                               </Cell>
