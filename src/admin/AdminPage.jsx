@@ -6562,7 +6562,7 @@ const generateSpecializedSchedule = () => {
     showToast(
       shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
       messageParts.join(" ").trim(),
-      setCurrentStep(6);
+     
       "warning",
       {
         persistent: true,
@@ -6574,6 +6574,7 @@ const generateSpecializedSchedule = () => {
         ],
       }
     );
+     setCurrentStep(6);
   } else {
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
   }
