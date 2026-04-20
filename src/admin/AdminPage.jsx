@@ -9453,7 +9453,7 @@ const headerBtn = (danger = false) => ({
             padding: "8px 12px",
             background: "#fff",
             whiteSpace: "nowrap",
-            minHeight: 40,
+            minHeight: 30,
             lineHeight: 1.2,
           }}
         >
@@ -9475,7 +9475,8 @@ const headerBtn = (danger = false) => ({
             padding: "10px 14px",
             position: "relative",
             background: "#fff",
-            minHeight: 48,
+            minHeight: 30,
+            lineHeight: 1.2,
           }}
         >
           <label
