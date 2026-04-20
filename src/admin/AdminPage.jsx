@@ -9426,193 +9426,191 @@ const headerBtn = (danger = false) => ({
       title="المراقبون"
       description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
     />
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    marginTop: 18,
-  }}
->
 
-  {/* السطر الأول: إضافة المراقبين + أولوية المدرب */}
-  <div
-    style={{
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap",
-      alignItems: "center",
-    }}
-  >
-    {/* إضافة المراقبين */}
-    <label
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 10,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 18,
-        padding: "10px 14px",
-        background: "#fff",
-        whiteSpace: "nowrap",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={includeInvigilators}
-        onChange={(e) => setIncludeInvigilators(e.target.checked)}
-      />
-      إضافة المراقبين تلقائيًا
-    </label>
-
-    {/* أولوية المدرب */}
     <div
       style={{
-        display: "inline-flex",
-        alignItems: "center",
+        display: "flex",
+        flexDirection: "column",
         gap: 10,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 18,
-        padding: "10px 14px",
-        position: "relative",
-        background: "#fff",
+        marginTop: 18,
       }}
     >
-      <label
+      <div
         style={{
-          display: "inline-flex",
-          alignItems: "center",
+          display: "flex",
           gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
         }}
       >
-        <input
-          type="checkbox"
-          checked={preferCourseTrainerInvigilation}
-          onChange={(e) =>
-            setPreferCourseTrainerInvigilation(e.target.checked)
-          }
-        />
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: "10px 14px",
+            background: "#fff",
+            whiteSpace: "nowrap",
+            minHeight: 48,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={includeInvigilators}
+            onChange={(e) => setIncludeInvigilators(e.target.checked)}
+          />
+          إضافة المراقبين تلقائيًا
+        </label>
 
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          إعطاء أولوية لمدرب المقرر كمراقب أساسي
-
-          <span
-            onMouseEnter={() => setShowTrainerHint(true)}
-            onMouseLeave={() => setShowTrainerHint(false)}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: "10px 14px",
+            position: "relative",
+            background: "#fff",
+            minHeight: 48,
+          }}
+        >
+          <label
             style={{
               display: "inline-flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              background: COLORS.warningBg,
-              color: COLORS.warning,
-              fontWeight: 900,
-              fontSize: 13,
-              cursor: "help",
-              border: `1px solid ${COLORS.border}`,
+              gap: 10,
             }}
           >
-            !
-          </span>
-        </span>
-      </label>
+            <input
+              type="checkbox"
+              checked={preferCourseTrainerInvigilation}
+              onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+            />
 
-      {showTrainerHint && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "110%",
-            right: 10,
-            background: "#111827",
-            color: "#fff",
-            padding: "10px 12px",
-            borderRadius: 10,
-            fontSize: 13,
-            width: 260,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-            zIndex: 9999,
-          }}
-        >
-          سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-          مع محاولة الحفاظ على العدالة.
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              إعطاء أولوية لمدرب المقرر كمراقب أساسي
+
+              <span
+                onMouseEnter={() => setShowTrainerHint(true)}
+                onMouseLeave={() => setShowTrainerHint(false)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: COLORS.warningBg,
+                  color: COLORS.warning,
+                  fontWeight: 900,
+                  fontSize: 13,
+                  cursor: "help",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                !
+              </span>
+            </span>
+          </label>
+
+          {showTrainerHint && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "110%",
+                right: 10,
+                background: "#111827",
+                color: "#fff",
+                padding: "10px 12px",
+                borderRadius: 10,
+                fontSize: 13,
+                lineHeight: 1.6,
+                width: 260,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                zIndex: 9999,
+                transition: "opacity 0.2s ease, transform 0.2s ease",
+              }}
+            >
+              سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
+              مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  </div> </div>
+      </div>
 
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
         <div
           style={{
-            display: "flex",
-            gap: 10,
+            display: "inline-flex",
+            alignItems: "stretch",
+            gap: 12,
             flexWrap: "wrap",
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: "10px 12px",
+            minHeight: 54,
+            background: "#fff",
           }}
         >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "stretch",
-              gap: 12,
-              flexWrap: "wrap",
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 18,
-              padding: "10px 12px",
-              minHeight: 54,
-              background: "#fff",
-            }}
-          >
-            <label style={{ display: "grid", gap: 4 }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontWeight: 800,
-                  fontSize: 14,
-                }}
-              >
-                الحد الأدنى المستهدف للمراقبات
-                <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
-              </span>
-              <input
-                type="number"
-                min="0"
-                max="50"
-                value={minInvigilationTargetPerInvigilator}
-                onChange={(e) =>
-                  setMinInvigilationTargetPerInvigilator(
-                    Math.max(0, safeNum(e.target.value, 0))
-                  )
-                }
-                style={{ ...fieldStyle(), width: 120, padding: "10px 12px" }}
-              />
-            </label>
+          <label style={{ display: "grid", gap: 4 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              الحد الأدنى المستهدف للمراقبات
+              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="50"
+              value={minInvigilationTargetPerInvigilator}
+              onChange={(e) =>
+                setMinInvigilationTargetPerInvigilator(
+                  Math.max(0, safeNum(e.target.value, 0))
+                )
+              }
+              style={{ ...fieldStyle(), width: 120, padding: "10px 12px" }}
+            />
+          </label>
 
-            <label style={{ display: "grid", gap: 4 }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontWeight: 800,
-                  fontSize: 14,
-                }}
-              >
-                الحد الأقصى للمراقبات لكل مراقب
-                <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
-              </span>
-              <input
-                type="number"
-                min="1"
-                max="99"
-                value={maxInvigilationsPerInvigilator}
-                onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
-                placeholder="بدون حد"
-                style={{ ...fieldStyle(), width: 140, padding: "10px 12px" }}
-              />
-            </label>
-          </div>
+          <label style={{ display: "grid", gap: 4 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              الحد الأقصى للمراقبات لكل مراقب
+              <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={maxInvigilationsPerInvigilator}
+              onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
+              placeholder="بدون حد"
+              style={{ ...fieldStyle(), width: 140, padding: "10px 12px" }}
+            />
+          </label>
         </div>
       </div>
     </div>
