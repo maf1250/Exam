@@ -90,13 +90,13 @@ function fieldStyle() {
 function openPrintWindow({ collegeName, selectedStudent }) {
   const instructions = getInstructions();
   const today = new Date().toLocaleDateString("ar-SA");
- const rowsHtml = (selectedStudent?.schedule || [])
+const rowsHtml = (selectedStudent?.schedule || [])
   .map((item, index) => {
     const deprivationStatus = getDeprivationStatus(item);
     const isDeprived = Boolean(deprivationStatus);
 
     const cellStyle = isDeprived
-      ? 'background:#FEF2F2;color:#B42318;font-weight:700;'
+      ? 'background:#FEE4E2;color:#B42318;font-weight:700;'
       : '';
 
     return `
@@ -105,14 +105,34 @@ function openPrintWindow({ collegeName, selectedStudent }) {
         <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
         
-        <td style="${cellStyle}">
+        <td style="${cellStyle}; text-align:right;">
           <div>${escapeHtml(item.courseName || "-")}</div>
-          
+
           ${
             isDeprived
-              ? `<div style="margin-top:4px;font-size:10px;font-weight:900;color:#B42318;">
-                   ${escapeHtml(deprivationStatus)}
-                 </div>`
+              ? `
+                <div style="
+                  margin-top:6px;
+                  display:inline-flex;
+                  align-items:center;
+                  gap:6px;
+                  font-size:11px;
+                  font-weight:900;
+                  color:#B42318;
+                ">
+                  <span>🚫</span>
+                  <span>(محروم)</span>
+                </div>
+
+                <div style="
+                  margin-top:3px;
+                  font-size:10px;
+                  color:#7A271A;
+                  font-weight:700;
+                ">
+                  ${escapeHtml(deprivationStatus)}
+                </div>
+              `
               : ""
           }
         </td>
