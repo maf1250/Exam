@@ -5710,55 +5710,6 @@ const rankInvigilatorForFairness = (
   return load + overloadPenalty + sameDayPenalty + trainerBonus;
 };
 
-const getEffectiveInvigilatorCandidateGroups = (course, slot) => {
-  const periodKey = slot ? getSlotPeriodKey(slot) : "";
-  const isGeneral = isGeneralStudiesCourse(course);
-
-  let strictPool = [];
-  let extraPool = [];
-
-  if (isGeneral) {
-    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-      ? generalStudiesScopedInvigilatorPool
-      : invigilatorPool;
-    extraPool = generalStudiesExtraInvigilators;
-  } else {
-    strictPool =
-      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-      !includeAllDepartmentsAndMajors
-        ? specializedScopedInvigilatorPool
-        : invigilatorPool;
-    extraPool = specializedExtraInvigilators;
-  }
-
-  const excludedSet = new Set(
-    (Array.isArray(excludedInvigilators) ? excludedInvigilators : []).map((name) =>
-      normalizeArabic(name)
-    )
-  );
-
-  const strictCandidates = strictPool
-    .filter((name) => !excludedSet.has(normalizeArabic(name)))
-    .filter((name) => !periodKey || !invigilatorBusyPeriods.get(name)?.has(periodKey));
-
-  const strictCandidateNormalized = new Set(
-    strictCandidates.map((name) => normalizeArabic(name))
-  );
-
-  const extraCandidates = (Array.isArray(extraPool) ? extraPool : [])
-    .filter((name) => !excludedSet.has(normalizeArabic(name)))
-    .filter((name) => !periodKey || !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .filter((name) => !strictCandidateNormalized.has(normalizeArabic(name)));
-
-  return {
-    isGeneral,
-    strictPool,
-    extraPool,
-    strictCandidates,
-    extraCandidates,
-  };
-};
-
 const pickInvigilators = (course, slot) => {
   if (!includeInvigilators) return [];
 
@@ -5780,18 +5731,44 @@ const pickInvigilators = (course, slot) => {
       ? getCourseInvigilatorConstraint(course)
       : { mode: "off", invigilatorNames: [] };
 
-  const {
-    isGeneral,
-    strictPool,
-    extraPool,
-    strictCandidates,
-    extraCandidates,
-  } = getEffectiveInvigilatorCandidateGroups(course, slot);
+  let strictPool = [];
+  let extraPool = [];
+  const isGeneral = isGeneralStudiesCourse(course);
 
-  if (
-    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-    !includeAllDepartmentsAndMajors
-  ) {
+  if (isGeneral) {
+    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? generalStudiesScopedInvigilatorPool
+      : invigilatorPool;
+    extraPool = generalStudiesExtraInvigilators;
+  } else {
+    strictPool =
+      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors
+        ? specializedScopedInvigilatorPool
+        : invigilatorPool;
+    extraPool = specializedExtraInvigilators;
+  }
+
+  const strictCandidates = strictPool
+    .filter(
+      (name) =>
+        !excludedInvigilators.some(
+          (ex) => normalizeArabic(ex) === normalizeArabic(name)
+        )
+    )
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+  const extraCandidates = extraPool
+    .filter(
+      (name) =>
+        !excludedInvigilators.some(
+          (ex) => normalizeArabic(ex) === normalizeArabic(name)
+        )
+    )
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => !strictCandidates.includes(name));
+
+  if (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors) {
     console.warn("INVIGILATOR_SCOPE_DEBUG", {
       courseName: course?.courseName,
       courseCode: course?.courseCode,
@@ -5826,7 +5803,7 @@ const pickInvigilators = (course, slot) => {
   if (
     restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
     !includeAllDepartmentsAndMajors &&
-    !isGeneralStudiesCourse(course)
+    !isGeneral
   ) {
     strictOnlyMode = true;
     constrainedCandidates = strictCandidates.filter((name) =>
@@ -5926,7 +5903,7 @@ const pickInvigilators = (course, slot) => {
     }
   }
 
-  if (!strictOnlyMode && chosen.length < requiredCount) {
+  if (chosen.length < requiredCount) {
     const extraFairCandidates = sortCandidates(
       extraCandidates.filter((name) => !chosen.includes(name))
     );
@@ -5958,7 +5935,7 @@ const pickInvigilators = (course, slot) => {
   return chosen;
 };
 
-const diagnoseUnscheduledCourse = (course) => {
+  const diagnoseUnscheduledCourse = (course) => {
     const diagnosis = {
       totalSlots: slots.length,
       studentConflict: 0,
@@ -6095,11 +6072,9 @@ const diagnoseUnscheduledCourse = (course) => {
 
       if (includeInvigilators) {
         const periodKey = getSlotPeriodKey(slot);
-        const { strictCandidates, extraCandidates } = getEffectiveInvigilatorCandidateGroups(course, slot);
-        const availableInvigilatorsCount = new Set([
-          ...strictCandidates.map((name) => normalizeArabic(name)),
-          ...extraCandidates.map((name) => normalizeArabic(name)),
-        ]).size;
+        const availableInvigilatorsCount = invigilatorPool.filter(
+          (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+        ).length;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
           diagnosis.invigilatorShortageSlots.push({
@@ -6265,11 +6240,9 @@ const requiredSeats = Number(course.studentCount) || 0;
     if (courseConstraint.avoidedPeriods.includes(slot.period)) score += 55;
 
     if (includeInvigilators) {
-      const { strictCandidates, extraCandidates } = getEffectiveInvigilatorCandidateGroups(course, slot);
-      const availableInvigilatorsCount = new Set([
-        ...strictCandidates.map((name) => normalizeArabic(name)),
-        ...extraCandidates.map((name) => normalizeArabic(name)),
-      ]).size;
+      const availableInvigilatorsCount = invigilatorPool.filter(
+        (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+      ).length;
 
       if (availableInvigilatorsCount < requiredInvigilators) {
         score += (requiredInvigilators - availableInvigilatorsCount) * 50;
