@@ -3124,18 +3124,25 @@ const extraCandidates = extraPool
   .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
   .filter((name) => !strictCandidates.includes(name));
 
-      if (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors) {
-        console.warn("INVIGILATOR_SCOPE_DEBUG", {
-          courseName: course?.courseName,
-          courseCode: course?.courseCode,
-          department: course?.department,
-          major: course?.major,
-          scopedPoolCount: scopedPool.length,
-          baseCandidatesCount: baseCandidates.length,
-          scopedPool,
-          baseCandidates,
-        });
-      }
+  if (
+  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+  !includeAllDepartmentsAndMajors
+) {
+  console.warn("INVIGILATOR_SCOPE_DEBUG", {
+    courseName: course?.courseName,
+    courseCode: course?.courseCode,
+    department: course?.department,
+    major: course?.major,
+    strictPoolCount: strictPool.length,
+    strictCandidatesCount: strictCandidates.length,
+    extraPoolCount: extraPool.length,
+    extraCandidatesCount: extraCandidates.length,
+    strictPool,
+    strictCandidates,
+    extraPool,
+    extraCandidates,
+  });
+}
 
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
@@ -3149,19 +3156,19 @@ const extraCandidates = extraPool
         ).map((name) => normalizeArabic(name))
       );
 
-      let constrainedCandidates = [...strictCandidates];
-      let strictOnlyMode = false;
+     let constrainedCandidates = [...strictCandidates];
+let strictOnlyMode = false;
 
-      if (
-        restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-        !includeAllDepartmentsAndMajors &&
-        !isGeneralStudiesCourse(course)
-      ) {
-        strictOnlyMode = true;
-        constrainedCandidates = baseCandidates.filter((name) =>
-          departmentTrainerSet.has(normalizeArabic(name))
-        );
-      }
+if (
+  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+  !includeAllDepartmentsAndMajors &&
+  !isGeneralStudiesCourse(course)
+) {
+  strictOnlyMode = true;
+  constrainedCandidates = strictCandidates.filter((name) =>
+    departmentTrainerSet.has(normalizeArabic(name))
+  );
+}
 
       switch (constraint.mode) {
         case "only":
