@@ -3230,25 +3230,55 @@ if (
           return aScore - bScore || a.localeCompare(b, "ar");
         });
 
-      const primaryCandidates = sortCandidates(
-        constrainedCandidates.filter((name) => !chosen.includes(name))
-      );
+      const getMinLoadWithinCandidates = (candidates) => {
+        const values = (Array.isArray(candidates) ? candidates : [])
+          .map((name) => invigilatorLoad.get(name) || 0);
+        return values.length ? Math.min(...values) : getMinInvigilatorLoad();
+      };
 
-      for (const name of primaryCandidates) {
-        if (chosen.length >= requiredCount) break;
-        chosen.push(name);
-      }
+      while (chosen.length < requiredCount) {
+        const remainingCandidates = constrainedCandidates.filter(
+          (name) => !chosen.includes(name)
+        );
+        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
-      if (chosen.length < requiredCount && !strictOnlyMode) {
-        const extraFairCandidates = sortCandidates(
-          extraCandidates.filter((name) => !chosen.includes(name))
+        const fairCandidates = sortCandidates(
+          remainingCandidates.filter((name) =>
+            (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+          )
         );
 
-        for (const name of extraFairCandidates) {
+        if (!fairCandidates.length) break;
+        chosen.push(fairCandidates[0]);
+      }
+
+      if (chosen.length < requiredCount) {
+        const remainingCandidates = constrainedCandidates.filter(
+          (name) => !chosen.includes(name)
+        );
+        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
+        const nearFairCandidates = sortCandidates(
+          remainingCandidates.filter((name) =>
+            (invigilatorLoad.get(name) || 0) <= minLoad + 1
+          )
+        );
+
+        for (const name of nearFairCandidates) {
           if (chosen.length >= requiredCount) break;
           chosen.push(name);
         }
       }
+
+      if (chosen.length < requiredCount) {
+  const extraFairCandidates = sortCandidates(
+    extraCandidates.filter((name) => !chosen.includes(name))
+  );
+
+  for (const name of extraFairCandidates) {
+    if (chosen.length >= requiredCount) break;
+    chosen.push(name);
+  }
+}
       
      if (chosen.length < requiredCount) {
   return [];
@@ -5824,34 +5854,40 @@ const pickInvigilators = (course, slot) => {
       return aScore - bScore || a.localeCompare(b, "ar");
     });
 
-  const primaryCandidates = sortCandidates(
-    constrainedCandidates.filter((name) => !chosen.includes(name))
-  );
+  const getMinLoadWithinCandidates = (candidates) => {
+    const values = (Array.isArray(candidates) ? candidates : [])
+      .map((name) => invigilatorLoad.get(name) || 0);
+    return values.length ? Math.min(...values) : getMinInvigilatorLoad();
+  };
 
-  for (const name of primaryCandidates) {
-    if (chosen.length >= requiredCount) break;
-    chosen.push(name);
-  }
+  while (chosen.length < requiredCount) {
+    const remainingCandidates = constrainedCandidates.filter(
+      (name) => !chosen.includes(name)
+    );
+    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
-  if (chosen.length < requiredCount && !strictOnlyMode) {
-    const extraPool = isGeneralStudiesCourse(course)
-      ? generalStudiesExtraInvigilators
-      : specializedExtraInvigilators;
-
-    const extraCandidates = sortCandidates(
-      extraPool
-        .filter(
-          (name) =>
-            !excludedInvigilators.some(
-              (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            )
-        )
-        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-        .filter((name) => !chosen.includes(name))
-        .filter((name) => !constrainedCandidates.includes(name))
+    const fairCandidates = sortCandidates(
+      remainingCandidates.filter((name) =>
+        (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+      )
     );
 
-    for (const name of extraCandidates) {
+    if (!fairCandidates.length) break;
+    chosen.push(fairCandidates[0]);
+  }
+
+  if (chosen.length < requiredCount) {
+    const remainingCandidates = constrainedCandidates.filter(
+      (name) => !chosen.includes(name)
+    );
+    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
+    const nearFairCandidates = sortCandidates(
+      remainingCandidates.filter((name) =>
+        (invigilatorLoad.get(name) || 0) <= minLoad + 1
+      )
+    );
+
+    for (const name of nearFairCandidates) {
       if (chosen.length >= requiredCount) break;
       chosen.push(name);
     }
