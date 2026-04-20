@@ -313,12 +313,11 @@ function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, depriv
   const scheduleLookup = new Map();
 
   (Array.isArray(combinedSchedule) ? combinedSchedule : []).forEach((item) => {
-    const studentIds = getScheduleStudentIds(item);
+    const studentIds = getScheduleStudentIds(item).map((value) => String(value).trim());
     const scheduledForStudent = studentIds.includes(cleanStudentId);
+    if (!scheduledForStudent) return;
+
     const enrichedItem = enrichScheduleItemForStudent(item, cleanStudentId, deprivationMap);
-
-    if (!scheduledForStudent && !enrichedItem.deprivationStatus) return;
-
     const rowKey = getStudentCourseRowKey(item?.courseCode || "", item?.courseName || "");
     if (!rowKey) return;
 
@@ -352,6 +351,8 @@ function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, depriv
     const deprivationStatus = isDeprivationRegistrationStatus(registrationStatus)
       ? registrationStatus
       : String(scheduledItem?.deprivationStatus || "").trim();
+
+    if (!scheduledItem && !deprivationStatus) return;
 
     const entry = {
       ...(scheduledItem || {}),
