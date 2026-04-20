@@ -9870,11 +9870,12 @@ const headerBtn = (danger = false) => ({
                 />
               </div>
             </div>
-              {restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors ? (
+            
+              {restrictGeneralStudiesInvigilationToGeneralStudiesTrainers ? (
   <Card style={{ marginTop: 14 }}>
     <SectionHeader
       title="مراقبون إضافيون مسموح بهم عند الحاجة"
-      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي القسم/التخصص بعد تطبيق الحصر."
+      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي مقررات الدراسات العامة بعد تطبيق الحصر."
     />
 
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
@@ -9885,6 +9886,7 @@ const headerBtn = (danger = false) => ({
       >
         تحديد الكل
       </button>
+
       <button
         type="button"
         onClick={() => setGeneralStudiesExtraInvigilators([])}
@@ -9897,6 +9899,7 @@ const headerBtn = (danger = false) => ({
     <div style={{ maxHeight: 240, overflow: "auto", display: "grid", gap: 8 }}>
       {allInvigilators.map((name) => {
         const checked = generalStudiesExtraInvigilators.includes(name);
+
         return (
           <label key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
@@ -9904,7 +9907,9 @@ const headerBtn = (danger = false) => ({
               checked={checked}
               onChange={() =>
                 setGeneralStudiesExtraInvigilators((prev) =>
-                  checked ? prev.filter((n) => n !== name) : [...prev, name]
+                  checked
+                    ? prev.filter((n) => n !== name)
+                    : [...prev, name]
                 )
               }
             />
@@ -9914,7 +9919,7 @@ const headerBtn = (danger = false) => ({
       })}
     </div>
   </Card>
-) : null}  
+) : null}
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
               <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                 السابق
@@ -10128,11 +10133,9 @@ const headerBtn = (danger = false) => ({
                 السابق
               </button>
               <button onClick={generateSpecializedSchedule} style={cardButtonStyle({ active: true })}>
-                توزيع مقررات التخصص
+                بدء توزيع مقررات التخصص
               </button>
-              <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
-                التالي
-              </button>
+            
             </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
