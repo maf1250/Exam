@@ -9563,12 +9563,12 @@ const headerBtn = (danger = false) => ({
             background: "#fff",
           }}
         >
-          <label style={{ display: "grid", gap: 4 }}>
+          <label style={{ display: "grid", gap: 50 }}>
             <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 45,
+                gap: 6,
                 fontWeight: 800,
                 fontSize: 14,
               }}
