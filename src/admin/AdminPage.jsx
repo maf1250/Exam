@@ -1727,15 +1727,24 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
     })
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-  const buildDayCell = (inv, day) => {
-    const matches = inv.items
-      .filter((item) => item.dateISO === day.dateISO)
-      .sort((a, b) => a.period - b.period);
+ const buildDayCell = (inv, day) => {
+  const matches = inv.items
+    .filter((item) => item.dateISO === day.dateISO)
+    .sort((a, b) => a.period - b.period);
 
-    if (!matches.length) return "-";
+  if (!matches.length) return "-";
 
-    return matches.map((item) => `الفترة ${item.period}`).join("<br />");
-  };
+  return matches
+    .map((item) => {
+      const hallText = String(item.examHall || item.hallName || "بدون قاعة").trim();
+      return `
+        <div style="line-height:1.8;">
+          الفترة ${item.period} - ${hallText}
+        </div>
+      `;
+    })
+    .join("");
+};
 
   const html = `
     <html dir="rtl" lang="ar">
@@ -1799,8 +1808,8 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
                   .map(
                     (day) => `
                       <th class="day-head">
-                        <div>${day.dayName}</div>
-                        <div>${day.gregorian}</div>
+                     <div>${day.gregorian}</div>
+                     
                       </th>
                     `
                   )
@@ -1970,11 +1979,10 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
             <thead>
               <tr>
                 <th>م</th>
+                <th>اليوم والتاريخ</th>
+                <th>التاريخ الهجري</th>
                 <th>المقرر</th>
                 <th>الرمز</th>
-                <th>اليوم</th>
-                <th>التاريخ الميلادي</th>
-                <th>التاريخ الهجري</th>
                 <th>الفترة</th>
                 <th>الوقت</th>
                 <th>المقر</th>
