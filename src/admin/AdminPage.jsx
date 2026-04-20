@@ -7163,7 +7163,7 @@ const headerBtn = (danger = false) => ({
       </button>
     </div>
   </div>
-</div>
+
 
     {/* ===== الشعار ===== */}
     <div
@@ -7300,7 +7300,7 @@ const headerBtn = (danger = false) => ({
         والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
       </p>
     </div>
-
+</div>
    
   {/* input مخفي */}
   <input
