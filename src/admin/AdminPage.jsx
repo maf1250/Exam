@@ -9568,7 +9568,7 @@ const headerBtn = (danger = false) => ({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 30,
                 fontWeight: 800,
                 fontSize: 14,
               }}
