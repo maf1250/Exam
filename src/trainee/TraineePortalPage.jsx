@@ -49,6 +49,28 @@ function getInstructions() {
   ];
 }
 
+function getDeprivationStatus(item) {
+  const raw = String(
+    item?.deprivationStatus ||
+      item?.registrationStatus ||
+      item?.traineeRegistrationStatus ||
+      item?.statusText ||
+      ""
+  ).trim();
+
+  if (!raw) return "";
+
+  const normalized = normalizeArabic(raw);
+  if (normalized.includes("حرمان")) return raw;
+
+  return "";
+}
+
+function isDeprivedScheduleItem(item) {
+  return Boolean(getDeprivationStatus(item));
+}
+
+
 function fieldStyle() {
   return {
     width: "100%",
@@ -69,20 +91,32 @@ function openPrintWindow({ collegeName, selectedStudent }) {
   const instructions = getInstructions();
   const today = new Date().toLocaleDateString("ar-SA");
   const rowsHtml = (selectedStudent?.schedule || [])
-    .map(
-      (item, index) => `
-        <tr>
+    .map((item, index) => {
+      const deprivationStatus = getDeprivationStatus(item);
+      const isDeprived = Boolean(deprivationStatus);
+
+      return `
+        <tr style="${isDeprived ? "background:#FEF2F2;color:#B42318;font-weight:700;" : ""}">
           <td>${index + 1}</td>
           <td>${escapeHtml(item.gregorian || "-")}</td>
           <td>${escapeHtml(item.hijriNumeric || "-")}</td>
-          <td>${escapeHtml(item.courseName || "-")}</td>
+          <td>
+            ${escapeHtml(item.courseName || "-")}
+            ${
+              isDeprived
+                ? `<div style="margin-top:4px;font-size:10px;font-weight:800;color:#B42318;">${escapeHtml(
+                    deprivationStatus
+                  )}</div>`
+                : ""
+            }
+          </td>
           <td>${escapeHtml(item.courseCode || "-")}</td>
           <td>${escapeHtml(item.period || "-")}</td>
           <td>${escapeHtml(item.timeText || "-")}</td>
           <td>${escapeHtml(item.examHall || "-")}</td>
         </tr>
-      `,
-    )
+      `;
+    })
     .join("");
 
   const html = `
@@ -717,18 +751,43 @@ export default function TraineePortalPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(selectedStudent.schedule || []).map((item, index) => (
-                          <tr key={`${item.courseCode || item.courseName || index}-${index}`}>
-                            <Cell>{index + 1}</Cell>
-                            <Cell>{item.gregorian}</Cell>
-                            <Cell>{item.hijriNumeric}</Cell>
-                            <Cell>{item.courseName}</Cell>
-                            <Cell>{item.courseCode}</Cell>
-                            <Cell>{item.period}</Cell>
-                            <Cell>{item.timeText}</Cell>
-                            <Cell>{item.examHall}</Cell>
-                          </tr>
-                        ))}
+                        {(selectedStudent.schedule || []).map((item, index) => {
+                          const deprivationStatus = getDeprivationStatus(item);
+                          const isDeprived = Boolean(deprivationStatus);
+
+                          return (
+                            <tr key={`${item.courseCode || item.courseName || index}-${index}`}>
+                              <Cell isDeprived={isDeprived}>{index + 1}</Cell>
+                              <Cell isDeprived={isDeprived}>{item.gregorian}</Cell>
+                              <Cell isDeprived={isDeprived}>{item.hijriNumeric}</Cell>
+                              <Cell isDeprived={isDeprived}>
+                                <div style={{ fontWeight: 800 }}>{item.courseName || "-"}</div>
+                                {deprivationStatus ? (
+                                  <div
+                                    style={{
+                                      marginTop: 6,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 6,
+                                      padding: "4px 10px",
+                                      borderRadius: 999,
+                                      background: "#FEE4E2",
+                                      color: COLORS.danger,
+                                      fontSize: 12,
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    {deprivationStatus}
+                                  </div>
+                                ) : null}
+                              </Cell>
+                              <Cell isDeprived={isDeprived}>{item.courseCode}</Cell>
+                              <Cell isDeprived={isDeprived}>{item.period}</Cell>
+                              <Cell isDeprived={isDeprived}>{item.timeText}</Cell>
+                              <Cell isDeprived={isDeprived}>{item.examHall}</Cell>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
