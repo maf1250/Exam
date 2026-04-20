@@ -5880,17 +5880,9 @@ const pickInvigilators = (course, slot) => {
       chosen.push(name);
     }
   }
-
-  if (!hardFairnessForThisCourse && chosen.length < requiredCount) {
-    const fallbackCandidates = sortCandidates(
-      constrainedCandidates.filter((name) => !chosen.includes(name))
-    );
-
-    for (const name of fallbackCandidates) {
-      if (chosen.length >= requiredCount) break;
-      chosen.push(name);
-    }
-  }
+if (chosen.length < requiredCount) {
+ return [];
+}
 
   chosen.forEach((name) => {
     if (!invigilatorBusyPeriods.has(name)) {
