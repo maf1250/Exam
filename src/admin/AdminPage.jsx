@@ -9426,13 +9426,56 @@ const headerBtn = (danger = false) => ({
       title="المراقبون"
       description="حدّد طريقة توزيع المراقبين قبل إنشاء الجدول."
     />
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    marginTop: 18,
+  }}
+>
 
+  {/* السطر الأول: إضافة المراقبين + أولوية المدرب */}
+  <div
+    style={{
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap",
+      alignItems: "center",
+    }}
+  >
+    {/* إضافة المراقبين */}
+    <label
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 10,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 18,
+        padding: "10px 14px",
+        background: "#fff",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={includeInvigilators}
+        onChange={(e) => setIncludeInvigilators(e.target.checked)}
+      />
+      إضافة المراقبين تلقائيًا
+    </label>
+
+    {/* أولوية المدرب */}
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
+        display: "inline-flex",
+        alignItems: "center",
         gap: 10,
-        marginTop: 18,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 18,
+        padding: "10px 14px",
+        position: "relative",
+        background: "#fff",
       }}
     >
       <label
@@ -9440,102 +9483,65 @@ const headerBtn = (danger = false) => ({
           display: "inline-flex",
           alignItems: "center",
           gap: 10,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 14,
         }}
       >
         <input
           type="checkbox"
-          checked={includeInvigilators}
-          onChange={(e) => setIncludeInvigilators(e.target.checked)}
+          checked={preferCourseTrainerInvigilation}
+          onChange={(e) =>
+            setPreferCourseTrainerInvigilation(e.target.checked)
+          }
         />
-        إضافة المراقبين تلقائيًا
-      </label>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 18,
-            padding: "12px 14px",
-            position: "relative",
-            minHeight: 54,
-            alignSelf: "flex-start",
-            background: "#fff",
-          }}
-        >
-          <label
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          إعطاء أولوية لمدرب المقرر كمراقب أساسي
+
+          <span
+            onMouseEnter={() => setShowTrainerHint(true)}
+            onMouseLeave={() => setShowTrainerHint(false)}
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 10,
+              justifyContent: "center",
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: COLORS.warningBg,
+              color: COLORS.warning,
+              fontWeight: 900,
+              fontSize: 13,
+              cursor: "help",
+              border: `1px solid ${COLORS.border}`,
             }}
           >
-            <input
-              type="checkbox"
-              checked={preferCourseTrainerInvigilation}
-              onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-            />
+            !
+          </span>
+        </span>
+      </label>
 
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              إعطاء أولوية لمدرب المقرر كمراقب أساسي
-
-              <span
-                onMouseEnter={() => setShowTrainerHint(true)}
-                onMouseLeave={() => setShowTrainerHint(false)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: COLORS.warningBg,
-                  color: COLORS.warning,
-                  fontWeight: 900,
-                  fontSize: 13,
-                  cursor: "help",
-                  border: `1px solid ${COLORS.border}`,
-                }}
-              >
-                !
-              </span>
-            </span>
-          </label>
-
-          {showTrainerHint && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: "110%",
-                right: 10,
-                background: "#111827",
-                color: "#fff",
-                padding: "10px 12px",
-                borderRadius: 10,
-                fontSize: 13,
-                lineHeight: 1.6,
-                width: 260,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-                zIndex: 9999,
-                transition: "opacity 0.2s ease, transform 0.2s ease",
-              }}
-            >
-              سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-              مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
-            </div>
-          )}
+      {showTrainerHint && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "110%",
+            right: 10,
+            background: "#111827",
+            color: "#fff",
+            padding: "10px 12px",
+            borderRadius: 10,
+            fontSize: 13,
+            width: 260,
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            zIndex: 9999,
+          }}
+        >
+          سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
+          مع محاولة الحفاظ على العدالة.
         </div>
+      )}
+    </div>
+  </div> </div>
+  </div> 
 
         <div
           style={{
