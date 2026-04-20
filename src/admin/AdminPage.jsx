@@ -3173,33 +3173,33 @@ if (
       switch (constraint.mode) {
         case "only":
           strictOnlyMode = true;
-          constrainedCandidates = baseCandidates.filter((name) =>
+          constrainedCandidates = strictCandidates.filter((name) =>
             normalizedManualSet.has(normalizeArabic(name))
           );
           break;
 
         case "avoid":
-          constrainedCandidates = baseCandidates.filter(
+          constrainedCandidates = strictCandidates.filter(
             (name) => !normalizedManualSet.has(normalizeArabic(name))
           );
           break;
 
         case "only_department_trainers":
           strictOnlyMode = true;
-          constrainedCandidates = baseCandidates.filter((name) =>
+          constrainedCandidates = strictCandidates.filter((name) =>
             departmentTrainerSet.has(normalizeArabic(name))
           );
           break;
 
         case "avoid_department_trainers":
-          constrainedCandidates = baseCandidates.filter(
+          constrainedCandidates = strictCandidates.filter(
             (name) => !departmentTrainerSet.has(normalizeArabic(name))
           );
           break;
 
         case "prefer":
         default:
-          constrainedCandidates = baseCandidates;
+          constrainedCandidates = strictCandidates;
           break;
       }
 
@@ -5711,239 +5711,224 @@ const rankInvigilatorForFairness = (
 };
 
 const pickInvigilators = (course, slot) => {
-      if (!includeInvigilators) return [];
+  if (!includeInvigilators) return [];
 
-      const requiredCount = getRequiredInvigilatorsCount(course);
-      const periodKey = getSlotPeriodKey(slot);
-      const chosen = [];
+  const requiredCount = getRequiredInvigilatorsCount(course);
+  const periodKey = getSlotPeriodKey(slot);
+  const chosen = [];
 
-      const courseTrainerNames = String(course.trainerText || "")
-        .split("/")
-        .map((name) => name.trim())
-        .filter(Boolean);
+  const courseTrainerNames = String(course.trainerText || "")
+    .split("/")
+    .map((name) => name.trim())
+    .filter(Boolean);
 
-      const normalizedTrainerSet = new Set(
-        courseTrainerNames.map((name) => normalizeArabic(name))
-      );
+  const normalizedTrainerSet = new Set(
+    courseTrainerNames.map((name) => normalizeArabic(name))
+  );
 
-      const constraint =
-        typeof getCourseInvigilatorConstraint === "function"
-          ? getCourseInvigilatorConstraint(course)
-          : { mode: "off", invigilatorNames: [] };
+  const constraint =
+    typeof getCourseInvigilatorConstraint === "function"
+      ? getCourseInvigilatorConstraint(course)
+      : { mode: "off", invigilatorNames: [] };
 
-     let strictPool = [];
-let extraPool = [];
+  let strictPool = [];
+  let extraPool = [];
 
-const isGeneral = isGeneralStudiesCourse(course);
+  const isGeneral = isGeneralStudiesCourse(course);
 
-// الدراسات العامة
-if (isGeneral) {
-  strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-    ? generalStudiesScopedInvigilatorPool
-    : invigilatorPool;
-
-  extraPool = generalStudiesExtraInvigilators;
-}
-// التخصص
-else {
-  strictPool =
-    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-    !includeAllDepartmentsAndMajors
-      ? specializedScopedInvigilatorPool
+  if (isGeneral) {
+    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? generalStudiesScopedInvigilatorPool
       : invigilatorPool;
 
-  extraPool = specializedExtraInvigilators;
-}
+    extraPool = generalStudiesExtraInvigilators;
+  } else {
+    strictPool =
+      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors
+        ? specializedScopedInvigilatorPool
+        : invigilatorPool;
 
-const strictCandidates = strictPool
-  .filter(
-    (name) =>
-      !excludedInvigilators.some(
-        (ex) => normalizeArabic(ex) === normalizeArabic(name)
-      )
-  )
-  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+    extraPool = specializedExtraInvigilators;
+  }
 
-const extraCandidates = extraPool
-  .filter(
-    (name) =>
-      !excludedInvigilators.some(
-        (ex) => normalizeArabic(ex) === normalizeArabic(name)
-      )
-  )
-  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-  .filter((name) => !strictCandidates.includes(name));
+  const strictCandidates = strictPool
+    .filter(
+      (name) =>
+        !excludedInvigilators.some(
+          (ex) => normalizeArabic(ex) === normalizeArabic(name)
+        )
+    )
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+  const extraCandidates = extraPool
+    .filter(
+      (name) =>
+        !excludedInvigilators.some(
+          (ex) => normalizeArabic(ex) === normalizeArabic(name)
+        )
+    )
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => !strictCandidates.includes(name));
 
   if (
-  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-  !includeAllDepartmentsAndMajors
-) {
-  console.warn("INVIGILATOR_SCOPE_DEBUG", {
-    courseName: course?.courseName,
-    courseCode: course?.courseCode,
-    department: course?.department,
-    major: course?.major,
-    strictPoolCount: strictPool.length,
-    strictCandidatesCount: strictCandidates.length,
-    extraPoolCount: extraPool.length,
-    extraCandidatesCount: extraCandidates.length,
-    strictPool,
-    strictCandidates,
-    extraPool,
-    extraCandidates,
-  });
-}
-
-      const normalizedManualSet = new Set(
-        (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
-      );
-
-      const departmentTrainerSet = new Set(
-        (
-          (typeof getStrictTrainerNamesForCourse === "function"
-            ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
-            : []) || []
-        ).map((name) => normalizeArabic(name))
-      );
-
-     let constrainedCandidates = [...strictCandidates];
-let strictOnlyMode = false;
-
-if (
-  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-  !includeAllDepartmentsAndMajors &&
-  !isGeneralStudiesCourse(course)
-) {
-  strictOnlyMode = true;
-  constrainedCandidates = strictCandidates.filter((name) =>
-    departmentTrainerSet.has(normalizeArabic(name))
-  );
-}
-
-      switch (constraint.mode) {
-        case "only":
-          strictOnlyMode = true;
-          constrainedCandidates = baseCandidates.filter((name) =>
-            normalizedManualSet.has(normalizeArabic(name))
-          );
-          break;
-
-        case "avoid":
-          constrainedCandidates = baseCandidates.filter(
-            (name) => !normalizedManualSet.has(normalizeArabic(name))
-          );
-          break;
-
-        case "only_department_trainers":
-          strictOnlyMode = true;
-          constrainedCandidates = baseCandidates.filter((name) =>
-            departmentTrainerSet.has(normalizeArabic(name))
-          );
-          break;
-
-        case "avoid_department_trainers":
-          constrainedCandidates = baseCandidates.filter(
-            (name) => !departmentTrainerSet.has(normalizeArabic(name))
-          );
-          break;
-
-        case "prefer":
-        default:
-          constrainedCandidates = baseCandidates;
-          break;
-      }
-
-      const hardFairnessForThisCourse =
-        (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-          !includeAllDepartmentsAndMajors &&
-          !isGeneralStudiesCourse(course)) ||
-        (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
-          isGeneralStudiesCourse(course));
-
-      const sortCandidates = (candidates) =>
-        [...candidates].sort((a, b) => {
-          const aScore = rankInvigilatorForFairness(
-            a,
-            slot,
-            preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(a)),
-            hardFairnessForThisCourse
-          );
-          const bScore = rankInvigilatorForFairness(
-            b,
-            slot,
-            preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(b)),
-            hardFairnessForThisCourse
-          );
-
-          return aScore - bScore || a.localeCompare(b, "ar");
-        });
-
-      while (chosen.length < requiredCount) {
-        const minLoad = getMinInvigilatorLoad();
-
-        const fairCandidates = sortCandidates(
-          constrainedCandidates
-            .filter((name) => !chosen.includes(name))
-            .filter((name) =>
-              (invigilatorLoad.get(name) || 0) <=
-              (hardFairnessForThisCourse ? minLoad : minLoad + 1)
-            )
-        );
-
-        if (!fairCandidates.length) break;
-        chosen.push(fairCandidates[0]);
-      }
-
-      if (chosen.length < requiredCount) {
-        const minLoad = getMinInvigilatorLoad();
-        const nearFairCandidates = sortCandidates(
-          constrainedCandidates
-            .filter((name) => !chosen.includes(name))
-            .filter((name) =>
-              (invigilatorLoad.get(name) || 0) <=
-              (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
-            )
-        );
-
-        for (const name of nearFairCandidates) {
-          if (chosen.length >= requiredCount) break;
-          chosen.push(name);
-        }
-      }
-
-      if (chosen.length < requiredCount) {
-  const extraFairCandidates = sortCandidates(
-    extraCandidates.filter((name) => !chosen.includes(name))
-  );
-
-  for (const name of extraFairCandidates) {
-    if (chosen.length >= requiredCount) break;
-    chosen.push(name);
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors
+  ) {
+    console.warn("INVIGILATOR_SCOPE_DEBUG", {
+      courseName: course?.courseName,
+      courseCode: course?.courseCode,
+      department: course?.department,
+      major: course?.major,
+      strictPoolCount: strictPool.length,
+      strictCandidatesCount: strictCandidates.length,
+      extraPoolCount: extraPool.length,
+      extraCandidatesCount: extraCandidates.length,
+      strictPool,
+      strictCandidates,
+      extraPool,
+      extraCandidates,
+    });
   }
+
+  const normalizedManualSet = new Set(
+    (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
+  );
+
+  const departmentTrainerSet = new Set(
+    (
+      (typeof getStrictTrainerNamesForCourse === "function"
+        ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
+        : []) || []
+    ).map((name) => normalizeArabic(name))
+  );
+
+  let constrainedCandidates = [...strictCandidates];
+  let strictOnlyMode = false;
+
+  if (
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors &&
+    !isGeneralStudiesCourse(course)
+  ) {
+    strictOnlyMode = true;
+    constrainedCandidates = strictCandidates.filter((name) =>
+      departmentTrainerSet.has(normalizeArabic(name))
+    );
+  }
+
+  switch (constraint.mode) {
+    case "only":
+      strictOnlyMode = true;
+      constrainedCandidates = strictCandidates.filter((name) =>
+        normalizedManualSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "avoid":
+      constrainedCandidates = strictCandidates.filter(
+        (name) => !normalizedManualSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "only_department_trainers":
+      strictOnlyMode = true;
+      constrainedCandidates = strictCandidates.filter((name) =>
+        departmentTrainerSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "avoid_department_trainers":
+      constrainedCandidates = strictCandidates.filter(
+        (name) => !departmentTrainerSet.has(normalizeArabic(name))
+      );
+      break;
+
+    case "prefer":
+    default:
+      constrainedCandidates = strictCandidates;
+      break;
+  }
+
+  const hardFairnessForThisCourse =
+    (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors &&
+      !isGeneralStudiesCourse(course)) ||
+    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
+      isGeneralStudiesCourse(course));
+
+  const sortCandidates = (candidates) =>
+    [...candidates].sort((a, b) => {
+      const aScore = rankInvigilatorForFairness(
+        a,
+        slot,
+        preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(a)),
+        hardFairnessForThisCourse
+      );
+      const bScore = rankInvigilatorForFairness(
+        b,
+        slot,
+        preferCourseTrainerInvigilation &&
+          normalizedTrainerSet.has(normalizeArabic(b)),
+        hardFairnessForThisCourse
+      );
+
+      return aScore - bScore || a.localeCompare(b, "ar");
+    });
+
+  while (chosen.length < requiredCount) {
+    const minLoad = getMinInvigilatorLoad();
+
+    const fairCandidates = sortCandidates(
+      constrainedCandidates
+        .filter((name) => !chosen.includes(name))
+        .filter((name) =>
+          (invigilatorLoad.get(name) || 0) <=
+          (hardFairnessForThisCourse ? minLoad : minLoad + 1)
+        )
+    );
+
+    if (!fairCandidates.length) break;
+    chosen.push(fairCandidates[0]);
+  }
+
+  if (chosen.length < requiredCount) {
+    const minLoad = getMinInvigilatorLoad();
+    const nearFairCandidates = sortCandidates(
+      constrainedCandidates
+        .filter((name) => !chosen.includes(name))
+        .filter((name) =>
+          (invigilatorLoad.get(name) || 0) <=
+          (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
+        )
+    );
+
+    for (const name of nearFairCandidates) {
+      if (chosen.length >= requiredCount) break;
+      chosen.push(name);
+    }
+  }
+if (chosen.length < requiredCount) {
+ return [];
 }
-      
-     if (chosen.length < requiredCount) {
-  return [];
-}
 
-      chosen.forEach((name) => {
-        if (!invigilatorBusyPeriods.has(name)) {
-          invigilatorBusyPeriods.set(name, new Set());
-        }
-        if (!invigilatorDayLoad.has(name)) {
-          invigilatorDayLoad.set(name, new Map());
-        }
+  chosen.forEach((name) => {
+    if (!invigilatorBusyPeriods.has(name)) {
+      invigilatorBusyPeriods.set(name, new Set());
+    }
+    if (!invigilatorDayLoad.has(name)) {
+      invigilatorDayLoad.set(name, new Map());
+    }
 
-        invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
-        invigilatorBusyPeriods.get(name).add(periodKey);
-        const dayLoadMap = invigilatorDayLoad.get(name);
-        dayLoadMap.set(slot.dateISO, (dayLoadMap.get(slot.dateISO) || 0) + 1);
-      });
+    invigilatorLoad.set(name, (invigilatorLoad.get(name) || 0) + 1);
+    invigilatorBusyPeriods.get(name).add(periodKey);
+    const dayLoadMap = invigilatorDayLoad.get(name);
+    dayLoadMap.set(slot.dateISO, (dayLoadMap.get(slot.dateISO) || 0) + 1);
+  });
 
-      return chosen;
-    };
+  return chosen;
+};
   
   const diagnoseUnscheduledCourse = (course) => {
     const diagnosis = {
