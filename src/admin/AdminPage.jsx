@@ -9420,7 +9420,7 @@ const headerBtn = (danger = false) => ({
           </Card>
         )}
 
-  {currentStep === 4 && (
+ {currentStep === 4 && (
   <Card>
     <SectionHeader
       title="المراقبون"
@@ -9430,10 +9430,9 @@ const headerBtn = (danger = false) => ({
     <div
       style={{
         display: "flex",
-        flexWrap: "wrap",
-        gap: 12,
-        marginTop: 18,
         flexDirection: "column",
+        gap: 10,
+        marginTop: 18,
       }}
     >
       <label
@@ -9457,10 +9456,8 @@ const headerBtn = (danger = false) => ({
       <div
         style={{
           display: "flex",
-          alignItems: "stretch",
-          gap: 10,
-          flexWrap: "wrap",
-          flex: 1,
+          flexDirection: "column",
+          gap: 8,
         }}
       >
         <div
@@ -9473,6 +9470,8 @@ const headerBtn = (danger = false) => ({
             padding: "12px 14px",
             position: "relative",
             minHeight: 54,
+            alignSelf: "flex-start",
+            background: "#fff",
           }}
         >
           <label
@@ -9540,46 +9539,75 @@ const headerBtn = (danger = false) => ({
 
         <div
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 12,
+            display: "flex",
+            gap: 10,
             flexWrap: "wrap",
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 18,
-            padding: "10px 12px",
-            minHeight: 54,
           }}
         >
-          <label style={{ display: "grid", gap: 4 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
-              الحد الأدنى المستهدف للمراقبات
-              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
-            </span>
-            <input
-              type="number"
-              min="0"
-              max="50"
-              value={minInvigilationTargetPerInvigilator}
-              onChange={(e) => setMinInvigilationTargetPerInvigilator(Math.max(0, safeNum(e.target.value, 0)))}
-              style={{ ...fieldStyle(), width: 120, padding: "10px 12px" }}
-            />
-          </label>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "stretch",
+              gap: 12,
+              flexWrap: "wrap",
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 18,
+              padding: "10px 12px",
+              minHeight: 54,
+              background: "#fff",
+            }}
+          >
+            <label style={{ display: "grid", gap: 4 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
+              >
+                الحد الأدنى المستهدف للمراقبات
+                <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
+              </span>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                value={minInvigilationTargetPerInvigilator}
+                onChange={(e) =>
+                  setMinInvigilationTargetPerInvigilator(
+                    Math.max(0, safeNum(e.target.value, 0))
+                  )
+                }
+                style={{ ...fieldStyle(), width: 120, padding: "10px 12px" }}
+              />
+            </label>
 
-          <label style={{ display: "grid", gap: 4 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
-              الحد الأقصى للمراقبات لكل مراقب
-              <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
-            </span>
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={maxInvigilationsPerInvigilator}
-              onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
-              placeholder="بدون حد"
-              style={{ ...fieldStyle(), width: 140, padding: "10px 12px" }}
-            />
-          </label>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
+              >
+                الحد الأقصى للمراقبات لكل مراقب
+                <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
+              </span>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={maxInvigilationsPerInvigilator}
+                onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
+                placeholder="بدون حد"
+                style={{ ...fieldStyle(), width: 140, padding: "10px 12px" }}
+              />
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -9602,7 +9630,6 @@ const headerBtn = (danger = false) => ({
             المراقبين حتى لا يؤثروا على عدالة توزيع المراقبين الخاصة بمقررات التخصص.
           </div>
         ) : null}
-
         <div
           style={{
             display: "grid",
