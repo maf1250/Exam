@@ -6505,10 +6505,12 @@ const generateGeneralSchedule = () => {
         ],
       }
     );
+    setCurrentStep(5);
   } else {
     showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
-  }
   setCurrentStep(6);
+  }
+  
 };
 
 const generateSpecializedSchedule = () => {
@@ -6577,8 +6579,9 @@ const generateSpecializedSchedule = () => {
      setCurrentStep(6);
   } else {
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
-  }
   setCurrentStep(7);
+  }
+  
 };
 
 const filteredScheduleForPrint = useMemo(() => {
