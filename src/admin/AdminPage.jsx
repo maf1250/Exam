@@ -1728,6 +1728,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
  const buildDayCell = (inv, day) => {
+   console.log(inv.items);
   const matches = inv.items
     .filter((item) => item.dateISO === day.dateISO)
     .sort((a, b) => a.period - b.period);
@@ -1737,6 +1738,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
   return matches
     .map((item) => {
       const hallText = String(item.examHall || item.hallName || "بدون قاعة").trim();
+      
       return `
         <div style="line-height:1.8;">
           الفترة ${item.period} - ${hallText}
