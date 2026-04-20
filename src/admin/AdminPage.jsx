@@ -239,6 +239,47 @@ function normalizeArabic(value) {
     .replace(/\s+/g, " ");
 }
 
+function getCourseStudentStatusKey(courseKey, studentId) {
+  return `${String(courseKey || "").trim()}__${String(studentId || "").trim()}`;
+}
+
+function isDeprivationRegistrationStatus(status) {
+  const normalized = normalizeArabic(String(status || "").trim());
+  return normalized.includes("حرمان");
+}
+
+function getScheduleItemDeprivationStatus(item, studentId, deprivationMap) {
+  if (!item || !studentId || !(deprivationMap instanceof Map)) return "";
+
+  const direct = String(
+    item?.deprivationStatus ||
+      item?.registrationStatus ||
+      item?.traineeRegistrationStatus ||
+      ""
+  ).trim();
+  if (isDeprivationRegistrationStatus(direct)) return direct;
+
+  const courseKey = String(item?.key || item?.courseKey || "").trim();
+  if (!courseKey) return "";
+
+  const mapped = String(
+    deprivationMap.get(getCourseStudentStatusKey(courseKey, studentId)) || ""
+  ).trim();
+
+  return isDeprivationRegistrationStatus(mapped) ? mapped : "";
+}
+
+function enrichScheduleItemForStudent(item, studentId, deprivationMap) {
+  const deprivationStatus = getScheduleItemDeprivationStatus(item, studentId, deprivationMap);
+
+  return {
+    ...item,
+    deprivationStatus,
+    isDeprived: Boolean(deprivationStatus),
+  };
+}
+
+
 function formatGregorian(date) {
   return new Intl.DateTimeFormat("ar-SA", {
     weekday: "long",
@@ -1686,14 +1727,26 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   ];
 
   const rowsHtml = items
-  .map(
-    (item, index) => `
+    .map((item, index) => {
+      const deprivationStatus = String(item?.deprivationStatus || "").trim();
+      const isDeprived = Boolean(deprivationStatus);
+      const theme = getDayTheme(item.dayName);
+
+      return `
       <tr style="
-        background:${getDayTheme(item.dayName).bg};
-        color:${getDayTheme(item.dayName).text};
+        background:${isDeprived ? "#FEF2F2" : theme.bg};
+        color:${isDeprived ? "#B42318" : theme.text};
+        font-weight:${isDeprived ? "700" : "400"};
       ">
         <td>${index + 1}</td>
-        <td>${item.courseName || ""}</td>
+        <td>
+          ${item.courseName || ""}
+          ${
+            isDeprived
+              ? `<div style="margin-top:4px;font-size:10px;font-weight:800;color:#B42318;">${item.deprivationStatus}</div>`
+              : ""
+          }
+        </td>
         <td>${item.courseCode || ""}</td>
         <td>${item.dayName || ""}</td>
         <td>${item.gregorian || ""}</td>
@@ -1702,9 +1755,9 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
         <td>${item.timeText || ""}</td>
         <td>${item.examHall || ""}</td>
       </tr>
-    `
-  )
-  .join("");
+    `;
+    })
+    .join("");
 
   const html = `
     <html dir="rtl" lang="ar">
@@ -4534,6 +4587,25 @@ const getStudentNameFromRow = (row) =>
     ""
   ).trim();
   
+const deprivedCourseStudentStatusMap = useMemo(() => {
+  const map = new Map();
+
+  parsed.filteredRows.forEach((row) => {
+    const studentId = String(row["رقم المتدرب"] ?? "").trim();
+    const courseCode = String(row["المقرر"] ?? "").trim();
+    const courseName = String(row["اسم المقرر"] ?? "").trim();
+    const registrationStatus = String(row["حالة تسجيل"] ?? "").trim();
+
+    if (!studentId || !courseCode && !courseName) return;
+    if (!isDeprivationRegistrationStatus(registrationStatus)) return;
+
+    const courseKey = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+    map.set(getCourseStudentStatusKey(courseKey, studentId), registrationStatus);
+  });
+
+  return map;
+}, [parsed.filteredRows]);
+
 const preciseStudentInfoMap = useMemo(() => {
   const map = new Map();
 
@@ -6373,14 +6445,17 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       : [...generalSchedule, ...specializedSchedule];
 
   return combinedSchedule
-  .filter((item) =>
-    (Array.isArray(item.students)
-      ? item.students
-      : Array.from(item.students || [])
-    ).includes(selectedStudentIdForPrint)
-  )
-  .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
-}, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint]);
+    .filter((item) =>
+      (Array.isArray(item.students)
+        ? item.students
+        : Array.from(item.students || [])
+      ).includes(selectedStudentIdForPrint)
+    )
+    .map((item) =>
+      enrichScheduleItemForStudent(item, selectedStudentIdForPrint, deprivedCourseStudentStatusMap)
+    )
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
+}, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
 
   const combinedScheduleForStudents = useMemo(() => (
     schedule.length ? schedule : [...generalSchedule, ...specializedSchedule]
@@ -6432,8 +6507,11 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       .filter((item) =>
         (Array.isArray(item.students) ? item.students : Array.from(item.students || [])).includes(selectedStudentIdForPrint)
       )
+      .map((item) =>
+        enrichScheduleItemForStudent(item, selectedStudentIdForPrint, deprivedCourseStudentStatusMap)
+      )
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
-  }, [combinedScheduleForStudents, selectedStudentIdForPrint]);
+  }, [combinedScheduleForStudents, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
 
   const invigilatorTable = useMemo(() => {
     const table = new Map();
@@ -11175,7 +11253,21 @@ const headerBtn = (danger = false) => ({
                   slug: effectiveCollegeSlug,
                   collegeName:
                     parsed.collegeName || collegeNameInput || "الكلية التقنية",
-                  schedule,
+                  schedule: schedule.map((item) => ({
+                    ...item,
+                    deprivedStudents: Array.from(
+                      (Array.isArray(item.students) ? item.students : Array.from(item.students || []))
+                        .filter((studentId) =>
+                          Boolean(
+                            getScheduleItemDeprivationStatus(
+                              item,
+                              studentId,
+                              deprivedCourseStudentStatusMap
+                            )
+                          )
+                        )
+                    ),
+                  })),
                   parsed,
                   studentInfoMap: preciseStudentInfoMap,
                   selectedDepartment: printDepartmentFilter,
