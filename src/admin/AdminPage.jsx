@@ -2991,6 +2991,12 @@ const periodOverlapWarning = useMemo(() => {
         )
       : invigilatorPool;
 
+    const generalStudiesScopedInvigilatorPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? invigilatorPool.filter((name) =>
+          generalStudiesInvigilatorsSet.has(normalizeArabic(name))
+        )
+      : invigilatorPool;
+
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
     const invigilatorDayLoad = new Map(invigilatorPool.map((name) => [name, new Map()]));
@@ -3049,12 +3055,14 @@ const periodOverlapWarning = useMemo(() => {
           ? getCourseInvigilatorConstraint(course)
           : { mode: "off", invigilatorNames: [] };
 
-      const scopedPool =
-        restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-        !includeAllDepartmentsAndMajors &&
-        !isGeneralStudiesCourse(course)
-          ? specializedScopedInvigilatorPool
-          : invigilatorPool;
+      const scopedPool = isGeneralStudiesCourse(course)
+        ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+            ? generalStudiesScopedInvigilatorPool
+            : invigilatorPool)
+        : (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+          !includeAllDepartmentsAndMajors
+            ? specializedScopedInvigilatorPool
+            : invigilatorPool);
 
       const baseCandidates = scopedPool
         .filter(
@@ -3552,6 +3560,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
   const [restrictSpecializedInvigilationToVisibleDepartmentTrainers, setRestrictSpecializedInvigilationToVisibleDepartmentTrainers] = useState(false);
+  const [restrictGeneralStudiesInvigilationToGeneralStudiesTrainers, setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers] = useState(false);
 
   const isGeneralStudiesManualEditLocked = !includeAllDepartmentsAndMajors;
 
@@ -3653,6 +3662,8 @@ const handleUpload = (file) => {
       setActiveDropSlotId("");
       setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
       setIncludeAllDepartmentsAndMajors(true);
+      setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(false);
+      setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers(false);
       setExcludedDepartmentMajors([]);
       setLockGeneralStudiesStep(false);
       setCourseLevels({});
@@ -4139,6 +4150,7 @@ const buildPersistedState = () => ({
   excludedCourses,
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
+  restrictGeneralStudiesInvigilationToGeneralStudiesTrainers,
   excludedDepartmentMajors,
   lockGeneralStudiesStep,
   printDepartmentFilter,
@@ -4258,6 +4270,7 @@ const restorePersistedState = (saved) => {
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(saved.restrictSpecializedInvigilationToVisibleDepartmentTrainers ?? false);
+  setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers(saved.restrictGeneralStudiesInvigilationToGeneralStudiesTrainers ?? false);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
   setLockGeneralStudiesStep(saved.lockGeneralStudiesStep ?? false);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
@@ -4459,6 +4472,7 @@ useEffect(() => {
   excludedCourses,
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
+  restrictGeneralStudiesInvigilationToGeneralStudiesTrainers,
   excludedDepartmentMajors,
   lockGeneralStudiesStep,
   printDepartmentFilter,
@@ -5523,6 +5537,11 @@ const hallsPool = normalizedExamHalls;
       ? invigilatorPool.filter((name) => scopedCourseTrainerNameSet.has(normalizeArabic(name)))
       : invigilatorPool;
 
+  const generalStudiesScopedInvigilatorPool =
+    restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? invigilatorPool.filter((name) => generalStudiesInvigilatorsSet.has(normalizeArabic(name)))
+      : invigilatorPool;
+
   const studentSlotMap = new Map();
   const studentDayMap = new Map();
   const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
@@ -5629,12 +5648,14 @@ const pickInvigilators = (course, slot) => {
       ? getCourseInvigilatorConstraint(course)
       : { mode: "off", invigilatorNames: [] };
 
-  const scopedPool =
-    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-    !includeAllDepartmentsAndMajors &&
-    !isGeneralStudiesCourse(course)
-      ? specializedScopedInvigilatorPool
-      : invigilatorPool;
+  const scopedPool = isGeneralStudiesCourse(course)
+    ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+        ? generalStudiesScopedInvigilatorPool
+        : invigilatorPool)
+    : (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors
+        ? specializedScopedInvigilatorPool
+        : invigilatorPool);
 
   const baseCandidates = scopedPool
     .filter(
@@ -9732,6 +9753,31 @@ const headerBtn = (danger = false) => ({
               <>
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 16,
+                border: `1px solid ${COLORS.primaryBorder}`,
+                borderRadius: 16,
+                padding: 14,
+                background: COLORS.primaryLight,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 6 }}>
+                    حصر المراقبين على مدربي مقررات الدراسات العامة فقط
+                  </div>
+                  <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
+                    عند التفعيل لن يتم إسناد مراقبة مقررات الدراسات العامة إلا إلى المدربين الذين أُسندت لهم مقررات دراسات عامة فعليًا. وإذا كان المدرب يدرّس دراسات عامة وتخصص فسيبقى ضمن الجهتين معًا.
+                  </div>
+                </div>
+                <Switch
+                  checked={restrictGeneralStudiesInvigilationToGeneralStudiesTrainers}
+                  onChange={setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers}
+                />
+              </div>
             </div>
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
               <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
