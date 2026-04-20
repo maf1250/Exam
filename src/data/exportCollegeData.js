@@ -109,7 +109,6 @@ function findScheduledItemForStudent(scheduleLookup, row, studentId) {
     );
 
     if (exact) return exact;
-    if (candidates[0]) return candidates[0];
   }
 
   return null;
@@ -199,31 +198,34 @@ export function exportCollegeDataFile({
       });
     }
 
-    const scheduledItem = findScheduledItemForStudent(scheduledLookup, row, studentId);
+ const scheduledItem = findScheduledItemForStudent(scheduledLookup, row, studentId);
 
-    const compoundCourseKey = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
-    const deprivationStatus = String(
-      deprivationMap.get(getCourseStudentStatusKey(compoundCourseKey, studentId)) ||
-        deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseCode), studentId)) ||
-        deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseName), studentId)) ||
-        (isDeprivationRegistrationStatus(registrationStatus) ? registrationStatus : "")
-    ).trim();
+const compoundCourseKey = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+const deprivationStatus = String(
+  deprivationMap.get(getCourseStudentStatusKey(compoundCourseKey, studentId)) ||
+    deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseCode), studentId)) ||
+    deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseName), studentId)) ||
+    (isDeprivationRegistrationStatus(registrationStatus) ? registrationStatus : "")
+).trim();
 
-    studentMap.get(studentId).schedule.push({
-      courseName,
-      courseCode,
-      dayName: scheduledItem?.dayName || "",
-      dateISO: scheduledItem?.dateISO || "",
-      gregorian: scheduledItem?.gregorian || "",
-      hijriNumeric: scheduledItem?.hijriNumeric || "",
-      period: scheduledItem?.period || "",
-      timeText: scheduledItem?.timeText || "",
-      examHall: scheduledItem?.examHall || "",
-      registrationStatus,
-      deprivationStatus,
-      isDeprived: Boolean(deprivationStatus),
-      hasScheduledSlot: Boolean(scheduledItem),
-    });
+const shouldIncludeRow = Boolean(scheduledItem) || Boolean(deprivationStatus);
+if (!shouldIncludeRow) return;
+
+studentMap.get(studentId).schedule.push({
+  courseName,
+  courseCode,
+  dayName: scheduledItem?.dayName || "",
+  dateISO: scheduledItem?.dateISO || "",
+  gregorian: scheduledItem?.gregorian || "",
+  hijriNumeric: scheduledItem?.hijriNumeric || "",
+  period: scheduledItem?.period || "",
+  timeText: scheduledItem?.timeText || "",
+  examHall: scheduledItem?.examHall || "",
+  registrationStatus,
+  deprivationStatus,
+  isDeprived: Boolean(deprivationStatus),
+  hasScheduledSlot: Boolean(scheduledItem),
+});
   });
 
   const students = Array.from(studentMap.values())
