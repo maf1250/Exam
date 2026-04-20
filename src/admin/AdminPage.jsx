@@ -1714,10 +1714,8 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
     })
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
- const buildDayCell = (inv, day) => {
-console.log("INV ITEMS FULL:", JSON.stringify(inv.items, null, 2));
-   
-   const matches = inv.items
+const buildDayCell = (inv, day) => {
+  const matches = inv.items
     .filter((item) => item.dateISO === day.dateISO)
     .sort((a, b) => a.period - b.period);
 
@@ -1725,8 +1723,7 @@ console.log("INV ITEMS FULL:", JSON.stringify(inv.items, null, 2));
 
   return matches
     .map((item) => {
-      const hallText = String(item.examHall || item.hallName || "بدون قاعة").trim();
-      
+      const hallText = String(item.examHall || "").trim() || "بدون قاعة";
       return `
         <div style="line-height:1.8;">
           الفترة ${item.period} - ${hallText}
@@ -6630,32 +6627,42 @@ const selectedStudentScheduleForPrint = useMemo(() => {
     });
   }, [combinedScheduleForStudents, parsed.filteredRows, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
 
-  const invigilatorTable = useMemo(() => {
-    const table = new Map();
+const invigilatorTable = useMemo(() => {
+  const table = new Map();
 
-    filteredScheduleForPrint.forEach((item) => {
-      (item.invigilators || []).forEach((name) => {
-        if (!table.has(name)) table.set(name, []);
-        table.get(name).push({
-          dateISO: item.dateISO,
-          dayName: item.dayName,
-          period: item.period,
-          timeText: item.timeText,
-          courseName: item.courseName,
-          courseCode: item.courseCode,
-          gregorian: item.gregorian,
-        });
+  filteredScheduleForPrint.forEach((item) => {
+    const resolvedExamHall =
+      String(item.examHall || "").trim() ||
+      (Array.isArray(item.examHallAssignments) && item.examHallAssignments.length
+        ? item.examHallAssignments
+            .map((entry) => entry.hallName || entry.name || "")
+            .filter(Boolean)
+            .join(" + ")
+        : "");
+
+    (item.invigilators || []).forEach((name) => {
+      if (!table.has(name)) table.set(name, []);
+      table.get(name).push({
+        dateISO: item.dateISO,
+        dayName: item.dayName,
+        period: item.period,
+        timeText: item.timeText,
+        courseName: item.courseName,
+        courseCode: item.courseCode,
+        gregorian: item.gregorian,
+        examHall: resolvedExamHall,
       });
     });
+  });
 
-    return Array.from(table.entries())
-      .map(([name, items]) => ({
-        name,
-        periodsCount: items.length,
-        items: items.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [filteredScheduleForPrint]);
+  return Array.from(table.entries())
+    .map(([name, items]) => ({
+      name,
+      periodsCount: items.length,
+      items: items.sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+}, [filteredScheduleForPrint]);
 
   const availableInvigilators = useMemo(() => {
     const baseInvigilators = manualInvigilators
