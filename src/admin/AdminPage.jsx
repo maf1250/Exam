@@ -3024,13 +3024,22 @@ const periodOverlapWarning = useMemo(() => {
     const getInvigilatorDayLoadForDate = (name, dateISO) =>
       invigilatorDayLoad.get(name)?.get(dateISO) || 0;
 
-    const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
+    const rankInvigilatorForFairness = (
+      name,
+      slot,
+      preferTrainer = false,
+      hardFairness = false
+    ) => {
       const load = invigilatorLoad.get(name) || 0;
       const minLoad = getMinInvigilatorLoad();
       const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
-      const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
-      const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
-      const trainerBonus = preferTrainer ? -0.15 : 0;
+      const overloadPenalty = hardFairness
+        ? (load > minLoad ? 100000 : 0)
+        : (load > minLoad + 1 ? 1000 : 0);
+      const sameDayPenalty = hardFairness
+        ? (dayLoad > 0 ? 20 + dayLoad * 10 : 0)
+        : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
+      const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
       return load + overloadPenalty + sameDayPenalty + trainerBonus;
     };
 
@@ -3145,19 +3154,28 @@ const periodOverlapWarning = useMemo(() => {
           break;
       }
 
+      const hardFairnessForThisCourse =
+        (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+          !includeAllDepartmentsAndMajors &&
+          !isGeneralStudiesCourse(course)) ||
+        (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
+          isGeneralStudiesCourse(course));
+
       const sortCandidates = (candidates) =>
         [...candidates].sort((a, b) => {
           const aScore = rankInvigilatorForFairness(
             a,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(a))
+              normalizedTrainerSet.has(normalizeArabic(a)),
+            hardFairnessForThisCourse
           );
           const bScore = rankInvigilatorForFairness(
             b,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(b))
+              normalizedTrainerSet.has(normalizeArabic(b)),
+            hardFairnessForThisCourse
           );
 
           return aScore - bScore || a.localeCompare(b, "ar");
@@ -3170,13 +3188,9 @@ const periodOverlapWarning = useMemo(() => {
           constrainedCandidates
             .filter((name) => !chosen.includes(name))
             .filter((name) =>
-          (invigilatorLoad.get(name) || 0) <=
-          (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-          !includeAllDepartmentsAndMajors &&
-          !isGeneralStudiesCourse(course)
-            ? minLoad
-            : minLoad + 1)
-        )
+              (invigilatorLoad.get(name) || 0) <=
+              (hardFairnessForThisCourse ? minLoad : minLoad + 1)
+            )
         );
 
         if (!fairCandidates.length) break;
@@ -3184,24 +3198,26 @@ const periodOverlapWarning = useMemo(() => {
       }
 
       if (chosen.length < requiredCount) {
-        const fallbackCandidates = [...constrainedCandidates]
-          .filter((name) => !chosen.includes(name))
-          .sort((a, b) => {
-            const aScore = rankInvigilatorForFairness(
-              a,
-              slot,
-              preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(a))
-            );
-            const bScore = rankInvigilatorForFairness(
-              b,
-              slot,
-              preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(b))
-            );
+        const minLoad = getMinInvigilatorLoad();
+        const nearFairCandidates = sortCandidates(
+          constrainedCandidates
+            .filter((name) => !chosen.includes(name))
+            .filter((name) =>
+              (invigilatorLoad.get(name) || 0) <=
+              (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
+            )
+        );
 
-            return aScore - bScore || a.localeCompare(b, "ar");
-          });
+        for (const name of nearFairCandidates) {
+          if (chosen.length >= requiredCount) break;
+          chosen.push(name);
+        }
+      }
+
+      if (!hardFairnessForThisCourse && chosen.length < requiredCount) {
+        const fallbackCandidates = sortCandidates(
+          constrainedCandidates.filter((name) => !chosen.includes(name))
+        );
 
         for (const name of fallbackCandidates) {
           if (chosen.length >= requiredCount) break;
@@ -3303,7 +3319,11 @@ const periodOverlapWarning = useMemo(() => {
       return {
         ok: false,
         reasonType: "invigilators",
-        reasonMessage: `تعذر وضع المقرر في هذه الفترة لعدم توفر عدد كافٍ من المراقبين. المطلوب ${requiredInvigilators}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+        reasonMessage: `${isGeneralStudiesCourse(course) && restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+          ? `تعذر وضع المقرر في هذه الفترة لعدم توفر عدد كافٍ من مدربي مقررات الدراسات العامة. المطلوب ${requiredInvigilators}، والمتاح فعليًا ${pickedInvigilators.length}.`
+          : (!isGeneralStudiesCourse(course) && restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors)
+            ? `تعذر وضع المقرر في هذه الفترة لعدم توفر عدد كافٍ من مدربي مقررات القسم/التخصص المحدد. المطلوب ${requiredInvigilators}، والمتاح فعليًا ${pickedInvigilators.length}.`
+            : `تعذر وضع المقرر في هذه الفترة لعدم توفر عدد كافٍ من المراقبين. المطلوب ${requiredInvigilators}، والمتاح فعليًا ${pickedInvigilators.length}.`}`,
       };
     }
 
@@ -5610,19 +5630,25 @@ const getMinInvigilatorLoad = () => {
 };
 const getInvigilatorDayLoadForDate = (name, dateISO) =>
   invigilatorDayLoad.get(name)?.get(dateISO) || 0;
-const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
+const rankInvigilatorForFairness = (
+  name,
+  slot,
+  preferTrainer = false,
+  hardFairness = false
+) => {
   const load = invigilatorLoad.get(name) || 0;
   const minLoad = getMinInvigilatorLoad();
   const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
 
-  // عقوبة كبيرة إذا تجاوز الأدنى بأكثر من 1
-  const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+  const overloadPenalty = hardFairness
+    ? (load > minLoad ? 100000 : 0)
+    : (load > minLoad + 1 ? 1000 : 0);
 
-  // تقليل تكرار المراقب في نفس اليوم قدر الإمكان
-  const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
+  const sameDayPenalty = hardFairness
+    ? (dayLoad > 0 ? 20 + dayLoad * 10 : 0)
+    : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
 
-  // أفضلية بسيطة جدًا لمدرب المقرر بدون كسر العدالة
-  const trainerBonus = preferTrainer ? -0.15 : 0;
+  const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
 
   return load + overloadPenalty + sameDayPenalty + trainerBonus;
 };
@@ -5738,25 +5764,33 @@ const pickInvigilators = (course, slot) => {
       break;
   }
 
+  const hardFairnessForThisCourse =
+    (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+      !includeAllDepartmentsAndMajors &&
+      !isGeneralStudiesCourse(course)) ||
+    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
+      isGeneralStudiesCourse(course));
+
   const sortCandidates = (candidates) =>
     [...candidates].sort((a, b) => {
       const aScore = rankInvigilatorForFairness(
         a,
         slot,
         preferCourseTrainerInvigilation &&
-          normalizedTrainerSet.has(normalizeArabic(a))
+          normalizedTrainerSet.has(normalizeArabic(a)),
+        hardFairnessForThisCourse
       );
       const bScore = rankInvigilatorForFairness(
         b,
         slot,
         preferCourseTrainerInvigilation &&
-          normalizedTrainerSet.has(normalizeArabic(b))
+          normalizedTrainerSet.has(normalizeArabic(b)),
+        hardFairnessForThisCourse
       );
 
       return aScore - bScore || a.localeCompare(b, "ar");
     });
 
-  // المرحلة 1: ضمن هامش العدالة
   while (chosen.length < requiredCount) {
     const minLoad = getMinInvigilatorLoad();
 
@@ -5765,11 +5799,7 @@ const pickInvigilators = (course, slot) => {
         .filter((name) => !chosen.includes(name))
         .filter((name) =>
           (invigilatorLoad.get(name) || 0) <=
-          (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-          !includeAllDepartmentsAndMajors &&
-          !isGeneralStudiesCourse(course)
-            ? minLoad
-            : minLoad + 1)
+          (hardFairnessForThisCourse ? minLoad : minLoad + 1)
         )
     );
 
@@ -5777,32 +5807,27 @@ const pickInvigilators = (course, slot) => {
     chosen.push(fairCandidates[0]);
   }
 
-  // المرحلة 2:
-  // إذا كان القيد "قصر" فلا نخرج أبدًا خارج النطاق
-  // فقط نكمل من نفس النطاق المقيّد
   if (chosen.length < requiredCount) {
-    const fallbackPool = strictOnlyMode
-      ? constrainedCandidates
-      : constrainedCandidates;
+    const minLoad = getMinInvigilatorLoad();
+    const nearFairCandidates = sortCandidates(
+      constrainedCandidates
+        .filter((name) => !chosen.includes(name))
+        .filter((name) =>
+          (invigilatorLoad.get(name) || 0) <=
+          (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
+        )
+    );
 
-    const fallbackCandidates = [...fallbackPool]
-      .filter((name) => !chosen.includes(name))
-      .sort((a, b) => {
-        const aScore = rankInvigilatorForFairness(
-          a,
-          slot,
-          preferCourseTrainerInvigilation &&
-            normalizedTrainerSet.has(normalizeArabic(a))
-        );
-        const bScore = rankInvigilatorForFairness(
-          b,
-          slot,
-          preferCourseTrainerInvigilation &&
-            normalizedTrainerSet.has(normalizeArabic(b))
-        );
+    for (const name of nearFairCandidates) {
+      if (chosen.length >= requiredCount) break;
+      chosen.push(name);
+    }
+  }
 
-        return aScore - bScore || a.localeCompare(b, "ar");
-      });
+  if (!hardFairnessForThisCourse && chosen.length < requiredCount) {
+    const fallbackCandidates = sortCandidates(
+      constrainedCandidates.filter((name) => !chosen.includes(name))
+    );
 
     for (const name of fallbackCandidates) {
       if (chosen.length >= requiredCount) break;
@@ -6390,7 +6415,11 @@ const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsC
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
   notPlaced.push({
     ...course,
-    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
+    unscheduledReason: `${isGeneralStudiesCourse(course) && restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+      ? `لا يوجد عدد كافٍ من مدربي مقررات الدراسات العامة لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`
+      : (!isGeneralStudiesCourse(course) && restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors)
+        ? `لا يوجد عدد كافٍ من مدربي مقررات القسم/التخصص المحدد لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`
+        : `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`}`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
     unscheduledReasonDetails: {
       invigilatorShortageSlots: [
@@ -6401,7 +6430,11 @@ if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount
           period: bestSlot?.period || null,
           timeText: bestSlot?.timeText || "",
           reason: `المطلوب ${requiredInvigilatorsCount} مراقب/مراقبين، والمتاح فعليًا ${pickedInvigilators.length}.`,
-          summary: "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.",
+          summary: `${isGeneralStudiesCourse(course) && restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+            ? "تم اختيار الفترة مبدئيًا، لكن عدد مدربي مقررات الدراسات العامة المتاحين فيها لا يكفي لإسناد هذا المقرر."
+            : (!isGeneralStudiesCourse(course) && restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors)
+              ? "تم اختيار الفترة مبدئيًا، لكن عدد مدربي مقررات القسم/التخصص المحدد المتاحين فيها لا يكفي لإسناد هذا المقرر."
+              : "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر."}`,
           requiredInvigilatorsCount,
           availableInvigilatorsCount: pickedInvigilators.length,
           availableInvigilators: pickedInvigilators,
@@ -9772,6 +9805,9 @@ const headerBtn = (danger = false) => ({
                   <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
                     عند التفعيل لن يتم إسناد مراقبة مقررات الدراسات العامة إلا إلى المدربين الذين أُسندت لهم مقررات دراسات عامة فعليًا. وإذا كان المدرب يدرّس دراسات عامة وتخصص فسيبقى ضمن الجهتين معًا.
                   </div>
+                  <div style={{ marginTop: 8, color: COLORS.warning, fontSize: 13, lineHeight: 1.8, fontWeight: 700 }}>
+                    ملاحظة: عند تفعيل هذا الخيار، إذا لم يكفِ عدد مدربي مقررات الدراسات العامة في فترة معيّنة فلن تتم جدولة المقرر في تلك الفترة، ولن يتم الاستعانة بمدربين من خارج الدراسات العامة.
+                  </div>
                 </div>
                 <Switch
                   checked={restrictGeneralStudiesInvigilationToGeneralStudiesTrainers}
@@ -9894,6 +9930,9 @@ const headerBtn = (danger = false) => ({
                       </div>
                       <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
                         عند التفعيل سيتم أولًا تحديد مقررات التخصص الداخلة في التوزيع بعد الاستبعاد، ثم حصر المراقبة على مدربي هذه المقررات فقط دون إدخال أي مدرب من خارجها.
+                      </div>
+                      <div style={{ marginTop: 8, color: COLORS.warning, fontSize: 13, lineHeight: 1.8, fontWeight: 700 }}>
+                        ملاحظة: عند تفعيل هذا الخيار، إذا لم يكفِ عدد مدربي هذا النطاق في فترة معيّنة فلن تتم جدولة المقرر في تلك الفترة، ولن يتم الاستعانة بمدربين من خارج هذا النطاق.
                       </div>
                     </div>
                     <Switch
