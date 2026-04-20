@@ -9433,6 +9433,7 @@ const headerBtn = (danger = false) => ({
         flexWrap: "wrap",
         gap: 12,
         marginTop: 18,
+        flexDirection: "column",
       }}
     >
       <label
