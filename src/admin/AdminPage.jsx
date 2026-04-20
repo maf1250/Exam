@@ -5822,15 +5822,7 @@ const requiredSeats = Number(course.studentCount) || 0;
     }
 
     if (!hasAnyFittableHallInAnySlot) {
-      console.log("MAX_REMAINING_DEBUG", {
-        course: course.courseName,
-        requiredSeats,
-        maxAvailable,
-        maxRemainingAcrossSlots,
-        hallConstraint: hallConstraintSummary,
-      });
-
-      return {
+        return {
         shortLabel: "لا توجد قاعة مناسبة",
         detail:
           hallConstraintSummary.mode === "only"
@@ -6032,17 +6024,6 @@ sortedCoursesForInvigilation.forEach((course) => {
       }, 0)
     : 0;
 
-  console.log("MAX_REMAINING_DEBUG", {
-    course: course.courseName || course.courseCode || course.key,
-    requiredSeats: Number(course.studentCount) || 0,
-    slot: null,
-    maxRemainingAcrossSlots,
-    hallsBySlot: slots.map((slot) => ({
-      slot: getSlotPeriodKey(slot),
-      maxRemaining: getMaxAssignableCapacityForSlotIncludingSplit(hallsPool, course, slot, hallUsageMap),
-    })),
-  });
-
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
@@ -6134,14 +6115,6 @@ sortedCoursesForInvigilation.forEach((course) => {
     canFitSingleHall: getEffectiveAssignableHallCapacityForSlot(hall, course, bestSlot, hallUsageMap) >= (Number(course.studentCount) || 0),
     canAssign: canAssignHallToCourseInSlot(hall, course, bestSlot, hallUsageMap),
   }));
-
-  console.log("HALL_DEBUG_BEST_SLOT", {
-    course: course.courseName || course.courseCode || course.key,
-    requiredSeats: Number(course.studentCount) || 0,
-    slot: getSlotPeriodKey(bestSlot),
-    hallConstraint: hallConstraintSummary,
-    halls: hallDebugSnapshot,
-  });
 
   const maxRemaining = getMaxRemainingConstrainedHallCapacityForSlot(
     hallsPool,
