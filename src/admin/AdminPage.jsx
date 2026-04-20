@@ -3494,7 +3494,7 @@ const [courseBKey, setCourseBKey] = useState("");
     );
   }
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
-  const [specializedOnlyDepartmentTrainers, setSpecializedOnlyDepartmentTrainers] = useState(false);
+  const [specializedOnlyDepartmentTrainers, setSpecializedOnlyDepartmentTrainers] = useState(true);
   const [lockGeneralStudiesStep, setLockGeneralStudiesStep] = useState(false);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
@@ -4184,7 +4184,7 @@ const restorePersistedState = (saved) => {
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
-  setSpecializedOnlyDepartmentTrainers(saved.specializedOnlyDepartmentTrainers ?? false);
+  setSpecializedOnlyDepartmentTrainers(saved.specializedOnlyDepartmentTrainers ?? true);
   setLockGeneralStudiesStep(saved.lockGeneralStudiesStep ?? false);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
