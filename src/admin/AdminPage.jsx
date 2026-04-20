@@ -2159,6 +2159,72 @@ function getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigila
     )
   );
 }
+
+function getStrictTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet) {
+  if (!course) return [];
+
+  if (isGeneralStudiesCourse(course)) {
+    return Array.from(generalStudiesInvigilatorsSet || []);
+  }
+
+  const courseKey = String(course.key || "").trim();
+  const normalizedCourseCode = normalizeArabic(String(course.courseCode || "").trim());
+  const normalizedCourseName = normalizeArabic(String(course.courseName || "").trim());
+  const allowedDepartmentRoots = new Set(
+    (Array.isArray(course.departmentRoots) ? course.departmentRoots : getCourseDepartmentRoots(course))
+      .map((value) => normalizeArabic(value))
+      .filter(Boolean)
+  );
+
+  return Array.from(
+    new Set(
+      (Array.isArray(rows) ? rows : [])
+        .filter((row) => {
+          const rowTrainer = String(row["المدرب"] || "").trim();
+          if (!rowTrainer) return false;
+
+          const rowCourseCode = String(row["المقرر"] || "").trim();
+          const rowCourseName = String(row["اسم المقرر"] || "").trim();
+          const rowCourseKey = [normalizeArabic(rowCourseCode), normalizeArabic(rowCourseName)].join("|");
+          if (courseKey && rowCourseKey !== courseKey) return false;
+          if (!courseKey && (normalizeArabic(rowCourseCode) !== normalizedCourseCode || normalizeArabic(rowCourseName) !== normalizedCourseName)) {
+            return false;
+          }
+
+          if (!allowedDepartmentRoots.size) return true;
+
+          const rowRoots = new Set();
+          const rowDepartment = String(row["القسم"] || "").trim();
+          const rowMajor = String(row["التخصص"] || "").trim();
+          const rowSection = `${rowDepartment || "-"} / ${rowMajor || "-"}`;
+
+          splitBySlash(rowDepartment).forEach((value) => {
+            const clean = normalizeArabic(value);
+            if (clean) rowRoots.add(clean);
+          });
+          splitBySlash(rowMajor).forEach((value) => {
+            const clean = normalizeArabic(value);
+            if (clean) rowRoots.add(clean);
+          });
+          splitBySlash(rowSection).forEach((value) => {
+            const clean = normalizeArabic(value);
+            if (clean && clean !== normalizeArabic("-")) rowRoots.add(clean);
+          });
+
+          for (const root of rowRoots) {
+            if (allowedDepartmentRoots.has(root)) return true;
+          }
+          return false;
+        })
+        .flatMap((row) =>
+          String(row["المدرب"] || "")
+            .split("/")
+            .map((name) => name.trim())
+            .filter(Boolean)
+        )
+    )
+  );
+}
 export default function AdminPage() {
   const fileRef = useRef(null);
   const topRef = useRef(null);
@@ -2989,23 +3055,8 @@ const periodOverlapWarning = useMemo(() => {
         !isGeneralStudiesCourse(course)
           ? specializedScopedInvigilatorPool
           : invigilatorPool;
- 
-      
-      console.log("SCOPED POOL", scopedPool);
-  console.log("SCOPED POOL COUNT", scopedPool.length);
-  console.log(
-    "SPECIALIZED COURSES",
-    specializedCourses.map((c) => ({
-      key: c.key,
-      courseName: c.courseName,
-      department: c.department,
-      major: c.major,
-    }))
-     );
 
-      
       const baseCandidates = scopedPool
-        
         .filter(
           (name) =>
             !excludedInvigilators.some(
@@ -3013,30 +3064,45 @@ const periodOverlapWarning = useMemo(() => {
             )
         )
         .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
-      
-baseCandidates.forEach((name) => {
-  console.log("CANDIDATE", {
-    name,
-    courseName: course?.courseName,
-    department: course?.department,
-    major: course?.major,
-  });
-});
-      
+
+      if (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors) {
+        console.warn("INVIGILATOR_SCOPE_DEBUG", {
+          courseName: course?.courseName,
+          courseCode: course?.courseCode,
+          department: course?.department,
+          major: course?.major,
+          scopedPoolCount: scopedPool.length,
+          baseCandidatesCount: baseCandidates.length,
+          scopedPool,
+          baseCandidates,
+        });
+      }
+
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
       );
 
       const departmentTrainerSet = new Set(
         (
-          (typeof getDepartmentTrainerNamesForCourse === "function"
-            ? getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet)
+          (typeof getStrictTrainerNamesForCourse === "function"
+            ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
             : []) || []
         ).map((name) => normalizeArabic(name))
       );
 
       let constrainedCandidates = [...baseCandidates];
       let strictOnlyMode = false;
+
+      if (
+        restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+        !includeAllDepartmentsAndMajors &&
+        !isGeneralStudiesCourse(course)
+      ) {
+        strictOnlyMode = true;
+        constrainedCandidates = baseCandidates.filter((name) =>
+          departmentTrainerSet.has(normalizeArabic(name))
+        );
+      }
 
       switch (constraint.mode) {
         case "only":
@@ -5446,10 +5512,7 @@ const hallsPool = normalizedExamHalls;
       ? coursesList
           .filter((course) => !isGeneralStudiesCourse(course))
           .flatMap((course) =>
-            String(course.trainerText || "")
-              .split("/")
-              .map((name) => name.trim())
-              .filter(Boolean)
+            getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
           )
       : []
     ).map((name) => normalizeArabic(name))
@@ -5582,20 +5645,44 @@ const pickInvigilators = (course, slot) => {
     )
     .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
 
+  if (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors) {
+    console.warn("INVIGILATOR_SCOPE_DEBUG", {
+      courseName: course?.courseName,
+      courseCode: course?.courseCode,
+      department: course?.department,
+      major: course?.major,
+      scopedPoolCount: scopedPool.length,
+      baseCandidatesCount: baseCandidates.length,
+      scopedPool,
+      baseCandidates,
+    });
+  }
+
   const normalizedManualSet = new Set(
     (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
   );
 
   const departmentTrainerSet = new Set(
     (
-      (typeof getDepartmentTrainerNamesForCourse === "function"
-        ? getDepartmentTrainerNamesForCourse(course, rows, generalStudiesInvigilatorsSet)
+      (typeof getStrictTrainerNamesForCourse === "function"
+        ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
         : []) || []
     ).map((name) => normalizeArabic(name))
   );
 
   let constrainedCandidates = [...baseCandidates];
   let strictOnlyMode = false;
+
+  if (
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors &&
+    !isGeneralStudiesCourse(course)
+  ) {
+    strictOnlyMode = true;
+    constrainedCandidates = baseCandidates.filter((name) =>
+      departmentTrainerSet.has(normalizeArabic(name))
+    );
+  }
 
   switch (constraint.mode) {
     case "only":
@@ -7104,66 +7191,6 @@ const headerBtn = (danger = false) => ({
         pointerEvents: "none",
       }}
     />
- {/* ===== الأزرار (Premium) ===== */}
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        maxWidth: 200,
-        alignItems: "stretch",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      <button
-        onClick={exportSavedSession}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "#ffffff",
-          color: "#0F5F68",
-        }}
-      >
-         تصدير البيانات
-      </button>
-
-      <button
-        onClick={() => importSessionRef.current?.click()}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(255,255,255,0.2)",
-          color: "#fff",
-          border: "1px solid rgba(255,255,255,0.3)",
-        }}
-      >
-         استيراد البيانات
-      </button>
-
-      <button
-        onClick={clearSavedState}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(0,0,0,0.25)",
-          color: "#fff",
-        }}
-      >
-         حذف البيانات المحلية
-      </button>
-    </div>
-  </div>
-
 
     {/* ===== الشعار ===== */}
     <div
@@ -7300,8 +7327,68 @@ const headerBtn = (danger = false) => ({
         والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
       </p>
     </div>
+
+    {/* ===== الأزرار (Premium) ===== */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        maxWidth: 200,
+        alignItems: "stretch",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <button
+        onClick={exportSavedSession}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "#ffffff",
+          color: "#0F5F68",
+        }}
+      >
+         تصدير البيانات
+      </button>
+
+      <button
+        onClick={() => importSessionRef.current?.click()}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(255,255,255,0.2)",
+          color: "#fff",
+          border: "1px solid rgba(255,255,255,0.3)",
+        }}
+      >
+         استيراد البيانات
+      </button>
+
+      <button
+        onClick={clearSavedState}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(0,0,0,0.25)",
+          color: "#fff",
+        }}
+      >
+         حذف البيانات المحلية
+      </button>
+    </div>
+  </div>
 </div>
-   
+
   {/* input مخفي */}
   <input
     ref={importSessionRef}
