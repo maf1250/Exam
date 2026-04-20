@@ -2919,6 +2919,12 @@ const periodOverlapWarning = useMemo(() => {
       ),
     ];
 
+    const specializedScopedInvigilatorPool = restrictSpecializedInvigilationToVisibleDepartmentTrainers
+      ? invigilatorPool.filter((name) =>
+          specializedVisibleDepartmentTrainerNameSet.has(normalizeArabic(name))
+        )
+      : invigilatorPool;
+
     const invigilatorLoad = new Map(invigilatorPool.map((name) => [name, 0]));
     const invigilatorBusyPeriods = new Map(invigilatorPool.map((name) => [name, new Set()]));
     const invigilatorDayLoad = new Map(invigilatorPool.map((name) => [name, new Map()]));
@@ -2946,17 +2952,13 @@ const periodOverlapWarning = useMemo(() => {
     const getInvigilatorDayLoadForDate = (name, dateISO) =>
       invigilatorDayLoad.get(name)?.get(dateISO) || 0;
 
-    const rankInvigilatorForFairness = (name, slot, preferTrainer = false, hardFairness = false) => {
+    const rankInvigilatorForFairness = (name, slot, preferTrainer = false) => {
       const load = invigilatorLoad.get(name) || 0;
       const minLoad = getMinInvigilatorLoad();
       const dayLoad = slot ? getInvigilatorDayLoadForDate(name, slot.dateISO) : 0;
-      const overloadPenalty = hardFairness
-        ? (load > minLoad ? 100000 : 0)
-        : (load > minLoad + 1 ? 1000 : 0);
-      const sameDayPenalty = hardFairness
-        ? (dayLoad > 0 ? 50 + dayLoad * 25 : 0)
-        : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
-      const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
+      const overloadPenalty = load > minLoad + 1 ? 1000 : 0;
+      const sameDayPenalty = dayLoad > 0 ? 3 + dayLoad * 2 : 0;
+      const trainerBonus = preferTrainer ? -0.15 : 0;
       return load + overloadPenalty + sameDayPenalty + trainerBonus;
     };
 
@@ -2981,16 +2983,14 @@ const periodOverlapWarning = useMemo(() => {
           ? getCourseInvigilatorConstraint(course)
           : { mode: "off", invigilatorNames: [] };
 
-      const allowedSpecializedTrainerSet = new Set(
-        (allowedSpecializedDepartmentTrainerNames || []).map((name) => normalizeArabic(name))
-      );
-      const courseIsSpecialized = !isGeneralStudiesCourse(course);
-      const strictSpecializedMode =
-        specializedOnlyDepartmentTrainers &&
+      const scopedPool =
+        restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
         !includeAllDepartmentsAndMajors &&
-        courseIsSpecialized;
+        !isGeneralStudiesCourse(course)
+          ? specializedScopedInvigilatorPool
+          : invigilatorPool;
 
-      let baseCandidates = invigilatorPool
+      const baseCandidates = scopedPool
         .filter(
           (name) =>
             !excludedInvigilators.some(
@@ -2998,12 +2998,6 @@ const periodOverlapWarning = useMemo(() => {
             )
         )
         .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
-
-      if (strictSpecializedMode) {
-        baseCandidates = baseCandidates.filter((name) =>
-          allowedSpecializedTrainerSet.has(normalizeArabic(name))
-        );
-      }
 
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
@@ -3053,30 +3047,19 @@ const periodOverlapWarning = useMemo(() => {
           break;
       }
 
-      if (strictSpecializedMode) {
-        strictOnlyMode = true;
-        constrainedCandidates = constrainedCandidates.filter((name) =>
-          allowedSpecializedTrainerSet.has(normalizeArabic(name))
-        );
-      }
-
-      const hardFairnessForThisCourse = strictSpecializedMode;
-
       const sortCandidates = (candidates) =>
         [...candidates].sort((a, b) => {
           const aScore = rankInvigilatorForFairness(
             a,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(a)),
-            hardFairnessForThisCourse
+              normalizedTrainerSet.has(normalizeArabic(a))
           );
           const bScore = rankInvigilatorForFairness(
             b,
             slot,
             preferCourseTrainerInvigilation &&
-              normalizedTrainerSet.has(normalizeArabic(b)),
-            hardFairnessForThisCourse
+              normalizedTrainerSet.has(normalizeArabic(b))
           );
 
           return aScore - bScore || a.localeCompare(b, "ar");
@@ -3089,10 +3072,13 @@ const periodOverlapWarning = useMemo(() => {
           constrainedCandidates
             .filter((name) => !chosen.includes(name))
             .filter((name) =>
-              hardFairnessForThisCourse
-                ? (invigilatorLoad.get(name) || 0) <= minLoad
-                : (invigilatorLoad.get(name) || 0) <= minLoad + 1
-            )
+          (invigilatorLoad.get(name) || 0) <=
+          (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+          !includeAllDepartmentsAndMajors &&
+          !isGeneralStudiesCourse(course)
+            ? minLoad
+            : minLoad + 1)
+        )
         );
 
         if (!fairCandidates.length) break;
@@ -3107,15 +3093,13 @@ const periodOverlapWarning = useMemo(() => {
               a,
               slot,
               preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(a)),
-              hardFairnessForThisCourse
+                normalizedTrainerSet.has(normalizeArabic(a))
             );
             const bScore = rankInvigilatorForFairness(
               b,
               slot,
               preferCourseTrainerInvigilation &&
-                normalizedTrainerSet.has(normalizeArabic(b)),
-              hardFairnessForThisCourse
+                normalizedTrainerSet.has(normalizeArabic(b))
             );
 
             return aScore - bScore || a.localeCompare(b, "ar");
@@ -3477,6 +3461,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [autoDetectedCollegeLocation, setAutoDetectedCollegeLocation] = useState("");
   const [excludedCourses, setExcludedCourses] = useState([]);
   const [includeAllDepartmentsAndMajors, setIncludeAllDepartmentsAndMajors] = useState(true);
+  const [restrictSpecializedInvigilationToVisibleDepartmentTrainers, setRestrictSpecializedInvigilationToVisibleDepartmentTrainers] = useState(false);
 
   const isGeneralStudiesManualEditLocked = !includeAllDepartmentsAndMajors;
 
@@ -3494,7 +3479,6 @@ const [courseBKey, setCourseBKey] = useState("");
     );
   }
   const [excludedDepartmentMajors, setExcludedDepartmentMajors] = useState([]);
-  const [specializedOnlyDepartmentTrainers, setSpecializedOnlyDepartmentTrainers] = useState(true);
   const [lockGeneralStudiesStep, setLockGeneralStudiesStep] = useState(false);
   const [printDepartmentFilter, setPrintDepartmentFilter] = useState("__all__");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
@@ -4064,8 +4048,8 @@ const buildPersistedState = () => ({
   studentsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
+  restrictSpecializedInvigilationToVisibleDepartmentTrainers,
   excludedDepartmentMajors,
-  specializedOnlyDepartmentTrainers,
   lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
@@ -4183,8 +4167,8 @@ const restorePersistedState = (saved) => {
   setStudentsPerInvigilator(saved.studentsPerInvigilator || 20);
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
+  setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(saved.restrictSpecializedInvigilationToVisibleDepartmentTrainers ?? false);
   setExcludedDepartmentMajors(saved.excludedDepartmentMajors || []);
-  setSpecializedOnlyDepartmentTrainers(saved.specializedOnlyDepartmentTrainers ?? true);
   setLockGeneralStudiesStep(saved.lockGeneralStudiesStep ?? false);
   setPrintDepartmentFilter(saved.printDepartmentFilter || "__all__");
   setPrintMajorFilter(saved.printMajorFilter || "__all__");
@@ -4384,8 +4368,8 @@ useEffect(() => {
   studentsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
+  restrictSpecializedInvigilationToVisibleDepartmentTrainers,
   excludedDepartmentMajors,
-  specializedOnlyDepartmentTrainers,
   lockGeneralStudiesStep,
   printDepartmentFilter,
   printMajorFilter,
@@ -4997,7 +4981,7 @@ const baseLink = useMemo(() => {
     setIncludeAllDepartmentsAndMajors(checked);
     if (checked) {
       setExcludedDepartmentMajors([]);
-      setSpecializedOnlyDepartmentTrainers(false);
+      setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(false);
       setLockGeneralStudiesStep(false);
     } else {
       setLockGeneralStudiesStep(true);
@@ -5064,6 +5048,28 @@ const selectedCourseB = useMemo(
     return parsed.courses.filter((course) => !keys.has(course.key));
   }, [parsed.courses, generalCourses]);
 
+  const specializedVisibleDepartmentTrainerNames = useMemo(() => {
+    return Array.from(
+      new Set(
+        specializedCourses
+          .flatMap((course) =>
+            String(course.trainerText || "")
+              .split("/")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          )
+          .map((name) => String(name || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "ar"));
+  }, [specializedCourses]);
+
+  const specializedVisibleDepartmentTrainerNameSet = useMemo(() => {
+    return new Set(
+      specializedVisibleDepartmentTrainerNames.map((name) => normalizeArabic(name))
+    );
+  }, [specializedVisibleDepartmentTrainerNames]);
+
   const excludedInvigilatorsForSelectedDepartments = useMemo(() => {
     if (includeAllDepartmentsAndMajors) return new Set();
 
@@ -5076,53 +5082,6 @@ const selectedCourseB = useMemo(
 
     return new Set(names.map((name) => normalizeArabic(name)));
   }, [includeAllDepartmentsAndMajors, generalCourses]);
-
-  const allowedSpecializedDepartmentTrainerNames = useMemo(() => {
-    if (includeAllDepartmentsAndMajors) return [];
-    if (!rows.length) return [];
-
-    const allowedKeys = new Set(
-      (departmentMajorOptions || [])
-        .filter((item) => !excludedDepartmentMajors.includes(item.key))
-        .map((item) => item.key)
-    );
-
-    return Array.from(
-      new Set(
-        rows
-          .filter((row) => {
-            const department = String(row["القسم"] || "").trim();
-            const major = String(row["التخصص"] || "").trim();
-            const trainer = String(row["المدرب"] || "").trim();
-            if (!trainer) return false;
-
-            if (normalizeArabic(department) === normalizeArabic("الدراسات العامة")) {
-              return false;
-            }
-
-            const rowKeys = [];
-            splitBySlash(department || "-").forEach((dep) => {
-              splitBySlash(major || "-").forEach((maj) => {
-                rowKeys.push(`${normalizeArabic(String(dep || "").trim() || "-")}|${normalizeArabic(String(maj || "").trim() || "-")}`);
-              });
-            });
-
-            return rowKeys.some((key) => allowedKeys.has(key));
-          })
-          .flatMap((row) =>
-            String(row["المدرب"] || "")
-              .split("/")
-              .map((name) => name.trim())
-              .filter(Boolean)
-          )
-      )
-    ).sort((a, b) => a.localeCompare(b, "ar"));
-  }, [
-    includeAllDepartmentsAndMajors,
-    rows,
-    departmentMajorOptions,
-    excludedDepartmentMajors,
-  ]);
 
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
   const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
@@ -5458,6 +5417,25 @@ const hallsPool = normalizedExamHalls;
     ),
   ];
 
+  const scopedCourseTrainerNameSet = new Set(
+    (restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors
+      ? coursesList
+          .filter((course) => !isGeneralStudiesCourse(course))
+          .flatMap((course) =>
+            String(course.trainerText || "")
+              .split("/")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          )
+      : []
+    ).map((name) => normalizeArabic(name))
+  );
+
+  const specializedScopedInvigilatorPool =
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers && !includeAllDepartmentsAndMajors
+      ? invigilatorPool.filter((name) => scopedCourseTrainerNameSet.has(normalizeArabic(name)))
+      : invigilatorPool;
+
   const studentSlotMap = new Map();
   const studentDayMap = new Map();
   const slotCoursesMap = new Map(slots.map((slot) => [slot.id, []]));
@@ -5564,7 +5542,14 @@ const pickInvigilators = (course, slot) => {
       ? getCourseInvigilatorConstraint(course)
       : { mode: "off", invigilatorNames: [] };
 
-  const baseCandidates = invigilatorPool
+  const scopedPool =
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors &&
+    !isGeneralStudiesCourse(course)
+      ? specializedScopedInvigilatorPool
+      : invigilatorPool;
+
+  const baseCandidates = scopedPool
     .filter(
       (name) =>
         !excludedInvigilators.some(
@@ -5646,7 +5631,14 @@ const pickInvigilators = (course, slot) => {
     const fairCandidates = sortCandidates(
       constrainedCandidates
         .filter((name) => !chosen.includes(name))
-        .filter((name) => (invigilatorLoad.get(name) || 0) <= minLoad + 1)
+        .filter((name) =>
+          (invigilatorLoad.get(name) || 0) <=
+          (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+          !includeAllDepartmentsAndMajors &&
+          !isGeneralStudiesCourse(course)
+            ? minLoad
+            : minLoad + 1)
+        )
     );
 
     if (!fairCandidates.length) break;
@@ -6264,22 +6256,9 @@ const pickedInvigilators = pickInvigilators(course, bestSlot);
 const requiredInvigilatorsCount = includeInvigilators ? getRequiredInvigilatorsCount(course) : 0;
 
 if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount) {
-  const strictDepartmentInvigilatorsOnly =
-    specializedOnlyDepartmentTrainers &&
-    !includeAllDepartmentsAndMajors &&
-    !isGeneralStudiesCourse(course);
-
-  const invigilatorShortageReason = strictDepartmentInvigilatorsOnly
-    ? `لا يوجد عدد كافٍ من مدربي الأقسام/التخصصات المحددة لإسناد هذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`
-    : `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`;
-
-  const invigilatorShortageSummary = strictDepartmentInvigilatorsOnly
-    ? "تم اختيار الفترة مبدئيًا، لكن مدربي الأقسام/التخصصات المحددة المتاحين فيها لا يكفون لإسناد هذا المقرر."
-    : "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.";
-
   notPlaced.push({
     ...course,
-    unscheduledReason: invigilatorShortageReason,
+    unscheduledReason: `لا يوجد عدد كافٍ من المراقبين لهذا المقرر في هذه الفترة. المطلوب ${requiredInvigilatorsCount}، والمتاح فعليًا ${pickedInvigilators.length}.`,
     unscheduledShortLabel: "لا يوجد مراقبون كافيون",
     unscheduledReasonDetails: {
       invigilatorShortageSlots: [
@@ -6290,11 +6269,10 @@ if (includeInvigilators && pickedInvigilators.length < requiredInvigilatorsCount
           period: bestSlot?.period || null,
           timeText: bestSlot?.timeText || "",
           reason: `المطلوب ${requiredInvigilatorsCount} مراقب/مراقبين، والمتاح فعليًا ${pickedInvigilators.length}.`,
-          summary: invigilatorShortageSummary,
+          summary: "تم اختيار الفترة مبدئيًا، لكن المراقبين المتاحين فيها لا يكفون لإسناد هذا المقرر.",
           requiredInvigilatorsCount,
           availableInvigilatorsCount: pickedInvigilators.length,
           availableInvigilators: pickedInvigilators,
-          strictDepartmentInvigilatorsOnly,
         },
       ],
     },
@@ -7103,7 +7081,143 @@ const headerBtn = (danger = false) => ({
       }}
     />
 
-       {/* ===== الأزرار (Premium) ===== */}
+    {/* ===== الشعار ===== */}
+    <div
+      style={{
+        width: 150,
+        height: 150,
+        borderRadius: 30,
+        background: "rgba(255,255,255,0.15)",
+        border: "1px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(10px)",
+        flexShrink: 0,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >    
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 130, height: 130, objectFit: "contain" }}
+      />
+    </div>
+
+    {/* التعرف التلقائي
+   <div
+  style={{
+    maxWidth: 150,
+    minWidth: 150,
+    minHeight: 150,
+    display: "inline",
+    background: "rgba(255,255,255,0.15)",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  }}
+>
+
+    
+  {effectiveCollegeLocation ? (
+    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
+      تم التعرف على الوحدة: {effectiveCollegeLocation}
+      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+    </div>
+  ) : (
+    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
+      تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
+    </div>
+  )}
+
+  {!detectedCollegeLocation && (
+    <select
+      value={manualCollegeLocation}
+      onChange={(e) => setManualCollegeLocation(e.target.value)}
+      style={fieldStyle()}
+    >
+      <option value="">اختر المدينة</option>
+      {allCollegeLocations.map((location) => (
+        <option key={location} value={location}>
+          {location}
+        </option>
+      ))}
+    </select>
+  )}
+
+  {detectedCollegeLocation && (
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setManualCollegeLocation("")}
+        style={cardButtonStyle()}
+      >
+        استخدام التعرف التلقائي
+      </button>
+    </div>
+  )}
+</div>
+ */}
+    
+    {/* ===== النص ===== */}
+    <div
+      style={{
+        flex: 1,
+        minWidth: 260,
+        position: "relative",
+        zIndex: 1,
+        textAlign: "right",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 16px",
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+      >
+        <span>لوحة التحكم</span>
+        <span style={{ opacity: 0.7 }}>•</span>
+        <span>إدارة الاختبارات النهائية</span>
+      </div>
+
+      <h1
+        style={{
+          margin: 0,
+          color: "#fff",
+          fontSize: "clamp(30px, 4vw, 42px)",
+          fontWeight: 900,
+        }}
+      >
+         منصة إدارة جداول الاختبارات النهائية
+      </h1>
+
+      <p
+        style={{
+          marginTop: 10,
+          color: "rgba(255,255,255,0.95)",
+          fontSize: 15,
+          lineHeight: 1.9,
+          maxWidth: 720,
+        }}
+      >
+        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
+        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
+      </p>
+    </div>
+
+    {/* ===== الأزرار (Premium) ===== */}
     <div
       style={{
         display: "flex",
@@ -7163,90 +7277,6 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 </div>
-
- {/* ===== الشعار ===== */}
-    <div
-      style={{
-        width: 150,
-        height: 150,
-        borderRadius: 30,
-        background: "rgba(255,255,255,0.15)",
-        border: "1px solid rgba(255,255,255,0.25)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
-        flexShrink: 0,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >    
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{ width: 130, height: 130, objectFit: "contain" }}
-      />
-    </div>
-    
-    {/* ===== النص ===== */}
-    <div
-      style={{
-        flex: 1,
-        minWidth: 260,
-        position: "relative",
-        zIndex: 1,
-        textAlign: "right",
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 16px",
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.15)",
-          color: "#fff",
-          fontSize: 13,
-          fontWeight: 700,
-          marginBottom: 14,
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <span>لوحة التحكم</span>
-        <span style={{ opacity: 0.7 }}>•</span>
-        <span>إدارة الاختبارات النهائية</span>
-      </div>
-
-      <h1
-        style={{
-          margin: 0,
-          color: "#fff",
-          fontSize: "clamp(30px, 4vw, 42px)",
-          fontWeight: 900,
-        }}
-      >
-         منصة إدارة جداول الاختبارات النهائية
-      </h1>
-
-      <p
-        style={{
-          marginTop: 10,
-          color: "rgba(255,255,255,0.95)",
-          fontSize: 15,
-          lineHeight: 1.9,
-          maxWidth: 720,
-        }}
-      >
-        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
-        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
-      </p>
-    </div>
-
-    
-
- 
 
   {/* input مخفي */}
   <input
@@ -9691,6 +9721,31 @@ const headerBtn = (danger = false) => ({
                   وعند توزيع قسم محدد سيتم قفل صفحة الدراسات العامة حتى لا يتم تعديلها.
                 </div>
 
+                <div
+                  style={{
+                    marginBottom: 14,
+                    border: `1px solid ${COLORS.primaryBorder}`,
+                    borderRadius: 16,
+                    padding: 14,
+                    background: COLORS.primaryLight,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 6 }}>
+                        حصر المراقبات على مدربي الأقسام المحددة فقط
+                      </div>
+                      <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
+                        عند التفعيل سيتم أولًا تحديد مقررات التخصص الداخلة في التوزيع بعد الاستبعاد، ثم حصر المراقبة على مدربي هذه المقررات فقط دون إدخال أي مدرب من خارجها.
+                      </div>
+                    </div>
+                    <Switch
+                      checked={restrictSpecializedInvigilationToVisibleDepartmentTrainers}
+                      onChange={setRestrictSpecializedInvigilationToVisibleDepartmentTrainers}
+                    />
+                  </div>
+                </div>
+
                 <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد أقسام / تخصصات من التوزيع</div>
                 <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
                   اختر القسم أو التخصص الذي لا تريد دخوله في توزيع مقررات التخصص، ويمكنك الضغط مرة أخرى لإعادته.
@@ -9721,33 +9776,6 @@ const headerBtn = (danger = false) => ({
                   ) : (
                     <span style={{ color: "#94A3B8" }}>ارفع الملف أولًا</span>
                   )}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 14,
-                    padding: 14,
-                    borderRadius: 18,
-                    background: "#F8FCFC",
-                    border: `1px solid ${COLORS.primaryBorder}`,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 6 }}>
-                        حصر المراقبات على مدربي الأقسام المحددة فقط
-                      </div>
-                      <div style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>
-                        عند التفعيل، لن يسمح النظام بإسناد أي مراقب من خارج مدربي الأقسام/التخصصات الداخلة في توزيع مقررات التخصص،
-                        وسيتم تشديد العدالة بينهم بدرجة عالية جدًا. إذا لم يكفِ العدد فسيظهر المقرر ضمن غير المجدول بدل إدخال مراقبين من خارج القسم.
-                      </div>
-                    </div>
-
-                    <Switch
-                      checked={specializedOnlyDepartmentTrainers}
-                      onChange={setSpecializedOnlyDepartmentTrainers}
-                    />
-                  </div>
                 </div>
               </div>
             ) : null}
