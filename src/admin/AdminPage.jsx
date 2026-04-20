@@ -2242,6 +2242,8 @@ const pendingRestoreRef = useRef(null);
   const [previewTab, setPreviewTab] = useState("sortedCourses");
   const [invigilationMode, setInvigilationMode] = useState("ratio");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(20);
+  const [targetMinInvigilationsPerInvigilator, setTargetMinInvigilationsPerInvigilator] = useState(0);
+  const [maxInvigilationsPerInvigilator, setMaxInvigilationsPerInvigilator] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
   const [studentSearchText, setStudentSearchText] = useState("");
   const [showStudentSuggestions, setShowStudentSuggestions] = useState(false);
@@ -4224,6 +4226,8 @@ const buildPersistedState = () => ({
   invigilatorsPerPeriod,
   invigilationMode,
   studentsPerInvigilator,
+  targetMinInvigilationsPerInvigilator,
+  maxInvigilationsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
@@ -4348,6 +4352,8 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
   setInvigilationMode(saved.invigilationMode || "ratio");
   setStudentsPerInvigilator(saved.studentsPerInvigilator || 20);
+  setTargetMinInvigilationsPerInvigilator(Math.max(0, Number(saved.targetMinInvigilationsPerInvigilator) || 0));
+  setMaxInvigilationsPerInvigilator(saved.maxInvigilationsPerInvigilator === "" || saved.maxInvigilationsPerInvigilator == null ? "" : Math.max(1, Number(saved.maxInvigilationsPerInvigilator) || 1));
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(saved.restrictSpecializedInvigilationToVisibleDepartmentTrainers ?? false);
@@ -4550,6 +4556,8 @@ useEffect(() => {
   invigilatorsPerPeriod,
   invigilationMode,
   studentsPerInvigilator,
+  targetMinInvigilationsPerInvigilator,
+  maxInvigilationsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
@@ -9597,6 +9605,46 @@ const headerBtn = (danger = false) => ({
                 />
               </div>
             )}
+
+            <div
+              style={{
+                width: "100%",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <div style={{ marginBottom: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>الحد الأدنى المستهدف للمراقبات لكل مراقب</span>
+                  <TooltipIcon text="هذا هدف تفضيلي للعدالة. سيحاول النظام إعطاء أولوية للمراقبين الذين ما زالوا أقل من هذا العدد، لكنه لا يوقف الجدولة إذا تعذر الوصول إليه." />
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={targetMinInvigilationsPerInvigilator}
+                  onChange={(e) => setTargetMinInvigilationsPerInvigilator(Math.max(0, safeNum(e.target.value, 0)))}
+                  style={{ ...fieldStyle(), maxWidth: 120 }}
+                />
+              </div>
+
+              <div style={{ width: "100%" }}>
+                <div style={{ marginBottom: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>الحد الأقصى للمراقبات لكل مراقب</span>
+                  <TooltipIcon text="هذا قيد أعلى لعدد المراقبات لكل مراقب. عند تفعيله سيحاول النظام عدم تجاوز هذا العدد لكل مراقب أثناء التوزيع، ويمكن لاحقًا ربطه بمنطق الضرورة القصوى إذا رغبت." />
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={maxInvigilationsPerInvigilator}
+                  onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value === "" ? "" : Math.max(1, safeNum(e.target.value, 1)))}
+                  placeholder="بدون حد"
+                  style={{ ...fieldStyle(), maxWidth: 120 }}
+                />
+              </div>
+            </div>
           
 
           <span style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
