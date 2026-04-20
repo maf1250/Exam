@@ -2242,7 +2242,7 @@ const pendingRestoreRef = useRef(null);
   const [previewTab, setPreviewTab] = useState("sortedCourses");
   const [invigilationMode, setInvigilationMode] = useState("ratio");
   const [studentsPerInvigilator, setStudentsPerInvigilator] = useState(20);
-  const [targetMinInvigilationsPerInvigilator, setTargetMinInvigilationsPerInvigilator] = useState(0);
+  const [minInvigilationTargetPerInvigilator, setMinInvigilationTargetPerInvigilator] = useState(0);
   const [maxInvigilationsPerInvigilator, setMaxInvigilationsPerInvigilator] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
   const [studentSearchText, setStudentSearchText] = useState("");
@@ -3043,6 +3043,13 @@ const periodOverlapWarning = useMemo(() => {
     const getInvigilatorDayLoadForDate = (name, dateISO) =>
       invigilatorDayLoad.get(name)?.get(dateISO) || 0;
 
+    const invigilationTargetFloor = Math.max(0, Number(minInvigilationTargetPerInvigilator) || 0);
+    const parsedMaxInvigilations = Number(maxInvigilationsPerInvigilator);
+    const invigilationMaxCap = Number.isFinite(parsedMaxInvigilations) && parsedMaxInvigilations > 0
+      ? parsedMaxInvigilations
+      : Number.POSITIVE_INFINITY;
+    const hasReachedInvigilationMax = (name) => (invigilatorLoad.get(name) || 0) >= invigilationMaxCap;
+
     const rankInvigilatorForFairness = (
       name,
       slot,
@@ -3059,7 +3066,8 @@ const periodOverlapWarning = useMemo(() => {
         ? (dayLoad > 0 ? 20 + dayLoad * 10 : 0)
         : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
       const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
-      return load + overloadPenalty + sameDayPenalty + trainerBonus;
+      const targetBonus = invigilationTargetFloor > 0 && load < invigilationTargetFloor ? -0.35 : 0;
+      return load + overloadPenalty + sameDayPenalty + trainerBonus + targetBonus;
     };
 
     const pickInvigilatorsForSlot = (course, slot) => {
@@ -3114,7 +3122,8 @@ const strictCandidates = strictPool
         (ex) => normalizeArabic(ex) === normalizeArabic(name)
       )
   )
-  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+  .filter((name) => !hasReachedInvigilationMax(name));
 
 const extraCandidates = extraPool
   .filter(
@@ -3124,6 +3133,7 @@ const extraCandidates = extraPool
       )
   )
   .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+  .filter((name) => !hasReachedInvigilationMax(name))
   .filter((name) => !strictCandidates.includes(name));
 
   if (
@@ -4226,7 +4236,7 @@ const buildPersistedState = () => ({
   invigilatorsPerPeriod,
   invigilationMode,
   studentsPerInvigilator,
-  targetMinInvigilationsPerInvigilator,
+  minInvigilationTargetPerInvigilator,
   maxInvigilationsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
@@ -4352,8 +4362,8 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setInvigilatorsPerPeriod(saved.invigilatorsPerPeriod || 4);
   setInvigilationMode(saved.invigilationMode || "ratio");
   setStudentsPerInvigilator(saved.studentsPerInvigilator || 20);
-  setTargetMinInvigilationsPerInvigilator(Math.max(0, Number(saved.targetMinInvigilationsPerInvigilator) || 0));
-  setMaxInvigilationsPerInvigilator(saved.maxInvigilationsPerInvigilator === "" || saved.maxInvigilationsPerInvigilator == null ? "" : Math.max(1, Number(saved.maxInvigilationsPerInvigilator) || 1));
+  setMinInvigilationTargetPerInvigilator(Math.max(0, Number(saved.minInvigilationTargetPerInvigilator) || 0));
+  setMaxInvigilationsPerInvigilator(saved.maxInvigilationsPerInvigilator ?? "");
   setExcludedCourses(saved.excludedCourses || []);
   setIncludeAllDepartmentsAndMajors(saved.includeAllDepartmentsAndMajors ?? true);
   setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(saved.restrictSpecializedInvigilationToVisibleDepartmentTrainers ?? false);
@@ -4556,8 +4566,6 @@ useEffect(() => {
   invigilatorsPerPeriod,
   invigilationMode,
   studentsPerInvigilator,
-  targetMinInvigilationsPerInvigilator,
-  maxInvigilationsPerInvigilator,
   excludedCourses,
   includeAllDepartmentsAndMajors,
   restrictSpecializedInvigilationToVisibleDepartmentTrainers,
@@ -5699,6 +5707,12 @@ const getMinInvigilatorLoad = () => {
 };
 const getInvigilatorDayLoadForDate = (name, dateISO) =>
   invigilatorDayLoad.get(name)?.get(dateISO) || 0;
+const invigilationTargetFloor = Math.max(0, Number(minInvigilationTargetPerInvigilator) || 0);
+const parsedMaxInvigilations = Number(maxInvigilationsPerInvigilator);
+const invigilationMaxCap = Number.isFinite(parsedMaxInvigilations) && parsedMaxInvigilations > 0
+  ? parsedMaxInvigilations
+  : Number.POSITIVE_INFINITY;
+const hasReachedInvigilationMax = (name) => (invigilatorLoad.get(name) || 0) >= invigilationMaxCap;
 const rankInvigilatorForFairness = (
   name,
   slot,
@@ -5718,8 +5732,9 @@ const rankInvigilatorForFairness = (
     : (dayLoad > 0 ? 3 + dayLoad * 2 : 0);
 
   const trainerBonus = preferTrainer && !hardFairness ? -0.15 : 0;
+  const targetBonus = invigilationTargetFloor > 0 && load < invigilationTargetFloor ? -0.35 : 0;
 
-  return load + overloadPenalty + sameDayPenalty + trainerBonus;
+  return load + overloadPenalty + sameDayPenalty + trainerBonus + targetBonus;
 };
 
 const pickInvigilators = (course, slot) => {
@@ -5763,7 +5778,8 @@ const pickInvigilators = (course, slot) => {
           (ex) => normalizeArabic(ex) === normalizeArabic(name)
         )
     )
-    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+    .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+  .filter((name) => !hasReachedInvigilationMax(name));
 
   const extraCandidates = extraPool
     .filter(
@@ -5773,6 +5789,7 @@ const pickInvigilators = (course, slot) => {
         )
     )
     .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+    .filter((name) => !hasReachedInvigilationMax(name))
     .filter(
       (name) =>
         !strictCandidates.some(
@@ -6087,7 +6104,7 @@ const pickInvigilators = (course, slot) => {
           (name) =>
             !excludedInvigilators.some(
               (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            ) && !invigilatorBusyPeriods.get(name)?.has(periodKey)
+            ) && !invigilatorBusyPeriods.get(name)?.has(periodKey) && !hasReachedInvigilationMax(name)
         ).length;
 
         const extraAvailableCount = extraPool.filter(
@@ -6096,6 +6113,7 @@ const pickInvigilators = (course, slot) => {
               (ex) => normalizeArabic(ex) === normalizeArabic(name)
             ) &&
             !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+            !hasReachedInvigilationMax(name) &&
             !strictPool.some(
               (strictName) => normalizeArabic(strictName) === normalizeArabic(name)
             )
@@ -6283,7 +6301,7 @@ const requiredSeats = Number(course.studentCount) || 0;
         (name) =>
           !excludedInvigilators.some(
             (ex) => normalizeArabic(ex) === normalizeArabic(name)
-          ) && !invigilatorBusyPeriods.get(name)?.has(periodKey)
+          ) && !invigilatorBusyPeriods.get(name)?.has(periodKey) && !hasReachedInvigilationMax(name)
       ).length;
 
       const extraAvailableCount = extraPool.filter(
@@ -6292,6 +6310,7 @@ const requiredSeats = Number(course.studentCount) || 0;
             (ex) => normalizeArabic(ex) === normalizeArabic(name)
           ) &&
           !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+          !hasReachedInvigilationMax(name) &&
           !strictPool.some(
             (strictName) => normalizeArabic(strictName) === normalizeArabic(name)
           )
@@ -9434,47 +9453,89 @@ const headerBtn = (danger = false) => ({
         إضافة المراقبين تلقائيًا
       </label>
 
-      <label
+      <div
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 10,
+          gap: 12,
           border: `1px solid ${COLORS.border}`,
           borderRadius: 18,
           padding: 14,
           position: "relative",
+          flexWrap: "wrap",
         }}
       >
-        <input
-          type="checkbox"
-          checked={preferCourseTrainerInvigilation}
-          onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-        />
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={preferCourseTrainerInvigilation}
+            onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+          />
 
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          إعطاء أولوية لمدرب المقرر كمراقب أساسي
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            إعطاء أولوية لمدرب المقرر كمراقب أساسي
 
-          <span
-            onMouseEnter={() => setShowTrainerHint(true)}
-            onMouseLeave={() => setShowTrainerHint(false)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              background: COLORS.warningBg,
-              color: COLORS.warning,
-              fontWeight: 900,
-              fontSize: 13,
-              cursor: "help",
-              border: `1px solid ${COLORS.border}`,
-            }}
-          >
-            !
+            <span
+              onMouseEnter={() => setShowTrainerHint(true)}
+              onMouseLeave={() => setShowTrainerHint(false)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: COLORS.warningBg,
+                color: COLORS.warning,
+                fontWeight: 900,
+                fontSize: 13,
+                cursor: "help",
+                border: `1px solid ${COLORS.border}`,
+              }}
+            >
+              !
+            </span>
           </span>
-        </span>
+        </label>
+
+        <div style={{ display: "inline-flex", alignItems: "end", gap: 10, flexWrap: "wrap" }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
+              الحد الأدنى المستهدف للمراقبات
+              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="50"
+              value={minInvigilationTargetPerInvigilator}
+              onChange={(e) => setMinInvigilationTargetPerInvigilator(Math.max(0, safeNum(e.target.value, 0)))}
+              style={{ ...fieldStyle(), width: 120 }}
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
+              الحد الأقصى للمراقبات لكل مراقب
+              <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={maxInvigilationsPerInvigilator}
+              onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
+              placeholder="بدون حد"
+              style={{ ...fieldStyle(), width: 140 }}
+            />
+          </label>
+        </div>
 
         {showTrainerHint && (
           <div
@@ -9498,7 +9559,7 @@ const headerBtn = (danger = false) => ({
             مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
           </div>
         )}
-      </label>
+      </div>
     </div>
 
     {includeInvigilators ? (
@@ -9605,46 +9666,6 @@ const headerBtn = (danger = false) => ({
                 />
               </div>
             )}
-
-            <div
-              style={{
-                width: "100%",
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-              }}
-            >
-              <div style={{ width: "100%" }}>
-                <div style={{ marginBottom: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>الحد الأدنى المستهدف للمراقبات لكل مراقب</span>
-                  <TooltipIcon text="هذا هدف تفضيلي للعدالة. سيحاول النظام إعطاء أولوية للمراقبين الذين ما زالوا أقل من هذا العدد، لكنه لا يوقف الجدولة إذا تعذر الوصول إليه." />
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  value={targetMinInvigilationsPerInvigilator}
-                  onChange={(e) => setTargetMinInvigilationsPerInvigilator(Math.max(0, safeNum(e.target.value, 0)))}
-                  style={{ ...fieldStyle(), maxWidth: 120 }}
-                />
-              </div>
-
-              <div style={{ width: "100%" }}>
-                <div style={{ marginBottom: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>الحد الأقصى للمراقبات لكل مراقب</span>
-                  <TooltipIcon text="هذا قيد أعلى لعدد المراقبات لكل مراقب. عند تفعيله سيحاول النظام عدم تجاوز هذا العدد لكل مراقب أثناء التوزيع، ويمكن لاحقًا ربطه بمنطق الضرورة القصوى إذا رغبت." />
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={maxInvigilationsPerInvigilator}
-                  onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value === "" ? "" : Math.max(1, safeNum(e.target.value, 1)))}
-                  placeholder="بدون حد"
-                  style={{ ...fieldStyle(), maxWidth: 120 }}
-                />
-              </div>
-            </div>
           
 
           <span style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
