@@ -7103,143 +7103,7 @@ const headerBtn = (danger = false) => ({
       }}
     />
 
-    {/* ===== الشعار ===== */}
-    <div
-      style={{
-        width: 150,
-        height: 150,
-        borderRadius: 30,
-        background: "rgba(255,255,255,0.15)",
-        border: "1px solid rgba(255,255,255,0.25)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
-        flexShrink: 0,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >    
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{ width: 130, height: 130, objectFit: "contain" }}
-      />
-    </div>
-
-    {/* التعرف التلقائي
-   <div
-  style={{
-    maxWidth: 150,
-    minWidth: 150,
-    minHeight: 150,
-    display: "inline",
-    background: "rgba(255,255,255,0.15)",
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-  }}
->
-
-    
-  {effectiveCollegeLocation ? (
-    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الوحدة: {effectiveCollegeLocation}
-      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-    </div>
-  ) : (
-    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
-    </div>
-  )}
-
-  {!detectedCollegeLocation && (
-    <select
-      value={manualCollegeLocation}
-      onChange={(e) => setManualCollegeLocation(e.target.value)}
-      style={fieldStyle()}
-    >
-      <option value="">اختر المدينة</option>
-      {allCollegeLocations.map((location) => (
-        <option key={location} value={location}>
-          {location}
-        </option>
-      ))}
-    </select>
-  )}
-
-  {detectedCollegeLocation && (
-    <div style={{ marginTop: 10 }}>
-      <button
-        type="button"
-        onClick={() => setManualCollegeLocation("")}
-        style={cardButtonStyle()}
-      >
-        استخدام التعرف التلقائي
-      </button>
-    </div>
-  )}
-</div>
- */}
-    
-    {/* ===== النص ===== */}
-    <div
-      style={{
-        flex: 1,
-        minWidth: 260,
-        position: "relative",
-        zIndex: 1,
-        textAlign: "right",
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 16px",
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.15)",
-          color: "#fff",
-          fontSize: 13,
-          fontWeight: 700,
-          marginBottom: 14,
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <span>لوحة التحكم</span>
-        <span style={{ opacity: 0.7 }}>•</span>
-        <span>إدارة الاختبارات النهائية</span>
-      </div>
-
-      <h1
-        style={{
-          margin: 0,
-          color: "#fff",
-          fontSize: "clamp(30px, 4vw, 42px)",
-          fontWeight: 900,
-        }}
-      >
-         منصة إدارة جداول الاختبارات النهائية
-      </h1>
-
-      <p
-        style={{
-          marginTop: 10,
-          color: "rgba(255,255,255,0.95)",
-          fontSize: 15,
-          lineHeight: 1.9,
-          maxWidth: 720,
-        }}
-      >
-        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
-        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
-      </p>
-    </div>
-
-    {/* ===== الأزرار (Premium) ===== */}
+       {/* ===== الأزرار (Premium) ===== */}
     <div
       style={{
         display: "flex",
@@ -7299,6 +7163,90 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 </div>
+
+
+    
+    {/* ===== النص ===== */}
+    <div
+      style={{
+        flex: 1,
+        minWidth: 260,
+        position: "relative",
+        zIndex: 1,
+        textAlign: "right",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 16px",
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.15)",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+      >
+        <span>لوحة التحكم</span>
+        <span style={{ opacity: 0.7 }}>•</span>
+        <span>إدارة الاختبارات النهائية</span>
+      </div>
+
+      <h1
+        style={{
+          margin: 0,
+          color: "#fff",
+          fontSize: "clamp(30px, 4vw, 42px)",
+          fontWeight: 900,
+        }}
+      >
+         منصة إدارة جداول الاختبارات النهائية
+      </h1>
+
+      <p
+        style={{
+          marginTop: 10,
+          color: "rgba(255,255,255,0.95)",
+          fontSize: 15,
+          lineHeight: 1.9,
+          maxWidth: 720,
+        }}
+      >
+        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
+        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
+      </p>
+    </div>
+
+     {/* ===== الشعار ===== */}
+    <div
+      style={{
+        width: 150,
+        height: 150,
+        borderRadius: 30,
+        background: "rgba(255,255,255,0.15)",
+        border: "1px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(10px)",
+        flexShrink: 0,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >    
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 130, height: 130, objectFit: "contain" }}
+      />
+    </div>
+
+ 
 
   {/* input مخفي */}
   <input
