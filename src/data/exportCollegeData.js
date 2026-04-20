@@ -27,6 +27,35 @@ function sortStudentSchedule(schedule = []) {
   });
 }
 
+function buildStudentCourseStatusMap(parsed) {
+  const map = new Map();
+  const rows = Array.isArray(parsed?.rows) ? parsed.rows : [];
+
+  rows.forEach((row) => {
+    const studentId = String(row["رقم المتدرب"] ?? "").trim();
+    const courseCode = String(row["المقرر"] ?? "").trim();
+    const courseName = String(row["اسم المقرر"] ?? "").trim();
+    const registrationStatus = String(row["حالة تسجيل"] ?? "").trim();
+
+    if (!studentId || (!courseCode && !courseName)) return;
+
+    const key = [
+      normalizeArabic(studentId),
+      normalizeArabic(courseCode),
+      normalizeArabic(courseName),
+    ].join("|");
+
+    map.set(key, {
+      registrationStatus,
+      isDeprived: normalizeArabic(registrationStatus).includes(
+        normalizeArabic("حرمان بسبب غياب")
+      ),
+    });
+  });
+
+  return map;
+}
+
 export function exportCollegeDataFile({
   slug,
   collegeName,
@@ -44,6 +73,8 @@ export function exportCollegeDataFile({
       : parsed?.studentInfoMap instanceof Map
       ? parsed.studentInfoMap
       : new Map();
+
+  const studentCourseStatusMap = buildStudentCourseStatusMap(parsed);
 
   const filteredSchedule = (Array.isArray(schedule) ? schedule : []).filter((item) => {
     const depOk =
@@ -81,6 +112,17 @@ export function exportCollegeDataFile({
         });
       }
 
+      const statusKey = [
+        normalizeArabic(key),
+        normalizeArabic(item.courseCode || ""),
+        normalizeArabic(item.courseName || ""),
+      ].join("|");
+
+      const statusInfo = studentCourseStatusMap.get(statusKey) || {
+        registrationStatus: "",
+        isDeprived: false,
+      };
+
       studentMap.get(key).schedule.push({
         courseName: item.courseName || "",
         courseCode: item.courseCode || "",
@@ -90,6 +132,8 @@ export function exportCollegeDataFile({
         period: item.period || "",
         timeText: item.timeText || "",
         examHall: item.examHall || "",
+        registrationStatus: statusInfo.registrationStatus || "",
+        isDeprived: Boolean(statusInfo.isDeprived),
       });
     });
   });
