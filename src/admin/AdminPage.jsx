@@ -279,6 +279,129 @@ function enrichScheduleItemForStudent(item, studentId, deprivationMap) {
   };
 }
 
+function getScheduleStudentIds(item) {
+  return Array.isArray(item?.students)
+    ? item.students
+    : Array.from(item?.students || []);
+}
+
+function getStudentCourseRowKey(courseCode, courseName) {
+  return [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+}
+
+function compareStudentScheduleEntries(a, b) {
+  const hasDateA = Boolean(String(a?.dateISO || a?.gregorian || "").trim());
+  const hasDateB = Boolean(String(b?.dateISO || b?.gregorian || "").trim());
+
+  if (hasDateA !== hasDateB) return hasDateA ? -1 : 1;
+
+  const dateA = String(a?.dateISO || a?.gregorian || "9999-99-99");
+  const dateB = String(b?.dateISO || b?.gregorian || "9999-99-99");
+  if (dateA !== dateB) return dateA.localeCompare(dateB, "ar");
+
+  const periodA = Number(a?.period) || 0;
+  const periodB = Number(b?.period) || 0;
+  if (periodA !== periodB) return periodA - periodB;
+
+  return String(a?.courseName || "").localeCompare(String(b?.courseName || ""), "ar");
+}
+
+function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, deprivationMap }) {
+  const cleanStudentId = String(studentId || "").trim();
+  if (!cleanStudentId) return [];
+
+  const scheduleLookup = new Map();
+
+  (Array.isArray(combinedSchedule) ? combinedSchedule : []).forEach((item) => {
+    const studentIds = getScheduleStudentIds(item);
+    const scheduledForStudent = studentIds.includes(cleanStudentId);
+    const enrichedItem = enrichScheduleItemForStudent(item, cleanStudentId, deprivationMap);
+
+    if (!scheduledForStudent && !enrichedItem.deprivationStatus) return;
+
+    const rowKey = getStudentCourseRowKey(item?.courseCode || "", item?.courseName || "");
+    if (!rowKey) return;
+
+    const existing = scheduleLookup.get(rowKey);
+    if (!existing) {
+      scheduleLookup.set(rowKey, enrichedItem);
+      return;
+    }
+
+    const existingHasDate = Boolean(String(existing?.dateISO || existing?.gregorian || "").trim());
+    const nextHasDate = Boolean(String(enrichedItem?.dateISO || enrichedItem?.gregorian || "").trim());
+
+    if (!existingHasDate && nextHasDate) {
+      scheduleLookup.set(rowKey, enrichedItem);
+    }
+  });
+
+  const resultMap = new Map();
+
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const rowStudentId = String(row?.["رقم المتدرب"] ?? "").trim();
+    if (rowStudentId !== cleanStudentId) return;
+
+    const courseCode = String(row?.["المقرر"] ?? "").trim();
+    const courseName = String(row?.["اسم المقرر"] ?? "").trim();
+    if (!courseCode && !courseName) return;
+
+    const registrationStatus = String(row?.["حالة تسجيل"] ?? "").trim();
+    const rowKey = getStudentCourseRowKey(courseCode, courseName);
+    const scheduledItem = scheduleLookup.get(rowKey);
+    const deprivationStatus = isDeprivationRegistrationStatus(registrationStatus)
+      ? registrationStatus
+      : String(scheduledItem?.deprivationStatus || "").trim();
+
+    const entry = {
+      ...(scheduledItem || {}),
+      courseName: scheduledItem?.courseName || courseName,
+      courseCode: scheduledItem?.courseCode || courseCode,
+      department: scheduledItem?.department || String(row?.["القسم"] ?? "").trim(),
+      major: scheduledItem?.major || String(row?.["التخصص"] ?? "").trim(),
+      dayName: scheduledItem?.dayName || "",
+      gregorian: scheduledItem?.gregorian || "",
+      hijriNumeric: scheduledItem?.hijriNumeric || "",
+      dateISO: scheduledItem?.dateISO || "",
+      period: scheduledItem?.period || "",
+      timeText: scheduledItem?.timeText || "",
+      examHall: scheduledItem?.examHall || "",
+      deprivationStatus,
+      registrationStatus: deprivationStatus || registrationStatus,
+      isDeprived: Boolean(deprivationStatus),
+    };
+
+    const uniqueKey = [
+      rowKey,
+      String(entry?.dateISO || entry?.gregorian || ""),
+      String(entry?.period || ""),
+    ].join("__");
+
+    if (!resultMap.has(uniqueKey)) {
+      resultMap.set(uniqueKey, entry);
+    } else {
+      const existing = resultMap.get(uniqueKey);
+      if (!existing?.deprivationStatus && entry.deprivationStatus) {
+        resultMap.set(uniqueKey, entry);
+      }
+    }
+  });
+
+  scheduleLookup.forEach((item, rowKey) => {
+    const uniqueKey = [
+      rowKey,
+      String(item?.dateISO || item?.gregorian || ""),
+      String(item?.period || ""),
+    ].join("__");
+
+    if (!resultMap.has(uniqueKey)) {
+      resultMap.set(uniqueKey, item);
+    }
+  });
+
+  return Array.from(resultMap.values()).sort(compareStudentScheduleEntries);
+}
+
 
 function formatGregorian(date) {
   return new Intl.DateTimeFormat("ar-SA", {
@@ -6361,11 +6484,7 @@ const studentOptionsForPrint = useMemo(() => {
       : [...generalSchedule, ...specializedSchedule];
 
   const scheduledStudentIds = new Set(
-    combinedSchedule.flatMap((item) =>
-      Array.isArray(item.students)
-        ? item.students
-        : Array.from(item.students || [])
-    )
+    combinedSchedule.flatMap((item) => getScheduleStudentIds(item))
   );
 
   const selectedDepartmentNormalized =
@@ -6377,7 +6496,11 @@ const studentOptionsForPrint = useMemo(() => {
 
   parsed.filteredRows.forEach((row) => {
     const studentId = String(row["رقم المتدرب"] ?? "").trim();
-    if (!studentId || !scheduledStudentIds.has(studentId)) return;
+    if (!studentId) return;
+
+    const registrationStatus = String(row["حالة تسجيل"] ?? "").trim();
+    const isDeprivedRow = isDeprivationRegistrationStatus(registrationStatus);
+    if (!scheduledStudentIds.has(studentId) && !isDeprivedRow) return;
 
     const departments = splitBySlash(String(row["القسم"] ?? "").trim());
     const majors = splitBySlash(String(row["التخصص"] ?? "").trim());
@@ -6444,18 +6567,20 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       ? schedule
       : [...generalSchedule, ...specializedSchedule];
 
-  return combinedSchedule
-    .filter((item) =>
-      (Array.isArray(item.students)
-        ? item.students
-        : Array.from(item.students || [])
-      ).includes(selectedStudentIdForPrint)
-    )
-    .map((item) =>
-      enrichScheduleItemForStudent(item, selectedStudentIdForPrint, deprivedCourseStudentStatusMap)
-    )
-    .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
-}, [schedule, generalSchedule, specializedSchedule, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
+  return buildStudentScheduleEntries({
+    rows: parsed.filteredRows,
+    combinedSchedule,
+    studentId: selectedStudentIdForPrint,
+    deprivationMap: deprivedCourseStudentStatusMap,
+  });
+}, [
+  schedule,
+  generalSchedule,
+  specializedSchedule,
+  parsed.filteredRows,
+  selectedStudentIdForPrint,
+  deprivedCourseStudentStatusMap,
+]);
 
   const combinedScheduleForStudents = useMemo(() => (
     schedule.length ? schedule : [...generalSchedule, ...specializedSchedule]
@@ -6463,16 +6588,18 @@ const selectedStudentScheduleForPrint = useMemo(() => {
 
   const studentPortalOptions = useMemo(() => {
     const scheduledIds = new Set(
-      combinedScheduleForStudents.flatMap((item) =>
-        Array.isArray(item.students) ? item.students : Array.from(item.students || [])
-      )
+      combinedScheduleForStudents.flatMap((item) => getScheduleStudentIds(item))
     );
 
     const map = new Map();
 
     parsed.filteredRows.forEach((row) => {
       const studentId = String(row["رقم المتدرب"] ?? "").trim();
-      if (!studentId || !scheduledIds.has(studentId)) return;
+      if (!studentId) return;
+
+      const registrationStatus = String(row["حالة تسجيل"] ?? "").trim();
+      const isDeprivedRow = isDeprivationRegistrationStatus(registrationStatus);
+      if (!scheduledIds.has(studentId) && !isDeprivedRow) return;
 
       const info = preciseStudentInfoMap.get(studentId) || {
         id: studentId,
@@ -6503,15 +6630,13 @@ const selectedStudentScheduleForPrint = useMemo(() => {
   const selectedStudentScheduleForPortal = useMemo(() => {
     if (!selectedStudentIdForPrint) return [];
 
-    return combinedScheduleForStudents
-      .filter((item) =>
-        (Array.isArray(item.students) ? item.students : Array.from(item.students || [])).includes(selectedStudentIdForPrint)
-      )
-      .map((item) =>
-        enrichScheduleItemForStudent(item, selectedStudentIdForPrint, deprivedCourseStudentStatusMap)
-      )
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period);
-  }, [combinedScheduleForStudents, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
+    return buildStudentScheduleEntries({
+      rows: parsed.filteredRows,
+      combinedSchedule: combinedScheduleForStudents,
+      studentId: selectedStudentIdForPrint,
+      deprivationMap: deprivedCourseStudentStatusMap,
+    });
+  }, [combinedScheduleForStudents, parsed.filteredRows, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
 
   const invigilatorTable = useMemo(() => {
     const table = new Map();
