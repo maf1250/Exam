@@ -2989,8 +2989,30 @@ const periodOverlapWarning = useMemo(() => {
         !isGeneralStudiesCourse(course)
           ? specializedScopedInvigilatorPool
           : invigilatorPool;
+ 
+      
+      console.log("SCOPED POOL", scopedPool);
+  console.log("SCOPED POOL COUNT", scopedPool.length);
+  console.log(
+    "SPECIALIZED COURSES",
+    specializedCourses.map((c) => ({
+      key: c.key,
+      courseName: c.courseName,
+      department: c.department,
+      major: c.major,
+    }))
+     );
 
+      
       const baseCandidates = scopedPool
+        baseCandidates.forEach((name) => {
+  console.log("CANDIDATE", {
+    name,
+    courseName: course?.courseName,
+    department: course?.department,
+    major: course?.major,
+  });
+});
         .filter(
           (name) =>
             !excludedInvigilators.some(
@@ -7080,6 +7102,66 @@ const headerBtn = (danger = false) => ({
         pointerEvents: "none",
       }}
     />
+ {/* ===== الأزرار (Premium) ===== */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        maxWidth: 200,
+        alignItems: "stretch",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      <button
+        onClick={exportSavedSession}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "#ffffff",
+          color: "#0F5F68",
+        }}
+      >
+         تصدير البيانات
+      </button>
+
+      <button
+        onClick={() => importSessionRef.current?.click()}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(255,255,255,0.2)",
+          color: "#fff",
+          border: "1px solid rgba(255,255,255,0.3)",
+        }}
+      >
+         استيراد البيانات
+      </button>
+
+      <button
+        onClick={clearSavedState}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: "none",
+          fontWeight: 700,
+          cursor: "pointer",
+          background: "rgba(0,0,0,0.25)",
+          color: "#fff",
+        }}
+      >
+         حذف البيانات المحلية
+      </button>
+    </div>
+  </div>
+</div>
 
     {/* ===== الشعار ===== */}
     <div
@@ -7217,67 +7299,7 @@ const headerBtn = (danger = false) => ({
       </p>
     </div>
 
-    {/* ===== الأزرار (Premium) ===== */}
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        maxWidth: 200,
-        alignItems: "stretch",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      <button
-        onClick={exportSavedSession}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "#ffffff",
-          color: "#0F5F68",
-        }}
-      >
-         تصدير البيانات
-      </button>
-
-      <button
-        onClick={() => importSessionRef.current?.click()}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(255,255,255,0.2)",
-          color: "#fff",
-          border: "1px solid rgba(255,255,255,0.3)",
-        }}
-      >
-         استيراد البيانات
-      </button>
-
-      <button
-        onClick={clearSavedState}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(0,0,0,0.25)",
-          color: "#fff",
-        }}
-      >
-         حذف البيانات المحلية
-      </button>
-    </div>
-  </div>
-</div>
-
+   
   {/* input مخفي */}
   <input
     ref={importSessionRef}
