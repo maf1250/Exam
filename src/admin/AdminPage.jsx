@@ -3081,42 +3081,68 @@ const periodOverlapWarning = useMemo(() => {
           ? getCourseInvigilatorConstraint(course)
           : { mode: "off", invigilatorNames: [] };
 
-      let strictPool = [];
-      let extraPool = [];
-      const isGeneral = isGeneralStudiesCourse(course);
+     let strictPool = [];
+let extraPool = [];
 
-      if (isGeneral) {
-        strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-          ? generalStudiesScopedInvigilatorPool
-          : invigilatorPool;
-        extraPool = generalStudiesExtraInvigilators;
-      } else {
-        strictPool =
-          restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-          !includeAllDepartmentsAndMajors
-            ? specializedScopedInvigilatorPool
-            : invigilatorPool;
-        extraPool = specializedExtraInvigilators;
-      }
+const isGeneral = isGeneralStudiesCourse(course);
 
-      const strictCandidates = strictPool
-        .filter(
-          (name) =>
-            !excludedInvigilators.some(
-              (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            )
-        )
-        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+// الدراسات العامة
+if (isGeneral) {
+  strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+    ? generalStudiesScopedInvigilatorPool
+    : invigilatorPool;
 
-      const extraCandidates = extraPool
-        .filter(
-          (name) =>
-            !excludedInvigilators.some(
-              (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            )
-        )
-        .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-        .filter((name) => !strictCandidates.includes(name));
+  extraPool = generalStudiesExtraInvigilators;
+}
+// التخصص
+else {
+  strictPool =
+    restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+    !includeAllDepartmentsAndMajors
+      ? specializedScopedInvigilatorPool
+      : invigilatorPool;
+
+  extraPool = specializedExtraInvigilators;
+}
+
+const strictCandidates = strictPool
+  .filter(
+    (name) =>
+      !excludedInvigilators.some(
+        (ex) => normalizeArabic(ex) === normalizeArabic(name)
+      )
+  )
+  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey));
+
+const extraCandidates = extraPool
+  .filter(
+    (name) =>
+      !excludedInvigilators.some(
+        (ex) => normalizeArabic(ex) === normalizeArabic(name)
+      )
+  )
+  .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
+  .filter((name) => !strictCandidates.includes(name));
+
+  if (
+  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
+  !includeAllDepartmentsAndMajors
+) {
+  console.warn("INVIGILATOR_SCOPE_DEBUG", {
+    courseName: course?.courseName,
+    courseCode: course?.courseCode,
+    department: course?.department,
+    major: course?.major,
+    strictPoolCount: strictPool.length,
+    strictCandidatesCount: strictCandidates.length,
+    extraPoolCount: extraPool.length,
+    extraCandidatesCount: extraCandidates.length,
+    strictPool,
+    strictCandidates,
+    extraPool,
+    extraCandidates,
+  });
+}
 
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
@@ -3125,20 +3151,18 @@ const periodOverlapWarning = useMemo(() => {
       const departmentTrainerSet = new Set(
         (
           (typeof getStrictTrainerNamesForCourse === "function"
-            ? getStrictTrainerNamesForCourse(course, parsed?.filteredRows || rows || [], generalStudiesInvigilatorsSet)
+            ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
             : []) || []
         ).map((name) => normalizeArabic(name))
       );
 
       let constrainedCandidates = [...strictCandidates];
-      let strictOnlyMode = false;
+      let allowExtraSupport = true;
 
       if (
         restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-        !includeAllDepartmentsAndMajors &&
-        !isGeneral
+        !isGeneralStudiesCourse(course)
       ) {
-        strictOnlyMode = true;
         constrainedCandidates = strictCandidates.filter((name) =>
           departmentTrainerSet.has(normalizeArabic(name))
         );
@@ -3146,7 +3170,7 @@ const periodOverlapWarning = useMemo(() => {
 
       switch (constraint.mode) {
         case "only":
-          strictOnlyMode = true;
+          allowExtraSupport = false;
           constrainedCandidates = strictCandidates.filter((name) =>
             normalizedManualSet.has(normalizeArabic(name))
           );
@@ -3159,7 +3183,7 @@ const periodOverlapWarning = useMemo(() => {
           break;
 
         case "only_department_trainers":
-          strictOnlyMode = true;
+          allowExtraSupport = false;
           constrainedCandidates = strictCandidates.filter((name) =>
             departmentTrainerSet.has(normalizeArabic(name))
           );
@@ -3180,8 +3204,9 @@ const periodOverlapWarning = useMemo(() => {
       const hardFairnessForThisCourse =
         (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
           !includeAllDepartmentsAndMajors &&
-          !isGeneral) ||
-        (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers && isGeneral);
+          !isGeneralStudiesCourse(course)) ||
+        (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
+          isGeneralStudiesCourse(course));
 
       const sortCandidates = (candidates) =>
         [...candidates].sort((a, b) => {
@@ -3203,16 +3228,22 @@ const periodOverlapWarning = useMemo(() => {
           return aScore - bScore || a.localeCompare(b, "ar");
         });
 
+      const getMinLoadWithinCandidates = (candidates) => {
+        const values = (Array.isArray(candidates) ? candidates : [])
+          .map((name) => invigilatorLoad.get(name) || 0);
+        return values.length ? Math.min(...values) : getMinInvigilatorLoad();
+      };
+
       while (chosen.length < requiredCount) {
-        const minLoad = getMinInvigilatorLoad();
+        const remainingCandidates = constrainedCandidates.filter(
+          (name) => !chosen.includes(name)
+        );
+        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
         const fairCandidates = sortCandidates(
-          constrainedCandidates
-            .filter((name) => !chosen.includes(name))
-            .filter((name) =>
-              (invigilatorLoad.get(name) || 0) <=
-              (hardFairnessForThisCourse ? minLoad : minLoad + 1)
-            )
+          remainingCandidates.filter((name) =>
+            (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+          )
         );
 
         if (!fairCandidates.length) break;
@@ -3220,14 +3251,14 @@ const periodOverlapWarning = useMemo(() => {
       }
 
       if (chosen.length < requiredCount) {
-        const minLoad = getMinInvigilatorLoad();
+        const remainingCandidates = constrainedCandidates.filter(
+          (name) => !chosen.includes(name)
+        );
+        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
         const nearFairCandidates = sortCandidates(
-          constrainedCandidates
-            .filter((name) => !chosen.includes(name))
-            .filter((name) =>
-              (invigilatorLoad.get(name) || 0) <=
-              (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
-            )
+          remainingCandidates.filter((name) =>
+            (invigilatorLoad.get(name) || 0) <= minLoad + 1
+          )
         );
 
         for (const name of nearFairCandidates) {
@@ -3236,15 +3267,9 @@ const periodOverlapWarning = useMemo(() => {
         }
       }
 
-      if (chosen.length < requiredCount) {
-        const strictReferenceLoad = constrainedCandidates.length
-          ? Math.min(...constrainedCandidates.map((name) => invigilatorLoad.get(name) || 0))
-          : getMinInvigilatorLoad();
-
+      if (allowExtraSupport && chosen.length < requiredCount) {
         const extraFairCandidates = sortCandidates(
-          extraCandidates
-            .filter((name) => !chosen.includes(name))
-            .filter((name) => (invigilatorLoad.get(name) || 0) <= strictReferenceLoad)
+          extraCandidates.filter((name) => !chosen.includes(name))
         );
 
         for (const name of extraFairCandidates) {
@@ -3252,10 +3277,10 @@ const periodOverlapWarning = useMemo(() => {
           chosen.push(name);
         }
       }
-
-      if (chosen.length < requiredCount) {
-        return [];
-      }
+      
+     if (chosen.length < requiredCount) {
+  return [];
+}
 
       chosen.forEach((name) => {
         if (!invigilatorBusyPeriods.has(name)) {
@@ -5710,23 +5735,18 @@ const pickInvigilators = (course, slot) => {
       ? getCourseInvigilatorConstraint(course)
       : { mode: "off", invigilatorNames: [] };
 
-  let strictPool = [];
-  let extraPool = [];
   const isGeneral = isGeneralStudiesCourse(course);
-
-  if (isGeneral) {
-    strictPool = restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
-      ? generalStudiesScopedInvigilatorPool
-      : invigilatorPool;
-    extraPool = generalStudiesExtraInvigilators;
-  } else {
-    strictPool =
-      restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-      !includeAllDepartmentsAndMajors
+  const strictPool = isGeneral
+    ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+        ? generalStudiesScopedInvigilatorPool
+        : invigilatorPool)
+    : (restrictSpecializedInvigilationToVisibleDepartmentTrainers
         ? specializedScopedInvigilatorPool
-        : invigilatorPool;
-    extraPool = specializedExtraInvigilators;
-  }
+        : invigilatorPool);
+
+  const extraPool = isGeneral
+    ? generalStudiesExtraInvigilators
+    : specializedExtraInvigilators;
 
   const strictCandidates = strictPool
     .filter(
@@ -5745,7 +5765,12 @@ const pickInvigilators = (course, slot) => {
         )
     )
     .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
-    .filter((name) => !strictCandidates.includes(name));
+    .filter(
+      (name) =>
+        !strictCandidates.some(
+          (strictName) => normalizeArabic(strictName) === normalizeArabic(name)
+        )
+    );
 
   const normalizedManualSet = new Set(
     (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
@@ -5754,20 +5779,18 @@ const pickInvigilators = (course, slot) => {
   const departmentTrainerSet = new Set(
     (
       (typeof getStrictTrainerNamesForCourse === "function"
-        ? getStrictTrainerNamesForCourse(course, parsed?.filteredRows || rows || [], generalStudiesInvigilatorsSet)
+        ? getStrictTrainerNamesForCourse(course, parsed.filteredRows, generalStudiesInvigilatorsSet)
         : []) || []
     ).map((name) => normalizeArabic(name))
   );
 
   let constrainedCandidates = [...strictCandidates];
-  let strictOnlyMode = false;
+  let allowExtraSupport = true;
 
   if (
     restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-    !includeAllDepartmentsAndMajors &&
-    !isGeneral
+    !isGeneralStudiesCourse(course)
   ) {
-    strictOnlyMode = true;
     constrainedCandidates = strictCandidates.filter((name) =>
       departmentTrainerSet.has(normalizeArabic(name))
     );
@@ -5775,7 +5798,7 @@ const pickInvigilators = (course, slot) => {
 
   switch (constraint.mode) {
     case "only":
-      strictOnlyMode = true;
+      allowExtraSupport = false;
       constrainedCandidates = strictCandidates.filter((name) =>
         normalizedManualSet.has(normalizeArabic(name))
       );
@@ -5788,7 +5811,7 @@ const pickInvigilators = (course, slot) => {
       break;
 
     case "only_department_trainers":
-      strictOnlyMode = true;
+      allowExtraSupport = false;
       constrainedCandidates = strictCandidates.filter((name) =>
         departmentTrainerSet.has(normalizeArabic(name))
       );
@@ -5808,9 +5831,9 @@ const pickInvigilators = (course, slot) => {
 
   const hardFairnessForThisCourse =
     (restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-      !includeAllDepartmentsAndMajors &&
-      !isGeneral) ||
-    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers && isGeneral);
+      !isGeneralStudiesCourse(course)) ||
+    (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers &&
+      isGeneralStudiesCourse(course));
 
   const sortCandidates = (candidates) =>
     [...candidates].sort((a, b) => {
@@ -5832,16 +5855,22 @@ const pickInvigilators = (course, slot) => {
       return aScore - bScore || a.localeCompare(b, "ar");
     });
 
+  const getMinLoadWithinCandidates = (candidates) => {
+    const values = (Array.isArray(candidates) ? candidates : [])
+      .map((name) => invigilatorLoad.get(name) || 0);
+    return values.length ? Math.min(...values) : getMinInvigilatorLoad();
+  };
+
   while (chosen.length < requiredCount) {
-    const minLoad = getMinInvigilatorLoad();
+    const remainingCandidates = constrainedCandidates.filter(
+      (name) => !chosen.includes(name)
+    );
+    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
     const fairCandidates = sortCandidates(
-      constrainedCandidates
-        .filter((name) => !chosen.includes(name))
-        .filter((name) =>
-          (invigilatorLoad.get(name) || 0) <=
-          (hardFairnessForThisCourse ? minLoad : minLoad + 1)
-        )
+      remainingCandidates.filter((name) =>
+        (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+      )
     );
 
     if (!fairCandidates.length) break;
@@ -5849,14 +5878,14 @@ const pickInvigilators = (course, slot) => {
   }
 
   if (chosen.length < requiredCount) {
-    const minLoad = getMinInvigilatorLoad();
+    const remainingCandidates = constrainedCandidates.filter(
+      (name) => !chosen.includes(name)
+    );
+    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
     const nearFairCandidates = sortCandidates(
-      constrainedCandidates
-        .filter((name) => !chosen.includes(name))
-        .filter((name) =>
-          (invigilatorLoad.get(name) || 0) <=
-          (hardFairnessForThisCourse ? minLoad + 1 : minLoad + 2)
-        )
+      remainingCandidates.filter((name) =>
+        (invigilatorLoad.get(name) || 0) <= minLoad + 1
+      )
     );
 
     for (const name of nearFairCandidates) {
@@ -5865,15 +5894,9 @@ const pickInvigilators = (course, slot) => {
     }
   }
 
-  if (chosen.length < requiredCount) {
-    const strictReferenceLoad = constrainedCandidates.length
-      ? Math.min(...constrainedCandidates.map((name) => invigilatorLoad.get(name) || 0))
-      : getMinInvigilatorLoad();
-
+  if (allowExtraSupport && chosen.length < requiredCount) {
     const extraFairCandidates = sortCandidates(
-      extraCandidates
-        .filter((name) => !chosen.includes(name))
-        .filter((name) => (invigilatorLoad.get(name) || 0) <= strictReferenceLoad)
+      extraCandidates.filter((name) => !chosen.includes(name))
     );
 
     for (const name of extraFairCandidates) {
@@ -6040,9 +6063,37 @@ const pickInvigilators = (course, slot) => {
 
       if (includeInvigilators) {
         const periodKey = getSlotPeriodKey(slot);
-        const availableInvigilatorsCount = invigilatorPool.filter(
-          (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+        const isGeneral = isGeneralStudiesCourse(course);
+        const strictPool = isGeneral
+          ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+              ? generalStudiesScopedInvigilatorPool
+              : invigilatorPool)
+          : (restrictSpecializedInvigilationToVisibleDepartmentTrainers
+              ? specializedScopedInvigilatorPool
+              : invigilatorPool);
+        const extraPool = isGeneral
+          ? generalStudiesExtraInvigilators
+          : specializedExtraInvigilators;
+
+        const strictAvailableCount = strictPool.filter(
+          (name) =>
+            !excludedInvigilators.some(
+              (ex) => normalizeArabic(ex) === normalizeArabic(name)
+            ) && !invigilatorBusyPeriods.get(name)?.has(periodKey)
         ).length;
+
+        const extraAvailableCount = extraPool.filter(
+          (name) =>
+            !excludedInvigilators.some(
+              (ex) => normalizeArabic(ex) === normalizeArabic(name)
+            ) &&
+            !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+            !strictPool.some(
+              (strictName) => normalizeArabic(strictName) === normalizeArabic(name)
+            )
+        ).length;
+
+        const availableInvigilatorsCount = strictAvailableCount + extraAvailableCount;
         if (availableInvigilatorsCount < requiredInvigilators) {
           diagnosis.invigilatorShortage += 1;
           diagnosis.invigilatorShortageSlots.push({
@@ -6208,9 +6259,37 @@ const requiredSeats = Number(course.studentCount) || 0;
     if (courseConstraint.avoidedPeriods.includes(slot.period)) score += 55;
 
     if (includeInvigilators) {
-      const availableInvigilatorsCount = invigilatorPool.filter(
-        (name) => !invigilatorBusyPeriods.get(name)?.has(periodKey)
+      const isGeneral = isGeneralStudiesCourse(course);
+      const strictPool = isGeneral
+        ? (restrictGeneralStudiesInvigilationToGeneralStudiesTrainers
+            ? generalStudiesScopedInvigilatorPool
+            : invigilatorPool)
+        : (restrictSpecializedInvigilationToVisibleDepartmentTrainers
+            ? specializedScopedInvigilatorPool
+            : invigilatorPool);
+      const extraPool = isGeneral
+        ? generalStudiesExtraInvigilators
+        : specializedExtraInvigilators;
+
+      const strictAvailableCount = strictPool.filter(
+        (name) =>
+          !excludedInvigilators.some(
+            (ex) => normalizeArabic(ex) === normalizeArabic(name)
+          ) && !invigilatorBusyPeriods.get(name)?.has(periodKey)
       ).length;
+
+      const extraAvailableCount = extraPool.filter(
+        (name) =>
+          !excludedInvigilators.some(
+            (ex) => normalizeArabic(ex) === normalizeArabic(name)
+          ) &&
+          !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+          !strictPool.some(
+            (strictName) => normalizeArabic(strictName) === normalizeArabic(name)
+          )
+      ).length;
+
+      const availableInvigilatorsCount = strictAvailableCount + extraAvailableCount;
 
       if (availableInvigilatorsCount < requiredInvigilators) {
         score += (requiredInvigilators - availableInvigilatorsCount) * 50;
