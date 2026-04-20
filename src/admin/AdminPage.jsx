@@ -9455,57 +9455,108 @@ const headerBtn = (danger = false) => ({
 
       <div
         style={{
-          display: "inline-flex",
-          alignItems: "center",
+          display: "flex",
+          alignItems: "stretch",
           gap: 12,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 14,
-          position: "relative",
           flexWrap: "wrap",
         }}
       >
-        <label
+        <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: 14,
+            position: "relative",
+            background: "#fff",
+            minHeight: 58,
           }}
         >
-          <input
-            type="checkbox"
-            checked={preferCourseTrainerInvigilation}
-            onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
-          />
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={preferCourseTrainerInvigilation}
+              onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+            />
 
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            إعطاء أولوية لمدرب المقرر كمراقب أساسي
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              إعطاء أولوية لمدرب المقرر كمراقب أساسي
 
-            <span
-              onMouseEnter={() => setShowTrainerHint(true)}
-              onMouseLeave={() => setShowTrainerHint(false)}
+              <span
+                onMouseEnter={() => setShowTrainerHint(true)}
+                onMouseLeave={() => setShowTrainerHint(false)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: COLORS.warningBg,
+                  color: COLORS.warning,
+                  fontWeight: 900,
+                  fontSize: 13,
+                  cursor: "help",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                !
+              </span>
+            </span>
+          </label>
+
+          {showTrainerHint && (
+            <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                background: COLORS.warningBg,
-                color: COLORS.warning,
-                fontWeight: 900,
+                position: "absolute",
+                bottom: "110%",
+                right: 10,
+                background: "#111827",
+                color: "#fff",
+                padding: "10px 12px",
+                borderRadius: 10,
                 fontSize: 13,
-                cursor: "help",
-                border: `1px solid ${COLORS.border}`,
+                lineHeight: 1.6,
+                width: 260,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                zIndex: 9999,
+                transition: "opacity 0.2s ease, transform 0.2s ease",
               }}
             >
-              !
-            </span>
-          </span>
-        </label>
-      </div>
-        <div style={{ display: "inline-flex", alignItems: "end", gap: 10, flexWrap: "wrap" }}>
-          <label style={{ display: "grid", gap: 6 }}>
+              سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
+              مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: 10,
+            flexWrap: "wrap",
+            padding: 12,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            background: COLORS.bg2,
+          }}
+        >
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              minWidth: 220,
+              flex: "1 1 220px",
+            }}
+          >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
               الحد الأدنى المستهدف للمراقبات
               <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
@@ -9516,11 +9567,18 @@ const headerBtn = (danger = false) => ({
               max="50"
               value={minInvigilationTargetPerInvigilator}
               onChange={(e) => setMinInvigilationTargetPerInvigilator(Math.max(0, safeNum(e.target.value, 0)))}
-              style={{ ...fieldStyle(), width: 120 }}
+              style={{ ...fieldStyle(), width: "100%" }}
             />
           </label>
 
-          <label style={{ display: "grid", gap: 6 }}>
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              minWidth: 220,
+              flex: "1 1 220px",
+            }}
+          >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
               الحد الأقصى للمراقبات لكل مراقب
               <TooltipIcon text="إذا وصل المراقب إلى هذا العدد فلن يُسند له النظام مراقبات إضافية عند التوزيع الآلي أو عند تقييم توفر المراقبين لهذه الفترة." />
@@ -9532,36 +9590,12 @@ const headerBtn = (danger = false) => ({
               value={maxInvigilationsPerInvigilator}
               onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
               placeholder="بدون حد"
-              style={{ ...fieldStyle(), width: 140 }}
+              style={{ ...fieldStyle(), width: "100%" }}
             />
           </label>
         </div>
-
-        {showTrainerHint && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "110%",
-              right: 10,
-              background: "#111827",
-              color: "#fff",
-              padding: "10px 12px",
-              borderRadius: 10,
-              fontSize: 13,
-              lineHeight: 1.6,
-              width: 260,
-              boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-              zIndex: 9999,
-              transition: "opacity 0.2s ease, transform 0.2s ease",
-            }}
-          >
-            سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-            مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
-          </div>
-        )}
       </div>
     </div>
-    
 
     {includeInvigilators ? (
       <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
