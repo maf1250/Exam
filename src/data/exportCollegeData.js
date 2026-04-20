@@ -27,56 +27,115 @@ function sortStudentSchedule(schedule = []) {
   });
 }
 
-function isDeprivationStatus(status) {
-  return normalizeArabic(status).includes(normalizeArabic("حرمان"));
+function isDeprivationRegistrationStatus(status) {
+  const normalized = normalizeArabic(String(status || "").trim());
+  return normalized.includes("حرمان");
 }
 
-function buildScheduleLookup(schedule = []) {
+function getCourseStudentStatusKey(courseKey, studentId) {
+  return `${String(courseKey || "").trim()}__${String(studentId || "").trim()}`;
+}
+
+function buildDeprivationMap(rows = []) {
   const map = new Map();
 
-  (Array.isArray(schedule) ? schedule : []).forEach((item) => {
-    const students = Array.isArray(item.students) ? item.students : [];
-    const studentSet = new Set(students.map((id) => normalizeArabic(String(id || "").trim())));
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const studentId = String(row["رقم المتدرب"] || "").trim();
+    const registrationStatus = String(row["حالة تسجيل"] || "").trim();
 
-    const key = [
-      normalizeArabic(item.courseCode || ""),
-      normalizeArabic(item.courseName || ""),
-      normalizeArabic(item.department || ""),
-      normalizeArabic(item.major || ""),
-    ].join("|");
+    if (!studentId) return;
+    if (!isDeprivationRegistrationStatus(registrationStatus)) return;
 
-    if (!map.has(key)) {
-      map.set(key, []);
-    }
+    const courseCode = String(row["المقرر"] || "").trim();
+    const courseName = String(row["اسم المقرر"] || "").trim();
 
-    map.get(key).push({
-      ...item,
-      __studentSet: studentSet,
+    const possibleKeys = [
+      [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|"),
+      normalizeArabic(courseCode),
+      normalizeArabic(courseName),
+    ].filter(Boolean);
+
+    possibleKeys.forEach((courseKey) => {
+      map.set(getCourseStudentStatusKey(courseKey, studentId), registrationStatus);
     });
   });
 
   return map;
 }
 
-function findScheduledItemForRow(scheduleLookup, row) {
-  const courseCode = String(row["المقرر"] ?? "").trim();
-  const courseName = String(row["اسم المقرر"] ?? "").trim();
-  const department = String(row["القسم"] ?? "").trim();
-  const major = String(row["التخصص"] ?? "").trim();
-  const studentId = normalizeArabic(String(row["رقم المتدرب"] ?? "").trim());
+function buildScheduledLookup(schedule = []) {
+  const map = new Map();
 
-  const key = [
+  (Array.isArray(schedule) ? schedule : []).forEach((item) => {
+    const courseCode = String(item.courseCode || "").trim();
+    const courseName = String(item.courseName || "").trim();
+
+    const keys = [
+      [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|"),
+      normalizeArabic(courseCode),
+      normalizeArabic(courseName),
+    ].filter(Boolean);
+
+    keys.forEach((key) => {
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key).push(item);
+    });
+  });
+
+  return map;
+}
+
+function findScheduledItemForStudent(scheduleLookup, row, studentId) {
+  const courseCode = String(row["المقرر"] || "").trim();
+  const courseName = String(row["اسم المقرر"] || "").trim();
+
+  const keys = [
+    [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|"),
     normalizeArabic(courseCode),
     normalizeArabic(courseName),
-    normalizeArabic(department),
-    normalizeArabic(major),
-  ].join("|");
+  ].filter(Boolean);
 
-  const candidates = scheduleLookup.get(key) || [];
-  if (!candidates.length) return null;
+  for (const key of keys) {
+    const candidates = scheduleLookup.get(key) || [];
+    if (!candidates.length) continue;
 
-  const exactByStudent = candidates.find((item) => item.__studentSet?.has(studentId));
-  return exactByStudent || candidates[0] || null;
+    const normalizedStudentId = String(studentId || "").trim();
+
+    const exact = candidates.find((item) =>
+      Array.isArray(item.students) &&
+      item.students.map((x) => String(x).trim()).includes(normalizedStudentId)
+    );
+
+    if (exact) return exact;
+    if (candidates[0]) return candidates[0];
+  }
+
+  return null;
+}
+
+function getStudentDisplayInfo(studentId, row, studentInfoMap) {
+  const fallback = {
+    id: String(studentId || "").trim(),
+    name: String(row["إسم المتدرب"] || row["اسم المتدرب"] || "").trim(),
+    department: String(row["القسم"] || "").trim(),
+    major: String(row["التخصص"] || "").trim(),
+  };
+
+  if (!(studentInfoMap instanceof Map)) return fallback;
+
+  const info =
+    studentInfoMap.get(String(studentId || "").trim()) ||
+    studentInfoMap.get(Number(studentId)) ||
+    fallback;
+
+  return {
+    id: String(info?.id || fallback.id).trim(),
+    name: String(info?.name || fallback.name).trim(),
+    department: String(info?.department || fallback.department).trim(),
+    major: String(info?.major || fallback.major).trim(),
+  };
 }
 
 export function exportCollegeDataFile({
@@ -97,10 +156,10 @@ export function exportCollegeDataFile({
       ? parsed.studentInfoMap
       : new Map();
 
-  const sourceRows = Array.isArray(parsed?.filteredRows)
-    ? parsed.filteredRows
-    : Array.isArray(parsed?.rows)
+  const sourceRows = Array.isArray(parsed?.rows)
     ? parsed.rows
+    : Array.isArray(parsed?.filteredRows)
+    ? parsed.filteredRows
     : [];
 
   const filteredRows = sourceRows.filter((row) => {
@@ -115,38 +174,40 @@ export function exportCollegeDataFile({
     return depOk && majorOk;
   });
 
-  const scheduleLookup = buildScheduleLookup(schedule);
+  const deprivationMap = buildDeprivationMap(filteredRows);
+  const scheduledLookup = buildScheduledLookup(schedule);
 
   filteredRows.forEach((row) => {
-    const studentId = String(row["رقم المتدرب"] ?? "").trim();
-    const studentName = String(row["إسم المتدرب"] ?? row["اسم المتدرب"] ?? "").trim();
-    const courseCode = String(row["المقرر"] ?? "").trim();
-    const courseName = String(row["اسم المقرر"] ?? "").trim();
-    const registrationStatus = String(row["حالة تسجيل"] ?? "").trim();
-    const department = String(row["القسم"] ?? "").trim();
-    const major = String(row["التخصص"] ?? "").trim();
+    const studentId = String(row["رقم المتدرب"] || "").trim();
+    if (!studentId) return;
 
-    if (!studentId || (!courseCode && !courseName)) return;
+    const courseCode = String(row["المقرر"] || "").trim();
+    const courseName = String(row["اسم المقرر"] || "").trim();
+    if (!courseCode && !courseName) return;
 
-    const info = effectiveStudentInfoMap.get(studentId) || {
-      id: studentId,
-      name: studentName || "",
-      department,
-      major,
-    };
+    const registrationStatus = String(row["حالة تسجيل"] || "").trim();
+
+    const studentInfo = getStudentDisplayInfo(studentId, row, effectiveStudentInfoMap);
 
     if (!studentMap.has(studentId)) {
       studentMap.set(studentId, {
-        id: info.id || studentId,
-        name: info.name || studentName || "",
-        department: info.department || department || "",
-        major: info.major || major || "",
+        id: studentInfo.id,
+        name: studentInfo.name,
+        department: studentInfo.department,
+        major: studentInfo.major,
         schedule: [],
       });
     }
 
-    const scheduledItem = findScheduledItemForRow(scheduleLookup, row);
-    const isDeprived = isDeprivationStatus(registrationStatus);
+    const scheduledItem = findScheduledItemForStudent(scheduledLookup, row, studentId);
+
+    const compoundCourseKey = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+    const deprivationStatus = String(
+      deprivationMap.get(getCourseStudentStatusKey(compoundCourseKey, studentId)) ||
+        deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseCode), studentId)) ||
+        deprivationMap.get(getCourseStudentStatusKey(normalizeArabic(courseName), studentId)) ||
+        (isDeprivationRegistrationStatus(registrationStatus) ? registrationStatus : "")
+    ).trim();
 
     studentMap.get(studentId).schedule.push({
       courseName,
@@ -159,7 +220,8 @@ export function exportCollegeDataFile({
       timeText: scheduledItem?.timeText || "",
       examHall: scheduledItem?.examHall || "",
       registrationStatus,
-      isDeprived,
+      deprivationStatus,
+      isDeprived: Boolean(deprivationStatus),
       hasScheduledSlot: Boolean(scheduledItem),
     });
   });
