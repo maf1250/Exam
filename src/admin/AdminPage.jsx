@@ -9503,7 +9503,7 @@ const headerBtn = (danger = false) => ({
             </span>
           </span>
         </label>
-
+      </div>
         <div style={{ display: "inline-flex", alignItems: "end", gap: 10, flexWrap: "wrap" }}>
           <label style={{ display: "grid", gap: 6 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
@@ -9561,6 +9561,7 @@ const headerBtn = (danger = false) => ({
         )}
       </div>
     </div>
+    
 
     {includeInvigilators ? (
       <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
