@@ -156,11 +156,11 @@ export function exportCollegeDataFile({
       ? parsed.studentInfoMap
       : new Map();
 
-  const sourceRows = Array.isArray(parsed?.rows)
-    ? parsed.rows
-    : Array.isArray(parsed?.filteredRows)
-    ? parsed.filteredRows
-    : [];
+  const sourceRows = Array.isArray(parsed?.filteredRows)
+  ? parsed.filteredRows
+  : Array.isArray(parsed?.rows)
+  ? parsed.rows
+  : [];
 
   const filteredRows = sourceRows.filter((row) => {
     const depOk =
