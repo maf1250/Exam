@@ -9919,7 +9919,7 @@ const headerBtn = (danger = false) => ({
     </div>
   </Card>
 ) : null}
-<div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, }}>
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, marginTop: 20 }}>
               <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
                 السابق
               </button>
