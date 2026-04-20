@@ -7164,7 +7164,30 @@ const headerBtn = (danger = false) => ({
   </div>
 </div>
 
-
+ {/* ===== الشعار ===== */}
+    <div
+      style={{
+        width: 150,
+        height: 150,
+        borderRadius: 30,
+        background: "rgba(255,255,255,0.15)",
+        border: "1px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(10px)",
+        flexShrink: 0,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >    
+      <img
+        src={LOGO_SRC}
+        alt="TVTC Logo"
+        style={{ width: 130, height: 130, objectFit: "contain" }}
+      />
+    </div>
     
     {/* ===== النص ===== */}
     <div
@@ -7221,30 +7244,7 @@ const headerBtn = (danger = false) => ({
       </p>
     </div>
 
-     {/* ===== الشعار ===== */}
-    <div
-      style={{
-        width: 150,
-        height: 150,
-        borderRadius: 30,
-        background: "rgba(255,255,255,0.15)",
-        border: "1px solid rgba(255,255,255,0.25)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
-        flexShrink: 0,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >    
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{ width: 130, height: 130, objectFit: "contain" }}
-      />
-    </div>
+    
 
  
 
