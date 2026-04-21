@@ -414,7 +414,7 @@ function formatGregorian(date) {
 }
 
 function formatHijri(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -423,7 +423,7 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -617,64 +617,6 @@ function splitBySlash(value) {
     .split("/")
     .map((x) => x.trim())
     .filter(Boolean);
-}
-
-function buildCoursePriorityKeys(courses, savedKeys = []) {
-  const validKeys = (Array.isArray(courses) ? courses : []).map((course) => String(course?.key || "").trim()).filter(Boolean);
-  const validSet = new Set(validKeys);
-  const next = [];
-  const seen = new Set();
-
-  (Array.isArray(savedKeys) ? savedKeys : []).forEach((key) => {
-    const clean = String(key || "").trim();
-    if (!clean || seen.has(clean) || !validSet.has(clean)) return;
-    seen.add(clean);
-    next.push(clean);
-  });
-
-  validKeys.forEach((key) => {
-    if (seen.has(key)) return;
-    seen.add(key);
-    next.push(key);
-  });
-
-  return next;
-}
-
-function reorderPriorityKeys(list, draggedKey, targetKey) {
-  const current = Array.isArray(list) ? [...list] : [];
-  const dragIndex = current.indexOf(draggedKey);
-  const targetIndex = current.indexOf(targetKey);
-
-  if (dragIndex === -1 || targetIndex === -1 || dragIndex === targetIndex) {
-    return current;
-  }
-
-  const [moved] = current.splice(dragIndex, 1);
-  current.splice(targetIndex, 0, moved);
-  return current;
-}
-
-function movePriorityKeyByOffset(list, key, offset) {
-  const current = Array.isArray(list) ? [...list] : [];
-  const index = current.indexOf(key);
-  if (index === -1) return current;
-
-  const nextIndex = Math.max(0, Math.min(current.length - 1, index + offset));
-  if (nextIndex === index) return current;
-
-  const [moved] = current.splice(index, 1);
-  current.splice(nextIndex, 0, moved);
-  return current;
-}
-
-function orderCoursesByPriorityKeys(courses, priorityKeys) {
-  const orderMap = new Map(buildCoursePriorityKeys(courses, priorityKeys).map((key, index) => [key, index]));
-  return [...(Array.isArray(courses) ? courses : [])].sort((a, b) => {
-    const aIndex = orderMap.has(a?.key) ? orderMap.get(a.key) : Number.MAX_SAFE_INTEGER;
-    const bIndex = orderMap.has(b?.key) ? orderMap.get(b.key) : Number.MAX_SAFE_INTEGER;
-    return aIndex - bIndex;
-  });
 }
 
 function makeHallId() {
@@ -949,7 +891,8 @@ function Card({ children, style }) {
       }}
     >
       {children}
-   {showScrollTopButton && (
+
+{showScrollTopButton && (
   <button
     type="button"
     onClick={scrollToTopSmoothly}
@@ -959,27 +902,32 @@ function Card({ children, style }) {
       position: "fixed",
       left: 20,
       bottom: 24,
-      width: 52,
-      height: 52,
+      width: 54,
+      height: 54,
       borderRadius: "50%",
       border: `1px solid ${COLORS.primaryBorder}`,
-      background: COLORS.primaryDark,
+      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 50%, #1FA7A8 100%)",
       color: "#fff",
       fontSize: 22,
       fontWeight: 900,
-      boxShadow: "0 16px 35px rgba(20, 123, 131, 0.22)",
+      boxShadow: "0 18px 40px rgba(20, 123, 131, 0.28)",
       cursor: "pointer",
       zIndex: 9998,
       transition: "all 0.3s ease",
-      opacity: showScrollTopButton ? 1 : 0,
-      transform: showScrollTopButton ? "translateY(0)" : "translateY(20px)",
-      pointerEvents: showScrollTopButton ? "auto" : "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-4px) scale(1.05)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0) scale(1)";
     }}
   >
     ↑
   </button>
 )}
-      
     </div>
   );
 }
@@ -2321,6 +2269,7 @@ export default function AdminPage() {
   const topRef = useRef(null);
 const pendingRestoreRef = useRef(null);
   const toastTimerRef = useRef(null);
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
   
   const [selectedConflicts, setSelectedConflicts] = useState(null);
   const [selectedConflictStudents, setSelectedConflictStudents] = useState(null);
@@ -2402,7 +2351,6 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
   
   
@@ -3864,6 +3812,21 @@ const extraCandidates = extraPool
     }
   }
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTopButton(window.scrollY > 300);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTopSmoothly = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
 
   const [previewPage, setPreviewPage] = useState(0);
@@ -3905,8 +3868,6 @@ const [courseBKey, setCourseBKey] = useState("");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
   const [courseLevels, setCourseLevels] = useState({});
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
-  const [generalCoursePriorityKeys, setGeneralCoursePriorityKeys] = useState([]);
-  const [specializedCoursePriorityKeys, setSpecializedCoursePriorityKeys] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(false);
   const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
@@ -3921,16 +3882,7 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
-useEffect(() => {
-  const handleScroll = () => {
-    setShowScrollTopButton(window.scrollY > 300);
-  };
 
-  window.addEventListener("scroll", handleScroll);
-
-  return () => window.removeEventListener("scroll", handleScroll);
-}, []);
-  
   useEffect(() => {
     const simplify = (items = []) =>
       (items || []).map((item) => ({
@@ -4254,7 +4206,7 @@ const getPinnedGeneralItems = (items = []) =>
 const getPinnedSpecializedItems = (items = []) =>
   getPinnedScheduleItems(items).filter((item) => !isGeneralStudiesCourse(item));
 
-const getCurrentSpecializedScopeCourses = () => orderedSpecializedCourses || [];
+const getCurrentSpecializedScopeCourses = () => specializedCourses || [];
 
 const getCurrentScopeLabel = () => {
   if (includeAllDepartmentsAndMajors) {
@@ -4787,8 +4739,6 @@ const buildPersistedState = () => ({
   compactPrintMode,
   courseAKey,
 courseBKey,
-  generalCoursePriorityKeys,
-  specializedCoursePriorityKeys,
 });
 
 const restorePersistedState = (saved) => {
@@ -4917,8 +4867,6 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setCompactPrintMode(saved.compactPrintMode ?? false);
   setCourseAKey(saved.courseAKey || "");
 setCourseBKey(saved.courseBKey || "");
-  setGeneralCoursePriorityKeys(Array.isArray(saved.generalCoursePriorityKeys) ? saved.generalCoursePriorityKeys : []);
-  setSpecializedCoursePriorityKeys(Array.isArray(saved.specializedCoursePriorityKeys) ? saved.specializedCoursePriorityKeys : []);
 };
 
 
@@ -5753,20 +5701,6 @@ const getSelectedPairConflictStudents = useMemo(() => {
 }, [courseAKey, courseBKey, parsed.courses, preciseStudentInfoMap]);
   
 
-useEffect(() => {
-  const handleScroll = () => {
-    setShowScrollTopButton(window.scrollY > 320);
-  };
-
-  handleScroll();
-  window.addEventListener("scroll", handleScroll, { passive: true });
-  return () => window.removeEventListener("scroll", handleScroll);
-}, []);
-
-const scrollToTopSmoothly = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
-
 const selectedCourseA = useMemo(
   () => parsed.courses.find((c) => c.key === courseAKey) || null,
   [parsed.courses, courseAKey]
@@ -5784,43 +5718,6 @@ const selectedCourseB = useMemo(
     const keys = new Set(generalCourses.map((c) => c.key));
     return parsed.courses.filter((course) => !keys.has(course.key));
   }, [parsed.courses, generalCourses]);
-
-
-  useEffect(() => {
-    setGeneralCoursePriorityKeys((prev) => buildCoursePriorityKeys(generalCourses, prev));
-  }, [generalCourses]);
-
-  useEffect(() => {
-    setSpecializedCoursePriorityKeys((prev) => buildCoursePriorityKeys(specializedCourses, prev));
-  }, [specializedCourses]);
-
-  const orderedGeneralCourses = useMemo(
-    () => orderCoursesByPriorityKeys(generalCourses, generalCoursePriorityKeys),
-    [generalCourses, generalCoursePriorityKeys]
-  );
-
-  const orderedSpecializedCourses = useMemo(
-    () => orderCoursesByPriorityKeys(specializedCourses, specializedCoursePriorityKeys),
-    [specializedCourses, specializedCoursePriorityKeys]
-  );
-
-  const generalCoursePriorityRankMap = useMemo(
-    () => new Map(buildCoursePriorityKeys(generalCourses, generalCoursePriorityKeys).map((key, index) => [key, index])),
-    [generalCourses, generalCoursePriorityKeys]
-  );
-
-  const specializedCoursePriorityRankMap = useMemo(
-    () => new Map(buildCoursePriorityKeys(specializedCourses, specializedCoursePriorityKeys).map((key, index) => [key, index])),
-    [specializedCourses, specializedCoursePriorityKeys]
-  );
-
-  const moveGeneralCoursePriority = (courseKey, offset) => {
-    setGeneralCoursePriorityKeys((prev) => movePriorityKeyByOffset(buildCoursePriorityKeys(generalCourses, prev), courseKey, offset));
-  };
-
-  const moveSpecializedCoursePriority = (courseKey, offset) => {
-    setSpecializedCoursePriorityKeys((prev) => movePriorityKeyByOffset(buildCoursePriorityKeys(specializedCourses, prev), courseKey, offset));
-  };
 
   const specializedVisibleDepartmentTrainerNames = useMemo(() => {
     return Array.from(
@@ -7004,14 +6901,6 @@ const requiredSeats = Number(course.studentCount) || 0;
     return score;
   };
 
-  const getManualPriorityRank = (course) => {
-  if (!course?.key) return Number.MAX_SAFE_INTEGER;
-  if (isGeneralStudiesCourse(course)) {
-    return generalCoursePriorityRankMap.get(course.key) ?? Number.MAX_SAFE_INTEGER;
-  }
-  return specializedCoursePriorityRankMap.get(course.key) ?? Number.MAX_SAFE_INTEGER;
-};
-
   const sortedCoursesForInvigilation = [...coursesList].sort((a, b) => {
   const aNeed = getRequiredInvigilatorsCount(a);
   const bNeed = getRequiredInvigilatorsCount(b);
@@ -7020,11 +6909,8 @@ const requiredSeats = Number(course.studentCount) || 0;
   const bGrouped = enableSamePeriodGroups && samePeriodGroupLookup.has(b.key);
   const aGroupSize = samePeriodGroupSizeLookup.get(a.key) || 0;
   const bGroupSize = samePeriodGroupSizeLookup.get(b.key) || 0;
-  const aManualRank = getManualPriorityRank(a);
-  const bManualRank = getManualPriorityRank(b);
 
   return (
-    aManualRank - bManualRank ||
     Number(bGrouped) - Number(aGrouped) ||
     bGroupSize - aGroupSize ||
     bNeed - aNeed ||
@@ -7321,7 +7207,7 @@ const generateGeneralSchedule = () => {
 
   const pinnedItems = getPinnedScheduleItems(schedule || []);
   const pinnedKeySet = new Set(pinnedItems.map((item) => item?.key).filter(Boolean));
-  const schedulableGeneralCourses = (orderedGeneralCourses || []).filter((course) => !pinnedKeySet.has(course?.key));
+  const schedulableGeneralCourses = (generalCourses || []).filter((course) => !pinnedKeySet.has(course?.key));
   const nextResult = generateScheduleForCourses(schedulableGeneralCourses, pinnedItems);
   const sortedPlaced = sortScheduledItems([
     ...getPinnedGeneralItems(pinnedItems),
@@ -8202,86 +8088,6 @@ const headerBtn = (danger = false) => ({
   backdropFilter: "blur(6px)",
   transition: "0.2s",
 });
-
-const renderPriorityCourseRows = ({
-  courses,
-  priorityKeys,
-  setPriorityKeys,
-  moveCourse,
-  emptyText,
-}) => {
-  const orderedKeys = buildCoursePriorityKeys(courses, priorityKeys);
-  const orderMap = new Map(orderedKeys.map((key, index) => [key, index]));
-
-  return (courses || []).map((course) => {
-    const rank = (orderMap.get(course.key) ?? 0) + 1;
-    return (
-      <tr
-        key={course.key}
-        draggable
-        onDragStart={() => setDraggingCourseKey(course.key)}
-        onDragOver={(e) => {
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (!draggingCourseKey || draggingCourseKey === course.key) return;
-          setPriorityKeys((prev) => reorderPriorityKeys(buildCoursePriorityKeys(courses, prev), draggingCourseKey, course.key));
-          setDraggingCourseKey("");
-        }}
-        onDragEnd={() => setDraggingCourseKey("")}
-        style={{
-          background: draggingCourseKey === course.key ? COLORS.primaryLight : "transparent",
-          cursor: "grab",
-        }}
-      >
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", whiteSpace: "nowrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start" }}>
-            <span
-              style={{
-                minWidth: 34,
-                height: 28,
-                borderRadius: 999,
-                background: COLORS.primaryLight,
-                color: COLORS.primaryDark,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                fontSize: 13,
-                padding: "0 8px",
-              }}
-            >
-              {rank}
-            </span>
-            <span style={{ fontSize: 18, lineHeight: 1, color: COLORS.muted }}>⋮⋮</span>
-          </div>
-        </td>
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
-        <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", whiteSpace: "nowrap" }}>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-start" }}>
-            <button type="button" onClick={() => moveCourse(course.key, -1)} style={cardButtonStyle()}>↑</button>
-            <button type="button" onClick={() => moveCourse(course.key, 1)} style={cardButtonStyle()}>↓</button>
-          </div>
-        </td>
-      </tr>
-    );
-  }).concat(
-    !(courses || []).length
-      ? [
-          <tr key="empty-row">
-            <td colSpan={6} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
-              {emptyText}
-            </td>
-          </tr>,
-        ]
-      : []
-  );
-};
-
   return (
     <div
       ref={topRef}
@@ -10935,7 +10741,6 @@ const renderPriorityCourseRows = ({
   </Card>
 )}
 
-
 {currentStep === 5 && (
           <Card>
             <SectionHeader title="توزيع مقررات الدراسات العامة" description="يتم توزيع مقررات الدراسات العامة أولًا." />
@@ -10958,33 +10763,6 @@ const renderPriorityCourseRows = ({
               <>
             <div style={{ marginBottom: 16, color: COLORS.charcoalSoft }}>
               عدد مقررات الدراسات العامة: <strong>{generalCourses.length}</strong>
-            </div>
-
-            <div
-              style={{
-                marginBottom: 16,
-                border: `1px solid ${COLORS.primaryBorder}`,
-                borderRadius: 16,
-                padding: 14,
-                background: "#F8FEFE",
-                lineHeight: 1.9,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: COLORS.charcoal, marginBottom: 6 }}>
-                الأولوية المدمجة (يدوي + ذكي)
-              </div>
-              <div style={{ color: COLORS.muted, fontSize: 14 }}>
-                يمكنك سحب المقررات وتغيير ترتيبها يدويًا. النظام سيبدأ بالمقررات الأعلى في هذه القائمة أولًا، ثم يطبق بقية الذكاء المعتاد داخل التوزيع نفسه.
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => setGeneralCoursePriorityKeys(buildCoursePriorityKeys(generalCourses, []))}
-                  style={cardButtonStyle()}
-                >
-                  إعادة الترتيب الافتراضي
-                </button>
-              </div>
             </div>
 
             <div
@@ -11077,7 +10855,7 @@ const renderPriorityCourseRows = ({
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["الأولوية", "المقرر", "الرمز", "المدرب", "عدد المتدربين", "تحريك"].map((h) => (
+                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -11085,13 +10863,21 @@ const renderPriorityCourseRows = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {renderPriorityCourseRows({
-                    courses: orderedGeneralCourses,
-                    priorityKeys: generalCoursePriorityKeys,
-                    setPriorityKeys: setGeneralCoursePriorityKeys,
-                    moveCourse: moveGeneralCoursePriority,
-                    emptyText: "لا توجد مقررات دراسات عامة حسب التصنيف الحالي.",
-                  })}
+                  {generalCourses.map((course) => (
+                    <tr key={course.key}>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.studentCount}</td>
+                    </tr>
+                  ))}
+                  {!generalCourses.length ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                        لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -14210,6 +13996,6 @@ const renderPriorityCourseRows = ({
     </div>
   </div>
 )}
-      </div>
+    </div>
   );
 }
