@@ -4050,8 +4050,10 @@ const formatDistributionSlotText = (item) => {
   const displayDate =
     String(item?.gregorian || "").trim() ||
     String(item?.dateISO || "").trim();
+  const displayHijri = String(item?.hijriNumeric || item?.hijri || "").trim();
 
   if (displayDate) segments.push(displayDate);
+  if (displayHijri) segments.push(`هجري ${displayHijri}`);
 
   if (item?.period != null && String(item.period).trim()) {
     segments.push(`الفترة ${item.period}`);
@@ -4137,6 +4139,15 @@ const sortScheduledItems = (items = []) =>
   [...(items || [])].sort(
     (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
   );
+
+const getPinnedScheduleItems = (items = []) =>
+  sortScheduledItems((items || []).filter((item) => item?.isPinned));
+
+const getPinnedGeneralItems = (items = []) =>
+  getPinnedScheduleItems(items).filter((item) => isGeneralStudiesCourse(item));
+
+const getPinnedSpecializedItems = (items = []) =>
+  getPinnedScheduleItems(items).filter((item) => !isGeneralStudiesCourse(item));
 
 const getCurrentSpecializedScopeCourses = () => specializedCourses || [];
 
@@ -7090,11 +7101,21 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
   return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
 };
 
-const applyGeneralScheduleGeneration = ({ placed, notPlaced, nextHallWarnings }) => {
-  const sortedPlaced = sortScheduledItems(placed);
+const applyGeneralScheduleGeneration = ({ placed, notPlaced, nextHallWarnings, pinnedItems = [] }) => {
+  const pinnedGeneralItems = getPinnedGeneralItems(pinnedItems);
+  const pinnedSpecializedItems = getPinnedSpecializedItems(pinnedItems);
+  const pinnedGeneralKeySet = new Set(pinnedGeneralItems.map((item) => item?.key).filter(Boolean));
+  const sortedPlaced = sortScheduledItems([
+    ...pinnedGeneralItems,
+    ...(placed || []).filter((item) => !pinnedGeneralKeySet.has(item?.key)),
+  ]);
+  const mergedSchedule = sortScheduledItems([
+    ...sortedPlaced,
+    ...pinnedSpecializedItems,
+  ]);
   setGeneralSchedule(sortedPlaced);
-  setSchedule(sortedPlaced);
-  setSpecializedSchedule([]);
+  setSchedule(mergedSchedule);
+  setSpecializedSchedule(pinnedSpecializedItems);
   setUnscheduled(notPlaced || []);
   setHallWarnings(nextHallWarnings || []);
   setPreviewTab("schedule");
@@ -7127,8 +7148,14 @@ const generateGeneralSchedule = () => {
     return;
   }
 
-  const nextResult = generateScheduleForCourses(generalCourses, []);
-  const sortedPlaced = sortScheduledItems(nextResult.placed || []);
+  const pinnedItems = getPinnedScheduleItems(schedule || []);
+  const pinnedKeySet = new Set(pinnedItems.map((item) => item?.key).filter(Boolean));
+  const schedulableGeneralCourses = (generalCourses || []).filter((course) => !pinnedKeySet.has(course?.key));
+  const nextResult = generateScheduleForCourses(schedulableGeneralCourses, pinnedItems);
+  const sortedPlaced = sortScheduledItems([
+    ...getPinnedGeneralItems(pinnedItems),
+    ...(nextResult.placed || []),
+  ]);
   const hasPreviousDistribution =
     (generalSchedule || []).length > 0 ||
     (specializedSchedule || []).length > 0 ||
@@ -7141,6 +7168,9 @@ const generateGeneralSchedule = () => {
     }
     if ((specializedSchedule || []).length) {
       detailNotes.push(`الموجود حاليًا من مقررات التخصص: ${formatCourseCountLabel((specializedSchedule || []).length)} وسيُزال عند إعادة توزيع الدراسات العامة.`);
+    }
+    if (pinnedItems.length) {
+      detailNotes.push(`سيتم الإبقاء على ${formatCourseCountLabel(pinnedItems.length)} المثبتة يدويًا ضمن التوزيع الآلي الجديد.`);
     }
     if ((nextResult.notPlaced || []).length) {
       detailNotes.push(buildUnscheduledSummaryText(nextResult.notPlaced || []));
@@ -7172,9 +7202,10 @@ const generateGeneralSchedule = () => {
                 continueLabel: "متابعة توزيع الدراسات العامة",
                 continueAction: () => {
                   applyGeneralScheduleGeneration({
-                    placed: sortedPlaced,
+                    placed: nextResult.placed || [],
                     notPlaced: nextResult.notPlaced || [],
                     nextHallWarnings: nextResult.hallWarnings || [],
+                    pinnedItems,
                   });
                   openDistributionResultModal({
                     title: "نتيجة إعادة توزيع الدراسات العامة",
@@ -7193,9 +7224,10 @@ const generateGeneralSchedule = () => {
             onClick: () => {
               setToast(null);
               applyGeneralScheduleGeneration({
-                placed: sortedPlaced,
+                placed: nextResult.placed || [],
                 notPlaced: nextResult.notPlaced || [],
                 nextHallWarnings: nextResult.hallWarnings || [],
+                pinnedItems,
               });
             },
           },
@@ -7210,9 +7242,10 @@ const generateGeneralSchedule = () => {
   }
 
   applyGeneralScheduleGeneration({
-    placed: sortedPlaced,
+    placed: nextResult.placed || [],
     notPlaced: nextResult.notPlaced || [],
     nextHallWarnings: nextResult.hallWarnings || [],
+    pinnedItems,
   });
 };
 
@@ -7222,10 +7255,13 @@ const applySpecializedScheduleGeneration = ({
   placed,
   notPlaced,
   nextHallWarnings,
+  pinnedScopeItems = [],
 }) => {
+  const pinnedScopeKeySet = new Set((pinnedScopeItems || []).map((item) => item?.key).filter(Boolean));
   const nextSpecializedSchedule = sortScheduledItems([
     ...(keptSpecializedSchedule || []),
-    ...(placed || []),
+    ...(pinnedScopeItems || []),
+    ...(placed || []).filter((item) => !pinnedScopeKeySet.has(item?.key)),
   ]);
 
   const merged = sortScheduledItems([
@@ -7304,8 +7340,11 @@ const generateSpecializedSchedule = () => {
   const currentScopeCourses = getCurrentSpecializedScopeCourses();
   const currentScopeKeySet = new Set(currentScopeCourses.map((course) => course.key));
   const keptSpecializedSchedule = (specializedSchedule || []).filter((item) => !currentScopeKeySet.has(item.key));
-  const lockedBaseSchedule = [...(generalSchedule || []), ...keptSpecializedSchedule];
-  const nextResult = generateScheduleForCourses(currentScopeCourses, lockedBaseSchedule);
+  const pinnedItems = getPinnedScheduleItems(schedule || []).filter((item) => currentScopeKeySet.has(item?.key));
+  const pinnedKeySet = new Set(pinnedItems.map((item) => item?.key).filter(Boolean));
+  const schedulableScopeCourses = currentScopeCourses.filter((course) => !pinnedKeySet.has(course?.key));
+  const lockedBaseSchedule = [...(generalSchedule || []), ...keptSpecializedSchedule, ...pinnedItems];
+  const nextResult = generateScheduleForCourses(schedulableScopeCourses, lockedBaseSchedule);
   const nextPlaced = sortScheduledItems(nextResult.placed || []);
   const scopeLabel = getCurrentScopeLabel();
   const previousScopeItems = getScheduleItemsForDistributionScope(
@@ -7318,6 +7357,9 @@ const generateSpecializedSchedule = () => {
     const detailNotes = [];
     if (keptSpecializedSchedule.length > 0) {
       detailNotes.push(`سيبقى ${formatCourseCountLabel(keptSpecializedSchedule.length)} من التخصصات الأخرى الموزعة سابقًا دون تغيير.`);
+    }
+    if (pinnedItems.length) {
+      detailNotes.push(`سيتم الإبقاء على ${formatCourseCountLabel(pinnedItems.length)} المثبتة يدويًا ضمن هذا النطاق.`);
     }
     if ((nextResult.notPlaced || []).length) {
       detailNotes.push(buildUnscheduledSummaryText(nextResult.notPlaced || []));
@@ -7352,9 +7394,10 @@ const generateSpecializedSchedule = () => {
                   applySpecializedScheduleGeneration({
                     currentScopeKeySet,
                     keptSpecializedSchedule,
-                    placed: nextPlaced,
+                    placed: nextResult.placed || [],
                     notPlaced: nextResult.notPlaced || [],
                     nextHallWarnings: nextResult.hallWarnings || [],
+                    pinnedScopeItems: pinnedItems,
                   });
                   openDistributionResultModal({
                     title: "نتيجة إعادة توزيع التخصص",
@@ -7375,9 +7418,10 @@ const generateSpecializedSchedule = () => {
               applySpecializedScheduleGeneration({
                 currentScopeKeySet,
                 keptSpecializedSchedule,
-                placed: nextPlaced,
+                placed: nextResult.placed || [],
                 notPlaced: nextResult.notPlaced || [],
                 nextHallWarnings: nextResult.hallWarnings || [],
+                pinnedScopeItems: pinnedItems,
               });
             },
           },
@@ -7394,9 +7438,10 @@ const generateSpecializedSchedule = () => {
   applySpecializedScheduleGeneration({
     currentScopeKeySet,
     keptSpecializedSchedule,
-    placed: nextPlaced,
+    placed: nextResult.placed || [],
     notPlaced: nextResult.notPlaced || [],
     nextHallWarnings: nextResult.hallWarnings || [],
+    pinnedScopeItems: pinnedItems,
   });
 };
 
@@ -11515,7 +11560,7 @@ const headerBtn = (danger = false) => ({
                     >
                       <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
                         <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
-                          {slot.gregorian} — الفترة {slot.period}
+                          {slot.gregorian} — {slot.hijriNumeric || ""} — الفترة {slot.period}
                         </div>
                         <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
                         {activeDraggedManualCourse ? (
@@ -11706,7 +11751,7 @@ const headerBtn = (danger = false) => ({
                       >
                         <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
                           <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
-                            {slot.gregorian} — الفترة {slot.period}
+                            {slot.gregorian} — {slot.hijriNumeric || ""} — الفترة {slot.period}
                           </div>
                           <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
                         </div>
