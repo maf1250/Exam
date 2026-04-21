@@ -9596,7 +9596,7 @@ const headerBtn = (danger = false) => ({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                marginRight: 50,
+                marginRight: 47,
                 fontWeight: 800,
                 fontSize: 14,
               }}
@@ -9611,7 +9611,7 @@ const headerBtn = (danger = false) => ({
               value={maxInvigilationsPerInvigilator}
               onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
               placeholder="بدون حد"
-              style={{ ...fieldStyle(), width: 140, padding: "10px 12px" }}
+              style={{ ...fieldStyle(), width: 140, padding: "10px 12px", marginRight: 47 }}
             />
           </label>
         </div>
