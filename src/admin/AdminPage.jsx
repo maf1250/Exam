@@ -414,7 +414,7 @@ function formatGregorian(date) {
 }
 
 function formatHijri(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -423,7 +423,7 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
