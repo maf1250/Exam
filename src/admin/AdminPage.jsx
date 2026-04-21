@@ -7537,18 +7537,21 @@ const headerBtn = (danger = false) => ({
         onRestore={restoreSavedSession}
       />
 
-{/* الهيدر */}
+
 {/* الهيدر */}
 <div
   style={{
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: 32,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
-    border: "1px solid rgba(168,221,218,0.9)",
-    marginBottom: 10,
-    background: "#fff",
-  }}
+  position: "relative",
+  padding: "24px 24px",
+  background:
+    "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 18,
+  flexWrap: "nowrap",
+  direction: "rtl",
+}}
 >
   {/* ===== الشريط العلوي ===== */}
   <div
@@ -7593,19 +7596,18 @@ const headerBtn = (danger = false) => ({
       }}
     />
 
-    {/* ===== الأزرار - يسار ===== */}
+    {/* ===== الأزرار  ===== */}
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        width: 180,
-        flex: "0 0 auto",
-        alignItems: "stretch",
-        position: "relative",
-        zIndex: 1,
-        order: 1,
-      }}
+     style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    width: 180,
+    flex: "0 0 auto",
+    alignItems: "stretch",
+    position: "relative",
+    zIndex: 1,
+  }}
     >
       <button
         onClick={exportSavedSession}
@@ -7656,16 +7658,15 @@ const headerBtn = (danger = false) => ({
       </button>
     </div>
 
-    {/* ===== النص - الوسط ===== */}
+    {/* ===== النص  ===== */}
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
-        position: "relative",
-        zIndex: 1,
-        textAlign: "right",
-        order: 2,
-      }}
+    flex: 1,
+    minWidth: 0,
+    position: "relative",
+    zIndex: 1,
+    textAlign: "right",
+  }}
     >
       <div
         style={{
@@ -7714,24 +7715,23 @@ const headerBtn = (danger = false) => ({
       </p>
     </div>
 
-    {/* ===== الشعار - يمين ===== */}
+    {/* ===== الشعار  ===== */}
     <div
-      style={{
-        width: 112,
-        height: 112,
-        borderRadius: 24,
-        background: "rgba(255,255,255,0.14)",
-        border: "1px solid rgba(255,255,255,0.22)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
-        flex: "0 0 auto",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
-        position: "relative",
-        zIndex: 1,
-        order: 3,
-      }}
+     style={{
+    width: 112,
+    height: 112,
+    borderRadius: 24,
+    background: "rgba(255,255,255,0.14)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backdropFilter: "blur(10px)",
+    flex: "0 0 auto",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+    position: "relative",
+    zIndex: 1,
+  }}
     >
       <img
         src={LOGO_SRC}
