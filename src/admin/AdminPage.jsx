@@ -3835,6 +3835,70 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
+  useEffect(() => {
+    if (!distributionDetailsModal?.affectedCourseKeys?.length) return;
+
+    const nextAfterItems = getScheduleItemsForDistributionScope(
+      schedule,
+      distributionDetailsModal.affectedCourseKeys
+    );
+
+    setDistributionDetailsModal((prev) => {
+      if (!prev?.affectedCourseKeys?.length) return prev;
+
+      const nextComparisonRows = buildDistributionComparisonRows({
+        beforeItems: prev.beforeItems || [],
+        afterItems: nextAfterItems,
+        affectedCourses: prev.affectedCourses || [],
+      });
+
+      const simplify = (items = []) =>
+        (items || []).map((item) => ({
+          key: String(item?.key || "").trim(),
+          dateISO: String(item?.dateISO || "").trim(),
+          period: String(item?.period || "").trim(),
+          timeText: String(item?.timeText || "").trim(),
+          instanceId: String(item?.instanceId || "").trim(),
+        }));
+
+      const prevSignature = JSON.stringify(simplify(prev.afterItems || []));
+      const nextSignature = JSON.stringify(simplify(nextAfterItems || []));
+
+      if (prevSignature === nextSignature) return prev;
+
+      return {
+        ...prev,
+        afterItems: nextAfterItems,
+        comparisonRows: nextComparisonRows,
+      };
+    });
+  }, [schedule, distributionDetailsModal?.affectedCourseKeys]);
+
+  useEffect(() => {
+    const simplify = (items = []) =>
+      (items || []).map((item) => ({
+        key: String(item?.key || "").trim(),
+        instanceId: String(item?.instanceId || "").trim(),
+        dateISO: String(item?.dateISO || "").trim(),
+        period: String(item?.period || "").trim(),
+        timeText: String(item?.timeText || "").trim(),
+      }));
+
+    const nextGeneral = sortScheduledItems((schedule || []).filter((item) => isGeneralStudiesCourse(item)));
+    const nextSpecialized = sortScheduledItems((schedule || []).filter((item) => !isGeneralStudiesCourse(item)));
+
+    setGeneralSchedule((prev) => {
+      const prevSignature = JSON.stringify(simplify(prev || []));
+      const nextSignature = JSON.stringify(simplify(nextGeneral));
+      return prevSignature === nextSignature ? prev : nextGeneral;
+    });
+
+    setSpecializedSchedule((prev) => {
+      const prevSignature = JSON.stringify(simplify(prev || []));
+      const nextSignature = JSON.stringify(simplify(nextSpecialized));
+      return prevSignature === nextSignature ? prev : nextSpecialized;
+    });
+  }, [schedule]);
 
 const handleUpload = (file) => {
   if (!file) return;
@@ -3974,6 +4038,13 @@ const openDistributionDetailsModal = ({
   const safeBeforeItems = [...(beforeItems || [])];
   const safeAfterItems = [...(afterItems || [])];
   const safeAffectedCourses = [...(affectedCourses || [])];
+  const affectedCourseKeys = Array.from(
+    new Set(
+      safeAffectedCourses
+        .map((course) => String(course?.key || "").trim())
+        .filter(Boolean)
+    )
+  );
 
   setDistributionDetailsModal({
     title,
@@ -3981,6 +4052,7 @@ const openDistributionDetailsModal = ({
     beforeItems: safeBeforeItems,
     afterItems: safeAfterItems,
     affectedCourses: safeAffectedCourses,
+    affectedCourseKeys,
     comparisonRows: buildDistributionComparisonRows({
       beforeItems: safeBeforeItems,
       afterItems: safeAfterItems,
@@ -3994,6 +4066,13 @@ const countUsedPeriods = (items = []) => {
   return new Set(
     (items || []).map((item) => `${String(item?.dateISO || "").trim()}__${String(item?.period || "").trim()}`)
   ).size;
+};
+
+const getScheduleItemsForDistributionScope = (items = [], affectedCourseKeys = []) => {
+  const keysSet = new Set((affectedCourseKeys || []).map((key) => String(key || "").trim()).filter(Boolean));
+  if (!keysSet.size) return [];
+
+  return (items || []).filter((item) => keysSet.has(String(item?.key || "").trim()));
 };
 
 const formatDistributionSlotText = (item) => {
@@ -7221,7 +7300,10 @@ const generateSpecializedSchedule = () => {
   const nextResult = generateScheduleForCourses(currentScopeCourses, lockedBaseSchedule);
   const nextPlaced = sortScheduledItems(nextResult.placed || []);
   const scopeLabel = getCurrentScopeLabel();
-  const previousScopeItems = (specializedSchedule || []).filter((item) => currentScopeKeySet.has(item.key));
+  const previousScopeItems = getScheduleItemsForDistributionScope(
+    schedule,
+    Array.from(currentScopeKeySet)
+  );
   const hasSameScopeDistributedBefore = previousScopeItems.length > 0;
 
   if (hasSameScopeDistributedBefore) {
@@ -13208,13 +13290,63 @@ const headerBtn = (danger = false) => ({
                     padding: 12,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-                    <div>
-                      <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{row.courseName || "-"}</div>
-                      <div style={{ color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
-                        {row.courseCode ? `الرمز: ${row.courseCode}` : ""}
-                        {row.department ? `${row.courseCode ? " — " : ""}القسم: ${row.department}` : ""}
-                        {row.major ? `${row.department || row.courseCode ? " — " : ""}التخصص: ${row.major}` : ""}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      gap: 12,
+                      alignItems: "start",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 900, color: COLORS.charcoal, lineHeight: 1.8 }}>{row.courseName || "-"}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                        {row.courseCode ? (
+                          <span
+                            style={{
+                              borderRadius: 999,
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              background: "#F8FAFC",
+                              border: `1px solid ${COLORS.border}`,
+                              color: COLORS.charcoalSoft,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            الرمز: {row.courseCode}
+                          </span>
+                        ) : null}
+                        {row.department ? (
+                          <span
+                            style={{
+                              borderRadius: 999,
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              background: "#F8FAFC",
+                              border: `1px solid ${COLORS.border}`,
+                              color: COLORS.charcoalSoft,
+                            }}
+                          >
+                            القسم: {row.department}
+                          </span>
+                        ) : null}
+                        {row.major ? (
+                          <span
+                            style={{
+                              borderRadius: 999,
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              background: COLORS.primaryLight,
+                              border: `1px solid ${COLORS.primaryBorder}`,
+                              color: COLORS.primaryDark,
+                            }}
+                          >
+                            التخصص: {row.major}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <div
@@ -13227,6 +13359,7 @@ const headerBtn = (danger = false) => ({
                         border: `1px solid ${toneStyles.border}`,
                         color: toneStyles.text,
                         whiteSpace: "nowrap",
+                        alignSelf: "start",
                       }}
                     >
                       {row.status}
