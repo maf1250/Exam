@@ -949,32 +949,37 @@ function Card({ children, style }) {
       }}
     >
       {children}
-      {showScrollTopButton ? (
-        <button
-          type="button"
-          onClick={scrollToTopSmoothly}
-          aria-label="الرجوع إلى الأعلى"
-          title="الرجوع إلى الأعلى"
-          style={{
-            position: "fixed",
-            left: 20,
-            bottom: 24,
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            border: `1px solid ${COLORS.primaryBorder}`,
-            background: COLORS.primaryDark,
-            color: "#fff",
-            fontSize: 22,
-            fontWeight: 900,
-            boxShadow: "0 16px 35px rgba(20, 123, 131, 0.22)",
-            cursor: "pointer",
-            zIndex: 9998,
-          }}
-        >
-          ↑
-        </button>
-      ) : null}
+   {showScrollTopButton && (
+  <button
+    type="button"
+    onClick={scrollToTopSmoothly}
+    aria-label="الرجوع إلى الأعلى"
+    title="الرجوع إلى الأعلى"
+    style={{
+      position: "fixed",
+      left: 20,
+      bottom: 24,
+      width: 52,
+      height: 52,
+      borderRadius: "50%",
+      border: `1px solid ${COLORS.primaryBorder}`,
+      background: COLORS.primaryDark,
+      color: "#fff",
+      fontSize: 22,
+      fontWeight: 900,
+      boxShadow: "0 16px 35px rgba(20, 123, 131, 0.22)",
+      cursor: "pointer",
+      zIndex: 9998,
+      transition: "all 0.3s ease",
+      opacity: showScrollTopButton ? 1 : 0,
+      transform: showScrollTopButton ? "translateY(0)" : "translateY(20px)",
+      pointerEvents: showScrollTopButton ? "auto" : "none",
+    }}
+  >
+    ↑
+  </button>
+)}
+      
     </div>
   );
 }
@@ -2397,7 +2402,7 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-
+const [showScrollTopButton, setShowScrollTopButton] = useState(false);
   
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
@@ -3916,7 +3921,16 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
+useEffect(() => {
+  const handleScroll = () => {
+    setShowScrollTopButton(window.scrollY > 300);
+  };
 
+  window.addEventListener("scroll", handleScroll);
+
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+  
   useEffect(() => {
     const simplify = (items = []) =>
       (items || []).map((item) => ({
@@ -14196,32 +14210,6 @@ const renderPriorityCourseRows = ({
     </div>
   </div>
 )}
-      {showScrollTopButton ? (
-        <button
-          type="button"
-          onClick={scrollToTopSmoothly}
-          aria-label="الرجوع إلى الأعلى"
-          title="الرجوع إلى الأعلى"
-          style={{
-            position: "fixed",
-            left: 20,
-            bottom: 24,
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            border: `1px solid ${COLORS.primaryBorder}`,
-            background: COLORS.primaryDark,
-            color: "#fff",
-            fontSize: 22,
-            fontWeight: 900,
-            boxShadow: "0 16px 35px rgba(20, 123, 131, 0.22)",
-            cursor: "pointer",
-            zIndex: 9998,
-          }}
-        >
-          ↑
-        </button>
-      ) : null}
-    </div>
+      </div>
   );
 }
