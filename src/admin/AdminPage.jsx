@@ -423,17 +423,11 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  const parts = new Intl.DateTimeFormat("en-GB-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
-  }).formatToParts(date);
-
-  const day = parts.find((p) => p.type === "day")?.value || "";
-  const month = parts.find((p) => p.type === "month")?.value || "";
-  const year = parts.find((p) => p.type === "year")?.value || "";
-
-  return `${year}/${month}/${day}`;
+  }).format(date);
 }
 
 function safeNum(value, fallback = 0) {
