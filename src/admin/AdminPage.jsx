@@ -4046,11 +4046,17 @@ const formatDistributionSlotText = (item) => {
 
   const segments = [];
   if (item?.dayName) segments.push(String(item.dayName).trim());
+
+  const displayDate =
+    String(item?.gregorian || "").trim() ||
+    String(item?.dateISO || "").trim();
+
+  if (displayDate) segments.push(displayDate);
+
   if (item?.period != null && String(item.period).trim()) {
     segments.push(`الفترة ${item.period}`);
   }
   if (item?.timeText) segments.push(String(item.timeText).trim());
-  if (item?.dateISO) segments.push(String(item.dateISO).trim());
 
   return segments.filter(Boolean).join(" - ") || "غير مجدول";
 };
@@ -13228,21 +13234,41 @@ const headerBtn = (danger = false) => ({
             <strong>النطاق الحالي:</strong> {distributionDetailsModal.scopeLabel || "-"}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setDistributionDetailsModal(null)}
-          style={{
-            border: "none",
-            background: COLORS.primaryDark,
-            color: "#fff",
-            borderRadius: 12,
-            padding: "10px 14px",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
-          إغلاق
-        </button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+          {typeof distributionDetailsModal.continueAction === "function" ? (
+            <button
+              type="button"
+              onClick={distributionDetailsModal.continueAction}
+              style={{
+                border: "none",
+                background: COLORS.primaryDark,
+                color: "#fff",
+                borderRadius: 12,
+                padding: "10px 16px",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {distributionDetailsModal.continueLabel || "متابعة إعادة التوزيع"}
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setDistributionDetailsModal(null)}
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              background: "#fff",
+              color: COLORS.charcoal,
+              borderRadius: 12,
+              padding: "10px 14px",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            إغلاق
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
