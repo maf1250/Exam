@@ -7567,176 +7567,176 @@ const headerBtn = (danger = false) => ({
     <span>المؤسسة العامة للتدريب التقني والمهني</span>
     <span>لوحة التحكم</span>
   </div>
-
-  {/* ===== الهيدر الرئيسي ===== */}
+{/* ===== الهيدر الرئيسي ===== */}
+<div
+  style={{
+    position: "relative",
+    padding: "24px 24px",
+    background:
+      "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 18,
+    flexWrap: "nowrap",
+  }}
+>
+  {/* Glow */}
   <div
     style={{
-      position: "relative",
-      padding: "32px 28px",
+      position: "absolute",
+      inset: 0,
       background:
-        "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
-      display: "grid",
-      gridTemplateColumns: "180px minmax(320px, 1fr) 220px",
+        "radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 20%), radial-gradient(circle at bottom right, rgba(255,255,255,0.10), transparent 26%)",
+      pointerEvents: "none",
+    }}
+  />
+
+  {/* ===== الشعار  ===== */}
+  <div
+    style={{
+      width: 112,
+      height: 112,
+      borderRadius: 24,
+      background: "rgba(255,255,255,0.14)",
+      border: "1px solid rgba(255,255,255,0.22)",
+      display: "flex",
       alignItems: "center",
-      gap: 24,
+      justifyContent: "center",
+      backdropFilter: "blur(10px)",
+      flex: "0 0 auto",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+      position: "relative",
+      zIndex: 1,
+      order: 3,
     }}
   >
-    {/* Glow */}
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        background:
-          "radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 20%), radial-gradient(circle at bottom right, rgba(255,255,255,0.10), transparent 26%)",
-        pointerEvents: "none",
-      }}
+    <img
+      src={LOGO_SRC}
+      alt="TVTC Logo"
+      style={{ width: 88, height: 88, objectFit: "contain" }}
     />
+  </div>
 
-    {/* ===== الشعار  ===== */}
+  {/* ===== النص  ===== */}
+  <div
+    style={{
+      flex: 1,
+      minWidth: 0,
+      position: "relative",
+      zIndex: 1,
+      textAlign: "right",
+      order: 2,
+    }}
+  >
     <div
       style={{
-        gridColumn: 3,
-        justifySelf: "end",
-        width: 150,
-        height: 150,
-        borderRadius: 30,
-        background: "rgba(255,255,255,0.15)",
-        border: "1px solid rgba(255,255,255,0.25)",
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
-        justifyContent: "center",
-        backdropFilter: "blur(10px)",
-        flexShrink: 0,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
-        position: "relative",
-        zIndex: 1,
+        gap: 8,
+        padding: "6px 14px",
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.15)",
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        marginBottom: 10,
+        border: "1px solid rgba(255,255,255,0.2)",
       }}
     >
-      <img
-        src={LOGO_SRC}
-        alt="TVTC Logo"
-        style={{ width: 130, height: 130, objectFit: "contain" }}
-      />
+      <span>لوحة التحكم</span>
+      <span style={{ opacity: 0.7 }}>•</span>
+      <span>إدارة الاختبارات النهائية</span>
     </div>
 
-    {/* ===== النص  ===== */}
-    <div
+    <h1
       style={{
-        gridColumn: 2,
-        minWidth: 0,
-        position: "relative",
-        zIndex: 1,
-        textAlign: "right",
+        margin: 0,
+        color: "#fff",
+        fontSize: "clamp(22px, 2.6vw, 34px)",
+        fontWeight: 900,
+        lineHeight: 1.35,
       }}
     >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 16px",
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.15)",
-          color: "#fff",
-          fontSize: 13,
-          fontWeight: 700,
-          marginBottom: 14,
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <span>لوحة التحكم</span>
-        <span style={{ opacity: 0.7 }}>•</span>
-        <span>إدارة الاختبارات النهائية</span>
-      </div>
+      منصة إدارة جداول الاختبارات النهائية
+    </h1>
 
-      <h1
-        style={{
-          margin: 0,
-          color: "#fff",
-          fontSize: "clamp(30px, 4vw, 42px)",
-          fontWeight: 900,
-        }}
-      >
-        منصة إدارة جداول الاختبارات النهائية
-      </h1>
-
-      <p
-        style={{
-          marginTop: 10,
-          color: "rgba(255,255,255,0.95)",
-          fontSize: 15,
-          lineHeight: 1.9,
-          maxWidth: 720,
-        }}
-      >
-        نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
-        والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
-      </p>
-    </div>
-
-    {/* ===== الأزرار  ===== */}
-    <div
+    <p
       style={{
-        gridColumn: 1,
-        justifySelf: "start",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        width: "100%",
-        maxWidth: 200,
-        alignItems: "stretch",
-        position: "relative",
-        zIndex: 1,
+        marginTop: 8,
+        marginBottom: 0,
+        color: "rgba(255,255,255,0.95)",
+        fontSize: 14,
+        lineHeight: 1.8,
+        maxWidth: 620,
       }}
     >
-      <button
-        onClick={exportSavedSession}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "#ffffff",
-          color: "#0F5F68",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-        }}
-      >
-        تصدير البيانات
-      </button>
+      نظام احترافي لإنشاء جداول الاختبارات النهائية وتوزيع القاعات
+      والمراقبين، مع أدوات متقدمة للمعاينة والطباعة والتصدير.
+    </p>
+  </div>
 
-      <button
-        onClick={() => importSessionRef.current?.click()}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(255,255,255,0.2)",
-          color: "#fff",
-          border: "1px solid rgba(255,255,255,0.3)",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-        }}
-      >
-        استيراد البيانات
-      </button>
+  {/* ===== الأزرار  ===== */}
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      width: 180,
+      flex: "0 0 auto",
+      alignItems: "stretch",
+      position: "relative",
+      zIndex: 1,
+      order: 1,
+    }}
+  >
+    <button
+      onClick={exportSavedSession}
+      style={{
+        padding: "10px 12px",
+        borderRadius: 12,
+        border: "none",
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: "pointer",
+        background: "#ffffff",
+        color: "#0F5F68",
+      }}
+    >
+      تصدير البيانات
+    </button>
 
-      <button
-        onClick={clearSavedState}
-        style={{
-          padding: "10px 14px",
-          borderRadius: 12,
-          border: "none",
-          fontWeight: 700,
-          cursor: "pointer",
-          background: "rgba(0,0,0,0.25)",
-          color: "#fff",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-        }}
-      >
-        حذف البيانات المحلية
-      </button>
-    </div>
+    <button
+      onClick={() => importSessionRef.current?.click()}
+      style={{
+        padding: "10px 12px",
+        borderRadius: 12,
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: "pointer",
+        background: "rgba(255,255,255,0.18)",
+        color: "#fff",
+        border: "1px solid rgba(255,255,255,0.28)",
+      }}
+    >
+      استيراد البيانات
+    </button>
+
+    <button
+      onClick={clearSavedState}
+      style={{
+        padding: "10px 12px",
+        borderRadius: 12,
+        border: "none",
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: "pointer",
+        background: "rgba(0,0,0,0.22)",
+        color: "#fff",
+      }}
+    >
+      حذف البيانات المحلية
+    </button>
   </div>
 </div>
   {/* input مخفي */}
