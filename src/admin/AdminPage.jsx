@@ -1014,6 +1014,12 @@ function Toast({ item, onClose, onRestore }) {
     item.type === "error" ? COLORS.dangerBg : item.type === "warning" ? COLORS.warningBg : COLORS.successBg;
   const color =
     item.type === "error" ? COLORS.danger : item.type === "warning" ? COLORS.warning : COLORS.success;
+  const actions = Array.isArray(item.actions) ? item.actions : [];
+  const hasDismissAction = actions.some((action) => {
+    const label = String(action?.label || "").trim();
+    return label === "إلغاء" || label === "إغلاق";
+  });
+  const shouldShowCloseButton = !hasDismissAction;
 
   return (
     <div
@@ -1050,8 +1056,8 @@ function Toast({ item, onClose, onRestore }) {
           </button>
         ) : null}
 
-        {Array.isArray(item.actions)
-          ? item.actions.map((action, index) => (
+        {actions.length
+          ? actions.map((action, index) => (
               <button
                 key={`${action.label || "action"}-${index}`}
                 onClick={action.onClick}
@@ -1068,18 +1074,20 @@ function Toast({ item, onClose, onRestore }) {
             ))
           : null}
 
-        <button
-          onClick={onClose}
-          style={{
-            background: "transparent",
-            border: "none",
-            color,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          إغلاق
-        </button>
+        {shouldShowCloseButton ? (
+          <button
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: "none",
+              color,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            إغلاق
+          </button>
+        ) : null}
         </div>
       </div>
    
@@ -3963,12 +3971,21 @@ const openDistributionDetailsModal = ({
   affectedCourses = [],
   notes = [],
 }) => {
+  const safeBeforeItems = [...(beforeItems || [])];
+  const safeAfterItems = [...(afterItems || [])];
+  const safeAffectedCourses = [...(affectedCourses || [])];
+
   setDistributionDetailsModal({
     title,
     scopeLabel,
-    beforeItems: [...(beforeItems || [])],
-    afterItems: [...(afterItems || [])],
-    affectedCourses: [...(affectedCourses || [])],
+    beforeItems: safeBeforeItems,
+    afterItems: safeAfterItems,
+    affectedCourses: safeAffectedCourses,
+    comparisonRows: buildDistributionComparisonRows({
+      beforeItems: safeBeforeItems,
+      afterItems: safeAfterItems,
+      affectedCourses: safeAffectedCourses,
+    }),
     notes: (notes || []).filter(Boolean),
   });
 };
@@ -3977,6 +3994,72 @@ const countUsedPeriods = (items = []) => {
   return new Set(
     (items || []).map((item) => `${String(item?.dateISO || "").trim()}__${String(item?.period || "").trim()}`)
   ).size;
+};
+
+const formatDistributionSlotText = (item) => {
+  if (!item) return "غير مجدول";
+
+  const segments = [];
+  if (item?.dayName) segments.push(String(item.dayName).trim());
+  if (item?.period != null && String(item.period).trim()) {
+    segments.push(`الفترة ${item.period}`);
+  }
+  if (item?.timeText) segments.push(String(item.timeText).trim());
+  if (item?.dateISO) segments.push(String(item.dateISO).trim());
+
+  return segments.filter(Boolean).join(" - ") || "غير مجدول";
+};
+
+const buildDistributionComparisonRows = ({ beforeItems = [], afterItems = [], affectedCourses = [] }) => {
+  const beforeMap = new Map((beforeItems || []).map((item) => [String(item?.key || "").trim(), item]));
+  const afterMap = new Map((afterItems || []).map((item) => [String(item?.key || "").trim(), item]));
+  const courseMap = new Map();
+
+  (affectedCourses || []).forEach((course) => {
+    const key = String(course?.key || "").trim();
+    if (key) courseMap.set(key, course);
+  });
+  (beforeItems || []).forEach((item) => {
+    const key = String(item?.key || "").trim();
+    if (key && !courseMap.has(key)) courseMap.set(key, item);
+  });
+  (afterItems || []).forEach((item) => {
+    const key = String(item?.key || "").trim();
+    if (key && !courseMap.has(key)) courseMap.set(key, item);
+  });
+
+  return Array.from(courseMap.entries()).map(([key, course]) => {
+    const beforeItem = beforeMap.get(key) || null;
+    const afterItem = afterMap.get(key) || null;
+    const beforeText = formatDistributionSlotText(beforeItem);
+    const afterText = formatDistributionSlotText(afterItem);
+
+    let status = "لم يتغير";
+    let tone = "neutral";
+
+    if (!beforeItem && afterItem) {
+      status = "أصبح مجدولًا";
+      tone = "success";
+    } else if (beforeItem && !afterItem) {
+      status = "أصبح غير مجدول";
+      tone = "danger";
+    } else if (beforeText !== afterText) {
+      status = "تغير الموعد";
+      tone = "warning";
+    }
+
+    return {
+      key,
+      courseName: course?.courseName || beforeItem?.courseName || afterItem?.courseName || "-",
+      courseCode: course?.courseCode || beforeItem?.courseCode || afterItem?.courseCode || "",
+      department: course?.department || beforeItem?.department || afterItem?.department || "",
+      major: course?.major || beforeItem?.major || afterItem?.major || "",
+      beforeText,
+      afterText,
+      status,
+      tone,
+    };
+  }).sort((a, b) => String(a.courseName || "").localeCompare(String(b.courseName || ""), "ar"));
 };
 
 const sortScheduledItems = (items = []) =>
@@ -13096,6 +13179,78 @@ const headerBtn = (danger = false) => ({
           </div>
         </div>
       ) : null}
+
+      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 14, background: "#fff", marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+          <div style={{ fontWeight: 900, color: COLORS.charcoal }}>مقارنة المقررات قبل وبعد</div>
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>{formatCourseCountLabel((distributionDetailsModal.comparisonRows || []).length)}</div>
+        </div>
+
+        {(distributionDetailsModal.comparisonRows || []).length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {(distributionDetailsModal.comparisonRows || []).map((row, index) => {
+              const toneStyles =
+                row.tone === "success"
+                  ? { bg: "#ECFDF3", border: "#A6F4C5", text: COLORS.success }
+                  : row.tone === "danger"
+                  ? { bg: "#FEF3F2", border: "#FECACA", text: COLORS.danger }
+                  : row.tone === "warning"
+                  ? { bg: "#FFF7ED", border: "#FED7AA", text: COLORS.warning }
+                  : { bg: "#F8FAFC", border: COLORS.border, text: COLORS.charcoalSoft };
+
+              return (
+                <div
+                  key={row.key || `distribution-comparison-${index}`}
+                  style={{
+                    borderRadius: 14,
+                    background: index % 2 === 0 ? "#FFFFFF" : "#FBFEFE",
+                    border: `1px solid ${COLORS.border}`,
+                    padding: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{row.courseName || "-"}</div>
+                      <div style={{ color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
+                        {row.courseCode ? `الرمز: ${row.courseCode}` : ""}
+                        {row.department ? `${row.courseCode ? " — " : ""}القسم: ${row.department}` : ""}
+                        {row.major ? `${row.department || row.courseCode ? " — " : ""}التخصص: ${row.major}` : ""}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        borderRadius: 999,
+                        padding: "7px 12px",
+                        fontWeight: 800,
+                        fontSize: 13,
+                        background: toneStyles.bg,
+                        border: `1px solid ${toneStyles.border}`,
+                        color: toneStyles.text,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {row.status}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginTop: 12 }}>
+                    <div style={{ borderRadius: 12, padding: 10, background: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
+                      <div style={{ color: COLORS.muted, fontSize: 12, marginBottom: 6 }}>قبل</div>
+                      <div style={{ color: COLORS.charcoal, fontWeight: 800, lineHeight: 1.8 }}>{row.beforeText}</div>
+                    </div>
+                    <div style={{ borderRadius: 12, padding: 10, background: COLORS.primaryLight, border: `1px solid ${COLORS.primaryBorder}` }}>
+                      <div style={{ color: COLORS.muted, fontSize: 12, marginBottom: 6 }}>بعد</div>
+                      <div style={{ color: COLORS.primaryDark, fontWeight: 800, lineHeight: 1.8 }}>{row.afterText}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ color: COLORS.muted }}>لا توجد بيانات مقارنة متاحة لهذا النطاق.</div>
+        )}
+      </div>
 
       <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 14, background: "#fff" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
