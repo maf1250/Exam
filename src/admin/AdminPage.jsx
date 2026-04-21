@@ -2402,6 +2402,7 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
   
   
@@ -3906,7 +3907,6 @@ const [courseBKey, setCourseBKey] = useState("");
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
   const [generalCoursePriorityKeys, setGeneralCoursePriorityKeys] = useState([]);
   const [specializedCoursePriorityKeys, setSpecializedCoursePriorityKeys] = useState([]);
-  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(false);
   const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
