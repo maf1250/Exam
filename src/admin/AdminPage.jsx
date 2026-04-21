@@ -2402,7 +2402,7 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-const [showScrollTopButton, setShowScrollTopButton] = useState(false);
+
   
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
