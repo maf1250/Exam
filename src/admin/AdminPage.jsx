@@ -3535,28 +3535,32 @@ const extraCandidates = extraPool
   function unscheduleCourseManually(itemId) {
     if (manualScheduleLocked) return;
 
-    const currentItem = schedule.find((item) => item.instanceId === itemId);
-    if (!canEditManualCourse(currentItem)) {
-      showGeneralStudiesManualLockToast();
-      return;
-    }
-
-    let removedItem = null;
-
     setSchedule((prev) => {
-      removedItem = prev.find((item) => item.instanceId === itemId) || null;
+      const removedItem = prev.find((item) => item.instanceId === itemId) || null;
+
+      if (!canEditManualCourse(removedItem)) {
+        showGeneralStudiesManualLockToast();
+        return prev;
+      }
+
+      if (removedItem) {
+        setUnscheduled((prevUnscheduled) => {
+          const exists = prevUnscheduled.some((item) => item.instanceId === removedItem.instanceId);
+          if (exists) return prevUnscheduled;
+
+          return [
+            ...prevUnscheduled,
+            {
+              ...removedItem,
+              unscheduledReason:
+                removedItem.unscheduledReason || "تم نقل المقرر يدويًا إلى قائمة غير المجدول.",
+            },
+          ];
+        });
+      }
+
       return prev.filter((item) => item.instanceId !== itemId);
     });
-
-    if (removedItem) {
-      setUnscheduled((prev) => [
-        ...prev,
-        {
-          ...removedItem,
-          unscheduledReason: removedItem.unscheduledReason || "تم نقل المقرر يدويًا إلى قائمة غير المجدول.",
-        },
-      ]);
-    }
   }
 
   function restoreUnscheduledCourse(courseKey) {
@@ -10728,7 +10732,7 @@ const headerBtn = (danger = false) => ({
             <Card>
               <SectionHeader
                 title="التعديل اليدوي للجدول"
-                description="اسحب المقررات بين الفترات يدويًا، ويمكنك قفل الجدول أو تثبيت بعض المقررات حتى لا تتغير لاحقًا، (يمكن استعراض المقررات غير المجدولة في أسفل الصفحة)."
+                description="اسحب المقررات بين الفترات يدويًا، ويمكنك قفل الجدول أو تثبيت بعض المقررات حتى لا تتغير لاحقًا. تم رفع المقررات غير المجدولة إلى أعلى الصفحة لتسريع المراجعة والسحب والإفلات."
               />
 
               {isGeneralStudiesManualEditLocked ? (
@@ -10792,6 +10796,65 @@ const headerBtn = (danger = false) => ({
                   أنشئ الجدول أولًا من الصفحات السابقة ثم عد إلى هنا للتعديل اليدوي.
                 </div>
               ) : (
+              <div style={{ display: "grid", gap: 16 }}>
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                  borderRadius: 22,
+                  padding: 16,
+                  background: "#fff",
+                }}
+              >
+                <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
+                <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {filteredUnscheduledForPreview.length ? (
+                    filteredUnscheduledForPreview.map((course, index) => (
+                      <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", course.key);
+                        e.dataTransfer.effectAllowed = "move";
+                        setDraggingUnscheduledCourseKey(course.key);
+                        setDraggingScheduleItemId("");
+                      }} onDragEnd={() => {
+                        setDraggingUnscheduledCourseKey("");
+                        setActiveDropSlotId("");
+                      }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked || !canEditManualCourse(course) ? "default" : "grab", opacity: !canEditManualCourse(course) ? 0.72 : (draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1), WebkitUserDrag: "element", userSelect: "none" }}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontWeight: 800 }}>{course.courseName}</div>
+                          <span
+                            style={{
+                              background: COLORS.warningBg,
+                              border: "1px solid #FED7AA",
+                              color: COLORS.warning,
+                              borderRadius: 999,
+                              padding: "3px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {normalizeUnscheduledReason(course).shortLabel}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
+                          {normalizeUnscheduledReason(course).detail}
+                        </div>
+                        {!canEditManualCourse(course) ? (
+                          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
+                        ) : null}
+                        <div style={{ marginTop: 8 }}>
+                          <button type="button" onClick={() => restoreUnscheduledCourse(course.key)} style={cardButtonStyle({ disabled: manualScheduleLocked || !canEditManualCourse(course) })} disabled={manualScheduleLocked || !canEditManualCourse(course)}>
+                            محاولة إعادة الجدولة
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مجدولة.</span>
+                  )}
+                </div>
+              </div>
+
+
                 <div style={{ display: "grid", gap: 16 }}>
                   {editableScheduleSlots.map((slot) => (
                     <div
@@ -10869,7 +10932,9 @@ const headerBtn = (danger = false) => ({
                             <div
                               key={item.instanceId}
                               draggable={!manualScheduleLocked && canEditManualCourse(item)}
-                              onDragStart={() => {
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", item.instanceId);
+                                e.dataTransfer.effectAllowed = "move";
                                 setDraggingScheduleItemId(item.instanceId);
                                 setDraggingUnscheduledCourseKey("");
                               }}
@@ -10886,6 +10951,8 @@ const headerBtn = (danger = false) => ({
                                 minWidth: 220,
                                 cursor: manualScheduleLocked || !canEditManualCourse(item) ? "default" : "grab",
                                 opacity: !canEditManualCourse(item) ? 0.72 : 1,
+                                WebkitUserDrag: "element",
+                                userSelect: "none",
                               }}
                             >
                               <div style={{ fontWeight: 900 }}>{item.courseName}</div>
@@ -10912,60 +10979,6 @@ const headerBtn = (danger = false) => ({
                 </div>
               )}
 
-              <div
-                style={{
-                  marginTop: 18,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 22,
-                  padding: 16,
-                  background: "#fff",
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
-                <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {filteredUnscheduledForPreview.length ? (
-                    unscheduled.map((course, index) => (
-                      <div key={`${course.key}-${index}`} draggable={!manualScheduleLocked && canEditManualCourse(course)} onDragStart={() => {
-                        setDraggingUnscheduledCourseKey(course.key);
-                        setDraggingScheduleItemId("");
-                      }} onDragEnd={() => {
-                        setDraggingUnscheduledCourseKey("");
-                        setActiveDropSlotId("");
-                      }} style={{ border: draggingUnscheduledCourseKey === course.key ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`, borderRadius: 14, padding: 12, background: draggingUnscheduledCourseKey === course.key ? "#ECFDF5" : "#F8FEFE", minWidth: 220, cursor: manualScheduleLocked || !canEditManualCourse(course) ? "default" : "grab", opacity: !canEditManualCourse(course) ? 0.72 : (draggingUnscheduledCourseKey && draggingUnscheduledCourseKey !== course.key ? 0.7 : 1) }}>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ fontWeight: 800 }}>{course.courseName}</div>
-                          <span
-                            style={{
-                              background: COLORS.warningBg,
-                              border: "1px solid #FED7AA",
-                              color: COLORS.warning,
-                              borderRadius: 999,
-                              padding: "3px 10px",
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {normalizeUnscheduledReason(course).shortLabel}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
-                          {normalizeUnscheduledReason(course).detail}
-                        </div>
-                        {!canEditManualCourse(course) ? (
-                          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</div>
-                        ) : null}
-                        <div style={{ marginTop: 8 }}>
-                          <button type="button" onClick={() => restoreUnscheduledCourse(course.key)} style={cardButtonStyle({ disabled: manualScheduleLocked || !canEditManualCourse(course) })} disabled={manualScheduleLocked || !canEditManualCourse(course)}>
-                            محاولة إعادة الجدولة
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مجدولة.</span>
-                  )}
-                </div>
               </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
