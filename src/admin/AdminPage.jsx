@@ -7559,18 +7559,18 @@ const headerBtn = (danger = false) => ({
       gridTemplateColumns: "1fr auto 1fr",
       alignItems: "center",
       gap: 12,
-      fontSize: 13,
+      fontSize: 8,
     }}
   >
-    <div style={{ textAlign: "right", fontWeight: 700 }}>
+    <div style={{ textAlign: "right", fontWeight: 400 }}>
       📅 {new Date().toLocaleDateString("ar-SA")}
     </div>
 
-    <div style={{ textAlign: "center", fontWeight: 700 }}>
+    <div style={{ textAlign: "center", fontWeight: 400 }}>
       المؤسسة العامة للتدريب التقني والمهني
     </div>
 
-    <div style={{ textAlign: "left", fontWeight: 700 }}>
+    <div style={{ textAlign: "left", fontWeight: 400 }}>
       لوحة التحكم
     </div>
   </div>
