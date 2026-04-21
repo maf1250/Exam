@@ -7562,15 +7562,15 @@ const headerBtn = (danger = false) => ({
       fontSize: 10,
     }}
   >
-    <div style={{ textAlign: "right", fontWeight: 500 }}>
+    <div style={{ textAlign: "right", fontWeight: 600 }}>
       📅 {new Date().toLocaleDateString("ar-SA")}
     </div>
 
-    <div style={{ textAlign: "center", fontWeight: 500 }}>
+    <div style={{ textAlign: "center", fontWeight: 600 }}>
       المؤسسة العامة للتدريب التقني والمهني
     </div>
 
-    <div style={{ textAlign: "left", fontWeight: 500 }}>
+    <div style={{ textAlign: "left", fontWeight: 600 }}>
       لوحة التحكم
     </div>
   </div>
