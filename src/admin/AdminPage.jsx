@@ -1032,7 +1032,7 @@ function Toast({ item, onClose, onRestore }) {
       }}
     >
       <div style={{ fontWeight: 800, marginBottom: 6 }}>{item.title}</div>
-      <div style={{ fontSize: 14, lineHeight: 1.7 }}>{item.description}</div>
+      <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-line" }}>{item.description}</div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
         {item.type === "warning" && item.action === "restore_session" && onRestore ? (
@@ -2238,6 +2238,7 @@ const pendingRestoreRef = useRef(null);
   const [fileName, setFileName] = useState("");
   const [collegeNameInput, setCollegeNameInput] = useState("");
   const [toast, setToast] = useState(null);
+  const [distributionDetailsModal, setDistributionDetailsModal] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewTab, setPreviewTab] = useState("sortedCourses");
   const [invigilationMode, setInvigilationMode] = useState("ratio");
@@ -3952,6 +3953,121 @@ const openUnscheduledCoursesPreview = (focusReason = false) => {
       "warning"
     );
   }
+};
+
+const openDistributionDetailsModal = ({
+  title = "تفاصيل التوزيع",
+  scopeLabel = "",
+  beforeItems = [],
+  afterItems = [],
+  affectedCourses = [],
+  notes = [],
+}) => {
+  setDistributionDetailsModal({
+    title,
+    scopeLabel,
+    beforeItems: [...(beforeItems || [])],
+    afterItems: [...(afterItems || [])],
+    affectedCourses: [...(affectedCourses || [])],
+    notes: (notes || []).filter(Boolean),
+  });
+};
+
+const countUsedPeriods = (items = []) => {
+  return new Set(
+    (items || []).map((item) => `${String(item?.dateISO || "").trim()}__${String(item?.period || "").trim()}`)
+  ).size;
+};
+
+const sortScheduledItems = (items = []) =>
+  [...(items || [])].sort(
+    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
+  );
+
+const getCurrentSpecializedScopeCourses = () => specializedCourses || [];
+
+const getCurrentScopeLabel = () => {
+  if (includeAllDepartmentsAndMajors) {
+    return "جميع الأقسام والتخصصات الظاهرة";
+  }
+
+  const currentCourses = getCurrentSpecializedScopeCourses();
+  const pairs = new Set();
+
+  currentCourses.forEach((course) => {
+    const deps = splitBySlash(course?.department || "-");
+    const majors = splitBySlash(course?.major || "-");
+
+    deps.forEach((dep) => {
+      majors.forEach((maj) => {
+        const d = String(dep || "").trim() || "-";
+        const m = String(maj || "").trim() || "-";
+        if (normalizeArabic(d) === normalizeArabic("الدراسات العامة")) return;
+        pairs.add(`${d} / ${m}`);
+      });
+    });
+  });
+
+  const list = Array.from(pairs);
+  if (!list.length) return "نطاق غير محدد";
+  if (list.length <= 3) return list.join("، ");
+  return `${list.slice(0, 3).join("، ")} + ${list.length - 3} أخرى`;
+};
+
+const buildDistributionComparisonText = ({ beforeItems = [], afterItems = [], scopeLabel = "", extraNotes = [] }) => {
+  const beforeCourseCount = beforeItems.length;
+  const afterCourseCount = afterItems.length;
+  const beforePeriods = countUsedPeriods(beforeItems);
+  const afterPeriods = countUsedPeriods(afterItems);
+  const parts = [];
+
+  if (scopeLabel) {
+    parts.push(`النطاق الحالي: ${scopeLabel}`);
+  }
+
+  parts.push(`قبل: ${formatCourseCountLabel(beforeCourseCount)} موزعة على ${beforePeriods} فترة.`);
+  parts.push(`بعد: ${formatCourseCountLabel(afterCourseCount)} موزعة على ${afterPeriods} فترة.`);
+
+  (extraNotes || []).filter(Boolean).forEach((note) => parts.push(note));
+
+  return parts.join("\n");
+};
+
+const buildGeneralDistributionWarningText = ({ currentGeneral = [], currentSpecialized = [], nextPlaced = [], nextNotPlaced = [] }) => {
+  const notes = [];
+  if (currentGeneral.length) {
+    notes.push(`الموجود حاليًا: ${formatCourseCountLabel(currentGeneral.length)} من الدراسات العامة.`);
+  }
+  if (currentSpecialized.length) {
+    notes.push(`سيتم حذف ${formatCourseCountLabel(currentSpecialized.length)} من مقررات التخصص المرتبطة بالتوزيع الحالي.`);
+  }
+  if (nextNotPlaced.length) {
+    notes.push(buildUnscheduledSummaryText(nextNotPlaced));
+  }
+
+  return buildDistributionComparisonText({
+    beforeItems: [...currentGeneral, ...currentSpecialized],
+    afterItems: nextPlaced,
+    scopeLabel: "الدراسات العامة",
+    extraNotes: notes,
+  });
+};
+
+const buildSpecializedDistributionWarningText = ({ scopeLabel, beforeScopeItems = [], afterScopeItems = [], nextNotPlaced = [], keptOtherSpecializedCount = 0 }) => {
+  const notes = [];
+  if (keptOtherSpecializedCount > 0) {
+    notes.push(`سيبقى ${formatCourseCountLabel(keptOtherSpecializedCount)} من التخصصات الأخرى الموزعة سابقًا دون تغيير.`);
+  }
+  if (nextNotPlaced.length) {
+    notes.push(buildUnscheduledSummaryText(nextNotPlaced));
+  }
+
+  return buildDistributionComparisonText({
+    beforeItems: beforeScopeItems,
+    afterItems: afterScopeItems,
+    scopeLabel,
+    extraNotes: notes,
+  });
 };
 
 const getUnscheduledReasonCategory = (courseOrReason) => {
@@ -6820,26 +6936,19 @@ scheduledTypeByDate.set(bestSlot.dateISO, placedDayTypeCounts);
   return { placed: newPlaced, notPlaced, hallWarnings: hallWarningItems };
 };
 
-const generateGeneralSchedule = () => {
-  if (!hasImportedSf01) {
-    showSf01ImportFirstToast();
-    return;
-  }
-
-  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(generalCourses, []);
-  const sortedPlaced = [...placed].sort(
-    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
-  );
+const applyGeneralScheduleGeneration = ({ placed, notPlaced, nextHallWarnings }) => {
+  const sortedPlaced = sortScheduledItems(placed);
   setGeneralSchedule(sortedPlaced);
   setSchedule(sortedPlaced);
   setSpecializedSchedule([]);
   setUnscheduled(notPlaced || []);
   setHallWarnings(nextHallWarnings || []);
   setPreviewTab("schedule");
-  if (notPlaced.length) {
+
+  if ((notPlaced || []).length) {
     showToast(
       "تم توزيع مقررات الدراسات العامة مع ملاحظات",
-      `تم توزيع ${formatCourseCountLabel(placed.length)}. ${buildUnscheduledSummaryText(notPlaced)}`,
+      `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}. ${buildUnscheduledSummaryText(notPlaced)}`,
       "warning",
       {
         persistent: true,
@@ -6853,41 +6962,127 @@ const generateGeneralSchedule = () => {
     );
     setCurrentStep(5);
   } else {
-    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
-  setCurrentStep(6);
+    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}.`, "success");
+    setCurrentStep(6);
   }
-  
 };
 
-const generateSpecializedSchedule = () => {
+const generateGeneralSchedule = () => {
   if (!hasImportedSf01) {
     showSf01ImportFirstToast();
     return;
   }
 
-  const shouldWarnAboutMissingImportedSession = !hasImportedSessionFile && !(generalSchedule || []).length;
-  const { placed, notPlaced, hallWarnings: nextHallWarnings } = generateScheduleForCourses(specializedCourses, generalSchedule);
-  setSpecializedSchedule(placed);
+  const nextResult = generateScheduleForCourses(generalCourses, []);
+  const sortedPlaced = sortScheduledItems(nextResult.placed || []);
+  const hasPreviousDistribution =
+    (generalSchedule || []).length > 0 ||
+    (specializedSchedule || []).length > 0 ||
+    (schedule || []).length > 0;
+
+  if (hasPreviousDistribution) {
+    const detailNotes = [];
+    if ((generalSchedule || []).length) {
+      detailNotes.push(`الموجود حاليًا من الدراسات العامة: ${formatCourseCountLabel((generalSchedule || []).length)}.`);
+    }
+    if ((specializedSchedule || []).length) {
+      detailNotes.push(`الموجود حاليًا من مقررات التخصص: ${formatCourseCountLabel((specializedSchedule || []).length)} وسيُزال عند إعادة توزيع الدراسات العامة.`);
+    }
+    if ((nextResult.notPlaced || []).length) {
+      detailNotes.push(buildUnscheduledSummaryText(nextResult.notPlaced || []));
+    }
+
+    showToast(
+      "يوجد توزيع سابق",
+      buildGeneralDistributionWarningText({
+        currentGeneral: generalSchedule || [],
+        currentSpecialized: specializedSchedule || [],
+        nextPlaced: sortedPlaced,
+        nextNotPlaced: nextResult.notPlaced || [],
+      }),
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "عرض التفاصيل",
+            onClick: () => {
+              setToast(null);
+              openDistributionDetailsModal({
+                title: "تفاصيل إعادة توزيع الدراسات العامة",
+                scopeLabel: "الدراسات العامة",
+                beforeItems: [...(generalSchedule || []), ...(specializedSchedule || [])],
+                afterItems: sortedPlaced,
+                affectedCourses: generalCourses || [],
+                notes: detailNotes,
+              });
+            },
+          },
+          {
+            label: "متابعة",
+            onClick: () => {
+              setToast(null);
+              applyGeneralScheduleGeneration({
+                placed: sortedPlaced,
+                notPlaced: nextResult.notPlaced || [],
+                nextHallWarnings: nextResult.hallWarnings || [],
+              });
+            },
+          },
+          {
+            label: "إلغاء",
+            onClick: () => setToast(null),
+          },
+        ],
+      }
+    );
+    return;
+  }
+
+  applyGeneralScheduleGeneration({
+    placed: sortedPlaced,
+    notPlaced: nextResult.notPlaced || [],
+    nextHallWarnings: nextResult.hallWarnings || [],
+  });
+};
+
+const applySpecializedScheduleGeneration = ({
+  currentScopeKeySet,
+  keptSpecializedSchedule,
+  placed,
+  notPlaced,
+  nextHallWarnings,
+}) => {
+  const nextSpecializedSchedule = sortScheduledItems([
+    ...(keptSpecializedSchedule || []),
+    ...(placed || []),
+  ]);
+
+  const merged = sortScheduledItems([
+    ...(generalSchedule || []),
+    ...nextSpecializedSchedule,
+  ]);
+
+  setSpecializedSchedule(nextSpecializedSchedule);
+  setSchedule(merged);
+  setPreviewTab("schedule");
+
   setHallWarnings((prev) => {
-    const combined = [...(prev || []), ...(nextHallWarnings || [])];
+    const remaining = (prev || []).filter((item) => !currentScopeKeySet.has(item?.key));
+    const combined = [...remaining, ...(nextHallWarnings || [])];
     const map = new Map();
     combined.forEach((item) => {
-      const key = `${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      const key = `${item?.key || ""}__${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
       if (!map.has(key)) {
         map.set(key, item);
       }
     });
     return Array.from(map.values());
   });
-  setPreviewTab("schedule");
 
-  const merged = [...generalSchedule, ...placed].sort(
-    (a, b) => a.dateISO.localeCompare(b.dateISO) || a.period - b.period || b.studentCount - a.studentCount
-  );
-
-  setSchedule(merged);
   setUnscheduled((prev) => {
-    const combined = [...(prev || []), ...(notPlaced || [])];
+    const remaining = (prev || []).filter((course) => !currentScopeKeySet.has(course?.key));
+    const combined = [...remaining, ...(notPlaced || [])];
     const map = new Map();
     combined.forEach((course) => {
       if (course?.key && !map.has(course.key)) {
@@ -6896,10 +7091,12 @@ const generateSpecializedSchedule = () => {
     });
     return Array.from(map.values());
   });
-  if (notPlaced.length || shouldWarnAboutMissingImportedSession) {
+
+  const shouldWarnAboutMissingImportedSession = !hasImportedSessionFile && !(generalSchedule || []).length;
+  if ((notPlaced || []).length || shouldWarnAboutMissingImportedSession) {
     const messageParts = [`تم توزيع ${formatCourseCountLabel(placed.length)}.`];
-  
-    if (notPlaced.length) {
+
+    if ((notPlaced || []).length) {
       messageParts.push(buildUnscheduledSummaryText(notPlaced));
     }
 
@@ -6910,7 +7107,6 @@ const generateSpecializedSchedule = () => {
     showToast(
       shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
       messageParts.join(" ").trim(),
-     
       "warning",
       {
         persistent: true,
@@ -6922,12 +7118,95 @@ const generateSpecializedSchedule = () => {
         ],
       }
     );
-     setCurrentStep(6);
+    setCurrentStep(6);
   } else {
     showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
-  setCurrentStep(7);
+    setCurrentStep(7);
   }
-  
+};
+
+const generateSpecializedSchedule = () => {
+  if (!hasImportedSf01) {
+    showSf01ImportFirstToast();
+    return;
+  }
+
+  const currentScopeCourses = getCurrentSpecializedScopeCourses();
+  const currentScopeKeySet = new Set(currentScopeCourses.map((course) => course.key));
+  const keptSpecializedSchedule = (specializedSchedule || []).filter((item) => !currentScopeKeySet.has(item.key));
+  const lockedBaseSchedule = [...(generalSchedule || []), ...keptSpecializedSchedule];
+  const nextResult = generateScheduleForCourses(currentScopeCourses, lockedBaseSchedule);
+  const nextPlaced = sortScheduledItems(nextResult.placed || []);
+  const scopeLabel = getCurrentScopeLabel();
+  const previousScopeItems = (specializedSchedule || []).filter((item) => currentScopeKeySet.has(item.key));
+  const hasSameScopeDistributedBefore = previousScopeItems.length > 0;
+
+  if (hasSameScopeDistributedBefore) {
+    const detailNotes = [];
+    if (keptSpecializedSchedule.length > 0) {
+      detailNotes.push(`سيبقى ${formatCourseCountLabel(keptSpecializedSchedule.length)} من التخصصات الأخرى الموزعة سابقًا دون تغيير.`);
+    }
+    if ((nextResult.notPlaced || []).length) {
+      detailNotes.push(buildUnscheduledSummaryText(nextResult.notPlaced || []));
+    }
+
+    showToast(
+      "يوجد توزيع سابق لنفس النطاق",
+      buildSpecializedDistributionWarningText({
+        scopeLabel,
+        beforeScopeItems: previousScopeItems,
+        afterScopeItems: nextPlaced,
+        nextNotPlaced: nextResult.notPlaced || [],
+        keptOtherSpecializedCount: keptSpecializedSchedule.length,
+      }),
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "عرض التفاصيل",
+            onClick: () => {
+              setToast(null);
+              openDistributionDetailsModal({
+                title: "تفاصيل إعادة توزيع التخصص",
+                scopeLabel,
+                beforeItems: previousScopeItems,
+                afterItems: nextPlaced,
+                affectedCourses: currentScopeCourses,
+                notes: detailNotes,
+              });
+            },
+          },
+          {
+            label: "متابعة",
+            onClick: () => {
+              setToast(null);
+              applySpecializedScheduleGeneration({
+                currentScopeKeySet,
+                keptSpecializedSchedule,
+                placed: nextPlaced,
+                notPlaced: nextResult.notPlaced || [],
+                nextHallWarnings: nextResult.hallWarnings || [],
+              });
+            },
+          },
+          {
+            label: "إلغاء",
+            onClick: () => setToast(null),
+          },
+        ],
+      }
+    );
+    return;
+  }
+
+  applySpecializedScheduleGeneration({
+    currentScopeKeySet,
+    keptSpecializedSchedule,
+    placed: nextPlaced,
+    notPlaced: nextResult.notPlaced || [],
+    nextHallWarnings: nextResult.hallWarnings || [],
+  });
 };
 
 const filteredScheduleForPrint = useMemo(() => {
@@ -12726,6 +13005,129 @@ const headerBtn = (danger = false) => ({
           ))}
         </div>
       )}
+    </div>
+  </div>
+)}
+
+{distributionDetailsModal && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(20,123,131,0.26)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      zIndex: 9999,
+    }}
+    onClick={() => setDistributionDetailsModal(null)}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 22,
+        padding: 22,
+        width: "min(820px, 100%)",
+        maxHeight: "84vh",
+        overflowY: "auto",
+        border: `1px solid ${COLORS.primaryBorder}`,
+        boxShadow: "0 24px 60px rgba(20,123,131,0.22)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ color: COLORS.primaryDark, fontWeight: 900, fontSize: 22 }}>{distributionDetailsModal.title || "تفاصيل التوزيع"}</div>
+          <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>
+            <strong>النطاق الحالي:</strong> {distributionDetailsModal.scopeLabel || "-"}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDistributionDetailsModal(null)}
+          style={{
+            border: "none",
+            background: COLORS.primaryDark,
+            color: "#fff",
+            borderRadius: 12,
+            padding: "10px 14px",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          إغلاق
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 14, background: "#F8FAFC" }}>
+          <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 6 }}>قبل</div>
+          <div style={{ color: COLORS.charcoal, fontWeight: 900, fontSize: 18 }}>{formatCourseCountLabel((distributionDetailsModal.beforeItems || []).length)}</div>
+          <div style={{ color: COLORS.muted, marginTop: 4 }}>على {countUsedPeriods(distributionDetailsModal.beforeItems || [])} فترة</div>
+        </div>
+        <div style={{ border: `1px solid ${COLORS.primaryBorder}`, borderRadius: 16, padding: 14, background: COLORS.primaryLight }}>
+          <div style={{ color: COLORS.muted, fontSize: 13, marginBottom: 6 }}>بعد</div>
+          <div style={{ color: COLORS.primaryDark, fontWeight: 900, fontSize: 18 }}>{formatCourseCountLabel((distributionDetailsModal.afterItems || []).length)}</div>
+          <div style={{ color: COLORS.muted, marginTop: 4 }}>على {countUsedPeriods(distributionDetailsModal.afterItems || [])} فترة</div>
+        </div>
+      </div>
+
+      {Array.isArray(distributionDetailsModal.notes) && distributionDetailsModal.notes.length ? (
+        <div style={{ marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 14, background: "#fff" }}>
+          <div style={{ fontWeight: 900, color: COLORS.charcoal, marginBottom: 8 }}>ملاحظات مهمة</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {distributionDetailsModal.notes.map((note, index) => (
+              <div
+                key={`distribution-note-${index}`}
+                style={{
+                  borderRadius: 12,
+                  background: "#F8FAFC",
+                  border: `1px solid ${COLORS.border}`,
+                  padding: "10px 12px",
+                  color: COLORS.text,
+                  lineHeight: 1.8,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {note}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 14, background: "#fff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+          <div style={{ fontWeight: 900, color: COLORS.charcoal }}>المقررات المتأثرة</div>
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>{formatCourseCountLabel((distributionDetailsModal.affectedCourses || []).length)}</div>
+        </div>
+
+        {(distributionDetailsModal.affectedCourses || []).length ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {(distributionDetailsModal.affectedCourses || []).map((course, index) => (
+              <div
+                key={course?.key || `${course?.courseCode || "course"}-${index}`}
+                style={{
+                  borderRadius: 12,
+                  background: index % 2 === 0 ? "#F8FAFC" : "#FFFFFF",
+                  border: `1px solid ${COLORS.border}`,
+                  padding: "10px 12px",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: COLORS.charcoal }}>{course?.courseName || "-"}</div>
+                <div style={{ color: COLORS.muted, marginTop: 4, lineHeight: 1.8 }}>
+                  {course?.courseCode ? `الرمز: ${course.courseCode}` : ""}
+                  {course?.department ? `${course?.courseCode ? " — " : ""}القسم: ${course.department}` : ""}
+                  {course?.major ? `${course?.department || course?.courseCode ? " — " : ""}التخصص: ${course.major}` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: COLORS.muted }}>لا توجد مقررات متاحة للعرض داخل هذا النطاق.</div>
+        )}
+      </div>
     </div>
   </div>
 )}
