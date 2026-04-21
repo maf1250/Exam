@@ -3835,44 +3835,6 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
-  useEffect(() => {
-    if (!distributionDetailsModal?.affectedCourseKeys?.length) return;
-
-    const nextAfterItems = getScheduleItemsForDistributionScope(
-      schedule,
-      distributionDetailsModal.affectedCourseKeys
-    );
-
-    setDistributionDetailsModal((prev) => {
-      if (!prev?.affectedCourseKeys?.length) return prev;
-
-      const nextComparisonRows = buildDistributionComparisonRows({
-        beforeItems: prev.beforeItems || [],
-        afterItems: nextAfterItems,
-        affectedCourses: prev.affectedCourses || [],
-      });
-
-      const simplify = (items = []) =>
-        (items || []).map((item) => ({
-          key: String(item?.key || "").trim(),
-          dateISO: String(item?.dateISO || "").trim(),
-          period: String(item?.period || "").trim(),
-          timeText: String(item?.timeText || "").trim(),
-          instanceId: String(item?.instanceId || "").trim(),
-        }));
-
-      const prevSignature = JSON.stringify(simplify(prev.afterItems || []));
-      const nextSignature = JSON.stringify(simplify(nextAfterItems || []));
-
-      if (prevSignature === nextSignature) return prev;
-
-      return {
-        ...prev,
-        afterItems: nextAfterItems,
-        comparisonRows: nextComparisonRows,
-      };
-    });
-  }, [schedule, distributionDetailsModal?.affectedCourseKeys]);
 
   useEffect(() => {
     const simplify = (items = []) =>
@@ -4091,6 +4053,26 @@ const formatDistributionSlotText = (item) => {
   if (item?.dateISO) segments.push(String(item.dateISO).trim());
 
   return segments.filter(Boolean).join(" - ") || "غير مجدول";
+};
+
+const openDistributionResultModal = ({
+  title = "نتيجة إعادة التوزيع",
+  scopeLabel = "",
+  beforeItems = [],
+  afterItems = [],
+  affectedCourses = [],
+  notes = [],
+}) => {
+  openDistributionDetailsModal({
+    title,
+    scopeLabel,
+    beforeItems,
+    afterItems,
+    affectedCourses,
+    notes,
+    continueAction: null,
+    continueLabel: "",
+  });
 };
 
 const buildDistributionComparisonRows = ({ beforeItems = [], afterItems = [], affectedCourses = [] }) => {
@@ -7183,11 +7165,18 @@ const generateGeneralSchedule = () => {
                 notes: detailNotes,
                 continueLabel: "متابعة توزيع الدراسات العامة",
                 continueAction: () => {
-                  setDistributionDetailsModal(null);
                   applyGeneralScheduleGeneration({
                     placed: sortedPlaced,
                     notPlaced: nextResult.notPlaced || [],
                     nextHallWarnings: nextResult.hallWarnings || [],
+                  });
+                  openDistributionResultModal({
+                    title: "نتيجة إعادة توزيع الدراسات العامة",
+                    scopeLabel: "الدراسات العامة",
+                    beforeItems: [...(generalSchedule || []), ...(specializedSchedule || [])],
+                    afterItems: sortedPlaced,
+                    affectedCourses: generalCourses || [],
+                    notes: detailNotes,
                   });
                 },
               });
@@ -7354,13 +7343,20 @@ const generateSpecializedSchedule = () => {
                 notes: detailNotes,
                 continueLabel: "متابعة إعادة توزيع التخصص",
                 continueAction: () => {
-                  setDistributionDetailsModal(null);
                   applySpecializedScheduleGeneration({
                     currentScopeKeySet,
                     keptSpecializedSchedule,
                     placed: nextPlaced,
                     notPlaced: nextResult.notPlaced || [],
                     nextHallWarnings: nextResult.hallWarnings || [],
+                  });
+                  openDistributionResultModal({
+                    title: "نتيجة إعادة توزيع التخصص",
+                    scopeLabel,
+                    beforeItems: previousScopeItems,
+                    afterItems: nextPlaced,
+                    affectedCourses: currentScopeCourses,
+                    notes: detailNotes,
                   });
                 },
               });
