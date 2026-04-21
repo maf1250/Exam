@@ -4045,12 +4045,18 @@ const formatDistributionSlotText = (item) => {
   if (!item) return "غير مجدول";
 
   const segments = [];
-  if (item?.dayName) segments.push(String(item.dayName).trim());
-
+  const displayDay = String(item?.dayName || "").trim();
   const displayDate =
     String(item?.gregorian || "").trim() ||
     String(item?.dateISO || "").trim();
   const displayHijri = String(item?.hijriNumeric || item?.hijri || "").trim();
+
+  const normalizedDay = normalizeArabic(displayDay);
+  const normalizedDate = normalizeArabic(displayDate);
+
+  if (displayDay && (!normalizedDate || !normalizedDate.includes(normalizedDay))) {
+    segments.push(displayDay);
+  }
 
   if (displayDate) segments.push(displayDate);
   if (displayHijri) segments.push(`هجري ${displayHijri}`);
@@ -4109,8 +4115,12 @@ const buildDistributionComparisonRows = ({ beforeItems = [], afterItems = [], af
 
     let status = "لم يتغير";
     let tone = "neutral";
+    const isPinned = Boolean(beforeItem?.isPinned || afterItem?.isPinned);
 
-    if (!beforeItem && afterItem) {
+    if (isPinned) {
+      status = "مثبت";
+      tone = "pinned";
+    } else if (!beforeItem && afterItem) {
       status = "أصبح مجدولًا";
       tone = "success";
     } else if (beforeItem && !afterItem) {
@@ -4212,7 +4222,7 @@ const buildGeneralDistributionWarningText = ({ currentGeneral = [], currentSpeci
 
   return buildDistributionComparisonText({
     beforeItems: [...currentGeneral, ...currentSpecialized],
-    afterItems: nextPlaced,
+    afterItems: projectedScopeItems,
     scopeLabel: "الدراسات العامة",
     extraNotes: notes,
   });
@@ -7346,6 +7356,10 @@ const generateSpecializedSchedule = () => {
   const lockedBaseSchedule = [...(generalSchedule || []), ...keptSpecializedSchedule, ...pinnedItems];
   const nextResult = generateScheduleForCourses(schedulableScopeCourses, lockedBaseSchedule);
   const nextPlaced = sortScheduledItems(nextResult.placed || []);
+  const projectedScopeItems = sortScheduledItems([
+    ...(pinnedItems || []),
+    ...nextPlaced.filter((item) => !pinnedKeySet.has(item?.key)),
+  ]);
   const scopeLabel = getCurrentScopeLabel();
   const previousScopeItems = getScheduleItemsForDistributionScope(
     schedule,
@@ -7370,7 +7384,7 @@ const generateSpecializedSchedule = () => {
       buildSpecializedDistributionWarningText({
         scopeLabel,
         beforeScopeItems: previousScopeItems,
-        afterScopeItems: nextPlaced,
+        afterScopeItems: projectedScopeItems,
         nextNotPlaced: nextResult.notPlaced || [],
         keptOtherSpecializedCount: keptSpecializedSchedule.length,
       }),
@@ -7386,7 +7400,7 @@ const generateSpecializedSchedule = () => {
                 title: "تفاصيل إعادة توزيع التخصص",
                 scopeLabel,
                 beforeItems: previousScopeItems,
-                afterItems: nextPlaced,
+                afterItems: projectedScopeItems,
                 affectedCourses: currentScopeCourses,
                 notes: detailNotes,
                 continueLabel: "متابعة إعادة توزيع التخصص",
@@ -7403,7 +7417,7 @@ const generateSpecializedSchedule = () => {
                     title: "نتيجة إعادة توزيع التخصص",
                     scopeLabel,
                     beforeItems: previousScopeItems,
-                    afterItems: nextPlaced,
+                    afterItems: projectedScopeItems,
                     affectedCourses: currentScopeCourses,
                     notes: detailNotes,
                   });
@@ -13369,6 +13383,8 @@ const headerBtn = (danger = false) => ({
                   ? { bg: "#FEF3F2", border: "#FECACA", text: COLORS.danger }
                   : row.tone === "warning"
                   ? { bg: "#FFF7ED", border: "#FED7AA", text: COLORS.warning }
+                  : row.tone === "pinned"
+                  ? { bg: COLORS.primaryLight, border: COLORS.primaryBorder, text: COLORS.primaryDark }
                   : { bg: "#F8FAFC", border: COLORS.border, text: COLORS.charcoalSoft };
 
               return (
