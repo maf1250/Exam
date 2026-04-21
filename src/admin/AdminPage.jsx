@@ -2287,6 +2287,9 @@ const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMo
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
 const [draggingUnscheduledCourseKey, setDraggingUnscheduledCourseKey] = useState("");
 const [activeDropSlotId, setActiveDropSlotId] = useState("");
+const [manualInvigilatorLocked, setManualInvigilatorLocked] = useState(false);
+const [draggingInvigilatorPayload, setDraggingInvigilatorPayload] = useState(null);
+const [activeInvigilatorDropCourseId, setActiveInvigilatorDropCourseId] = useState("");
 const stepNineCardStyle = {
   borderRadius: 16,
   padding: "12px 14px",
@@ -3588,6 +3591,139 @@ const extraCandidates = extraPool
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
+  function getInvigilatorTransferDiagnostics({ name, sourceInstanceId = "", targetInstanceId = "" }) {
+    const targetItem = schedule.find((item) => item.instanceId === targetInstanceId);
+    const sourceItem = sourceInstanceId ? schedule.find((item) => item.instanceId === sourceInstanceId) : null;
+    if (!name || !targetItem) return [];
+
+    const messages = [];
+    const targetSlotKey = getSlotPeriodKey(targetItem);
+    const targetHasName = (targetItem.invigilators || []).includes(name);
+
+    if (targetHasName && sourceInstanceId !== targetInstanceId) {
+      messages.push(`المراقب ${name} مُسند أصلًا لهذا المقرر.`);
+    }
+
+    const samePeriodAssignments = schedule.filter((item) =>
+      item.instanceId !== sourceInstanceId &&
+      item.instanceId !== targetInstanceId &&
+      getSlotPeriodKey(item) === targetSlotKey &&
+      (item.invigilators || []).includes(name)
+    );
+
+    if (samePeriodAssignments.length) {
+      messages.push(`المراقب ${name} مرتبط أصلًا في نفس الفترة مع: ${samePeriodAssignments.map((item) => item.courseName).join("، ")}.`);
+    }
+
+    const currentTotalLoad = schedule.reduce((sum, item) => sum + ((item.invigilators || []).includes(name) ? 1 : 0), 0);
+    const nextTotalLoad = sourceItem ? currentTotalLoad : (targetHasName ? currentTotalLoad : currentTotalLoad + 1);
+    const maxCap = Number(maxInvigilationsPerInvigilator);
+    if (Number.isFinite(maxCap) && maxCap > 0 && nextTotalLoad > maxCap) {
+      messages.push(`سينتقل إجمالي مراقبات ${name} إلى ${nextTotalLoad} وهو أعلى من الحد الأقصى المحدد (${maxCap}).`);
+    }
+
+    if (!sourceItem && !targetHasName) {
+      const summaryLoads = manualInvigilatorLoadSummary.map((entry) => entry.total);
+      const minLoad = summaryLoads.length ? Math.min(...summaryLoads) : 0;
+      if (nextTotalLoad > minLoad + 1) {
+        messages.push(`هذا الإسناد قد يخل بعدالة التوزيع؛ لأن حمل ${name} سيصبح ${nextTotalLoad} بينما أدنى حمل حالي هو ${minLoad}.`);
+      }
+    }
+
+    if (sourceItem && sourceInstanceId !== targetInstanceId) {
+      const requiredCount = includeInvigilators ? getRequiredInvigilatorsCount(sourceItem) : 0;
+      const remainingSourceCount = Math.max(0, (sourceItem.invigilators || []).filter((invigilator) => invigilator !== name).length);
+      if (includeInvigilators && remainingSourceCount < requiredCount) {
+        messages.push(`نقل ${name} سيجعل المقرر المصدر أقل من العدد المطلوب من المراقبين (${remainingSourceCount}/${requiredCount}).`);
+      }
+    }
+
+    return Array.from(new Set(messages));
+  }
+
+  function applyInvigilatorTransfer({ name, sourceInstanceId = "", targetInstanceId = "" }) {
+    if (!name || !targetInstanceId) return;
+
+    setSchedule((prev) =>
+      prev.map((item) => {
+        if (item.instanceId === targetInstanceId) {
+          if ((item.invigilators || []).includes(name)) return item;
+          return {
+            ...item,
+            invigilators: [...(item.invigilators || []), name].sort((a, b) => a.localeCompare(b, "ar")),
+            manualEdited: true,
+          };
+        }
+
+        if (sourceInstanceId && sourceInstanceId !== targetInstanceId && item.instanceId === sourceInstanceId) {
+          return {
+            ...item,
+            invigilators: (item.invigilators || []).filter((invigilator) => invigilator !== name),
+            manualEdited: true,
+          };
+        }
+
+        return item;
+      })
+    );
+
+    setDraggingInvigilatorPayload(null);
+    setActiveInvigilatorDropCourseId("");
+    showToast("تم نقل المراقب", `تم تحديث إسناد المراقب ${name} بنجاح.`, "success");
+  }
+
+  function confirmOrApplyInvigilatorTransfer(payload) {
+    const diagnostics = getInvigilatorTransferDiagnostics(payload);
+
+    if (diagnostics.length) {
+      showToast(
+        "تحذير: تم اختراق معيار",
+        diagnostics.join(" "),
+        "warning",
+        {
+          persistent: true,
+          actions: [
+            {
+              label: "نعم، نفّذ النقل",
+              onClick: () => {
+                applyInvigilatorTransfer(payload);
+                setToast(null);
+              },
+            },
+            {
+              label: "إلغاء",
+              onClick: () => {
+                setDraggingInvigilatorPayload(null);
+                setActiveInvigilatorDropCourseId("");
+                setToast(null);
+              },
+            },
+          ],
+        }
+      );
+      return;
+    }
+
+    applyInvigilatorTransfer(payload);
+  }
+
+  function removeInvigilatorFromScheduledItem(itemInstanceId, name) {
+    if (manualInvigilatorLocked) return;
+
+    setSchedule((prev) =>
+      prev.map((item) => {
+        if (item.instanceId !== itemInstanceId) return item;
+        return {
+          ...item,
+          invigilators: (item.invigilators || []).filter((invigilator) => invigilator !== name),
+          manualEdited: true,
+        };
+      })
+    );
+
+    showToast("تمت الإزالة", `تمت إزالة المراقب ${name} من المقرر.`, "success");
+  }
+
   function clearAllPinnedCourses() {
     setSchedule((prev) => prev.map((item) => ({ ...item, isPinned: false })));
     showToast("تم إلغاء التثبيت", "تم إلغاء تثبيت جميع المقررات.", "success");
@@ -3802,7 +3938,7 @@ const showToast = (title, description, type = "success", options = {}) => {
 
 const openUnscheduledCoursesPreview = (focusReason = false) => {
   setPreviewTab("schedule");
-  setCurrentStep(9);
+  setCurrentStep(10);
   setPreviewPage(0);
 
   window.requestAnimationFrame(() => {
@@ -4222,6 +4358,7 @@ const buildPersistedState = () => ({
   selectedInvigilatorConstraintCourseKey,
   selectedInvigilatorConstraintCourseKeys,
   manualScheduleLocked,
+  manualInvigilatorLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
   showAdvancedManagementOptions,
@@ -4348,6 +4485,7 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
       : []
   );
   setManualScheduleLocked(saved.manualScheduleLocked ?? false);
+  setManualInvigilatorLocked(saved.manualInvigilatorLocked ?? false);
   setGeneralSpecializedDaySeparationMode(saved.generalSpecializedDaySeparationMode || "off");
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setShowAdvancedManagementOptions(saved.showAdvancedManagementOptions ?? false);
@@ -4552,6 +4690,7 @@ useEffect(() => {
   selectedInvigilatorConstraintCourseKey,
   selectedInvigilatorConstraintCourseKeys,
   manualScheduleLocked,
+  manualInvigilatorLocked,
   generalSpecializedDaySeparationMode,
   hallWarnings,
   showAdvancedManagementOptions,
@@ -5573,6 +5712,49 @@ const selectedCourseB = useMemo(
     }
     return Math.max(1, Number(invigilatorsPerPeriod) || 1);
   };
+
+  const allManualInvigilatorNames = useMemo(() => {
+    const baseInvigilators = manualInvigilators
+      ? manualInvigilators.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
+      : [];
+
+    return Array.from(new Set([...(parsed.invigilators || []), ...baseInvigilators]))
+      .sort((a, b) => a.localeCompare(b, "ar"));
+  }, [parsed.invigilators, manualInvigilators]);
+
+  const manualInvigilatorLoadSummary = useMemo(() => {
+    const totalMap = new Map();
+    const dayMap = new Map();
+
+    allManualInvigilatorNames.forEach((name) => {
+      totalMap.set(name, 0);
+      dayMap.set(name, new Map());
+    });
+
+    (Array.isArray(schedule) ? schedule : []).forEach((item) => {
+      const dateISO = String(item?.dateISO || "").trim();
+      (item.invigilators || []).forEach((name) => {
+        if (!name) return;
+        totalMap.set(name, (totalMap.get(name) || 0) + 1);
+        const perDay = dayMap.get(name) || new Map();
+        perDay.set(dateISO, (perDay.get(dateISO) || 0) + 1);
+        dayMap.set(name, perDay);
+      });
+    });
+
+    return Array.from(totalMap.entries())
+      .map(([name, total]) => {
+        const perDay = dayMap.get(name) || new Map();
+        const maxPerDay = perDay.size ? Math.max(...Array.from(perDay.values())) : 0;
+        return {
+          name,
+          total,
+          daysCount: perDay.size,
+          maxPerDay,
+        };
+      })
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "ar"));
+  }, [allManualInvigilatorNames, schedule]);
 
 const resolveScheduledSlotId = (item) => item?.id || `${item?.dateISO}-${item?.period}`;
 
@@ -7650,9 +7832,10 @@ const headerBtn = (danger = false) => ({
   { id: 6, label: "6. مقررات التخصص" },
   { id: 7, label: "7. تحليل تعارض مقررين" },
   { id: 8, label: "8. التعديل اليدوي" },
-  { id: 9, label: "9. المعاينة" },
-  { id: 10, label: "10. الطباعة" },
-  { id: 11, label: "11. التصدير وبوابة المتدربين" },
+  { id: 9, label: "9. تعديل المراقبين" },
+  { id: 10, label: "10. المعاينة" },
+  { id: 11, label: "11. الطباعة" },
+  { id: 12, label: "12. التصدير وبوابة المتدربين" },
 ].map((step) => {
             const isLockedGeneralStudies = step.id === 5 && lockGeneralStudiesStep;
 
@@ -10985,7 +11168,7 @@ const headerBtn = (danger = false) => ({
                   السابق
                 </button>
                 <button onClick={() => setCurrentStep(9)} style={cardButtonStyle({ active: true })}>
-                  التالي: المعاينة
+                  التالي: تعديل المراقبين
                 </button>
               </div>
             </Card>
@@ -10993,6 +11176,248 @@ const headerBtn = (danger = false) => ({
         )}
 
         {currentStep === 9 && (
+          <div style={{ marginTop: 20 }}>
+            <Card>
+              <SectionHeader
+                title="تعديل المراقبين"
+                description="يمكنك نقل المراقبين بحرية بين المقررات، حتى عبر أيام وفترات مختلفة. إذا تسبب النقل في اختراق معيار فسيظهر تنبيه يطلب منك التأكيد قبل التنفيذ."
+              />
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => setManualInvigilatorLocked((prev) => !prev)}
+                  style={cardButtonStyle({ active: manualInvigilatorLocked })}
+                >
+                  {manualInvigilatorLocked ? "🔒 تعديل المراقبين مقفل" : "🔓 تعديل المراقبين مفتوح"}
+                </button>
+              </div>
+
+              {!schedule.length ? (
+                <div
+                  style={{
+                    border: `2px dashed ${COLORS.border}`,
+                    borderRadius: 22,
+                    padding: 26,
+                    textAlign: "center",
+                    color: COLORS.muted,
+                    background: "#F8FEFE",
+                  }}
+                >
+                  أنشئ الجدول أولًا من الصفحات السابقة ثم عد إلى هنا لتعديل المراقبين.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "300px minmax(0, 1fr)",
+                    gap: 16,
+                    direction: "ltr",
+                    alignItems: "start",
+                  }}
+                >
+                  <div style={{ direction: "rtl", display: "grid", gap: 16, position: "sticky", top: 16 }}>
+                    <div
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 22,
+                        padding: 16,
+                        background: "#fff",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>ملخص المراقبين</div>
+                      <div style={{ color: COLORS.muted, marginBottom: 12, lineHeight: 1.8 }}>
+                        اسحب اسم المراقب من هذه القائمة إلى أي مقرر لإسناده مباشرة. يظهر بجانب كل اسم عدد المراقبات الحالية.
+                      </div>
+                      <div style={{ display: "grid", gap: 8, maxHeight: "70vh", overflowY: "auto", paddingInlineEnd: 4 }}>
+                        {manualInvigilatorLoadSummary.map((entry) => (
+                          <div
+                            key={entry.name}
+                            draggable={!manualInvigilatorLocked}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", entry.name);
+                              e.dataTransfer.effectAllowed = "move";
+                              setDraggingInvigilatorPayload({ name: entry.name, sourceInstanceId: "", sourceType: "pool" });
+                            }}
+                            onDragEnd={() => {
+                              setDraggingInvigilatorPayload(null);
+                              setActiveInvigilatorDropCourseId("");
+                            }}
+                            style={{
+                              border: `1px solid ${COLORS.border}`,
+                              borderRadius: 16,
+                              padding: 12,
+                              background: draggingInvigilatorPayload?.name === entry.name && draggingInvigilatorPayload?.sourceType === "pool" ? COLORS.primaryLight : "#F8FEFE",
+                              cursor: manualInvigilatorLocked ? "default" : "grab",
+                              userSelect: "none",
+                              WebkitUserDrag: "element",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                              <div style={{ fontWeight: 800, color: COLORS.charcoal }}>{entry.name}</div>
+                              <span style={{ background: COLORS.primaryLight, color: COLORS.primaryDark, borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 900 }}>
+                                {entry.total} مراقبة
+                              </span>
+                            </div>
+                            <div style={{ marginTop: 6, color: COLORS.muted, fontSize: 13 }}>
+                              الأيام المستخدمة: {entry.daysCount} — أعلى حمل يومي: {entry.maxPerDay}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ direction: "rtl", display: "grid", gap: 16 }}>
+                    {editableScheduleSlots.map((slot) => (
+                      <div
+                        key={`manual-inv-slot-${slot.id}`}
+                        style={{
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 22,
+                          overflow: "hidden",
+                          background: "#fff",
+                        }}
+                      >
+                        <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
+                          <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+                            {slot.gregorian} — الفترة {slot.period}
+                          </div>
+                          <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
+                        </div>
+
+                        <div style={{ padding: 14, display: "grid", gap: 12 }}>
+                          {slot.items.length ? (
+                            slot.items.map((item) => {
+                              const requiredInvigilators = includeInvigilators ? getRequiredInvigilatorsCount(item) : 0;
+                              const assignedCount = (item.invigilators || []).length;
+                              return (
+                                <div
+                                  key={`manual-inv-course-${item.instanceId}`}
+                                  onDragOver={(e) => {
+                                    if (manualInvigilatorLocked || !draggingInvigilatorPayload || !canEditManualCourse(item)) return;
+                                    e.preventDefault();
+                                    setActiveInvigilatorDropCourseId(item.instanceId);
+                                  }}
+                                  onDragLeave={() => {
+                                    if (activeInvigilatorDropCourseId === item.instanceId) {
+                                      setActiveInvigilatorDropCourseId("");
+                                    }
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    if (manualInvigilatorLocked || !draggingInvigilatorPayload || !canEditManualCourse(item)) return;
+                                    confirmOrApplyInvigilatorTransfer({
+                                      name: draggingInvigilatorPayload.name,
+                                      sourceInstanceId: draggingInvigilatorPayload.sourceInstanceId || "",
+                                      targetInstanceId: item.instanceId,
+                                    });
+                                  }}
+                                  style={{
+                                    border: activeInvigilatorDropCourseId === item.instanceId ? `2px solid ${COLORS.primaryDark}` : `1px solid ${COLORS.border}`,
+                                    borderRadius: 18,
+                                    padding: 14,
+                                    background: activeInvigilatorDropCourseId === item.instanceId ? "#F0FDF4" : "#fff",
+                                    transition: "all 0.18s ease",
+                                    opacity: canEditManualCourse(item) ? 1 : 0.76,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                                    <div>
+                                      <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{item.courseName}</div>
+                                      <div style={{ marginTop: 4, color: COLORS.muted, fontSize: 13 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                      <span style={{ background: assignedCount >= requiredInvigilators ? COLORS.successBg : COLORS.warningBg, color: assignedCount >= requiredInvigilators ? COLORS.success : COLORS.warning, borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 900 }}>
+                                        {assignedCount}/{requiredInvigilators || 0} مراقب
+                                      </span>
+                                      {!canEditManualCourse(item) ? <span style={{ fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</span> : null}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                                    {(item.invigilators || []).length ? (
+                                      (item.invigilators || []).map((name) => (
+                                        <div
+                                          key={`${item.instanceId}-${name}`}
+                                          draggable={!manualInvigilatorLocked && canEditManualCourse(item)}
+                                          onDragStart={(e) => {
+                                            e.dataTransfer.setData("text/plain", name);
+                                            e.dataTransfer.effectAllowed = "move";
+                                            setDraggingInvigilatorPayload({ name, sourceInstanceId: item.instanceId, sourceType: "scheduled" });
+                                          }}
+                                          onDragEnd={() => {
+                                            setDraggingInvigilatorPayload(null);
+                                            setActiveInvigilatorDropCourseId("");
+                                          }}
+                                          style={{
+                                            border: `1px solid ${COLORS.primaryBorder}`,
+                                            background: COLORS.primaryLight,
+                                            color: COLORS.primaryDark,
+                                            borderRadius: 999,
+                                            padding: "8px 12px",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            cursor: manualInvigilatorLocked || !canEditManualCourse(item) ? "default" : "grab",
+                                            userSelect: "none",
+                                            WebkitUserDrag: "element",
+                                          }}
+                                        >
+                                          <span style={{ fontWeight: 800 }}>{name}</span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              removeInvigilatorFromScheduledItem(item.instanceId, name);
+                                            }}
+                                            disabled={manualInvigilatorLocked || !canEditManualCourse(item)}
+                                            style={{
+                                              border: "none",
+                                              background: "transparent",
+                                              color: COLORS.danger,
+                                              fontWeight: 900,
+                                              cursor: manualInvigilatorLocked || !canEditManualCourse(item) ? "default" : "pointer",
+                                              padding: 0,
+                                              lineHeight: 1,
+                                            }}
+                                            aria-label={`إزالة ${name}`}
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <span style={{ color: COLORS.muted }}>لا يوجد مراقبون مسندون لهذا المقرر.</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <span style={{ color: COLORS.muted }}>لا توجد مقررات في هذه الفترة.</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+                  السابق
+                </button>
+                <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
+                  التالي: المعاينة
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {currentStep === 10 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
@@ -11083,7 +11508,7 @@ const headerBtn = (danger = false) => ({
                   <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
                     السابق
                   </button>
-                  <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
+                  <button onClick={() => setCurrentStep(11)} style={cardButtonStyle({ active: true })}>
                     التالي: الطباعة
                   </button>
                 </div>
@@ -11603,7 +12028,7 @@ const headerBtn = (danger = false) => ({
             )}
           </>
         )}
-        {currentStep === 10 && (
+        {currentStep === 11 && (
           <div style={{ marginTop: 20 }}>
             <Card>
               <SectionHeader
@@ -11834,7 +12259,7 @@ const headerBtn = (danger = false) => ({
               </label>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
+                <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
                   السابق
                 </button>
 
@@ -11882,7 +12307,7 @@ const headerBtn = (danger = false) => ({
                 >
                   طباعة جدول المراقبين
                 </button>
-                 <button onClick={() => setCurrentStep(11)} style={cardButtonStyle({ active: true })}>
+                 <button onClick={() => setCurrentStep(12)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
       </button>
               </div>
@@ -11892,7 +12317,7 @@ const headerBtn = (danger = false) => ({
 
         </div>
   
-{currentStep === 11 && (
+{currentStep === 12 && (
   <Card>
     <SectionHeader
       title="تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
@@ -12161,7 +12586,7 @@ const headerBtn = (danger = false) => ({
     <br />
 
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
+      <button onClick={() => setCurrentStep(11)} style={cardButtonStyle()}>
         السابق
       </button>
     </div>
