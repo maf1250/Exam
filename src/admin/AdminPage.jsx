@@ -414,7 +414,7 @@ function formatGregorian(date) {
 }
 
 function formatHijri(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -423,7 +423,7 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -858,6 +858,28 @@ function cardButtonStyle({ active = false, disabled = false, danger = false } = 
   };
 }
 
+function reorderCoursesByPriority(courses, priorityOrder) {
+  const orderMap = new Map((Array.isArray(priorityOrder) ? priorityOrder : []).map((key, index) => [String(key || "").trim(), index]));
+  return [...(Array.isArray(courses) ? courses : [])].sort((a, b) => {
+    const aKey = String(a?.key || "").trim();
+    const bKey = String(b?.key || "").trim();
+    const aIndex = orderMap.has(aKey) ? orderMap.get(aKey) : Number.MAX_SAFE_INTEGER;
+    const bIndex = orderMap.has(bKey) ? orderMap.get(bKey) : Number.MAX_SAFE_INTEGER;
+    if (aIndex !== bIndex) return aIndex - bIndex;
+    return 0;
+  });
+}
+
+function movePriorityKey(order, draggedKey, targetKey) {
+  const list = Array.isArray(order) ? [...order] : [];
+  const fromIndex = list.indexOf(draggedKey);
+  const toIndex = list.indexOf(targetKey);
+  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return list;
+  const [moved] = list.splice(fromIndex, 1);
+  list.splice(toIndex, 0, moved);
+  return list;
+}
+
 function StepButton({ active, done, children, onClick }) {
   return (
     <button
@@ -891,7 +913,6 @@ function Card({ children, style }) {
       }}
     >
       {children}
-
     </div>
   );
 }
@@ -2233,7 +2254,6 @@ export default function AdminPage() {
   const topRef = useRef(null);
 const pendingRestoreRef = useRef(null);
   const toastTimerRef = useRef(null);
-  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
   
   const [selectedConflicts, setSelectedConflicts] = useState(null);
   const [selectedConflictStudents, setSelectedConflictStudents] = useState(null);
@@ -3776,21 +3796,6 @@ const extraCandidates = extraPool
     }
   }
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTopButton(window.scrollY > 300);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToTopSmoothly = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const normalizedExamHalls = useMemo(() => normalizeExamHallsInput(examHalls), [examHalls]);
 
   const [previewPage, setPreviewPage] = useState(0);
@@ -3832,6 +3837,8 @@ const [courseBKey, setCourseBKey] = useState("");
   const [avoidSameLevelSameDay, setAvoidSameLevelSameDay] = useState(false);
   const [courseLevels, setCourseLevels] = useState({});
   const [draggingCourseKey, setDraggingCourseKey] = useState("");
+  const [generalPriorityOrder, setGeneralPriorityOrder] = useState([]);
+  const [specializedPriorityOrder, setSpecializedPriorityOrder] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(false);
   const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
@@ -4233,7 +4240,7 @@ const buildGeneralDistributionWarningText = ({ currentGeneral = [], currentSpeci
 
   return buildDistributionComparisonText({
     beforeItems: [...currentGeneral, ...currentSpecialized],
-    afterItems: projectedScopeItems,
+    afterItems: nextPlaced,
     scopeLabel: "الدراسات العامة",
     extraNotes: notes,
   });
@@ -4693,6 +4700,8 @@ const buildPersistedState = () => ({
   printMajorFilter,
   avoidSameLevelSameDay,
   courseLevels,
+  generalPriorityOrder,
+  specializedPriorityOrder,
   preferCourseTrainerInvigilation,
   generalSchedule: generalSchedule.map(serializeScheduleItem),
   specializedSchedule: specializedSchedule.map(serializeScheduleItem),
@@ -5675,13 +5684,69 @@ const selectedCourseB = useMemo(
   [parsed.courses, courseBKey]
 );
 
+const moveCoursePriority = (listType, draggedKey, targetKey) => {
+  if (!draggedKey || !targetKey || draggedKey === targetKey) return;
+  if (listType === "general") {
+    setGeneralPriorityOrder((prev) => movePriorityKey(prev, draggedKey, targetKey));
+    return;
+  }
+  setSpecializedPriorityOrder((prev) => movePriorityKey(prev, draggedKey, targetKey));
+};
 
-  const generalCourses = useMemo(() => parsed.courses.filter((course) => isGeneralStudiesCourse(course)), [parsed.courses]);
+const nudgeCoursePriority = (listType, courseKey, direction) => {
+  const setter = listType === "general" ? setGeneralPriorityOrder : setSpecializedPriorityOrder;
+  setter((prev) => {
+    const list = Array.isArray(prev) ? [...prev] : [];
+    const index = list.indexOf(courseKey);
+    if (index === -1) return list;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return list;
+    const [moved] = list.splice(index, 1);
+    list.splice(targetIndex, 0, moved);
+    return list;
+  });
+};
 
-  const specializedCourses = useMemo(() => {
-    const keys = new Set(generalCourses.map((c) => c.key));
+
+  const baseGeneralCourses = useMemo(
+    () => parsed.courses.filter((course) => isGeneralStudiesCourse(course)),
+    [parsed.courses]
+  );
+
+  const baseSpecializedCourses = useMemo(() => {
+    const keys = new Set(baseGeneralCourses.map((c) => c.key));
     return parsed.courses.filter((course) => !keys.has(course.key));
-  }, [parsed.courses, generalCourses]);
+  }, [parsed.courses, baseGeneralCourses]);
+
+  useEffect(() => {
+    setGeneralPriorityOrder((prev) => {
+      const validKeys = baseGeneralCourses.map((course) => course.key);
+      const validSet = new Set(validKeys);
+      const preserved = (prev || []).filter((key) => validSet.has(key));
+      const missing = validKeys.filter((key) => !preserved.includes(key));
+      return [...preserved, ...missing];
+    });
+  }, [baseGeneralCourses]);
+
+  useEffect(() => {
+    setSpecializedPriorityOrder((prev) => {
+      const validKeys = baseSpecializedCourses.map((course) => course.key);
+      const validSet = new Set(validKeys);
+      const preserved = (prev || []).filter((key) => validSet.has(key));
+      const missing = validKeys.filter((key) => !preserved.includes(key));
+      return [...preserved, ...missing];
+    });
+  }, [baseSpecializedCourses]);
+
+  const generalCourses = useMemo(
+    () => reorderCoursesByPriority(baseGeneralCourses, generalPriorityOrder),
+    [baseGeneralCourses, generalPriorityOrder]
+  );
+
+  const specializedCourses = useMemo(
+    () => reorderCoursesByPriority(baseSpecializedCourses, specializedPriorityOrder),
+    [baseSpecializedCourses, specializedPriorityOrder]
+  );
 
   const specializedVisibleDepartmentTrainerNames = useMemo(() => {
     return Array.from(
@@ -10815,11 +10880,24 @@ const headerBtn = (danger = false) => ({
               </button>
              
             </div>
+            <div
+              style={{
+                marginBottom: 12,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 16,
+                padding: 12,
+                background: "#F8FEFE",
+                color: COLORS.muted,
+                lineHeight: 1.8,
+              }}
+            >
+              يمكنك تغيير أولوية مقررات الدراسات العامة يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. يبدأ التوزيع من الأعلى إلى الأسفل مع بقاء بقية معايير النظام الذكية فعّالة.
+            </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
+                    {["الأولوية", "المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -10827,8 +10905,29 @@ const headerBtn = (danger = false) => ({
                   </tr>
                 </thead>
                 <tbody>
-                  {generalCourses.map((course) => (
-                    <tr key={course.key}>
+                  {generalCourses.map((course, index) => (
+                    <tr
+                      key={course.key}
+                      draggable
+                      onDragStart={() => setDraggingCourseKey(course.key)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        moveCoursePriority("general", draggingCourseKey, course.key);
+                        setDraggingCourseKey("");
+                      }}
+                      onDragEnd={() => setDraggingCourseKey("")}
+                      style={{
+                        background: draggingCourseKey === course.key ? "#F8FEFE" : "#fff",
+                        cursor: "grab",
+                      }}
+                    >
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ minWidth: 28, fontWeight: 900, color: COLORS.primaryDark }}>{index + 1}</span>
+                          <button type="button" onClick={() => nudgeCoursePriority("general", course.key, "up")} style={cardButtonStyle({ disabled: index === 0 })} disabled={index === 0}>↑</button>
+                          <button type="button" onClick={() => nudgeCoursePriority("general", course.key, "down")} style={cardButtonStyle({ disabled: index === generalCourses.length - 1 })} disabled={index === generalCourses.length - 1}>↓</button>
+                        </div>
+                      </td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
@@ -10837,7 +10936,7 @@ const headerBtn = (danger = false) => ({
                   ))}
                   {!generalCourses.length ? (
                     <tr>
-                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                      <td colSpan={5} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
                         لا توجد مقررات دراسات عامة حسب التصنيف الحالي.
                       </td>
                     </tr>
@@ -11023,11 +11122,24 @@ const headerBtn = (danger = false) => ({
               </button>
             
             </div>
+            <div
+              style={{
+                marginBottom: 12,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 16,
+                padding: 12,
+                background: "#F8FEFE",
+                color: COLORS.muted,
+                lineHeight: 1.8,
+              }}
+            >
+              يمكنك تغيير أولوية مقررات التخصص يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. يبدأ التوزيع من الأعلى إلى الأسفل داخل النطاق الحالي مع بقاء بقية معايير النظام الذكية فعّالة.
+            </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: COLORS.primaryLight }}>
-                    {["المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
+                    {["الأولوية", "المقرر", "الرمز", "المدرب", "عدد المتدربين"].map((h) => (
                       <th key={h} style={{ padding: 12, textAlign: "right", borderBottom: `1px solid ${COLORS.border}` }}>
                         {h}
                       </th>
@@ -11035,8 +11147,29 @@ const headerBtn = (danger = false) => ({
                   </tr>
                 </thead>
                 <tbody>
-                  {specializedCourses.map((course) => (
-                    <tr key={course.key}>
+                  {specializedCourses.map((course, index) => (
+                    <tr
+                      key={course.key}
+                      draggable
+                      onDragStart={() => setDraggingCourseKey(course.key)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        moveCoursePriority("specialized", draggingCourseKey, course.key);
+                        setDraggingCourseKey("");
+                      }}
+                      onDragEnd={() => setDraggingCourseKey("")}
+                      style={{
+                        background: draggingCourseKey === course.key ? "#F8FEFE" : "#fff",
+                        cursor: "grab",
+                      }}
+                    >
+                      <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ minWidth: 28, fontWeight: 900, color: COLORS.primaryDark }}>{index + 1}</span>
+                          <button type="button" onClick={() => nudgeCoursePriority("specialized", course.key, "up")} style={cardButtonStyle({ disabled: index === 0 })} disabled={index === 0}>↑</button>
+                          <button type="button" onClick={() => nudgeCoursePriority("specialized", course.key, "down")} style={cardButtonStyle({ disabled: index === specializedCourses.length - 1 })} disabled={index === specializedCourses.length - 1}>↓</button>
+                        </div>
+                      </td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseName}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.courseCode}</td>
                       <td style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>{course.trainerText}</td>
@@ -11045,7 +11178,7 @@ const headerBtn = (danger = false) => ({
                   ))}
                   {!specializedCourses.length ? (
                     <tr>
-                      <td colSpan={4} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
+                      <td colSpan={5} style={{ padding: 20, textAlign: "center", color: "#94A3B8" }}>
                         لا توجد مقررات تخصص حسب التصنيف الحالي.
                       </td>
                     </tr>
@@ -13959,43 +14092,6 @@ const headerBtn = (danger = false) => ({
       </button>
     </div>
   </div>
-)}
-
-{showScrollTopButton && (
-  <button
-    type="button"
-    onClick={scrollToTopSmoothly}
-    aria-label="الرجوع إلى الأعلى"
-    title="الرجوع إلى الأعلى"
-    style={{
-      position: "fixed",
-      left: 20,
-      bottom: 24,
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      border: `1px solid ${COLORS.primaryBorder}`,
-      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 50%, #1FA7A8 100%)",
-      color: "#fff",
-      fontSize: 22,
-      fontWeight: 900,
-      boxShadow: "0 18px 40px rgba(20, 123, 131, 0.28)",
-      cursor: "pointer",
-      zIndex: 9998,
-      transition: "all 0.3s ease",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-4px) scale(1.05)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0) scale(1)";
-    }}
-  >
-    ↑
-  </button>
 )}
     </div>
   );
