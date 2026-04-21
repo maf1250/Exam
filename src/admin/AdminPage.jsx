@@ -3835,44 +3835,6 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
   const [storageMode, setStorageMode] = useState("localStorage");
   const [pageVisible, setPageVisible] = useState(true);
 
-  useEffect(() => {
-    if (!distributionDetailsModal?.affectedCourseKeys?.length) return;
-
-    const nextAfterItems = getScheduleItemsForDistributionScope(
-      schedule,
-      distributionDetailsModal.affectedCourseKeys
-    );
-
-    setDistributionDetailsModal((prev) => {
-      if (!prev?.affectedCourseKeys?.length) return prev;
-
-      const nextComparisonRows = buildDistributionComparisonRows({
-        beforeItems: prev.beforeItems || [],
-        afterItems: nextAfterItems,
-        affectedCourses: prev.affectedCourses || [],
-      });
-
-      const simplify = (items = []) =>
-        (items || []).map((item) => ({
-          key: String(item?.key || "").trim(),
-          dateISO: String(item?.dateISO || "").trim(),
-          period: String(item?.period || "").trim(),
-          timeText: String(item?.timeText || "").trim(),
-          instanceId: String(item?.instanceId || "").trim(),
-        }));
-
-      const prevSignature = JSON.stringify(simplify(prev.afterItems || []));
-      const nextSignature = JSON.stringify(simplify(nextAfterItems || []));
-
-      if (prevSignature === nextSignature) return prev;
-
-      return {
-        ...prev,
-        afterItems: nextAfterItems,
-        comparisonRows: nextComparisonRows,
-      };
-    });
-  }, [schedule, distributionDetailsModal?.affectedCourseKeys]);
 
   useEffect(() => {
     const simplify = (items = []) =>
@@ -4034,6 +3996,8 @@ const openDistributionDetailsModal = ({
   afterItems = [],
   affectedCourses = [],
   notes = [],
+  onContinue = null,
+  continueLabel = "متابعة",
 }) => {
   const safeBeforeItems = [...(beforeItems || [])];
   const safeAfterItems = [...(afterItems || [])];
@@ -4059,6 +4023,8 @@ const openDistributionDetailsModal = ({
       affectedCourses: safeAffectedCourses,
     }),
     notes: (notes || []).filter(Boolean),
+    onContinue,
+    continueLabel,
   });
 };
 
@@ -4212,6 +4178,42 @@ const buildGeneralDistributionWarningText = ({ currentGeneral = [], currentSpeci
     afterItems: nextPlaced,
     scopeLabel: "الدراسات العامة",
     extraNotes: notes,
+  });
+};
+
+const updateDistributionDetailsModalAfterApply = ({
+  title,
+  scopeLabel,
+  beforeItems = [],
+  afterItems = [],
+  affectedCourses = [],
+  notes = [],
+}) => {
+  setDistributionDetailsModal((prev) => {
+    if (!prev) return prev;
+    return {
+      ...prev,
+      title: title || prev.title,
+      scopeLabel: scopeLabel || prev.scopeLabel,
+      beforeItems: [...(beforeItems || [])],
+      afterItems: [...(afterItems || [])],
+      affectedCourses: [...(affectedCourses || prev.affectedCourses || [])],
+      affectedCourseKeys: Array.from(
+        new Set(
+          (affectedCourses || prev.affectedCourses || [])
+            .map((course) => String(course?.key || "").trim())
+            .filter(Boolean)
+        )
+      ),
+      comparisonRows: buildDistributionComparisonRows({
+        beforeItems: [...(beforeItems || [])],
+        afterItems: [...(afterItems || [])],
+        affectedCourses: [...(affectedCourses || prev.affectedCourses || [])],
+      }),
+      notes: (notes || []).filter(Boolean),
+      onContinue: null,
+      continueLabel: null,
+    };
   });
 };
 
@@ -7214,6 +7216,10 @@ const applySpecializedScheduleGeneration = ({
   placed,
   notPlaced,
   nextHallWarnings,
+  scopeLabel = "",
+  beforeScopeItems = [],
+  affectedCourses = [],
+  keepDetailsOpen = false,
 }) => {
   const nextSpecializedSchedule = sortScheduledItems([
     ...(keptSpecializedSchedule || []),
@@ -7253,6 +7259,25 @@ const applySpecializedScheduleGeneration = ({
     });
     return Array.from(map.values());
   });
+
+  if (keepDetailsOpen) {
+    const appliedNotes = [];
+    if (keptSpecializedSchedule.length > 0) {
+      appliedNotes.push(`تم الإبقاء على ${formatCourseCountLabel(keptSpecializedSchedule.length)} من التخصصات الأخرى دون تغيير.`);
+    }
+    if ((notPlaced || []).length) {
+      appliedNotes.push(buildUnscheduledSummaryText(notPlaced));
+    }
+
+    updateDistributionDetailsModalAfterApply({
+      title: "نتيجة إعادة توزيع التخصص",
+      scopeLabel,
+      beforeItems: beforeScopeItems,
+      afterItems: placed || [],
+      affectedCourses,
+      notes: appliedNotes,
+    });
+  }
 
   const shouldWarnAboutMissingImportedSession = !hasImportedSessionFile && !(generalSchedule || []).length;
   if ((notPlaced || []).length || shouldWarnAboutMissingImportedSession) {
@@ -7339,6 +7364,20 @@ const generateSpecializedSchedule = () => {
                 afterItems: nextPlaced,
                 affectedCourses: currentScopeCourses,
                 notes: detailNotes,
+                continueLabel: "متابعة إعادة التوزيع",
+                onContinue: () => {
+                  applySpecializedScheduleGeneration({
+                    currentScopeKeySet,
+                    keptSpecializedSchedule,
+                    placed: nextPlaced,
+                    notPlaced: nextResult.notPlaced || [],
+                    nextHallWarnings: nextResult.hallWarnings || [],
+                    scopeLabel,
+                    beforeScopeItems: previousScopeItems,
+                    affectedCourses: currentScopeCourses,
+                    keepDetailsOpen: true,
+                  });
+                },
               });
             },
           },
@@ -7352,6 +7391,9 @@ const generateSpecializedSchedule = () => {
                 placed: nextPlaced,
                 notPlaced: nextResult.notPlaced || [],
                 nextHallWarnings: nextResult.hallWarnings || [],
+                scopeLabel,
+                beforeScopeItems: previousScopeItems,
+                affectedCourses: currentScopeCourses,
               });
             },
           },
@@ -13202,27 +13244,46 @@ const headerBtn = (danger = false) => ({
       onClick={(e) => e.stopPropagation()}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <div>
+        <div style={{ minWidth: 0, flex: "1 1 320px" }}>
           <div style={{ color: COLORS.primaryDark, fontWeight: 900, fontSize: 22 }}>{distributionDetailsModal.title || "تفاصيل التوزيع"}</div>
-          <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>
+          <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8, whiteSpace: "pre-line" }}>
             <strong>النطاق الحالي:</strong> {distributionDetailsModal.scopeLabel || "-"}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setDistributionDetailsModal(null)}
-          style={{
-            border: "none",
-            background: COLORS.primaryDark,
-            color: "#fff",
-            borderRadius: 12,
-            padding: "10px 14px",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
-          إغلاق
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {typeof distributionDetailsModal.onContinue === "function" ? (
+            <button
+              type="button"
+              onClick={() => distributionDetailsModal.onContinue?.()}
+              style={{
+                border: "none",
+                background: COLORS.primaryDark,
+                color: "#fff",
+                borderRadius: 12,
+                padding: "10px 14px",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {distributionDetailsModal.continueLabel || "متابعة"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setDistributionDetailsModal(null)}
+            style={{
+              border: `1px solid ${COLORS.primaryBorder}`,
+              background: "#fff",
+              color: COLORS.primaryDark,
+              borderRadius: 12,
+              padding: "10px 14px",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            إغلاق
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
@@ -13317,36 +13378,6 @@ const headerBtn = (danger = false) => ({
                             الرمز: {row.courseCode}
                           </span>
                         ) : null}
-                        {row.department ? (
-                          <span
-                            style={{
-                              borderRadius: 999,
-                              padding: "4px 10px",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              background: "#F8FAFC",
-                              border: `1px solid ${COLORS.border}`,
-                              color: COLORS.charcoalSoft,
-                            }}
-                          >
-                            القسم: {row.department}
-                          </span>
-                        ) : null}
-                        {row.major ? (
-                          <span
-                            style={{
-                              borderRadius: 999,
-                              padding: "4px 10px",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              background: COLORS.primaryLight,
-                              border: `1px solid ${COLORS.primaryBorder}`,
-                              color: COLORS.primaryDark,
-                            }}
-                          >
-                            التخصص: {row.major}
-                          </span>
-                        ) : null}
                       </div>
                     </div>
                     <div
@@ -13360,11 +13391,47 @@ const headerBtn = (danger = false) => ({
                         color: toneStyles.text,
                         whiteSpace: "nowrap",
                         alignSelf: "start",
+                        flexShrink: 0,
                       }}
                     >
                       {row.status}
                     </div>
                   </div>
+
+                  {(row.department || row.major) ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                      {row.department ? (
+                        <span
+                          style={{
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            background: "#F8FAFC",
+                            border: `1px solid ${COLORS.border}`,
+                            color: COLORS.charcoalSoft,
+                          }}
+                        >
+                          القسم: {row.department}
+                        </span>
+                      ) : null}
+                      {row.major ? (
+                        <span
+                          style={{
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            background: COLORS.primaryLight,
+                            border: `1px solid ${COLORS.primaryBorder}`,
+                            color: COLORS.primaryDark,
+                          }}
+                        >
+                          التخصص: {row.major}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginTop: 12 }}>
                     <div style={{ borderRadius: 12, padding: 10, background: "#F8FAFC", border: `1px solid ${COLORS.border}` }}>
