@@ -892,42 +892,6 @@ function Card({ children, style }) {
     >
       {children}
 
-{showScrollTopButton && (
-  <button
-    type="button"
-    onClick={scrollToTopSmoothly}
-    aria-label="الرجوع إلى الأعلى"
-    title="الرجوع إلى الأعلى"
-    style={{
-      position: "fixed",
-      left: 20,
-      bottom: 24,
-      width: 54,
-      height: 54,
-      borderRadius: "50%",
-      border: `1px solid ${COLORS.primaryBorder}`,
-      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 50%, #1FA7A8 100%)",
-      color: "#fff",
-      fontSize: 22,
-      fontWeight: 900,
-      boxShadow: "0 18px 40px rgba(20, 123, 131, 0.28)",
-      cursor: "pointer",
-      zIndex: 9998,
-      transition: "all 0.3s ease",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-4px) scale(1.05)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0) scale(1)";
-    }}
-  >
-    ↑
-  </button>
-)}
     </div>
   );
 }
@@ -13995,6 +13959,43 @@ const headerBtn = (danger = false) => ({
       </button>
     </div>
   </div>
+)}
+
+{showScrollTopButton && (
+  <button
+    type="button"
+    onClick={scrollToTopSmoothly}
+    aria-label="الرجوع إلى الأعلى"
+    title="الرجوع إلى الأعلى"
+    style={{
+      position: "fixed",
+      left: 20,
+      bottom: 24,
+      width: 54,
+      height: 54,
+      borderRadius: "50%",
+      border: `1px solid ${COLORS.primaryBorder}`,
+      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 50%, #1FA7A8 100%)",
+      color: "#fff",
+      fontSize: 22,
+      fontWeight: 900,
+      boxShadow: "0 18px 40px rgba(20, 123, 131, 0.28)",
+      cursor: "pointer",
+      zIndex: 9998,
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-4px) scale(1.05)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0) scale(1)";
+    }}
+  >
+    ↑
+  </button>
 )}
     </div>
   );
