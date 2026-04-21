@@ -10977,9 +10977,8 @@ const headerBtn = (danger = false) => ({
                     </div>
                   ))}
                 </div>
-              )}
-
               </div>
+              )}
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                 <button onClick={() => setCurrentStep(7)} style={cardButtonStyle()}>
