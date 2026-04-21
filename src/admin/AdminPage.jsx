@@ -7537,9 +7537,8 @@ const headerBtn = (danger = false) => ({
         onRestore={restoreSavedSession}
       />
 
-{/* الهيدر*/}
-
-      <div
+{/* الهيدر */}
+<div
   style={{
     position: "relative",
     overflow: "hidden",
@@ -7574,13 +7573,12 @@ const headerBtn = (danger = false) => ({
     style={{
       position: "relative",
       padding: "32px 28px",
-      background: "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
-      display: "flex",
+      background:
+        "linear-gradient(135deg, #0F5F68 0%, #148C93 40%, #1FA7A8 72%, #74D3CB 100%)",
+      display: "grid",
+      gridTemplateColumns: "180px minmax(320px, 1fr) 220px",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: 24,
-      flexWrap: "wrap",
-      flexDirection: "row-reverse",
     }}
   >
     {/* Glow */}
@@ -7594,9 +7592,11 @@ const headerBtn = (danger = false) => ({
       }}
     />
 
-    {/* ===== الشعار ===== */}
+    {/* ===== الشعار  ===== */}
     <div
       style={{
+        gridColumn: 3,
+        justifySelf: "end",
         width: 150,
         height: 150,
         borderRadius: 30,
@@ -7611,7 +7611,7 @@ const headerBtn = (danger = false) => ({
         position: "relative",
         zIndex: 1,
       }}
-    >    
+    >
       <img
         src={LOGO_SRC}
         alt="TVTC Logo"
@@ -7619,67 +7619,11 @@ const headerBtn = (danger = false) => ({
       />
     </div>
 
-    {/* التعرف التلقائي
-   <div
-  style={{
-    maxWidth: 150,
-    minWidth: 150,
-    minHeight: 150,
-    display: "inline",
-    background: "rgba(255,255,255,0.15)",
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-  }}
->
-
-    
-  {effectiveCollegeLocation ? (
-    <div style={{ color: COLORS.success, fontWeight: 700, marginBottom: 8 }}>
-      تم التعرف على الوحدة: {effectiveCollegeLocation}
-      {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-    </div>
-  ) : (
-    <div style={{ color: COLORS.warning, fontWeight: 700, marginBottom: 8 }}>
-      تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
-    </div>
-  )}
-
-  {!detectedCollegeLocation && (
-    <select
-      value={manualCollegeLocation}
-      onChange={(e) => setManualCollegeLocation(e.target.value)}
-      style={fieldStyle()}
-    >
-      <option value="">اختر المدينة</option>
-      {allCollegeLocations.map((location) => (
-        <option key={location} value={location}>
-          {location}
-        </option>
-      ))}
-    </select>
-  )}
-
-  {detectedCollegeLocation && (
-    <div style={{ marginTop: 10 }}>
-      <button
-        type="button"
-        onClick={() => setManualCollegeLocation("")}
-        style={cardButtonStyle()}
-      >
-        استخدام التعرف التلقائي
-      </button>
-    </div>
-  )}
-</div>
- */}
-    
-    {/* ===== النص ===== */}
+    {/* ===== النص  ===== */}
     <div
       style={{
-        flex: 1,
-        minWidth: 260,
+        gridColumn: 2,
+        minWidth: 0,
         position: "relative",
         zIndex: 1,
         textAlign: "right",
@@ -7713,7 +7657,7 @@ const headerBtn = (danger = false) => ({
           fontWeight: 900,
         }}
       >
-         منصة إدارة جداول الاختبارات النهائية
+        منصة إدارة جداول الاختبارات النهائية
       </h1>
 
       <p
@@ -7730,12 +7674,15 @@ const headerBtn = (danger = false) => ({
       </p>
     </div>
 
-    {/* ===== الأزرار (Premium) ===== */}
+    {/* ===== الأزرار  ===== */}
     <div
       style={{
+        gridColumn: 1,
+        justifySelf: "start",
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        width: "100%",
         maxWidth: 200,
         alignItems: "stretch",
         position: "relative",
@@ -7752,9 +7699,10 @@ const headerBtn = (danger = false) => ({
           cursor: "pointer",
           background: "#ffffff",
           color: "#0F5F68",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
         }}
       >
-         تصدير البيانات
+        تصدير البيانات
       </button>
 
       <button
@@ -7762,15 +7710,15 @@ const headerBtn = (danger = false) => ({
         style={{
           padding: "10px 14px",
           borderRadius: 12,
-          border: "none",
           fontWeight: 700,
           cursor: "pointer",
           background: "rgba(255,255,255,0.2)",
           color: "#fff",
           border: "1px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
         }}
       >
-         استيراد البيانات
+        استيراد البيانات
       </button>
 
       <button
@@ -7783,14 +7731,14 @@ const headerBtn = (danger = false) => ({
           cursor: "pointer",
           background: "rgba(0,0,0,0.25)",
           color: "#fff",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
         }}
       >
-         حذف البيانات المحلية
+        حذف البيانات المحلية
       </button>
     </div>
   </div>
 </div>
-
   {/* input مخفي */}
   <input
     ref={importSessionRef}
