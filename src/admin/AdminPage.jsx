@@ -2287,6 +2287,9 @@ const [generalSpecializedDaySeparationMode, setGeneralSpecializedDaySeparationMo
 const [draggingScheduleItemId, setDraggingScheduleItemId] = useState("");
 const [draggingUnscheduledCourseKey, setDraggingUnscheduledCourseKey] = useState("");
 const [activeDropSlotId, setActiveDropSlotId] = useState("");
+const [manualInvigilatorEditLocked, setManualInvigilatorEditLocked] = useState(false);
+const [draggingManualInvigilator, setDraggingManualInvigilator] = useState(null);
+const [activeInvigilatorDropTarget, setActiveInvigilatorDropTarget] = useState("");
 const stepNineCardStyle = {
   borderRadius: 16,
   padding: "12px 14px",
@@ -3588,6 +3591,83 @@ const extraCandidates = extraPool
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
+  function assignManualInvigilatorToItem(targetItemId, dragContext) {
+    if (manualScheduleLocked || manualInvigilatorEditLocked || !includeInvigilators) return;
+    if (!dragContext?.name) return;
+
+    const normalizedDraggedName = normalizeArabic(dragContext.name);
+
+    setSchedule((prev) => {
+      const targetItem = prev.find((item) => item.instanceId === targetItemId);
+      if (!targetItem) return prev;
+
+      if (dragContext.slotId && dragContext.slotId !== targetItem.id) {
+        showToast("تعذر نقل المراقب", "يمكن نقل المراقبين يدويًا داخل نفس الفترة فقط.", "error");
+        return prev;
+      }
+
+      const alreadyInTarget = (targetItem.invigilators || []).some(
+        (name) => normalizeArabic(name) === normalizedDraggedName
+      );
+      if (alreadyInTarget) return prev;
+
+      const existsInAnotherExamSameSlot = prev.some((item) =>
+        item.id === targetItem.id &&
+        item.instanceId !== targetItem.instanceId &&
+        (item.invigilators || []).some((name) => normalizeArabic(name) === normalizedDraggedName)
+      );
+
+      if (existsInAnotherExamSameSlot) {
+        showToast("تعذر نقل المراقب", "هذا المراقب مسند بالفعل لاختبار آخر في نفس الفترة.", "error");
+        return prev;
+      }
+
+      return prev.map((item) => {
+        if (item.instanceId === targetItemId) {
+          return {
+            ...item,
+            invigilators: [...(item.invigilators || []), dragContext.name].sort((a, b) => a.localeCompare(b, "ar")),
+            manualEdited: true,
+          };
+        }
+
+        if (dragContext.sourceType === "item" && item.instanceId === dragContext.sourceItemId) {
+          return {
+            ...item,
+            invigilators: (item.invigilators || []).filter(
+              (name) => normalizeArabic(name) !== normalizedDraggedName
+            ),
+            manualEdited: true,
+          };
+        }
+
+        return item;
+      });
+    });
+
+    setDraggingManualInvigilator(null);
+    setActiveInvigilatorDropTarget("");
+  }
+
+  function removeManualInvigilatorFromItem(itemId, name) {
+    if (manualScheduleLocked || manualInvigilatorEditLocked || !includeInvigilators) return;
+    const normalizedName = normalizeArabic(name);
+
+    setSchedule((prev) =>
+      prev.map((item) =>
+        item.instanceId === itemId
+          ? {
+              ...item,
+              invigilators: (item.invigilators || []).filter(
+                (entry) => normalizeArabic(entry) !== normalizedName
+              ),
+              manualEdited: true,
+            }
+          : item
+      )
+    );
+  }
+
   function clearAllPinnedCourses() {
     setSchedule((prev) => prev.map((item) => ({ ...item, isPinned: false })));
     showToast("تم إلغاء التثبيت", "تم إلغاء تثبيت جميع المقررات.", "success");
@@ -3802,7 +3882,7 @@ const showToast = (title, description, type = "success", options = {}) => {
 
 const openUnscheduledCoursesPreview = (focusReason = false) => {
   setPreviewTab("schedule");
-  setCurrentStep(9);
+  setCurrentStep(10);
   setPreviewPage(0);
 
   window.requestAnimationFrame(() => {
@@ -5305,6 +5385,24 @@ const selectedCourseB = useMemo(
     [slots, schedule]
   );
 
+  const editableInvigilatorSlots = useMemo(
+    () =>
+      slots.map((slot) => {
+        const slotItems = (schedule || []).filter((item) => item.id === slot.id);
+        const usedInvigilatorNames = new Set(
+          slotItems.flatMap((item) => (item.invigilators || []).map((name) => normalizeArabic(name)))
+        );
+
+        return {
+          ...slot,
+          items: slotItems,
+          availableInvigilators: availableInvigilators.filter(
+            (name) => !usedInvigilatorNames.has(normalizeArabic(name))
+          ),
+        };
+      }),
+    [slots, schedule, availableInvigilators]
+  );
 
   const activeDraggedManualCourse = useMemo(() => {
     if (draggingScheduleItemId) {
@@ -7650,9 +7748,10 @@ const headerBtn = (danger = false) => ({
   { id: 6, label: "6. مقررات التخصص" },
   { id: 7, label: "7. تحليل تعارض مقررين" },
   { id: 8, label: "8. التعديل اليدوي" },
-  { id: 9, label: "9. المعاينة" },
-  { id: 10, label: "10. الطباعة" },
-  { id: 11, label: "11. التصدير وبوابة المتدربين" },
+  { id: 9, label: "9. تعديل المراقبين" },
+  { id: 10, label: "10. المعاينة" },
+  { id: 11, label: "11. الطباعة" },
+  { id: 12, label: "12. التصدير وبوابة المتدربين" },
 ].map((step) => {
             const isLockedGeneralStudies = step.id === 5 && lockGeneralStudiesStep;
 
@@ -10986,7 +11085,7 @@ const headerBtn = (danger = false) => ({
                   السابق
                 </button>
                 <button onClick={() => setCurrentStep(9)} style={cardButtonStyle({ active: true })}>
-                  التالي: المعاينة
+                  التالي: تعديل المراقبين
                 </button>
               </div>
             </Card>
@@ -10994,6 +11093,280 @@ const headerBtn = (danger = false) => ({
         )}
 
         {currentStep === 9 && (
+          <div style={{ marginTop: 20 }}>
+            <Card>
+              <SectionHeader
+                title="التعديل اليدوي للمراقبين"
+                description="تعمل هذه الصفحة بشكل مشابه لصفحة التعديل اليدوي للجدول، ولكنها مخصصة لإعادة توزيع المراقبين يدويًا داخل كل فترة عن طريق السحب والإفلات."
+              />
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => setManualInvigilatorEditLocked((prev) => !prev)}
+                  style={cardButtonStyle({ active: manualInvigilatorEditLocked })}
+                >
+                  {manualInvigilatorEditLocked ? "🔒 تعديل المراقبين مقفل" : "🔓 تعديل المراقبين مفتوح"}
+                </button>
+              </div>
+
+              {!includeInvigilators ? (
+                <div
+                  style={{
+                    border: `2px dashed ${COLORS.border}`,
+                    borderRadius: 22,
+                    padding: 26,
+                    textAlign: "center",
+                    color: COLORS.muted,
+                    background: "#F8FEFE",
+                  }}
+                >
+                  خيار توزيع المراقبين غير مفعّل حاليًا، لذلك لن تظهر بطاقات تعديل المراقبين.
+                </div>
+              ) : !schedule.length ? (
+                <div
+                  style={{
+                    border: `2px dashed ${COLORS.border}`,
+                    borderRadius: 22,
+                    padding: 26,
+                    textAlign: "center",
+                    color: COLORS.muted,
+                    background: "#F8FEFE",
+                  }}
+                >
+                  أنشئ الجدول أولًا ثم عد إلى هنا لتعديل المراقبين يدويًا.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 16 }}>
+                  {editableInvigilatorSlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 22,
+                        overflow: "hidden",
+                        background: "#fff",
+                      }}
+                    >
+                      <div style={{ background: COLORS.primaryLight, padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
+                        <div style={{ fontWeight: 900, color: COLORS.charcoal }}>
+                          {slot.gregorian} — الفترة {slot.period}
+                        </div>
+                        <div style={{ color: COLORS.muted, marginTop: 4 }}>{slot.timeText}</div>
+                      </div>
+
+                      <div style={{ padding: 14, display: "grid", gap: 12 }}>
+                        <div
+                          onDragOver={(e) => {
+                            if (!manualScheduleLocked && !manualInvigilatorEditLocked && draggingManualInvigilator?.sourceType === "item" && draggingManualInvigilator?.slotId === slot.id) {
+                              e.preventDefault();
+                              setActiveInvigilatorDropTarget(`pool:${slot.id}`);
+                            }
+                          }}
+                          onDragLeave={() => {
+                            if (activeInvigilatorDropTarget === `pool:${slot.id}`) setActiveInvigilatorDropTarget("");
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggingManualInvigilator?.sourceType === "item" && draggingManualInvigilator?.slotId === slot.id) {
+                              removeManualInvigilatorFromItem(
+                                draggingManualInvigilator.sourceItemId,
+                                draggingManualInvigilator.name
+                              );
+                            }
+                            setDraggingManualInvigilator(null);
+                            setActiveInvigilatorDropTarget("");
+                          }}
+                          style={{
+                            border: activeInvigilatorDropTarget === `pool:${slot.id}` ? `2px dashed ${COLORS.primaryDark}` : `1px dashed ${COLORS.primaryBorder}`,
+                            borderRadius: 16,
+                            padding: 12,
+                            background: activeInvigilatorDropTarget === `pool:${slot.id}` ? COLORS.primaryLight : "#F8FEFE",
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, marginBottom: 8 }}>المراقبون المتاحون في هذه الفترة</div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {slot.availableInvigilators.length ? (
+                              slot.availableInvigilators.map((name) => (
+                                <div
+                                  key={`${slot.id}-${name}`}
+                                  draggable={!manualScheduleLocked && !manualInvigilatorEditLocked}
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", name);
+                                    e.dataTransfer.effectAllowed = "move";
+                                    setDraggingManualInvigilator({
+                                      name,
+                                      sourceType: "pool",
+                                      slotId: slot.id,
+                                      sourceItemId: "",
+                                    });
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggingManualInvigilator(null);
+                                    setActiveInvigilatorDropTarget("");
+                                  }}
+                                  style={{
+                                    border: `1px solid ${COLORS.primaryBorder}`,
+                                    borderRadius: 999,
+                                    padding: "8px 12px",
+                                    background: "#fff",
+                                    cursor: manualScheduleLocked || manualInvigilatorEditLocked ? "default" : "grab",
+                                    userSelect: "none",
+                                    WebkitUserDrag: "element",
+                                  }}
+                                >
+                                  {name}
+                                </div>
+                              ))
+                            ) : (
+                              <span style={{ color: COLORS.muted }}>لا يوجد مراقبون متاحون حاليًا في هذه الفترة.</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 12 }}>
+                          {slot.items.length ? (
+                            slot.items.map((item) => {
+                              const requiredCount = getRequiredInvigilatorsCount(item);
+                              const itemInvigilators = Array.isArray(item.invigilators) ? item.invigilators : [];
+                              const isUnderCovered = itemInvigilators.length < requiredCount;
+                              return (
+                                <div
+                                  key={item.instanceId}
+                                  style={{
+                                    border: isUnderCovered ? "1px solid #FED7AA" : `1px solid ${COLORS.border}`,
+                                    borderRadius: 18,
+                                    padding: 14,
+                                    background: isUnderCovered ? COLORS.warningBg : "#fff",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                                    <div>
+                                      <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{item.courseName}</div>
+                                      <div style={{ color: COLORS.muted, marginTop: 4 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
+                                    </div>
+                                    <div
+                                      style={{
+                                        background: isUnderCovered ? COLORS.warningBg : COLORS.primaryLight,
+                                        border: `1px solid ${isUnderCovered ? "#FED7AA" : COLORS.primaryBorder}`,
+                                        borderRadius: 999,
+                                        padding: "5px 12px",
+                                        fontSize: 12,
+                                        fontWeight: 900,
+                                        color: isUnderCovered ? COLORS.warning : COLORS.primaryDark,
+                                      }}
+                                    >
+                                      {itemInvigilators.length} / {requiredCount} مراقب
+                                    </div>
+                                  </div>
+
+                                  <div
+                                    onDragOver={(e) => {
+                                      if (!manualScheduleLocked && !manualInvigilatorEditLocked && draggingManualInvigilator?.slotId === slot.id) {
+                                        e.preventDefault();
+                                        setActiveInvigilatorDropTarget(`item:${item.instanceId}`);
+                                      }
+                                    }}
+                                    onDragLeave={() => {
+                                      if (activeInvigilatorDropTarget === `item:${item.instanceId}`) setActiveInvigilatorDropTarget("");
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      if (draggingManualInvigilator?.slotId === slot.id) {
+                                        assignManualInvigilatorToItem(item.instanceId, draggingManualInvigilator);
+                                      }
+                                    }}
+                                    style={{
+                                      border: activeInvigilatorDropTarget === `item:${item.instanceId}` ? `2px dashed ${COLORS.success}` : `1px dashed ${COLORS.border}`,
+                                      borderRadius: 14,
+                                      padding: 12,
+                                      background: activeInvigilatorDropTarget === `item:${item.instanceId}` ? "#F0FDF4" : "#F8FEFE",
+                                      minHeight: 62,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                      {itemInvigilators.length ? (
+                                        itemInvigilators.map((name) => (
+                                          <div
+                                            key={`${item.instanceId}-${name}`}
+                                            draggable={!manualScheduleLocked && !manualInvigilatorEditLocked}
+                                            onDragStart={(e) => {
+                                              e.dataTransfer.setData("text/plain", name);
+                                              e.dataTransfer.effectAllowed = "move";
+                                              setDraggingManualInvigilator({
+                                                name,
+                                                sourceType: "item",
+                                                slotId: slot.id,
+                                                sourceItemId: item.instanceId,
+                                              });
+                                            }}
+                                            onDragEnd={() => {
+                                              setDraggingManualInvigilator(null);
+                                              setActiveInvigilatorDropTarget("");
+                                            }}
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 8,
+                                              border: `1px solid ${COLORS.border}`,
+                                              borderRadius: 999,
+                                              padding: "8px 12px",
+                                              background: "#fff",
+                                              cursor: manualScheduleLocked || manualInvigilatorEditLocked ? "default" : "grab",
+                                              userSelect: "none",
+                                              WebkitUserDrag: "element",
+                                            }}
+                                          >
+                                            <span>{name}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => removeManualInvigilatorFromItem(item.instanceId, name)}
+                                              disabled={manualScheduleLocked || manualInvigilatorEditLocked}
+                                              style={{
+                                                border: "none",
+                                                background: "transparent",
+                                                color: COLORS.danger,
+                                                cursor: manualScheduleLocked || manualInvigilatorEditLocked ? "not-allowed" : "pointer",
+                                                fontWeight: 900,
+                                                fontSize: 16,
+                                                lineHeight: 1,
+                                              }}
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <span style={{ color: COLORS.muted }}>اسحب مراقبًا إلى هذا المقرر</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div style={{ color: COLORS.muted }}>لا توجد اختبارات في هذه الفترة.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+                <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+                  السابق
+                </button>
+                <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
+                  التالي: المعاينة
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {currentStep === 10 && (
           <>
             <div style={{ marginTop: 20 }}>
               <Card>
@@ -11081,10 +11454,10 @@ const headerBtn = (danger = false) => ({
 
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                  <button onClick={() => setCurrentStep(8)} style={cardButtonStyle()}>
+                  <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
                     السابق
                   </button>
-                  <button onClick={() => setCurrentStep(10)} style={cardButtonStyle({ active: true })}>
+                  <button onClick={() => setCurrentStep(11)} style={cardButtonStyle({ active: true })}>
                     التالي: الطباعة
                   </button>
                 </div>
@@ -11604,7 +11977,7 @@ const headerBtn = (danger = false) => ({
             )}
           </>
         )}
-        {currentStep === 10 && (
+        {currentStep === 11 && (
           <div style={{ marginTop: 20 }}>
             <Card>
               <SectionHeader
@@ -11835,7 +12208,7 @@ const headerBtn = (danger = false) => ({
               </label>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-                <button onClick={() => setCurrentStep(9)} style={cardButtonStyle()}>
+                <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
                   السابق
                 </button>
 
@@ -11883,7 +12256,7 @@ const headerBtn = (danger = false) => ({
                 >
                   طباعة جدول المراقبين
                 </button>
-                 <button onClick={() => setCurrentStep(11)} style={cardButtonStyle({ active: true })}>
+                 <button onClick={() => setCurrentStep(12)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
       </button>
               </div>
@@ -11893,7 +12266,7 @@ const headerBtn = (danger = false) => ({
 
         </div>
   
-{currentStep === 11 && (
+{currentStep === 12 && (
   <Card>
     <SectionHeader
       title="تصدير البيانات العامة واستيرادها وإنشاء بوابة المتدربين"
@@ -12162,7 +12535,7 @@ const headerBtn = (danger = false) => ({
     <br />
 
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
+      <button onClick={() => setCurrentStep(11)} style={cardButtonStyle()}>
         السابق
       </button>
     </div>
