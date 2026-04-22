@@ -13629,7 +13629,7 @@ const headerBtn = (danger = false) => ({
                   }}
                   style={cardButtonStyle()}
                 >
-                  {printOutputFormat === "docx" ? "تصدير جدول الاختبارات " : "حفظ جدول الاختبارات"}
+                  {printOutputFormat === "docx" ? "حفظ جدول الاختبارات " : "تصدير جدول الاختبارات"}
                 </button>
 
                 <button
@@ -13653,7 +13653,7 @@ const headerBtn = (danger = false) => ({
                   }}
                   style={cardButtonStyle()}
                 >
-                  {printOutputFormat === "docx" ? "تصدير جدول المراقبين " : "حفظ جدول المراقبين"}
+                  {printOutputFormat === "docx" ? "حفظ جدول المراقبين " : "تصدير جدول المراقبين"}
                 </button>
                  <button onClick={() => setCurrentStep(12)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
