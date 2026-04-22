@@ -927,7 +927,7 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-function TooltipIcon({ text }) {
+function HintIcon({ text }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -2344,8 +2344,6 @@ const pendingRestoreRef = useRef(null);
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
-  const [showTrainerHint, setShowTrainerHint] = useState(false);
-  const [showAvoidTrainerHint, setShowAvoidTrainerHint] = useState(false);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodConfigs, setPeriodConfigs] = useState(getDefaultPeriodConfigs());
@@ -8765,7 +8763,7 @@ const headerBtn = (danger = false) => ({
                           {item.title}
                         </div>
                       </div>
-                      <TooltipIcon text={item.tooltip} />
+                      <HintIcon text={item.tooltip} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
                       <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>
@@ -9075,26 +9073,7 @@ const headerBtn = (danger = false) => ({
               السماح بإسناد أكثر من مقرر لهذه القاعة
             </label>
 
-            <div
-              title="عند تفعيل هذا الخيار يمكن إسناد أكثر من مقرر لنفس القاعة في نفس الفترة، بشرط أن يكون مجموع عدد المتدربين أقل من سعة القاعة. مثال: قاعة سعتها 100 يمكن أن تحتوي مقررين عددهم 40 و50."
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "#EEF6F6",
-                border: "1px solid #A8DDDA",
-                color: "#0E2730",
-                fontWeight: 900,
-                fontSize: 13,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "help",
-                userSelect: "none",
-              }}
-            >
-              ?
-            </div>
+            <HintIcon text="عند تفعيل هذا الخيار يمكن إسناد أكثر من مقرر لنفس القاعة في نفس الفترة، بشرط أن يكون مجموع عدد المتدربين أقل من سعة القاعة. مثال: قاعة سعتها 100 يمكن أن تحتوي مقررين عددهم 40 و50." />
           </div>
         </div>
 
@@ -9328,24 +9307,7 @@ const headerBtn = (danger = false) => ({
                             <span>تفعيل/إلغاء تقسيم المقرر</span>
                           </label>
 
-                          <span
-                            title="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل."
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 999,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              background: COLORS.primaryLight,
-                              color: COLORS.primaryDark,
-                              border: `1px solid ${COLORS.primaryBorder}`,
-                              fontWeight: 900,
-                              cursor: "help",
-                            }}
-                          >
-                            ؟
-                          </span>
+                          <HintIcon text="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل." />
                         </div>
 
                         <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
@@ -9620,24 +9582,7 @@ const headerBtn = (danger = false) => ({
                             <span>تفعيل/إلغاء تقسيم المقرر</span>
                           </label>
 
-                          <span
-                            title="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل."
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 999,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              background: COLORS.primaryLight,
-                              color: COLORS.primaryDark,
-                              border: `1px solid ${COLORS.primaryBorder}`,
-                              fontWeight: 900,
-                              cursor: "help",
-                            }}
-                          >
-                            ؟
-                          </span>
+                          <HintIcon text="إذا لم تكفِ قاعة واحدة لهذا المقرر، فسيحاول النظام جمع أكثر من قاعة من القاعات المختارة هنا لنفس الفترة، مثل: قاعة 1 + قاعة 2. هذا الخيار لا يعمل إلا عند تفعيله واختيار قاعتين على الأقل." />
                         </div>
 
                         <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
@@ -10430,52 +10375,9 @@ const headerBtn = (danger = false) => ({
 
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               إعطاء أولوية لمدرب المقرر كمراقب أساسي
-
-              <span
-                onMouseEnter={() => setShowTrainerHint(true)}
-                onMouseLeave={() => setShowTrainerHint(false)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: COLORS.warningBg,
-                  color: COLORS.warning,
-                  fontWeight: 900,
-                  fontSize: 13,
-                  cursor: "help",
-                  border: `1px solid ${COLORS.border}`,
-                }}
-              >
-                !
-              </span>
+              <HintIcon text="سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان، مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين." />
             </span>
           </label>
-
-          {showTrainerHint && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: "110%",
-                right: 10,
-                background: "#111827",
-                color: "#fff",
-                padding: "10px 12px",
-                borderRadius: 10,
-                fontSize: 13,
-                lineHeight: 1.6,
-                width: 260,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-                zIndex: 9999,
-                transition: "opacity 0.2s ease, transform 0.2s ease",
-              }}
-            >
-              سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
-              مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
-            </div>
-          )}
         </div>
 
         <div
@@ -10507,52 +10409,9 @@ const headerBtn = (danger = false) => ({
 
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               منع مدرب المقرر من المراقبة في نفس فترة اختباره
-
-              <span
-                onMouseEnter={() => setShowAvoidTrainerHint(true)}
-                onMouseLeave={() => setShowAvoidTrainerHint(false)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: COLORS.warningBg,
-                  color: COLORS.warning,
-                  fontWeight: 900,
-                  fontSize: 13,
-                  cursor: "help",
-                  border: `1px solid ${COLORS.border}`,
-                }}
-              >
-                !
-              </span>
+              <HintIcon text="عند التفعيل، سيُمنع مدرب المقرر من المراقبة في نفس فترة اختبار مقرره، حتى لو كان هناك أكثر من مقرر في الفترة نفسها، لإتاحة التجول والمتابعة بين القاعات." />
             </span>
           </label>
-
-          {showAvoidTrainerHint && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: "110%",
-                right: 10,
-                background: "#111827",
-                color: "#fff",
-                padding: "10px 12px",
-                borderRadius: 10,
-                fontSize: 13,
-                lineHeight: 1.6,
-                width: 290,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-                zIndex: 9999,
-                transition: "opacity 0.2s ease, transform 0.2s ease",
-              }}
-            >
-              عند التفعيل، سيُمنع مدرب المقرر من المراقبة في نفس فترة اختبار مقرره،
-              حتى لو كان هناك أكثر من مقرر في الفترة نفسها، لإتاحة التجول والمتابعة بين القاعات.
-            </div>
-          )}
         </div>
       </div>
 
@@ -10587,7 +10446,7 @@ const headerBtn = (danger = false) => ({
               }}
             >
               الحد الأدنى المستهدف للمراقبات
-              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
+              <HintIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
             </span>
             <input
               type="number"
@@ -10615,7 +10474,7 @@ const headerBtn = (danger = false) => ({
               }}
             >
               الحد الأقصى للمراقبات لكل مراقب
-<TooltipIcon text="لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين." />
+<HintIcon text="لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين." />
             </span>
             <input
               type="number"
