@@ -2561,11 +2561,13 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
           }
 
           .header-left {
-            text-align: left;
-            direction: rtl;
-            justify-self: start;
-            font-size: ${isLong ? "11px" : "12px"};
-            color: #475569;
+  text-align: left;
+  direction: rtl;
+  justify-self: end;
+  align-self: center;
+  width: 100%;
+  font-size: 11px;
+  color: #475569;
           }
 
           .logo-wrap {
