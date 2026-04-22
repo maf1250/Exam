@@ -5251,6 +5251,70 @@ const openUnscheduledReasonModal = (course, group) => {
   });
 };
 
+const getBlockingStudentsForUnscheduledSlot = (courseKey, groupKey, slot) => {
+  const existingStudents = Array.isArray(slot?.blockingStudents)
+    ? slot.blockingStudents.filter(Boolean)
+    : [];
+
+  if (existingStudents.length || groupKey !== "dailyLimit") {
+    return existingStudents;
+  }
+
+  const course = (Array.isArray(notPlaced) ? notPlaced : []).find(
+    (item) => String(item?.key || "").trim() === String(courseKey || "").trim()
+  );
+  if (!course || !Array.isArray(course.students) || !slot?.dateISO) {
+    return existingStudents;
+  }
+
+  const sameDayLimit = Math.max(1, Number(maxExamsPerStudentPerDay) || 2);
+
+  const resolveStudentInfo = (studentId) => {
+    const direct = preciseStudentInfoMap.get(studentId);
+    if (direct) return direct;
+    const trimmed = String(studentId || "").trim();
+    if (trimmed && trimmed !== studentId) {
+      return preciseStudentInfoMap.get(trimmed) || null;
+    }
+    return null;
+  };
+
+  const resolveStudentDayMap = (studentId) => {
+    const direct = studentDayMap.get(studentId);
+    if (direct) return direct;
+    const trimmed = String(studentId || "").trim();
+    if (trimmed && trimmed !== studentId) {
+      return studentDayMap.get(trimmed) || null;
+    }
+    return null;
+  };
+
+  return course.students
+    .map((studentId) => String(studentId || "").trim())
+    .filter(Boolean)
+    .map((studentId) => {
+      const dayMap = resolveStudentDayMap(studentId) || new Map();
+      const dailyCount = Number(dayMap.get(slot.dateISO) || 0);
+      if (dailyCount < sameDayLimit) return null;
+
+      return {
+        ...(resolveStudentInfo(studentId) || {
+          id: studentId,
+          name: "بدون اسم",
+          department: "-",
+          major: "-",
+        }),
+        dailyCount,
+      };
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        String(a?.name || "").localeCompare(String(b?.name || ""), "ar") ||
+        String(a?.id || "").localeCompare(String(b?.id || ""), "ar")
+    );
+};
+
 const normalizeUnscheduledReason = (course) => {
   const reason = String(course?.unscheduledReason || "").trim();
   if (!reason) {
@@ -7428,7 +7492,6 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
-          blockingStudentIds: Array.from(slotDailyLimitStudentIds),
           blockingStudents: slotDailyLimitStudents
             .slice()
             .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar") || String(a?.id || "").localeCompare(String(b?.id || ""), "ar")),
@@ -9580,8 +9643,8 @@ const headerBtn = (danger = false) => ({
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
     
-    <HintIcon text="لا يجوز أن يختبر المتدرب أكثر من مقررين في اليوم إلا عند الضرورة القصوى وفقًا اللائحة."
-      style={{ marginRight: 6 }}/>
+    الحد الأقصى لاختبارات المتدرب في اليوم
+    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
   </div>
 
   <input
@@ -11581,7 +11644,8 @@ const headerBtn = (danger = false) => ({
                       ))
                     ) : (
                       <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مصنفة.</span>
-                    )}
+                    );
+                    })()}
                   </div>
                 </div>
 
@@ -14271,33 +14335,21 @@ const headerBtn = (danger = false) => ({
                 {Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
                   <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
                 ) : null}
-                {(Array.isArray(slot.blockingStudents) || Array.isArray(slot.blockingStudentIds)) ? (() => {
-                  const resolvedBlockingStudents = Array.isArray(slot.blockingStudents) && slot.blockingStudents.length
-                    ? slot.blockingStudents
-                    : (Array.isArray(slot.blockingStudentIds)
-                        ? slot.blockingStudentIds.map((studentId) => {
-                            const id = String(studentId || "").trim();
-                            if (!id) return null;
-                            const info = preciseStudentInfoMap.get(id);
-                            return info
-                              ? { ...info, dailyCount: Number(maxExamsPerStudentPerDay) || 0 }
-                              : {
-                                  id,
-                                  name: "بدون اسم",
-                                  department: "-",
-                                  major: "-",
-                                  dailyCount: Number(maxExamsPerStudentPerDay) || 0,
-                                };
-                          }).filter(Boolean)
-                        : []);
-                  return (
+                {Array.isArray(slot.blockingStudents) ? (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontWeight: 800, marginBottom: 8, color: COLORS.charcoal }}>
                       {selectedUnscheduledReasonModal.group?.key === "dailyLimit"
                         ? "المتدربون الذين بلغوا الحد اليومي"
                         : "المتدربون المتعارضون"}
                     </div>
-                    {resolvedBlockingStudents.length ? (
+                    {(() => {
+                      const displayedBlockingStudents = getBlockingStudentsForUnscheduledSlot(
+                        selectedUnscheduledReasonModal.courseKey,
+                        selectedUnscheduledReasonModal.group?.key,
+                        slot
+                      );
+
+                      return displayedBlockingStudents.length ? (
                       <div
                         style={{
                           overflowX: "auto",
@@ -14327,7 +14379,7 @@ const headerBtn = (danger = false) => ({
                             </tr>
                           </thead>
                           <tbody>
-                            {resolvedBlockingStudents.map((student, studentIndex) => (
+                            {displayedBlockingStudents.map((student, studentIndex) => (
                               <tr key={`${student?.id || student?.name || "student"}-${studentIndex}`}>
                                 <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
                                   {studentIndex + 1}
@@ -14366,10 +14418,10 @@ const headerBtn = (danger = false) => ({
                       >
                         لا توجد أسماء متدربين محفوظة لهذا التعارض في هذه الفترة.
                       </div>
-                    )}
+                    );
+                    })()}
                   </div>
-                  );
-                })() : null}
+                ) : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
                 {slot.availableInvigilatorsCount != null ? <div><strong>المراقبون المتاحون فعليًا:</strong> {slot.availableInvigilatorsCount}</div> : null}
               </div>
