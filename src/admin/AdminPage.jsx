@@ -5241,56 +5241,13 @@ const getUnscheduledReasonBreakdown = (course) => {
 
 const openUnscheduledReasonModal = (course, group) => {
   if (!course || !group) return;
-
-  const normalizedGroup =
-    group?.key === "dailyLimit" && Array.isArray(group?.slots)
-      ? {
-          ...group,
-          slots: group.slots.map((slot) => {
-            if (Array.isArray(slot?.blockingStudents) && slot.blockingStudents.length) {
-              return slot;
-            }
-
-            const rebuiltBlockingStudents = (Array.isArray(course?.students) ? course.students : [])
-              .map((studentId) => {
-                const dayMap = studentDayMap.get(studentId) || new Map();
-                const sameDayCount = dayMap.get(slot?.dateISO) || 0;
-                if (sameDayCount < Math.max(1, Number(maxExamsPerStudentPerDay) || 2)) {
-                  return null;
-                }
-
-                return {
-                  ...(preciseStudentInfoMap.get(studentId) || {
-                    id: studentId,
-                    name: "بدون اسم",
-                    department: "-",
-                    major: "-",
-                  }),
-                  dailyCount: sameDayCount,
-                };
-              })
-              .filter(Boolean)
-              .sort(
-                (a, b) =>
-                  String(a?.name || "").localeCompare(String(b?.name || ""), "ar") ||
-                  String(a?.id || "").localeCompare(String(b?.id || ""), "ar")
-              );
-
-            return {
-              ...slot,
-              blockingStudents: rebuiltBlockingStudents,
-            };
-          }),
-        }
-      : group;
-
   setSelectedUnscheduledReasonModal({
     courseKey: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
     courseCode: course.courseCode || "",
     shortLabel: normalizeUnscheduledReason(course).shortLabel,
     reasonDetail: normalizeUnscheduledReason(course).detail,
-    group: normalizedGroup,
+    group,
   });
 };
 
@@ -9621,8 +9578,9 @@ const headerBtn = (danger = false) => ({
 
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
-    <HintIcon text="لا يجوز أن يختبر المتدرب أكثر من مقررين في اليوم إلا عند الضرورة القصوى وفقًا اللائحة. "
-      style={{ marginRight: 6, marginLeft: 6 }}/>
+    
+    الحد الأقصى لاختبارات المتدرب في اليوم
+    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
   </div>
 
   <input
