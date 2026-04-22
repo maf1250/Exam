@@ -1823,6 +1823,7 @@ function getPrintBaseStyles() {
   text-align: right;
   justify-self: end;
   direction: rtl;
+  margin-right: -6px;
 }
 
 .header-center {
@@ -2540,6 +2541,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
   direction: rtl;
   justify-self: end;
   font-size: 13px;
+    margin-right: -6px;
   font-weight: 700;
   line-height: 1.8;
   color: #0f172a;
