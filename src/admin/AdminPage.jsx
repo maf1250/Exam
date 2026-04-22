@@ -1395,6 +1395,80 @@ function buildDocxCell(paragraphs, {
   `;
 }
 
+async function loadDocxLogoImage() {
+  try {
+    const response = await fetch(`${window.location.origin}${LOGO_SRC}`);
+    if (!response.ok) return null;
+    const contentType = String(response.headers.get("content-type") || "image/png").toLowerCase();
+    const extension = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : contentType.includes("svg") ? "svg" : "png";
+    const data = await response.arrayBuffer();
+    return {
+      relationshipId: "rIdLogo1",
+      filename: `logo.${extension}`,
+      extension,
+      contentType,
+      data,
+      widthEmu: 1100000,
+      heightEmu: 1100000,
+      name: "TVTC Logo",
+    };
+  } catch (error) {
+    console.warn("تعذر تحميل شعار الوورد", error);
+    return null;
+  }
+}
+
+function buildDocxImageParagraph(image, { align = "center", spacingAfter = 120 } = {}) {
+  if (!image?.relationshipId) return "";
+  const widthEmu = Number(image.widthEmu) || 1100000;
+  const heightEmu = Number(image.heightEmu) || 1100000;
+  const imageName = escapeXml(image.name || "Logo");
+  const docPrId = Number(image.docPrId) || 1;
+
+  return `
+    <w:p>
+      <w:pPr>
+        <w:bidi/>
+        <w:jc w:val="${align}"/>
+        <w:spacing w:after="${spacingAfter}"/>
+      </w:pPr>
+      <w:r>
+        <w:drawing>
+          <wp:inline distT="0" distB="0" distL="0" distR="0">
+            <wp:extent cx="${widthEmu}" cy="${heightEmu}"/>
+            <wp:effectExtent l="0" t="0" r="0" b="0"/>
+            <wp:docPr id="${docPrId}" name="${imageName}"/>
+            <wp:cNvGraphicFramePr>
+              <a:graphicFrameLocks noChangeAspect="1"/>
+            </wp:cNvGraphicFramePr>
+            <a:graphic>
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:pic>
+                  <pic:nvPicPr>
+                    <pic:cNvPr id="0" name="${imageName}"/>
+                    <pic:cNvPicPr/>
+                  </pic:nvPicPr>
+                  <pic:blipFill>
+                    <a:blip r:embed="${escapeXml(image.relationshipId)}"/>
+                    <a:stretch><a:fillRect/></a:stretch>
+                  </pic:blipFill>
+                  <pic:spPr>
+                    <a:xfrm>
+                      <a:off x="0" y="0"/>
+                      <a:ext cx="${widthEmu}" cy="${heightEmu}"/>
+                    </a:xfrm>
+                    <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                  </pic:spPr>
+                </pic:pic>
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+  `;
+}
+
 function buildDocxTable(rowsXml, gridCols) {
   const grid = gridCols.map((width) => `<w:gridCol w:w="${width}"/>`).join("");
   return `
@@ -1418,11 +1492,18 @@ function buildDocxTable(rowsXml, gridCols) {
   `;
 }
 
-async function buildDocxBlob({ bodyXml }) {
+async function buildDocxBlob({ bodyXml, mediaFiles = [] }) {
+  const hasMedia = Array.isArray(mediaFiles) && mediaFiles.length > 0;
+  const imageOverrides = mediaFiles
+    .map((file) => `  <Default Extension="${escapeXml(file.extension || "png")}" ContentType="${escapeXml(file.contentType || "image/png")}"/>`)
+    .join("
+");
+
   const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
+${imageOverrides}
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`;
@@ -1432,9 +1513,15 @@ async function buildDocxBlob({ bodyXml }) {
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
 
+  const mediaRelationshipsXml = mediaFiles
+    .map((file) => `  <Relationship Id="${escapeXml(file.relationshipId)}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${escapeXml(file.filename)}"/>`)
+    .join("
+");
+
   const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+${mediaRelationshipsXml}
 </Relationships>`;
 
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1470,8 +1557,10 @@ async function buildDocxBlob({ bodyXml }) {
   xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
   xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
   xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
-  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wne="http://schemas.openxmlformats.org/officeDocument/2006/wordml"
   xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
   mc:Ignorable="w14 wp14">
   <w:body>
     ${bodyXml}
@@ -1491,19 +1580,27 @@ async function buildDocxBlob({ bodyXml }) {
   wordFolder.file("styles.xml", stylesXml);
   wordFolder.folder("_rels").file("document.xml.rels", documentRelsXml);
 
+  if (hasMedia) {
+    const mediaFolder = wordFolder.folder("media");
+    mediaFiles.forEach((file) => {
+      mediaFolder.file(file.filename, file.data);
+    });
+  }
+
   return zip.generateAsync({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });
 }
 
-function buildOfficialDocxHeader({ collegeName, title, metaLines = [] }) {
+function buildOfficialDocxHeader({ collegeName, title, metaLines = [], logoImage = null }) {
   return [
+    logoImage ? buildDocxImageParagraph(logoImage, { align: "center", spacingAfter: 70 }) : "",
     buildDocxParagraph("المملكة العربية السعودية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
     buildDocxParagraph("المؤسسة العامة للتدريب التقني والمهني", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
-    buildDocxParagraph(collegeName || "الكلية التقنية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 140 }),
-    buildDocxParagraph(title, { align: "center", bold: true, size: 28, color: "111827", spacingAfter: 120 }),
-    ...metaLines.map((line) => buildDocxParagraph(line, { align: "center", size: 20, color: "475569", spacingAfter: 50 })),
+    buildDocxParagraph(collegeName || "الكلية التقنية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 120 }),
+    buildDocxParagraph(title, { align: "center", bold: true, size: 28, color: "111827", spacingAfter: 100 }),
+    ...metaLines.map((line) => buildDocxParagraph(line, { align: "right", size: 20, color: "475569", spacingAfter: 50 })),
   ].join("");
 }
 
@@ -1518,6 +1615,7 @@ async function exportScheduleDocx({
   if (!Array.isArray(schedule) || !schedule.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
+  const logoImage = await loadDocxLogoImage();
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
@@ -1605,6 +1703,7 @@ async function exportScheduleDocx({
     buildOfficialDocxHeader({
       collegeName,
       title: "جدول الاختبارات النهائية",
+      logoImage,
       metaLines: [
         `القسم: ${departmentLabel}`,
         `التخصص: ${majorLabel}`,
@@ -1614,12 +1713,14 @@ async function exportScheduleDocx({
     buildDocxTable(headerRowOne + headerRowTwo + bodyRows, widths),
   ].join("");
 
-  const blob = await buildDocxBlob({ bodyXml });
+  const blob = await buildDocxBlob({ bodyXml, mediaFiles: logoImage ? [logoImage] : [] });
   downloadBlobFile(`جدول الاختبارات ${getTodayFileStamp()}.docx`, blob);
 }
 
 async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
   if (!Array.isArray(invigilatorTable) || !invigilatorTable.length) return;
+
+  const logoImage = await loadDocxLogoImage();
 
   const allDays = Array.from(
     new Set(
@@ -1660,6 +1761,7 @@ async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
     buildOfficialDocxHeader({
       collegeName,
       title: "جدول المراقبين وفترات المراقبة",
+      logoImage,
       metaLines: [
         `عدد المراقبين: ${invigilatorTable.length}`,
         `عدد الأيام: ${allDays.length}`,
@@ -1669,7 +1771,7 @@ async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
     buildDocxTable(headerRow + rowsXml, widths),
   ].join("");
 
-  const blob = await buildDocxBlob({ bodyXml });
+  const blob = await buildDocxBlob({ bodyXml, mediaFiles: logoImage ? [logoImage] : [] });
   downloadBlobFile(`جدول المراقبين ${getTodayFileStamp()}.docx`, blob);
 }
 
@@ -1712,14 +1814,17 @@ function getPrintBaseStyles() {
 
     .header-grid {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       gap: 12px;
       margin-bottom: 8px;
+      direction: ltr;
     }
 
     .header-right {
       text-align: right;
+      direction: rtl;
+      justify-self: start;
       font-size: 13px;
       font-weight: 700;
       line-height: 1.8;
@@ -1728,10 +1833,14 @@ function getPrintBaseStyles() {
 
     .header-center {
       text-align: center;
+      direction: rtl;
+      justify-self: center;
     }
 
     .header-left {
-      text-align: left;
+      text-align: right;
+      direction: rtl;
+      justify-self: end;
       font-size: 12px;
       color: #475569;
     }
@@ -13522,7 +13631,7 @@ const headerBtn = (danger = false) => ({
                   }}
                   style={cardButtonStyle()}
                 >
-                  {printOutputFormat === "docx" ? "تصدير جدول الاختبارات DOCX" : "طباعة جدول الاختبارات PDF"}
+                  {printOutputFormat === "docx" ? "تصدير جدول الاختبارات " : "حفظ جدول الاختبارات"}
                 </button>
 
                 <button
@@ -13546,7 +13655,7 @@ const headerBtn = (danger = false) => ({
                   }}
                   style={cardButtonStyle()}
                 >
-                  {printOutputFormat === "docx" ? "تصدير جدول المراقبين DOCX" : "طباعة جدول المراقبين PDF"}
+                  {printOutputFormat === "docx" ? "تصدير جدول المراقبين " : "حفظ جدول المراقبين"}
                 </button>
                  <button onClick={() => setCurrentStep(12)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
