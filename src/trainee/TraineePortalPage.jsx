@@ -294,7 +294,7 @@ const rowsHtml = (selectedStudent?.schedule || [])
             <div class="header-text">
               <div>المملكة العربية السعودية</div>
               <div>المؤسسة العامة للتدريب التقني والمهني</div>
-              <div class="header-title">${escapeHtml(collegeName || "جداول المتدربين النهائية")}</div>
+              <div>${escapeHtml(collegeName || "جداول المتدربين النهائية")}</div>
             </div>
           </div>
         </div>
