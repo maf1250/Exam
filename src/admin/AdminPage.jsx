@@ -10625,7 +10625,7 @@ const headerBtn = (danger = false) => ({
       </div>
     </div>
 
-    {includeInvigilators ? (
+  {includeInvigilators ? (
   <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
     {!includeAllDepartmentsAndMajors ? (
       <div
@@ -10726,9 +10726,7 @@ const headerBtn = (danger = false) => ({
           </div>
         ) : (
           <div style={{ width: "100%" }}>
-            <div style={{ marginBottom: 8, fontWeight: 800 }}>
-              عدد المتدربين لكل مراقب
-            </div>
+            <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
             <input
               type="number"
               min="1"
@@ -10799,7 +10797,6 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 ) : null}
-
 
         {showInvigilatorConstraintPreference ? (
         <div
