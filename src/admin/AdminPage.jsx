@@ -930,8 +930,7 @@ function SectionHeader({ title, description }) {
       <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.charcoal }}>{title}</div>
       {description ? (
         <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>{description}</div>
-                ) : null;
-                })()}
+      ) : null}
     </div>
   );
 }
@@ -9976,8 +9975,7 @@ const headerBtn = (danger = false) => ({
                         );
                       })}
                     </div>
-                  ) : null;
-                })()}
+                  ) : null}
                   
                   {/* end*/}
                
@@ -13732,8 +13730,7 @@ const headerBtn = (danger = false) => ({
                     {" / "}
                     {selectedStudentInfoForPrint.major || "-"}
                   </div>
-                ) : null;
-                })()}
+                ) : null}
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
                   <button
@@ -14274,32 +14271,26 @@ const headerBtn = (danger = false) => ({
                 {Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
                   <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
                 ) : null}
-                {(() => {
+                {(Array.isArray(slot.blockingStudents) || Array.isArray(slot.blockingStudentIds)) ? (() => {
                   const resolvedBlockingStudents = Array.isArray(slot.blockingStudents) && slot.blockingStudents.length
                     ? slot.blockingStudents
-                    : selectedUnscheduledReasonModal.group?.key === "dailyLimit" && Array.isArray(slot.blockingStudentIds)
-                      ? slot.blockingStudentIds
-                          .map((studentId) => {
-                            const studentInfo = preciseStudentInfoMap.get(studentId);
-                            return {
-                              ...(studentInfo || {
-                                id: studentId,
-                                name: "بدون اسم",
-                                department: "-",
-                                major: "-",
-                              }),
-                              dailyCount:
-                                Number(studentInfo?.dailyCount) ||
-                                Number(maxExamsPerStudentPerDay) ||
-                                0,
-                            };
-                          })
-                          .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar") || String(a?.id || "").localeCompare(String(b?.id || ""), "ar"))
-                      : Array.isArray(slot.blockingStudents)
-                        ? slot.blockingStudents
-                        : null;
-
-                  return Array.isArray(resolvedBlockingStudents) ? (
+                    : (Array.isArray(slot.blockingStudentIds)
+                        ? slot.blockingStudentIds.map((studentId) => {
+                            const id = String(studentId || "").trim();
+                            if (!id) return null;
+                            const info = preciseStudentInfoMap.get(id);
+                            return info
+                              ? { ...info, dailyCount: Number(maxExamsPerStudentPerDay) || 0 }
+                              : {
+                                  id,
+                                  name: "بدون اسم",
+                                  department: "-",
+                                  major: "-",
+                                  dailyCount: Number(maxExamsPerStudentPerDay) || 0,
+                                };
+                          }).filter(Boolean)
+                        : []);
+                  return (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontWeight: 800, marginBottom: 8, color: COLORS.charcoal }}>
                       {selectedUnscheduledReasonModal.group?.key === "dailyLimit"
@@ -14377,8 +14368,8 @@ const headerBtn = (danger = false) => ({
                       </div>
                     )}
                   </div>
-                ) : null;
-                })()}
+                  );
+                })() : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
                 {slot.availableInvigilatorsCount != null ? <div><strong>المراقبون المتاحون فعليًا:</strong> {slot.availableInvigilatorsCount}</div> : null}
               </div>
