@@ -9580,8 +9580,8 @@ const headerBtn = (danger = false) => ({
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
     
-    الحد الأقصى لاختبارات المتدرب في اليوم
-    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
+    <HintIcon text="لا يجوز أن يختبر المتدرب أكثر من مقررين في اليوم إلا عند الضرورة القصوى وفقًا اللائحة."
+      style={{ marginRight: 6 }}/>
   </div>
 
   <input
