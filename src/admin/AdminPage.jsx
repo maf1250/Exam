@@ -934,23 +934,15 @@ function HintIcon({ text }) {
   useEffect(() => {
     if (!open) return undefined;
 
-    function handlePointerDown(event) {
-      if (rootRef.current && !rootRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    }
-
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         setOpen(false);
       }
     }
 
-    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
@@ -958,6 +950,8 @@ function HintIcon({ text }) {
   return (
     <div
       ref={rootRef}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
       style={{
         position: "relative",
         display: "inline-flex",
@@ -968,22 +962,23 @@ function HintIcon({ text }) {
     >
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
         aria-label="عرض التوضيح"
         aria-expanded={open}
         style={{
-          width: 22,
-          height: 22,
+          width: 20,
+          height: 20,
           borderRadius: "50%",
           background: "#FFF7ED",
           border: "1px solid #FDBA74",
           color: "#C2410C",
-          fontWeight: 900,
-          fontSize: 13,
+          fontWeight: 800,
+          fontSize: 12,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          cursor: "pointer",
+          cursor: "help",
           userSelect: "none",
           padding: 0,
           lineHeight: 1,
@@ -1007,7 +1002,8 @@ function HintIcon({ text }) {
             borderRadius: 14,
             padding: "10px 12px",
             boxShadow: "0 16px 35px rgba(15, 23, 42, 0.14)",
-            fontSize: 13,
+            fontSize: 12,
+            fontWeight: 400,
             lineHeight: 1.8,
             textAlign: "right",
             zIndex: 50,
@@ -10440,9 +10436,10 @@ const headerBtn = (danger = false) => ({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                fontWeight: 800,
-                fontSize: 14,
+                gap: 8,
+                fontWeight: 400,
+                fontSize: "inherit",
+                lineHeight: 1.2,
               }}
             >
               الحد الأدنى المستهدف للمراقبات
@@ -10467,10 +10464,11 @@ const headerBtn = (danger = false) => ({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 8,
                 marginRight: 47,
-                fontWeight: 800,
-                fontSize: 14,
+                fontWeight: 400,
+                fontSize: "inherit",
+                lineHeight: 1.2,
               }}
             >
               الحد الأقصى للمراقبات لكل مراقب
