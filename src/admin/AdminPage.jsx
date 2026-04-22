@@ -422,12 +422,22 @@ function formatHijri(date) {
   }).format(date);
 }
 
+function normalizeHijriDateText(value) {
+  return String(value ?? "")
+    .replace(/\s*[هـ]+\s*/g, "")
+    .replace(/‏|‎/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).format(date);
+  return normalizeHijriDateText(
+    new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).format(date)
+  );
 }
 
 function safeNum(value, fallback = 0) {
@@ -596,11 +606,11 @@ function getTodayFileStamp() {
   return `${year}-${month}-${day}`;
 }
 
-function downloadFile(filename, content) {
+function downloadFile(filename, content, mime) {
   const safeFilename = sanitizeDownloadFilename(filename);
   const BOM = "\uFEFF";
-  const blob = new Blob([BOM + content], {
-    type: "text/csv;charset=utf-8;",
+  const blob = new Blob([BOM, content], {
+    type: `${mime || "text/csv"};charset=utf-8`,
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1338,20 +1348,84 @@ function getPrintBaseStyles() {
     }
 
     .header {
-      text-align: center;
-      margin-bottom: 12px;
-      border-bottom: 2px solid #0f766e;
-      padding-bottom: 10px;
+      margin-bottom: 14px;
+      padding: 14px 18px 12px;
+      border: 1.5px solid #B8D9D7;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F6FCFC 100%);
     }
 
-    .logo-wrap {
-      margin-bottom: 8px;
+    .official-header {
+      border-bottom: 4px solid #0f766e;
+    }
+
+    .header-top-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .header-side {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-height: 78px;
+      justify-content: center;
+    }
+
+    .header-side-right {
+      text-align: right;
+    }
+
+    .header-side-left {
+      text-align: left;
+      align-items: flex-start;
+    }
+
+    .government-line {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.7;
+    }
+
+    .unit-line {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f766e;
+      line-height: 1.7;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
     }
 
     .logo {
-      width: 72px;
+      width: 84px;
       height: auto;
       object-fit: contain;
+    }
+
+    .document-badge {
+      border: 1px solid #B8D9D7;
+      background: #ECFEFF;
+      color: #0f766e;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .document-title-inline {
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      line-height: 1.7;
     }
 
     .college-name {
@@ -1362,24 +1436,27 @@ function getPrintBaseStyles() {
     }
 
     .doc-title {
-      font-size: 18px;
-      font-weight: 800;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 900;
       color: #111827;
-      margin-bottom: 8px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      letter-spacing: 0.2px;
     }
 
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 12px;
     }
 
     .meta-box {
       border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 6px 8px;
+      border-radius: 10px;
+      padding: 7px 9px;
       background: #f8fafc;
       text-align: center;
     }
@@ -1390,6 +1467,9 @@ function getPrintBaseStyles() {
       border: 1px solid #0f172a;
       border-bottom: 0;
       margin-top: 10px;
+      overflow: hidden;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
     }
 
     .period-strip > div {
@@ -1403,6 +1483,7 @@ function getPrintBaseStyles() {
       flex-direction: column;
       font-size: 12px;
       font-weight: 700;
+      background: #ffffff;
     }
 
     .period-strip > div:first-child {
@@ -1467,7 +1548,7 @@ function getPrintBaseStyles() {
     .section-note {
       margin-top: 12px;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 10px 12px;
       background: #fcfcfc;
       font-size: 11px;
@@ -1519,6 +1600,37 @@ function getDayTheme(dayName) {
     border: "#D7E7E6",
     text: "#1F2529",
   };
+}
+
+function renderOfficialPrintHeader({ collegeName, title, metaBoxes = [] }) {
+  return `
+    <div class="header official-header">
+      <div class="header-top-row">
+        <div class="header-side header-side-right">
+          <div class="government-line">المملكة العربية السعودية</div>
+          <div class="government-line">المؤسسة العامة للتدريب التقني والمهني</div>
+          <div class="unit-line">${collegeName || "الكلية التقنية"}</div>
+        </div>
+
+        <div class="header-center">
+          <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+        </div>
+
+        <div class="header-side header-side-left">
+          <div class="document-badge">وثيقة رسمية</div>
+          <div class="document-title-inline">${title}</div>
+        </div>
+      </div>
+
+      <div class="doc-title">${title}</div>
+
+      ${metaBoxes.length ? `
+        <div class="meta-grid">
+          ${metaBoxes.map((item) => `<div class="meta-box"><strong>${item.label}:</strong> ${item.value}</div>`).join("")}
+        </div>
+      ` : ""}
+    </div>
+  `;
 }
 
 function printScheduleOnlyPdf({
@@ -1692,19 +1804,15 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
       </head>
       <body>
         <div class="page">
-          <div class="header">
-            <div class="logo-wrap">
-              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-            </div>
-            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
-            <div class="doc-title">جدول الاختبارات النهائية</div>
-
-            <div class="meta-grid">
-<div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
-<div class="meta-box"><strong>التخصص:</strong> ${majorLabel}</div>
-              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
-            </div>
-          </div>
+          ${renderOfficialPrintHeader({
+            collegeName,
+            title: "جدول الاختبارات النهائية",
+            metaBoxes: [
+              { label: "القسم", value: departmentLabel },
+              { label: "التخصص", value: majorLabel },
+              { label: "تاريخ الطباعة", value: todayText },
+            ],
+          })}
 
           <div class="period-strip" style="--period-count:${periodIds.length}">
             <div>&nbsp;</div>
@@ -1863,19 +1971,15 @@ const buildDayCell = (inv, day) => {
       </head>
       <body>
         <div class="page">
-          <div class="header">
-            <div class="logo-wrap">
-              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-            </div>
-            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
-            <div class="doc-title">جدول المراقبين وفترات المراقبة</div>
-
-            <div class="meta-grid">
-              <div class="meta-box"><strong>عدد المراقبين:</strong> ${invigilatorTable.length}</div>
-              <div class="meta-box"><strong>عدد الأيام:</strong> ${allDays.length}</div>
-              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
-            </div>
-          </div>
+          ${renderOfficialPrintHeader({
+            collegeName,
+            title: "جدول المراقبين وفترات المراقبة",
+            metaBoxes: [
+              { label: "عدد المراقبين", value: invigilatorTable.length },
+              { label: "عدد الأيام", value: allDays.length },
+              { label: "تاريخ الطباعة", value: todayText },
+            ],
+          })}
 
           <table class="invigilators-table">
             <thead>
@@ -2037,13 +2141,10 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
       </head>
       <body>
         <div class="page">
-          <div class="header">
-            <div class="logo-wrap">
-              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-            </div>
-            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
-            <div class="doc-title">جدول الاختبارات النهائي للمتدرب</div>
-          </div>
+          ${renderOfficialPrintHeader({
+            collegeName,
+            title: "جدول الاختبارات النهائي للمتدرب",
+          })}
 
           <div class="student-meta">
             <div class="student-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
