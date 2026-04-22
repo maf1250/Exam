@@ -10795,8 +10795,6 @@ const headerBtn = (danger = false) => ({
         </div>
       </div>
     </div>
-  </div>
-) : null}
 
         {showInvigilatorConstraintPreference ? (
         <div
