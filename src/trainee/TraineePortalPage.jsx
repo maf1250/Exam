@@ -176,10 +176,35 @@ const rowsHtml = (selectedStudent?.schedule || [])
           background: linear-gradient(135deg, #0f5f68 0%, #1fa7a8 50%, #63cfc4 100%);
           color: white;
           padding: 10px 12px;
+          position: relative;
+          min-height: 110px;
         }
         .hero small { opacity: 0.92; font-size: 10px; }
         .hero h1 { margin: 4px 0 3px; font-size: 18px; line-height: 1.2; }
         .hero p { margin: 0; font-size: 10px; opacity: 0.95; line-height: 1.45; }
+        .header-center {
+          position: relative;
+          min-height: 88px;
+        }
+        .logo {
+          width: 70px;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+        }
+        .header-text {
+          text-align: right;
+          padding-right: 0;
+          padding-left: 0;
+          width: 100%;
+        }
+        .header-title {
+          margin-top: 8px;
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 1.3;
+        }
         .meta {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -254,13 +279,6 @@ const rowsHtml = (selectedStudent?.schedule || [])
           .header, .meta, table, .instructions, .instructions li {
             break-inside: avoid;
           }
-          .header-center {
-  text-align: center;
-}
-
-.logo {
-  width: 70px;
-}
         }
       </style>
     </head>
@@ -270,13 +288,15 @@ const rowsHtml = (selectedStudent?.schedule || [])
           <div>${today}</div>
           <div>الجداول النهائية - بوابة المتدرب</div>
         </div>
-        <div class="hero">     
-        <div class="header-center">
-     <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-           <div>المملكة العربية السعودية</div>
-     <div>المؤسسة العامة للتدريب التقني والمهني</div>
-          <div>${escapeHtml(collegeName || "جداول المتدربين النهائية")}</div>
-        </div>
+        <div class="hero">
+          <div class="header-center">
+            <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+            <div class="header-text">
+              <div>المملكة العربية السعودية</div>
+              <div>المؤسسة العامة للتدريب التقني والمهني</div>
+              <div class="header-title">${escapeHtml(collegeName || "جداول المتدربين النهائية")}</div>
+            </div>
+          </div>
         </div>
       </div>
 
