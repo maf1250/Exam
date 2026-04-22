@@ -431,13 +431,14 @@ function normalizeHijriDateText(value) {
 }
 
 function formatHijriNumeric(date) {
-  return normalizeHijriDateText(
-    new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    }).format(date)
-  );
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  })
+    .format(date)
+    .replace("هـ", "")  
+    .trim();
 }
 
 function safeNum(value, fallback = 0) {
@@ -1604,23 +1605,28 @@ function getDayTheme(dayName) {
 
 function renderOfficialPrintHeader({ collegeName, title, metaBoxes = [] }) {
   return `
-    <div class="header official-header">
-      <div class="header-top-row">
-        <div class="header-side header-side-right">
-          <div class="government-line">المملكة العربية السعودية</div>
-          <div class="government-line">المؤسسة العامة للتدريب التقني والمهني</div>
-          <div class="unit-line">${collegeName || "الكلية التقنية"}</div>
-        </div>
+    <div class="header">
+  <div class="header-grid">
+    
+    <!-- اليمين -->
+    <div class="header-right">
+      <div>المملكة العربية السعودية</div>
+      <div>المؤسسة العامة للتدريب التقني والمهني</div>
+      <div>${collegeName || "الكلية التقنية"}</div>
+    </div>
 
-        <div class="header-center">
-          <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-        </div>
+    <!-- الوسط (الشعار) -->
+    <div class="header-center">
+      <img class="logo" src="${window.location.origin + LOGO_SRC}" />
+    </div>
 
-        <div class="header-side header-side-left">
-          <div class="document-badge">وثيقة رسمية</div>
-          <div class="document-title-inline">${title}</div>
-        </div>
-      </div>
+    <!-- اليسار (فارغ للتوازن) -->
+    <div></div>
+
+  </div>
+
+  <div class="doc-title">جدول الاختبارات النهائية</div>
+</div>
 
       <div class="doc-title">${title}</div>
 
@@ -1784,7 +1790,27 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
             font-size: ${tableFontSize};
             padding: ${tablePadding};
           }
+.header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 10px;
+}
 
+.header-right {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.8;
+}
+
+.header-center {
+  text-align: center;
+}
+
+.logo {
+  width: 70px;
+}
           .college-name {
             font-size: ${compactMode ? "19px" : "22px"};
           }
