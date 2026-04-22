@@ -2278,6 +2278,7 @@ const pendingRestoreRef = useRef(null);
     return d.toISOString().slice(0, 10);
   });
   const [showTrainerHint, setShowTrainerHint] = useState(false);
+  const [showAvoidTrainerHint, setShowAvoidTrainerHint] = useState(false);
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
   const [periodConfigs, setPeriodConfigs] = useState(getDefaultPeriodConfigs());
@@ -3840,6 +3841,7 @@ const [courseBKey, setCourseBKey] = useState("");
   const [generalPriorityOrder, setGeneralPriorityOrder] = useState([]);
   const [specializedPriorityOrder, setSpecializedPriorityOrder] = useState([]);
   const [preferCourseTrainerInvigilation, setPreferCourseTrainerInvigilation] = useState(false);
+  const [preventCourseTrainerInvigilationSamePeriod, setPreventCourseTrainerInvigilationSamePeriod] = useState(false);
   const [printMajorFilter, setPrintMajorFilter] = useState("__all__");
   const [generalSchedule, setGeneralSchedule] = useState([]);
   const [specializedSchedule, setSpecializedSchedule] = useState([]);
@@ -4703,6 +4705,7 @@ const buildPersistedState = () => ({
   generalPriorityOrder,
   specializedPriorityOrder,
   preferCourseTrainerInvigilation,
+  preventCourseTrainerInvigilationSamePeriod,
   generalSchedule: generalSchedule.map(serializeScheduleItem),
   specializedSchedule: specializedSchedule.map(serializeScheduleItem),
   schedule: schedule.map(serializeScheduleItem),
@@ -4828,6 +4831,7 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setAvoidSameLevelSameDay(saved.avoidSameLevelSameDay ?? false);
   setCourseLevels(saved.courseLevels || {});
   setPreferCourseTrainerInvigilation(saved.preferCourseTrainerInvigilation ?? false);
+  setPreventCourseTrainerInvigilationSamePeriod(saved.preventCourseTrainerInvigilationSamePeriod ?? false);
   setGeneralSchedule((saved.generalSchedule || []).map(deserializeScheduleItem));
   setSpecializedSchedule((saved.specializedSchedule || []).map(deserializeScheduleItem));
   setSchedule((saved.schedule || []).map(deserializeScheduleItem));
@@ -5033,6 +5037,7 @@ generalStudiesExtraInvigilators,
   avoidSameLevelSameDay,
   courseLevels,
   preferCourseTrainerInvigilation,
+  preventCourseTrainerInvigilationSamePeriod,
   generalSchedule,
   specializedSchedule,
   schedule,
@@ -6340,6 +6345,10 @@ const pickInvigilators = (course, slot) => {
     courseTrainerNames.map((name) => normalizeArabic(name))
   );
 
+  const blockedTrainerSet = preventCourseTrainerInvigilationSamePeriod
+    ? normalizedTrainerSet
+    : null;
+
   const constraint =
     typeof getCourseInvigilatorConstraint === "function"
       ? getCourseInvigilatorConstraint(course)
@@ -6365,6 +6374,7 @@ const pickInvigilators = (course, slot) => {
           (ex) => normalizeArabic(ex) === normalizeArabic(name)
         )
     )
+    .filter((name) => !blockedTrainerSet?.has(normalizeArabic(name)))
     .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
   .filter((name) => !hasReachedInvigilationMax(name));
 
@@ -6375,6 +6385,7 @@ const pickInvigilators = (course, slot) => {
           (ex) => normalizeArabic(ex) === normalizeArabic(name)
         )
     )
+    .filter((name) => !blockedTrainerSet?.has(normalizeArabic(name)))
     .filter((name) => !invigilatorBusyPeriods.get(name)?.has(periodKey))
     .filter((name) => !hasReachedInvigilationMax(name))
     .filter(
@@ -6687,11 +6698,23 @@ const pickInvigilators = (course, slot) => {
           ? generalStudiesExtraInvigilators
           : specializedExtraInvigilators;
 
+        const blockedTrainerSet = preventCourseTrainerInvigilationSamePeriod
+          ? new Set(
+              String(course.trainerText || "")
+                .split("/")
+                .map((name) => normalizeArabic(name.trim()))
+                .filter(Boolean)
+            )
+          : null;
+
         const strictAvailableCount = strictPool.filter(
           (name) =>
             !excludedInvigilators.some(
               (ex) => normalizeArabic(ex) === normalizeArabic(name)
-            ) && !invigilatorBusyPeriods.get(name)?.has(periodKey) && !hasReachedInvigilationMax(name)
+            ) &&
+            !blockedTrainerSet?.has(normalizeArabic(name)) &&
+            !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+            !hasReachedInvigilationMax(name)
         ).length;
 
         const extraAvailableCount = extraPool.filter(
@@ -6699,6 +6722,7 @@ const pickInvigilators = (course, slot) => {
             !excludedInvigilators.some(
               (ex) => normalizeArabic(ex) === normalizeArabic(name)
             ) &&
+            !blockedTrainerSet?.has(normalizeArabic(name)) &&
             !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
             !hasReachedInvigilationMax(name) &&
             !strictPool.some(
@@ -6892,11 +6916,23 @@ const requiredSeats = Number(course.studentCount) || 0;
         ? generalStudiesExtraInvigilators
         : specializedExtraInvigilators;
 
+      const blockedTrainerSet = preventCourseTrainerInvigilationSamePeriod
+        ? new Set(
+            String(course.trainerText || "")
+              .split("/")
+              .map((name) => normalizeArabic(name.trim()))
+              .filter(Boolean)
+          )
+        : null;
+
       const strictAvailableCount = strictPool.filter(
         (name) =>
           !excludedInvigilators.some(
             (ex) => normalizeArabic(ex) === normalizeArabic(name)
-          ) && !invigilatorBusyPeriods.get(name)?.has(periodKey) && !hasReachedInvigilationMax(name)
+          ) &&
+          !blockedTrainerSet?.has(normalizeArabic(name)) &&
+          !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
+          !hasReachedInvigilationMax(name)
       ).length;
 
       const extraAvailableCount = extraPool.filter(
@@ -6904,6 +6940,7 @@ const requiredSeats = Number(course.studentCount) || 0;
           !excludedInvigilators.some(
             (ex) => normalizeArabic(ex) === normalizeArabic(name)
           ) &&
+          !blockedTrainerSet?.has(normalizeArabic(name)) &&
           !invigilatorBusyPeriods.get(name)?.has(periodKey) &&
           !hasReachedInvigilationMax(name) &&
           !strictPool.some(
@@ -7251,26 +7288,46 @@ const applyGeneralScheduleGeneration = ({ placed, notPlaced, nextHallWarnings, p
   setHallWarnings(nextHallWarnings || []);
   setPreviewTab("schedule");
 
-  if ((notPlaced || []).length) {
-    showToast(
-      "تم توزيع مقررات الدراسات العامة مع ملاحظات",
-      `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}. ${buildUnscheduledSummaryText(notPlaced)}`,
-      "warning",
-      {
-        persistent: true,
-        actions: [
-          {
-            label: "عرض غير المجدول",
-            onClick: () => openUnscheduledCoursesPreview(true),
+if ((notPlaced || []).length) {
+  showToast(
+    "تم توزيع مقررات الدراسات العامة مع ملاحظات",
+    `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}. ${buildUnscheduledSummaryText(notPlaced)}`,
+    "warning",
+    {
+      persistent: true,
+      actions: [
+        {
+          label: "عرض غير المجدول",
+          onClick: () => openUnscheduledCoursesPreview(true),
+        },
+        {
+          label: "التعديل اليدوي",
+          onClick: () => {
+            setCurrentStep(8);
           },
-        ],
-      }
-    );
-    setCurrentStep(5);
-  } else {
-    showToast("تم توزيع مقررات الدراسات العامة", `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}.`, "success");
-    setCurrentStep(6);
-  }
+        },
+      ],
+    }
+  );
+  setCurrentStep(5);
+} else {
+  showToast(
+    "تم توزيع مقررات الدراسات العامة",
+    `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}.`,
+    "success",
+    {
+      actions: [
+        {
+          label: "التعديل اليدوي",
+          onClick: () => {
+            setCurrentStep(8);
+          },
+        },
+      ],
+    }
+  );
+  setCurrentStep(6);
+}
 };
 
 const generateGeneralSchedule = () => {
@@ -7447,19 +7504,39 @@ const applySpecializedScheduleGeneration = ({
       "warning",
       {
         persistent: true,
-        actions: [
-          {
-            label: "عرض غير المجدول",
-            onClick: () => openUnscheduledCoursesPreview(true),
+      actions: [
+        {
+          label: "عرض غير المجدول",
+          onClick: () => openUnscheduledCoursesPreview(true),
+        },
+        {
+          label: "التعديل اليدوي",
+          onClick: () => {
+            setCurrentStep(8);
           },
-        ],
-      }
-    );
-    setCurrentStep(6);
-  } else {
-    showToast("تم توزيع مقررات التخصص", `تم توزيع ${formatCourseCountLabel(placed.length)}.`, "success");
-    setCurrentStep(7);
-  }
+        },
+      ],
+    }
+  );
+  setCurrentStep(5);
+} else {
+  showToast(
+    "تم توزيع مقررات التخصص",
+    `تم توزيع ${formatCourseCountLabel(sortedPlaced.length)}.`,
+    "success",
+    {
+      actions: [
+        {
+          label: "التعديل اليدوي",
+          onClick: () => {
+            setCurrentStep(8);
+          },
+        },
+      ],
+    }
+  );
+  setCurrentStep(6);
+}
 };
 
 const generateSpecializedSchedule = () => {
@@ -10330,6 +10407,83 @@ const headerBtn = (danger = false) => ({
             >
               سيتم إعطاء أولوية لمدرب المقرر عند التوزيع حسب الإمكان،
               مع محاولة الحفاظ على عدالة توزيع المراقبة بين جميع المراقبين.
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 18,
+            padding: "8px 12px",
+            position: "relative",
+            background: "#fff",
+            minHeight: 30,
+            lineHeight: 1.2,
+          }}
+        >
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={preventCourseTrainerInvigilationSamePeriod}
+              onChange={(e) => setPreventCourseTrainerInvigilationSamePeriod(e.target.checked)}
+            />
+
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              منع مدرب المقرر من المراقبة في نفس فترة اختباره
+
+              <span
+                onMouseEnter={() => setShowAvoidTrainerHint(true)}
+                onMouseLeave={() => setShowAvoidTrainerHint(false)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: COLORS.warningBg,
+                  color: COLORS.warning,
+                  fontWeight: 900,
+                  fontSize: 13,
+                  cursor: "help",
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                !
+              </span>
+            </span>
+          </label>
+
+          {showAvoidTrainerHint && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "110%",
+                right: 10,
+                background: "#111827",
+                color: "#fff",
+                padding: "10px 12px",
+                borderRadius: 10,
+                fontSize: 13,
+                lineHeight: 1.6,
+                width: 290,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+                zIndex: 9999,
+                transition: "opacity 0.2s ease, transform 0.2s ease",
+              }}
+            >
+              عند التفعيل، سيُمنع مدرب المقرر من المراقبة في نفس فترة اختبار مقرره،
+              حتى لو كان هناك أكثر من مقرر في الفترة نفسها، لإتاحة التجول والمتابعة بين القاعات.
             </div>
           )}
         </div>
