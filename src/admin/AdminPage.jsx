@@ -1496,8 +1496,7 @@ async function buildDocxBlob({ bodyXml, mediaFiles = [] }) {
   const hasMedia = Array.isArray(mediaFiles) && mediaFiles.length > 0;
   const imageOverrides = mediaFiles
     .map((file) => `  <Default Extension="${escapeXml(file.extension || "png")}" ContentType="${escapeXml(file.contentType || "image/png")}"/>`)
-    .join("
-");
+    .join("");
 
   const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
