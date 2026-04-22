@@ -414,7 +414,7 @@ function formatGregorian(date) {
 }
 
 function formatHijri(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -423,7 +423,7 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -3626,7 +3626,7 @@ const extraCandidates = extraPool
     const targetHasName = (targetItem.invigilators || []).includes(name);
 
     if (targetHasName && sourceInstanceId !== targetInstanceId) {
-      messages.push(`المراقب ${name} مُسند أصلًا لهذا المقرر.`);
+      messages.push(`المراقب ${name} مُسند أصلًا لهذا المقرر، والاستمرار في التنفيذ سيلغي كلا المراقبتين ويعيد المراقب إلى قائمة الملخص في اليسار.`);
     }
 
     const samePeriodAssignments = schedule.filter((item) =>
@@ -3659,7 +3659,7 @@ const extraCandidates = extraPool
       const requiredCount = includeInvigilators ? getRequiredInvigilatorsCount(sourceItem) : 0;
       const remainingSourceCount = Math.max(0, (sourceItem.invigilators || []).filter((invigilator) => invigilator !== name).length);
       if (includeInvigilators && remainingSourceCount < requiredCount) {
-        messages.push(`نقل ${name} سيجعل المقرر المصدر أقل من العدد المطلوب من المراقبين (${remainingSourceCount}/${requiredCount}).`);
+        messages.push(`نقل ${name} سيجعل المقرر السابق أقل من العدد المطلوب من المراقبين (${remainingSourceCount}/${requiredCount}).`);
       }
     }
 
@@ -3709,7 +3709,7 @@ const extraCandidates = extraPool
           persistent: true,
           actions: [
             {
-              label: "نعم، نفّذ النقل",
+              label: "نعم، نفّذ العملية",
               onClick: () => {
                 applyInvigilatorTransfer(payload);
                 setToast(null);
