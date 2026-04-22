@@ -1372,10 +1372,15 @@ async function loadDocxLogoImage() {
     const response = await fetch(`${window.location.origin}${LOGO_SRC}`);
     if (!response.ok) return null;
 
-    const contentType = String(response.headers.get("content-type") || "image/png").toLowerCase();
-    const isJpg = contentType.includes("jpeg") || contentType.includes("jpg");
-    const extension = isJpg ? "jpg" : "png";
-    const normalizedContentType = isJpg ? "image/jpeg" : "image/png";
+    const contentType = String(
+      response.headers.get("content-type") || "image/png"
+    ).toLowerCase();
+
+    const isJpeg =
+      contentType.includes("jpeg") || contentType.includes("jpg");
+
+    const extension = isJpeg ? "jpg" : "png";
+    const normalizedContentType = isJpeg ? "image/jpeg" : "image/png";
 
     const data = await response.arrayBuffer();
 
