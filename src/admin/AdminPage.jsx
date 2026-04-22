@@ -10740,64 +10740,67 @@ const headerBtn = (danger = false) => ({
           </div>
         )}
 
-        <div style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
-          <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right" }}>
-            أسماء المراقبين
-          </div>
-          <textarea
-            value={manualInvigilators}
-            onChange={(e) => setManualInvigilators(e.target.value)}
-            placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-            style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
-          />
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 14,
-          width: "100%",
-        }}
-      >
-        <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
-        <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
-          يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          {availableInvigilators.length ? (
-            availableInvigilators.map((name) => {
-              const excluded = excludedInvigilators.some(
-                (item) => normalizeArabic(item) === normalizeArabic(name)
-              );
-
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => toggleExcludedInvigilator(name)}
-                  style={{
-                    border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
-                    background: excluded ? COLORS.dangerBg : "#fff",
-                    color: excluded ? COLORS.danger : COLORS.charcoalSoft,
-                    borderRadius: 999,
-                    padding: "8px 14px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  {excluded ? `مستبعد: ${name}` : name}
-                </button>
-              );
-            })
-          ) : (
-            <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
-          )}
-        </div>
-      </div>
+       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+  <div style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
+    <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right" }}>
+      أسماء المراقبين
     </div>
+    <textarea
+      value={manualInvigilators}
+      onChange={(e) => setManualInvigilators(e.target.value)}
+      placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+      style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
+    />
+  </div>
+
+  <div
+    style={{
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 18,
+      padding: 14,
+      width: "100%",
+    }}
+  >
+    <div style={{ fontWeight: 800, marginBottom: 10 }}>
+      استبعاد مراقبين من التوزيع
+    </div>
+
+    <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+      يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
+    </div>
+
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      {availableInvigilators.length ? (
+        availableInvigilators.map((name) => {
+          const excluded = excludedInvigilators.some(
+            (item) => normalizeArabic(item) === normalizeArabic(name)
+          );
+
+          return (
+            <button
+              key={name}
+              type="button"
+              onClick={() => toggleExcludedInvigilator(name)}
+              style={{
+                border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
+                background: excluded ? COLORS.dangerBg : "#fff",
+                color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                borderRadius: 999,
+                padding: "8px 14px",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              {excluded ? `مستبعد: ${name}` : name}
+            </button>
+          );
+        })
+      ) : (
+        <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
+      )}
+    </div>
+  </div>
+</div>
 
         {showInvigilatorConstraintPreference ? (
         <div
