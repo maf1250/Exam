@@ -11645,7 +11645,6 @@ const headerBtn = (danger = false) => ({
                     ) : (
                       <span style={{ color: COLORS.muted }}>لا توجد مقررات غير مصنفة.</span>
                     )}
-                    })()}
                   </div>
                 </div>
 
@@ -14419,7 +14418,6 @@ const headerBtn = (danger = false) => ({
                         لا توجد أسماء متدربين محفوظة لهذا التعارض في هذه الفترة.
                       </div>
                     )}
-                    })()}
                   </div>
                 ) : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
