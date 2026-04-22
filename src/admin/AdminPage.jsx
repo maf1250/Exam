@@ -8274,20 +8274,15 @@ const applySpecializedScheduleGeneration = ({
     return Array.from(map.values());
   });
 
-  const shouldWarnAboutMissingImportedSession = !hasImportedSessionFile && !(generalSchedule || []).length;
-  if ((notPlaced || []).length || shouldWarnAboutMissingImportedSession) {
+  if ((notPlaced || []).length) {
     const messageParts = [`تم توزيع ${formatCourseCountLabel(placed.length)}.`];
 
     if ((notPlaced || []).length) {
       messageParts.push(buildUnscheduledSummaryText(notPlaced));
     }
 
-    if (shouldWarnAboutMissingImportedSession) {
-      messageParts.push("تنبيه: تم توزيع مقررات التخصص بدون استيراد ملف الجلسة، لذا قد لا تكون مقررات الدراسات العامة أو البيانات المستوردة السابقة مضافة إلى هذا الجدول.");
-    }
-
     showToast(
-      shouldWarnAboutMissingImportedSession ? "تم توزيع مقررات التخصص مع تنبيه" : "تم توزيع مقررات التخصص مع ملاحظات",
+      "تم توزيع مقررات التخصص مع ملاحظات",
       messageParts.join(" ").trim(),
       "warning",
       {
@@ -8330,6 +8325,19 @@ const applySpecializedScheduleGeneration = ({
 const generateSpecializedSchedule = () => {
   if (!hasImportedSf01) {
     showSf01ImportFirstToast();
+    return;
+  }
+
+  if (!(generalSchedule || []).length) {
+    showToast(
+      "يجب توزيع مقررات الدراسات العامة أولًا",
+      "لا يمكن توزيع مقررات التخصص قبل الانتهاء من توزيع مقررات الدراسات العامة.",
+      "warning",
+      {
+        persistent: true,
+      }
+    );
+    setCurrentStep(5);
     return;
   }
 
