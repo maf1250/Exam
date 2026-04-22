@@ -8296,7 +8296,7 @@ const applySpecializedScheduleGeneration = ({
       ],
     }
   );
-  setCurrentStep(5);
+  setCurrentStep(6);
 } else {
   showToast(
     "تم توزيع مقررات التخصص",
