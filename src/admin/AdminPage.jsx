@@ -10721,7 +10721,7 @@ const headerBtn = (danger = false) => ({
     }}
     style={{ ...fieldStyle(), maxWidth: 80 }}
   />
-</div>
+</div></div>
             ) : (
               <div style={{ width: "100%" }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
