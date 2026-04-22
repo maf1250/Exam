@@ -10759,6 +10759,8 @@ const headerBtn = (danger = false) => ({
       borderRadius: 18,
       padding: 14,
       width: "100%",
+     maxWidth: "90%",
+    gridColumn: "1 / -1",
     }}
   >
     <div style={{ fontWeight: 800, marginBottom: 10 }}>
