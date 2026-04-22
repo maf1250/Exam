@@ -1603,7 +1603,7 @@ async function exportScheduleDocx({
   if (!Array.isArray(schedule) || !schedule.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
-  const logoImage = await loadDocxLogoImage();
+const logoImage = null;
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
@@ -1708,8 +1708,8 @@ async function exportScheduleDocx({
 async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
   if (!Array.isArray(invigilatorTable) || !invigilatorTable.length) return;
 
-  const logoImage = await loadDocxLogoImage();
-
+const logoImage = null;
+  
   const allDays = Array.from(
     new Set(
       invigilatorTable.flatMap((inv) =>
