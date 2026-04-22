@@ -1514,8 +1514,7 @@ ${imageOverrides}
 
   const mediaRelationshipsXml = mediaFiles
     .map((file) => `  <Relationship Id="${escapeXml(file.relationshipId)}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${escapeXml(file.filename)}"/>`)
-    .join("
-");
+    .join("");
 
   const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
