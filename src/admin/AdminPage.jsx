@@ -1462,36 +1462,29 @@ function getPrintBaseStyles() {
       text-align: center;
     }
 
-    .period-strip {
-      display: grid;
-      background: #E6F7F6;
-      grid-template-columns: 170px repeat(var(--period-count), 1fr);
-      border: 1px solid #0f172a;
-      border-bottom: 0;
-      margin-top: 10px;
-      overflow: hidden;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-    }
+   .period-strip {
+  background: #f8fafc;
+  border: 1px solid #0f172a;
+  border-bottom: 0;
+}
 
-    .period-strip > div {
-      border-left: 1px solid #0f172a;
-      padding: 8px 6px;
-      text-align: center;
-      min-height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      font-size: 12px;
-      font-weight: 700;
-      background: #E6F7F6;
-    }
+.period-strip > div {
+  border-left: 1px solid #0f172a;
+  padding: 8px 6px;
+  text-align: center;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justifyContent: center;
+  flex-direction: column;
+  font-size: 11px;
+  font-weight: 800;
+  background: #f8fafc;
+  }
 
-    .period-strip > div:first-child {
-      background: #f8fafc;
-    }
-
+.period-strip > div:last-child {
+  border-left: 0;
+}
     .period-strip > div:last-child {
       border-left: 0;
     }
@@ -1583,8 +1576,23 @@ function getPrintBaseStyles() {
     }
 
     .day-head {
-      line-height: 1.8;
-    }
+  line-height: 1.8;
+  background: #f8fafc;
+}
+
+.day-head div:first-child {
+  font-size: 12px;
+}
+
+.day-head div:nth-child(2) {
+  font-size: 11px;
+}
+
+.day-head div:nth-child(3) {
+  font-size: 10px;
+  color: #6b7280;
+}
+    
   `;
 }
 
@@ -2016,7 +2024,8 @@ const buildDayCell = (inv, day) => {
                   .map(
                     (day) => `
                       <th class="day-head">
-                     <div>${day.hijri}</div>
+                      <div style="font-weight:800">${day.dayName}</div>
+                      <div style="font-size:11px; margin-top:4px">${day.hijriNumeric}</div>
                      
                       </th>
                     `
