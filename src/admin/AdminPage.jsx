@@ -1464,6 +1464,7 @@ function getPrintBaseStyles() {
 
     .period-strip {
       display: grid;
+      background: #E6F7F6;
       grid-template-columns: 170px repeat(var(--period-count), 1fr);
       border: 1px solid #0f172a;
       border-bottom: 0;
@@ -1484,7 +1485,7 @@ function getPrintBaseStyles() {
       flex-direction: column;
       font-size: 12px;
       font-weight: 700;
-      background: #ffffff;
+      background: #E6F7F6;
     }
 
     .period-strip > div:first-child {
