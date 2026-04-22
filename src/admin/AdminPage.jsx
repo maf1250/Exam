@@ -927,18 +927,62 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-function HelpHint({ children, style }) {
+function TooltipIcon({ text, width = 290 }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <div
       style={{
-        marginTop: 6,
-        color: COLORS.muted,
-        fontSize: 13,
-        lineHeight: 1.8,
-        ...style,
+        position: "relative",
+        display: "inline-flex",
+        flex: "0 0 auto",
       }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
-      {children}
+      <span
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: COLORS.warningBg,
+          color: COLORS.warning,
+          fontWeight: 900,
+          fontSize: 13,
+          cursor: "help",
+          border: `1px solid ${COLORS.border}`,
+          userSelect: "none",
+        }}
+      >
+        !
+      </span>
+
+      {open ? (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "110%",
+            right: 0,
+            background: "#111827",
+            color: "#fff",
+            padding: "10px 12px",
+            borderRadius: 10,
+            fontSize: 13,
+            lineHeight: 1.6,
+            width,
+            maxWidth: "min(290px, calc(100vw - 40px))",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            zIndex: 9999,
+            transition: "opacity 0.2s ease, transform 0.2s ease",
+          }}
+        >
+          {text}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -8622,49 +8666,49 @@ const headerBtn = (danger = false) => ({
                   {
                     key: "hall",
                     title: "تفضيل أو قصر القاعات لمقرر أو قسم معيّن / تفعيل أو إلغاء تقسيم المقرر بين أكثر من قاعة",
-                    hint: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
+                    tooltip: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
                     checked: showHallConstraintPreferences,
                     onChange: setShowHallConstraintPreferences,
                   },
                   {
                     key: "exclude",
                     title: "استبعاد مقررات من الجدول",
-                    hint: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية مستبعدة افتراضيًا حسب منطق النظام الحالي إن كانت معرفة في البيانات.",
+                    tooltip: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية مستبعدة افتراضيًا حسب منطق النظام الحالي إن كانت معرفة في البيانات.",
                     checked: showCourseExclusionsPreference,
                     onChange: setShowCourseExclusionsPreference,
                   },
                   {
                     key: "sep",
                     title: "فصل أيام الدراسات العامة عن التخصص",
-                    hint: "يُظهر إعدادات الفصل بين أيام مقررات الدراسات العامة وأيام مقررات التخصص لتخفيف الضغط على المتدربين.",
+                    tooltip: "يُظهر إعدادات الفصل بين أيام مقررات الدراسات العامة وأيام مقررات التخصص لتخفيف الضغط على المتدربين.",
                     checked: showGeneralSpecializedSeparationPreference,
                     onChange: setShowGeneralSpecializedSeparationPreference,
                   },
                   {
                     key: "same",
                     title: "محاولة إدراج مقررات محددة في نفس الفترة",
-                    hint: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
+                    tooltip: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
                     checked: showSamePeriodPreference,
                     onChange: setShowSamePeriodPreference,
                   },
                   {
                     key: "time",
                     title: "تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)",
-                    hint: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
+                    tooltip: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
                     checked: showCourseTimePreference,
                     onChange: setShowCourseTimePreference,
                   },
                   {
                     key: "level",
                     title: "تجنب وضع مقررات من المستوى نفسه في نفس اليوم",
-                    hint: "يُظهر إعدادات تحديد مستويات المقررات حتى يحاول النظام عدم جمع مقررات المستوى نفسه في يوم واحد.",
+                    tooltip: "يُظهر إعدادات تحديد مستويات المقررات حتى يحاول النظام عدم جمع مقررات المستوى نفسه في يوم واحد.",
                     checked: showAvoidSameLevelSameDayPreference,
                     onChange: setShowAvoidSameLevelSameDayPreference,
                   },
                   {
                     key: "inv",
                     title: "تفضيل / منع / قصر مراقبين لمقرر معيّن",
-                    hint: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
+                    tooltip: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
                     checked: showInvigilatorConstraintPreference,
                     onChange: setShowInvigilatorConstraintPreference,
                   },
@@ -8682,11 +8726,13 @@ const headerBtn = (danger = false) => ({
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9, wordBreak: "break-word" }}>
-                        {item.title}
+                    <div style={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9, wordBreak: "break-word" }}>
+                          {item.title}
+                        </div>
                       </div>
-                      <HelpHint>{item.hint}</HelpHint>
+                      <TooltipIcon text={item.tooltip} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
                       <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>
@@ -10498,19 +10544,18 @@ const headerBtn = (danger = false) => ({
           }}
         >
           <label style={{ display: "grid", gap: 10, maxWidth: 400 }}>
-            <div>
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: 14,
-                }}
-              >
-                الحد الأدنى المستهدف للمراقبات
-              </div>
-              <HelpHint style={{ maxWidth: 360 }}>
-                سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار.
-              </HelpHint>
-            </div>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              الحد الأدنى المستهدف للمراقبات
+              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
+            </span>
             <input
               type="number"
               min="0"
@@ -10525,20 +10570,20 @@ const headerBtn = (danger = false) => ({
             />
           </label>
 
-          <label style={{ display: "grid", gap: 10 }}>
-            <div style={{ marginRight: 47 }}>
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: 14,
-                }}
-              >
-                الحد الأقصى للمراقبات لكل مراقب
-              </div>
-              <HelpHint style={{ maxWidth: 360 }}>
-                لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين.
-              </HelpHint>
-            </div>
+          <label style={{ display: "grid", gap: 4 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                marginRight: 47,
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              الحد الأقصى للمراقبات لكل مراقب
+<TooltipIcon text="لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين." />
+            </span>
             <input
               type="number"
               min="1"
