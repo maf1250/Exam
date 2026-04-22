@@ -156,12 +156,14 @@ const rowsHtml = (selectedStudent?.schedule || [])
           padding: 0;
           font-size: 11px;
           line-height: 1.35;
+          margin-top: 0;
         }
         .header {
           border-radius: 14px;
           overflow: hidden;
           border: 1px solid #d5e9e7;
           margin-bottom: 8px;
+          margin-top: 0;
         }
         .topbar {
           background: #0f2e35;
@@ -175,16 +177,16 @@ const rowsHtml = (selectedStudent?.schedule || [])
         .hero {
           background: linear-gradient(135deg, #0f5f68 0%, #1fa7a8 50%, #63cfc4 100%);
           color: white;
-          padding: 10px 12px;
+           padding: 6px 10px 4px;
           position: relative;
-          min-height: 110px;
+          min-height: 85px; 
         }
         .hero small { opacity: 0.92; font-size: 10px; }
         .hero h1 { margin: 4px 0 3px; font-size: 18px; line-height: 1.2; }
         .hero p { margin: 0; font-size: 10px; opacity: 0.95; line-height: 1.45; }
         .header-center {
-          position: relative;
-          min-height: 88px;
+            position: relative;
+            min-height: 70px;
         }
         .logo {
           width: 70px;
