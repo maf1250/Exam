@@ -2327,24 +2327,37 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
     })
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-const buildDayCell = (inv, day) => {
-  const matches = inv.items
-    .filter((item) => item.dateISO === day.dateISO)
-    .sort((a, b) => a.period - b.period);
+  const pageOrientation = allDays.length > 4 ? "landscape" : "portrait";
+  const invigilatorZoom = compactMode
+    ? allDays.length > 10
+      ? 0.62
+      : allDays.length > 7
+      ? 0.7
+      : 0.8
+    : allDays.length > 10
+    ? 0.72
+    : allDays.length > 7
+    ? 0.82
+    : 0.94;
 
-  if (!matches.length) return "-";
+  const buildDayCell = (inv, day) => {
+    const matches = inv.items
+      .filter((item) => item.dateISO === day.dateISO)
+      .sort((a, b) => a.period - b.period);
 
-  return matches
-    .map((item) => {
-      const hallText = String(item.examHall || "").trim() || "بدون قاعة";
-      return `
-        <div style="line-height:1.8;">
-          الفترة ${item.period} - ${hallText}
-        </div>
-      `;
-    })
-    .join("");
-};
+    if (!matches.length) return "-";
+
+    return matches
+      .map((item) => {
+        const hallText = String(item.examHall || "").trim() || "بدون قاعة";
+        return `
+          <div style="line-height:1.8; white-space:nowrap;">
+            الفترة ${item.period} - ${hallText}
+          </div>
+        `;
+      })
+      .join("");
+  };
 
   const html = `
     <html dir="rtl" lang="ar">
@@ -2354,33 +2367,47 @@ const buildDayCell = (inv, day) => {
           ${getPrintBaseStyles()}
 
           @page {
-            size: A4 portrait;
-            margin: ${compactMode ? "6mm" : "10mm"};
+            size: A4 ${pageOrientation};
+            margin: ${compactMode ? "6mm" : "8mm"};
           }
 
           body {
-            zoom: ${compactMode ? "0.86" : "1"};
+            zoom: ${invigilatorZoom};
+          }
+
+          .page {
+            width: max-content;
+            min-width: 100%;
           }
 
           th, td {
-            font-size: ${compactMode ? "10px" : "12px"};
-            padding: ${compactMode ? "5px 4px" : "8px 6px"};
+            font-size: ${compactMode ? "9px" : "11px"};
+            padding: ${compactMode ? "4px 3px" : "6px 5px"};
           }
 
           .invigilators-table {
             table-layout: auto;
+            width: max-content;
+            min-width: 100%;
           }
 
           .invigilators-table th:first-child,
           .invigilators-table td:first-child {
-            width: 180px;
-            min-width: 180px;
+            width: 125px;
+            min-width: 125px;
             background: #f8fafc;
             font-weight: 800;
+            white-space: nowrap;
+          }
+
+          .invigilators-table th,
+          .invigilators-table td {
+            min-width: 88px;
+            white-space: nowrap;
           }
 
           .day-head {
-            line-height: 1.8;
+            line-height: 1.7;
             background: #f8fafc;
             white-space: nowrap;
           }
@@ -2397,7 +2424,7 @@ const buildDayCell = (inv, day) => {
               </div>
               <div class="header-center">
                 <div class="logo-wrap">
-                  <img class="logo" src="${window.location.origin + LOGO_SRC}"  />
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
                 </div>
               </div>
               <div class="header-left"></div>
@@ -2420,8 +2447,8 @@ const buildDayCell = (inv, day) => {
                     (day) => `
                       <th class="day-head">
                         <div style="font-weight:800">${day.dayName || ""}</div>
-                        <div style="font-size:11px; margin-top:4px">${day.hijriNumeric || ""}</div>
-                        <div style="font-size:10px; color:#6b7280">${day.gregorian || ""}</div>
+                        <div style="font-size:10px; margin-top:4px">${day.hijriNumeric || ""}</div>
+                        <div style="font-size:9px; color:#6b7280">${day.gregorian || ""}</div>
                       </th>
                     `
                   )
