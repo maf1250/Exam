@@ -9572,11 +9572,13 @@ const headerBtn = (danger = false) => ({
 
 
                         <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>
-             
-                فترات الاختبار
-              <HintIcon text="وفقًا للائحة، يحدد مجلس القسم المختص زمن الاختبار النهائي، على ألا يقل عن ساعة واحدة ولا يزيد على ثلاث ساعات." />
-              </div>
+              <div style={{ marginBottom: 10, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
+  <span>فترات الاختبار</span>
+
+  <div style={{ position: "relative", direction: "ltr" }}>
+    <HintIcon text="وفقًا للائحة، يحدد مجلس القسم المختص زمن الاختبار النهائي، على ألا يقل عن ساعة واحدة ولا يزيد على ثلاث ساعات." />
+  </div>
+</div>
               <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
                 {periodConfigs.map((periodConfig, index) => {
                   const startMinutes = parseTimeToMinutes(periodConfig.start);
