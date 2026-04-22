@@ -1540,15 +1540,15 @@ function getPrintBaseStyles() {
 
 function getDayTheme(dayName) {
   const themes = {
-    "الأحد": { bg: "#F3FBFA", border: "#1FA7A8", text: "#145A5F" },
-    "الاثنين": { bg: "#F6FCFC", border: "#1B8F96", text: "#145A5F" },
-    "الثلاثاء": { bg: "#EEF8F8", border: "#2A9D9C", text: "#145A5F" },
-    "الأربعاء": { bg: "#F8FCFC", border: "#46AFAE", text: "#145A5F" },
-    "الخميس": { bg: "#EFFAFA", border: "#147B83", text: "#145A5F" },
+    "الأحد": { bg: "#DDF3F1", border: "#1FA7A8", text: "#114E55" },
+    "الاثنين": { bg: "#D3EEF1", border: "#148C93", text: "#124A54" },
+    "الثلاثاء": { bg: "#E2F5EF", border: "#1C9E8E", text: "#14564E" },
+    "الأربعاء": { bg: "#D9ECF6", border: "#2F8FA9", text: "#13485D" },
+    "الخميس": { bg: "#E7F4F3", border: "#0F5F68", text: "#123F48" },
   };
 
   return themes[dayName] || {
-    bg: "#FAFCFC",
+    bg: "#EEF6F6",
     border: "#D7E7E6",
     text: "#1F2529",
   };
@@ -1948,7 +1948,7 @@ const buildDayCell = (inv, day) => {
                       <th class="day-head">
                         <div style="font-weight:800">${day.dayName || ""}</div>
                         <div style="font-size:11px; margin-top:4px">${day.hijriNumeric || ""}</div>
-                        
+                        <div style="font-size:10px; color:#6b7280">${day.gregorian || ""}</div>
                       </th>
                     `
                   )
@@ -4686,34 +4686,34 @@ const deserializeScheduleItem = (item) => ({
 const getPeriodTheme = (period) => {
   const themes = [
     {
-      bg: "#F0FDFA",
-      border: "#99F6E4",
+      bg: "#D8F3F1",
+      border: "#7EDAD3",
       accent: "#0F766E",
-      badgeBg: "#CCFBF1",
+      badgeBg: "#BDEBE7",
     },
     {
-      bg: "#ECFDF5",
-      border: "#A7F3D0",
-      accent: "#047857",
-      badgeBg: "#D1FAE5",
+      bg: "#C8ECE8",
+      border: "#58C7C0",
+      accent: "#0B6B73",
+      badgeBg: "#A9E1DB",
     },
     {
-      bg: "#EFF6FF",
-      border: "#BFDBFE",
-      accent: "#1D4ED8",
-      badgeBg: "#DBEAFE",
+      bg: "#D9EEF4",
+      border: "#7EC8DB",
+      accent: "#0F5F68",
+      badgeBg: "#C1E4EE",
     },
     {
-      bg: "#F5F3FF",
-      border: "#DDD6FE",
-      accent: "#6D28D9",
-      badgeBg: "#EDE9FE",
+      bg: "#E3F3EF",
+      border: "#8DCCBF",
+      accent: "#166B5C",
+      badgeBg: "#CDEAE3",
     },
     {
-      bg: "#FFF7ED",
-      border: "#FED7AA",
-      accent: "#C2410C",
-      badgeBg: "#FFEDD5",
+      bg: "#D7EDF0",
+      border: "#78C0CB",
+      accent: "#155E75",
+      badgeBg: "#C2E4E9",
     },
   ];
 
