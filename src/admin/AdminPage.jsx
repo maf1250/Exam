@@ -2467,29 +2467,31 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
       const theme = getDayTheme(item.dayName);
 
       return `
-      <tr style="
-        background:${isDeprived ? "#FEF2F2" : theme.bg};
-        color:${isDeprived ? "#B42318" : theme.text};
-        font-weight:${isDeprived ? "700" : "400"};
-      ">
-        <td>${index + 1}</td>
-        <td>
-          ${item.courseName || ""}
-          ${
-            isDeprived
-              ? `<div style="margin-top:4px;font-size:10px;font-weight:800;color:#B42318;">${item.deprivationStatus}</div>`
-              : ""
-          }
-        </td>
-        <td>${item.courseCode || ""}</td>
-        <td>${item.dayName || ""}</td>
-        <td>${item.gregorian || ""}</td>
-        <td>${item.hijriNumeric || ""}</td>
-        <td>${item.period || ""}</td>
-        <td>${item.timeText || ""}</td>
-        <td>${item.examHall || ""}</td>
-      </tr>
-    `;
+        <tr style="
+          background:${isDeprived ? "#FEF2F2" : theme.bg};
+          color:${isDeprived ? "#B42318" : theme.text};
+          font-weight:${isDeprived ? "700" : "400"};
+        ">
+          <td class="col-index">${index + 1}</td>
+          <td class="col-date">
+            <div style="font-weight:800">${item.dayName || ""}</div>
+            <div style="margin-top:3px; font-size:${isLong ? "9px" : "10px"};">${item.gregorian || ""}</div>
+          </td>
+          <td class="col-hijri">${item.hijriNumeric || ""}</td>
+          <td class="col-course">
+            <div>${item.courseName || ""}</div>
+            ${
+              isDeprived
+                ? `<div style="margin-top:4px;font-size:10px;font-weight:800;color:#B42318;">${item.deprivationStatus}</div>`
+                : ""
+            }
+          </td>
+          <td class="col-code">${item.courseCode || ""}</td>
+          <td class="col-period">${item.period || ""}</td>
+          <td class="col-time">${item.timeText || ""}</td>
+          <td class="col-hall">${item.examHall || ""}</td>
+        </tr>
+      `;
     })
     .join("");
 
@@ -2502,98 +2504,101 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 
           @page {
             size: A4 portrait;
-            margin: 8mm;
+            margin: ${isLong ? "7mm" : "8mm"};
           }
 
           body {
-            zoom: ${isLong ? 0.82 : 0.92};
+            zoom: ${isLong ? 0.84 : 0.94};
           }
 
           .page {
             page-break-after: avoid !important;
             width: 100%;
-  padding: 0;
-  margin: 0;
+            padding: 0;
+            margin: 0;
           }
 
-          table {
-            table-layout: auto;
+          .header {
+            margin-bottom: 10px;
+            border-bottom: 2px solid #0f766e;
+            padding-bottom: 8px;
           }
 
-          th, td {
-            font-size: ${isLong ? "9px" : "10px"};
-            padding: ${isLong ? "4px 3px" : "6px 4px"};
-            white-space: nowrap;
+          .header-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            direction: rtl;
+            width: 100%;
+            margin-bottom: 6px;
           }
 
-  .header {
-  margin-bottom: 12px;
-  border-bottom: 2px solid #0f766e;
-  padding-bottom: 10px;
-}
+          .header-right {
+            text-align: right;
+            direction: rtl;
+            justify-self: end;
+            font-size: ${isLong ? "15px" : "16px"};
+            font-weight: 800;
+            line-height: 1.9;
+            color: #0f172a;
+          }
 
-.header-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 12px;
-  direction: rtl;
-  width: 100%;
-}
+          .header-center {
+            text-align: center;
+            justify-self: center;
+          }
 
-.header-right {
-  text-align: right;
-  direction: rtl;
-  justify-self: end;
-  font-size: 16px;   /* كان أصغر */
-  font-weight: 800;
-  line-height: 2;
-  color: #0f172a;
-}
+          .header-left {
+            text-align: left;
+            direction: rtl;
+            justify-self: start;
+            font-size: ${isLong ? "11px" : "12px"};
+            color: #475569;
+          }
 
-.header-center {
-  text-align: center;
-  justify-self: center;
-}
+          .logo-wrap {
+            margin-bottom: 0;
+          }
 
-.header-left {
-  text-align: left;
-  direction: rtl;
-  justify-self: start;
-  font-size: 13px;
-  color: #475569;
-}
-
-.logo {
-  width: 78px;
-  height: auto;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-}
-
-.doc-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #111827;
-  margin-top: 8px;
-  text-align: center;
-}
-          .college-name {
-            font-size: ${isLong ? "18px" : "20px"};
-            margin-bottom: 2px;
+          .logo {
+            width: ${isLong ? "68px" : "76px"};
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
           }
 
           .doc-title {
-            font-size: ${isLong ? "14px" : "16px"};
-            margin-bottom: 4px;
+            font-size: ${isLong ? "15px" : "17px"};
+            font-weight: 800;
+            color: #111827;
+            margin: 6px 0 0;
+            text-align: center;
+          }
+
+          .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 8px;
+            font-size: ${isLong ? "10px" : "11px"};
+          }
+
+          .meta-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 8px;
+            background: #f8fafc;
+            text-align: center;
+            line-height: 1.7;
           }
 
           .student-meta {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 4px;
-            margin: 8px 0;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            margin: 8px 0 10px;
             font-size: ${isLong ? "10px" : "11px"};
           }
 
@@ -2602,75 +2607,146 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
             border-radius: 8px;
             padding: 6px 8px;
             background: #f8fafc;
+            line-height: 1.7;
           }
 
-          .footer {
-            margin-top: 6px;
-            font-size: 10px;
+          .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+
+          .student-table th,
+          .student-table td {
+            font-size: ${isLong ? "9px" : "10px"};
+            padding: ${isLong ? "5px 4px" : "6px 5px"};
+            text-align: center;
+            vertical-align: middle;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.6;
+          }
+
+          .student-table thead th {
+            background: #ecfeff;
+            font-weight: 800;
+          }
+
+          .student-table .col-index {
+            width: 5%;
+          }
+
+          .student-table .col-date {
+            width: 20%;
+          }
+
+          .student-table .col-hijri {
+            width: 11%;
+          }
+
+          .student-table .col-course {
+            width: 24%;
+          }
+
+          .student-table .col-code {
+            width: 12%;
+          }
+
+          .student-table .col-period {
+            width: 7%;
+          }
+
+          .student-table .col-time {
+            width: 11%;
+          }
+
+          .student-table .col-hall {
+            width: 10%;
+          }
+
+          .section-note {
+            margin-top: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+            padding: 8px 10px;
+            page-break-inside: avoid;
+          }
+
+          .section-note-title {
+            font-size: ${isLong ? "11px" : "12px"};
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+          }
+
+          .section-note ol {
+            margin: 0;
+            padding-right: 18px;
+            font-size: ${isLong ? "9px" : "10px"};
+            line-height: 1.8;
           }
         </style>
       </head>
       <body>
         <div class="page">
           <div class="header">
-  <div class="header-grid">
-    <div class="header-right">
-      <div>المملكة العربية السعودية</div>
-      <div>المؤسسة العامة للتدريب التقني والمهني</div>
-      <div>${collegeName || "الكلية التقنية"}</div>
-    </div>
+            <div class="header-grid">
+              <div class="header-right">
+                <div>المملكة العربية السعودية</div>
+                <div>المؤسسة العامة للتدريب التقني والمهني</div>
+                <div>${collegeName || "الكلية التقنية"}</div>
+              </div>
 
-    <div class="header-center">
-      <div class="logo-wrap">
-        <img class="logo" src="${window.location.origin + LOGO_SRC}" />
-      </div>
-    </div>
+              <div class="header-center">
+                <div class="logo-wrap">
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+                </div>
+              </div>
 
-    <div class="header-left">
-      <div><strong>تاريخ الطباعة:</strong> ${todayText}</div>
-    </div>
-  </div>
+              <div class="header-left">
+                <div><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+              </div>
+            </div>
 
-  <div class="doc-title">الجدول النهائي للمتدرب</div>
+            <div class="doc-title">الجدول النهائي للمتدرب</div>
 
-  <div class="meta-grid">
-    <div class="meta-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
-    <div class="meta-box"><strong>الرقم التدريبي:</strong> ${student.id || "-"}</div>
-    <div class="meta-box"><strong>عدد المقررات:</strong> ${items.length}</div>
-  </div>
-</div>
+            <div class="meta-grid">
+              <div class="meta-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
+              <div class="meta-box"><strong>الرقم التدريبي:</strong> ${student.id || "-"}</div>
+              <div class="meta-box"><strong>عدد المقررات:</strong> ${items.length}</div>
+            </div>
+          </div>
 
           <div class="student-meta">
-            <div class="student-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
-            <div class="student-box"><strong>رقم المتدرب:</strong> ${student.id || "-"}</div>
             <div class="student-box"><strong>القسم:</strong> ${student.department || "-"}</div>
             <div class="student-box"><strong>التخصص:</strong> ${student.major || "-"}</div>
           </div>
 
-          <table>
+          <table class="student-table">
             <thead>
               <tr>
-                <th>م</th>
-                <th>اليوم والتاريخ</th>
-                <th>التاريخ الهجري</th>
-                <th>المقرر</th>
-                <th>الرمز</th>
-                <th>الفترة</th>
-                <th>الوقت</th>
-                <th>المقر</th>
+                <th class="col-index">م</th>
+                <th class="col-date">اليوم والتاريخ</th>
+                <th class="col-hijri">التاريخ الهجري</th>
+                <th class="col-course">المقرر</th>
+                <th class="col-code">الرمز</th>
+                <th class="col-period">الفترة</th>
+                <th class="col-time">الوقت</th>
+                <th class="col-hall">المقر</th>
               </tr>
             </thead>
             <tbody>
               ${rowsHtml}
             </tbody>
           </table>
- <div class="section-note">
+
+          <div class="section-note">
             <div class="section-note-title">تعليمات مهمة</div>
-            <ol style="margin:0; padding-right:18px;">
+            <ol>
               ${instructions.map((item) => `<li>${item}</li>`).join("")}
             </ol>
           </div>
-          
         </div>
       </body>
     </html>
