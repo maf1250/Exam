@@ -1346,39 +1346,6 @@ function buildDocxRuns(text, { bold = false, size = 22, color = "1F2529" } = {})
     .join("");
 }
 
-function buildDocxParagraph(
-  text,
-  {
-    align = "right",
-    bold = false,
-    size = 22,
-    color = "1F2529",
-    spacingAfter = 80,
-  } = {}
-) {
-  return `
-    <w:p>
-      <w:pPr>
-        <w:bidi/>
-        <w:textDirection w:val="rlTb"/>
-        <w:jc w:val="${align}"/>
-        <w:spacing w:after="${spacingAfter}"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:rtl/>
-          <w:lang w:bidi="ar-SA"/>
-          ${bold ? "<w:b/>" : ""}
-          <w:sz w:val="${size}"/>
-          <w:szCs w:val="${size}"/>
-          <w:color w:val="${color}"/>
-        </w:rPr>
-        ${buildDocxRuns(text, { bold, size, color })}
-      </w:r>
-    </w:p>
-  `;
-}
-
 function buildDocxCell(paragraphs, {
   width = 1600,
   shading = "FFFFFF",
