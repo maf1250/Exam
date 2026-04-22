@@ -2328,7 +2328,7 @@ const stepNineCardStyle = {
 const [hallWarnings, setHallWarnings] = useState([]);
 const [showAdvancedManagementOptions, setShowAdvancedManagementOptions] = useState(false);
 const [showHallConstraintPreferences, setShowHallConstraintPreferences] = useState(false);
-const [showCourseExclusionsPreference, setShowCourseExclusionsPreference] = useState(false);
+const [showCourseExclusionsPreference, setShowCourseExclusionsPreference] = useState(true);
 const [showGeneralSpecializedSeparationPreference, setShowGeneralSpecializedSeparationPreference] = useState(false);
 const [showSamePeriodPreference, setShowSamePeriodPreference] = useState(false);
 const [showCourseTimePreference, setShowCourseTimePreference] = useState(false);
@@ -3920,7 +3920,7 @@ const handleUpload = (file) => {
       setHallWarnings([]);
       setShowAdvancedManagementOptions(false);
       setShowHallConstraintPreferences(false);
-      setShowCourseExclusionsPreference(false);
+      setShowCourseExclusionsPreference(true);
       setShowGeneralSpecializedSeparationPreference(false);
       setShowSamePeriodPreference(false);
       setShowCourseTimePreference(false);
@@ -4804,7 +4804,7 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setHallWarnings(Array.isArray(saved.hallWarnings) ? saved.hallWarnings : []);
   setShowAdvancedManagementOptions(saved.showAdvancedManagementOptions ?? false);
   setShowHallConstraintPreferences(saved.showHallConstraintPreferences ?? false);
-  setShowCourseExclusionsPreference(saved.showCourseExclusionsPreference ?? false);
+  setShowCourseExclusionsPreference(saved.showCourseExclusionsPreference ?? true);
   setShowGeneralSpecializedSeparationPreference(saved.showGeneralSpecializedSeparationPreference ?? false);
   setShowSamePeriodPreference(saved.showSamePeriodPreference ?? false);
   setShowCourseTimePreference(saved.showCourseTimePreference ?? false);
