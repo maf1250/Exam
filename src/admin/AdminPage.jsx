@@ -8547,7 +8547,7 @@ const headerBtn = (danger = false) => ({
             <div
           style={{
           display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, max-content))",
             flexWrap: "wrap",
           
     gap: 20,
@@ -8571,9 +8571,9 @@ const headerBtn = (danger = false) => ({
   { id: 2, label: "2. الخصائص العامة" },
   { id: 3, label: "3. المقررات" },
   { id: 4, label: "4. المراقبون" },
-  { id: 5, label: "5. مقررات الدراسات العامة" },
-  { id: 6, label: "6. مقررات التخصص" },
-  { id: 7, label: "7. تحليل تعارض مقررين" },
+  { id: 5, label: "5. الدراسات العامة" },
+  { id: 6, label: "6. التخصص" },
+  { id: 7, label: "7. بيان التعارضات" },
   { id: 8, label: "8. التعديل اليدوي" },
   { id: 9, label: "9. تعديل المراقبين" },
   { id: 10, label: "10. المعاينة" },
