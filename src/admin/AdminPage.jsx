@@ -4224,7 +4224,9 @@ const extraCandidates = extraPool
     const targetHasName = (targetItem.invigilators || []).includes(name);
 
     if (targetHasName && sourceInstanceId !== targetInstanceId) {
-      messages.push(`المراقب ${name} مُسند أصلًا لهذا المقرر، والاستمرار في التنفيذ سيلغي كلا المراقبتين ويعيد المراقب إلى قائمة الملخص في اليسار.`);
+    messages.push(
+    `المراقب ${name} مُسند أصلًا لهذا المقرر. لا يمكن إتمام النقل إلى هذا المقرر حتى لا يتم تكرار الإسناد أو إلغاء الإسناد الحالي دون قصد.`
+    );
     }
 
     const samePeriodAssignments = schedule.filter((item) =>
@@ -4235,7 +4237,11 @@ const extraCandidates = extraPool
     );
 
     if (samePeriodAssignments.length) {
-      messages.push(`المراقب ${name} مرتبط أصلًا في نفس الفترة مع: ${samePeriodAssignments.map((item) => item.courseName).join("، ")}.`);
+    messages.push(
+    `المراقب ${name} مُسند أصلًا في هذه الفترة للمقرر: ${samePeriodAssignments
+      .map((item) => item.courseName)
+      .join("، ")}. لا يمكن إسناده لأكثر من مقرر في الفترة نفسها.`
+    );
     }
 
     const currentTotalLoad = schedule.reduce((sum, item) => sum + ((item.invigilators || []).includes(name) ? 1 : 0), 0);
@@ -4296,39 +4302,33 @@ const extraCandidates = extraPool
   }
 
   function confirmOrApplyInvigilatorTransfer(payload) {
-    const diagnostics = getInvigilatorTransferDiagnostics(payload);
+  const diagnostics = getInvigilatorTransferDiagnostics(payload);
 
-    if (diagnostics.length) {
-      showToast(
-        "تحذير: تم اختراق معيار",
-        diagnostics.join(" "),
-        "warning",
-        {
-          persistent: true,
-          actions: [
-            {
-              label: "نعم، نفّذ العملية",
-              onClick: () => {
-                applyInvigilatorTransfer(payload);
-                setToast(null);
-              },
+  if (diagnostics.length) {
+    showToast(
+      "تعذر إسناد المراقب",
+      diagnostics.join(" "),
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "إغلاق",
+            onClick: () => {
+              setDraggingInvigilatorPayload(null);
+              setActiveInvigilatorDropCourseId("");
+              setToast(null);
             },
-            {
-              label: "إلغاء",
-              onClick: () => {
-                setDraggingInvigilatorPayload(null);
-                setActiveInvigilatorDropCourseId("");
-                setToast(null);
-              },
-            },
-          ],
-        }
-      );
-      return;
-    }
-
-    applyInvigilatorTransfer(payload);
+          },
+        ],
+      }
+    );
+    return;
   }
+
+  applyInvigilatorTransfer(payload);
+}
+  
 
   function removeInvigilatorFromScheduledItem(itemInstanceId, name) {
     if (manualInvigilatorLocked) return;
