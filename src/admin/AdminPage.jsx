@@ -5795,7 +5795,8 @@ const nudgeCoursePriority = (listType, courseKey, direction) => {
   }, [includeAllDepartmentsAndMajors, generalStudiesInvigilatorsSet]);
 
   const parsedPeriods = useMemo(() => parsePeriodsText(periodsText), [periodsText]);
-  const invalidPeriods = parsedPeriods.filter((p) => !p.valid);
+  const validPeriods = useMemo(() => parsedPeriods.filter((p) => p.valid), [parsedPeriods]);
+  const invalidPeriods = useMemo(() => parsedPeriods.filter((p) => !p.valid), [parsedPeriods]);
 
   const slots = useMemo(
     () => buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }),
