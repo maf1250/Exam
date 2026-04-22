@@ -927,28 +927,18 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-function TooltipIcon({ text }) {
+function HelpHint({ children, style }) {
   return (
     <div
-      title={text}
       style={{
-        width: 22,
-        height: 22,
-        borderRadius: "50%",
-        background: "#EEF6F6",
-        border: "1px solid #A8DDDA",
-        color: "#0E2730",
-        fontWeight: 900,
+        marginTop: 6,
+        color: COLORS.muted,
         fontSize: 13,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "help",
-        userSelect: "none",
-        flex: "0 0 auto",
+        lineHeight: 1.8,
+        ...style,
       }}
     >
-      ?
+      {children}
     </div>
   );
 }
@@ -8632,49 +8622,49 @@ const headerBtn = (danger = false) => ({
                   {
                     key: "hall",
                     title: "تفضيل أو قصر القاعات لمقرر أو قسم معيّن / تفعيل أو إلغاء تقسيم المقرر بين أكثر من قاعة",
-                    tooltip: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
+                    hint: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
                     checked: showHallConstraintPreferences,
                     onChange: setShowHallConstraintPreferences,
                   },
                   {
                     key: "exclude",
                     title: "استبعاد مقررات من الجدول",
-                    tooltip: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية مستبعدة افتراضيًا حسب منطق النظام الحالي إن كانت معرفة في البيانات.",
+                    hint: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية مستبعدة افتراضيًا حسب منطق النظام الحالي إن كانت معرفة في البيانات.",
                     checked: showCourseExclusionsPreference,
                     onChange: setShowCourseExclusionsPreference,
                   },
                   {
                     key: "sep",
                     title: "فصل أيام الدراسات العامة عن التخصص",
-                    tooltip: "يُظهر إعدادات الفصل بين أيام مقررات الدراسات العامة وأيام مقررات التخصص لتخفيف الضغط على المتدربين.",
+                    hint: "يُظهر إعدادات الفصل بين أيام مقررات الدراسات العامة وأيام مقررات التخصص لتخفيف الضغط على المتدربين.",
                     checked: showGeneralSpecializedSeparationPreference,
                     onChange: setShowGeneralSpecializedSeparationPreference,
                   },
                   {
                     key: "same",
                     title: "محاولة إدراج مقررات محددة في نفس الفترة",
-                    tooltip: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
+                    hint: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
                     checked: showSamePeriodPreference,
                     onChange: setShowSamePeriodPreference,
                   },
                   {
                     key: "time",
                     title: "تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)",
-                    tooltip: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
+                    hint: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
                     checked: showCourseTimePreference,
                     onChange: setShowCourseTimePreference,
                   },
                   {
                     key: "level",
                     title: "تجنب وضع مقررات من المستوى نفسه في نفس اليوم",
-                    tooltip: "يُظهر إعدادات تحديد مستويات المقررات حتى يحاول النظام عدم جمع مقررات المستوى نفسه في يوم واحد.",
+                    hint: "يُظهر إعدادات تحديد مستويات المقررات حتى يحاول النظام عدم جمع مقررات المستوى نفسه في يوم واحد.",
                     checked: showAvoidSameLevelSameDayPreference,
                     onChange: setShowAvoidSameLevelSameDayPreference,
                   },
                   {
                     key: "inv",
                     title: "تفضيل / منع / قصر مراقبين لمقرر معيّن",
-                    tooltip: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
+                    hint: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
                     checked: showInvigilatorConstraintPreference,
                     onChange: setShowInvigilatorConstraintPreference,
                   },
@@ -8692,13 +8682,11 @@ const headerBtn = (danger = false) => ({
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: 10 }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9, wordBreak: "break-word" }}>
-                          {item.title}
-                        </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 800, color: COLORS.charcoal, lineHeight: 1.9, wordBreak: "break-word" }}>
+                        {item.title}
                       </div>
-                      <TooltipIcon text={item.tooltip} />
+                      <HelpHint>{item.hint}</HelpHint>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
                       <span style={{ color: item.checked ? COLORS.primaryDark : COLORS.muted, fontWeight: 800, minWidth: 44 }}>
@@ -10510,18 +10498,19 @@ const headerBtn = (danger = false) => ({
           }}
         >
           <label style={{ display: "grid", gap: 10, maxWidth: 400 }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontWeight: 800,
-                fontSize: 14,
-              }}
-            >
-              الحد الأدنى المستهدف للمراقبات
-              <TooltipIcon text="سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار." />
-            </span>
+            <div>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
+              >
+                الحد الأدنى المستهدف للمراقبات
+              </div>
+              <HelpHint style={{ maxWidth: 360 }}>
+                سيحاول النظام إعطاء أولوية للمراقبين الذين لم يصلوا بعد إلى هذا العدد المستهدف، مع بقاء العدالة والقيود الأخرى مؤثرة في القرار.
+              </HelpHint>
+            </div>
             <input
               type="number"
               min="0"
@@ -10536,20 +10525,20 @@ const headerBtn = (danger = false) => ({
             />
           </label>
 
-          <label style={{ display: "grid", gap: 4 }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                marginRight: 47,
-                fontWeight: 800,
-                fontSize: 14,
-              }}
-            >
-              الحد الأقصى للمراقبات لكل مراقب
-<TooltipIcon text="لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين." />
-            </span>
+          <label style={{ display: "grid", gap: 10 }}>
+            <div style={{ marginRight: 47 }}>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
+              >
+                الحد الأقصى للمراقبات لكل مراقب
+              </div>
+              <HelpHint style={{ maxWidth: 360 }}>
+                لن يُسند النظام أي مراقبات إضافية للمراقب بعد بلوغه هذا الحد، وقد يؤدي ذلك إلى تعذر جدولة بعض المقررات في حال عدم توفر مراقبين آخرين.
+              </HelpHint>
+            </div>
             <input
               type="number"
               min="1"
