@@ -1603,7 +1603,7 @@ async function exportScheduleDocx({
   if (!Array.isArray(schedule) || !schedule.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
-const logoImage = await loadDocxLogoImage();
+const logoImage = null;
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
@@ -1708,7 +1708,7 @@ const logoImage = await loadDocxLogoImage();
 async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
   if (!Array.isArray(invigilatorTable) || !invigilatorTable.length) return;
 
-const logoImage = await loadDocxLogoImage();
+const logoImage = null;
   
   const allDays = Array.from(
     new Set(
@@ -9549,22 +9549,32 @@ const headerBtn = (danger = false) => ({
                 />
               </div>
 
-              <div>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>الحد الأقصى لاختبارات المتدرب في اليوم</div>
-                <input
-                  type="number"
-                  min="1"
-                  max="5"
-                  value={maxExamsPerStudentPerDay}
-                  onChange={(e) => setMaxExamsPerStudentPerDay(Math.max(1, safeNum(e.target.value, 2)))}
-                  style={fieldStyle()}
-                />
-              </div>
+            <div>
+  <div style={{ marginBottom: 8, fontWeight: 800 }}>
+    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
+    الحد الأقصى لاختبارات المتدرب في اليوم
+  </div>
+
+  <input
+    type="number"
+    min="1"
+    max="3"
+    value={maxExamsPerStudentPerDay}
+    onChange={(e) => {
+      const value = safeNum(e.target.value, 2);
+      setMaxExamsPerStudentPerDay(Math.min(3, Math.max(1, value)));
+    }}
+    style={fieldStyle()}
+  />
+</div>
             </div>
 
 
                         <div style={{ marginTop: 18 }}>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>فترات الاختبار</div>
+              <div style={{ marginBottom: 10, fontWeight: 800 }}>
+              <HintIcon text="وفقًا للائحة، يحدد مجلس القسم المختص زمن الاختبار النهائي، على ألا يقل عن ساعة واحدة ولا يزيد على ثلاث ساعات." />
+                فترات الاختبار
+              </div>
               <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
                 {periodConfigs.map((periodConfig, index) => {
                   const startMinutes = parseTimeToMinutes(periodConfig.start);
@@ -10695,16 +10705,23 @@ const headerBtn = (danger = false) => ({
 
             {invigilationMode === "fixed" ? (
               <div style={{ width: "100%" }}>
-                <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المراقبين لكل مقرر</div>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={invigilatorsPerPeriod}
-                  onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
-                  style={{ ...fieldStyle(), maxWidth: 80 }}
-                />
-              </div>
+               <div>
+  <div style={{ marginBottom: 8, fontWeight: 800 }}>
+    عدد المراقبين لكل مقرر
+  </div>
+
+  <input
+    type="number"
+    min="2"
+    max="20"
+    value={invigilatorsPerPeriod}
+    onChange={(e) => {
+      const value = safeNum(e.target.value, 4);
+      setInvigilatorsPerPeriod(Math.min(20, Math.max(2, value)));
+    }}
+    style={{ ...fieldStyle(), maxWidth: 80 }}
+  />
+</div>
             ) : (
               <div style={{ width: "100%" }}>
                 <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
