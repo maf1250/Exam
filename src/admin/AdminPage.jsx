@@ -5241,13 +5241,52 @@ const getUnscheduledReasonBreakdown = (course) => {
 
 const openUnscheduledReasonModal = (course, group) => {
   if (!course || !group) return;
+
+  const normalizedGroup = {
+    ...group,
+    slots: (Array.isArray(group?.slots) ? group.slots : []).map((slot) => {
+      if (group?.key !== "dailyLimit") return slot;
+      if (Array.isArray(slot?.blockingStudents) && slot.blockingStudents.length) return slot;
+
+      const computedBlockingStudents = Array.from(course?.students || [])
+        .map((studentId) => {
+              const cleanStudentId = String(studentId || "").trim();
+              if (!cleanStudentId) return null;
+              const dayMap = studentDayMap.get(cleanStudentId) || new Map();
+              const sameDayCount = dayMap.get(slot?.dateISO) || 0;
+              const sameDayLimit = Math.max(1, Number(maxExamsPerStudentPerDay) || 2);
+              if (sameDayCount < sameDayLimit) return null;
+              return {
+                ...(preciseStudentInfoMap.get(cleanStudentId) || {
+                  id: cleanStudentId,
+                  name: "بدون اسم",
+                  department: "-",
+                  major: "-",
+                }),
+                dailyCount: sameDayCount,
+              };
+            })
+            .filter(Boolean)
+            .sort(
+              (a, b) =>
+                String(a?.name || "").localeCompare(String(b?.name || ""), "ar") ||
+                String(a?.id || "").localeCompare(String(b?.id || ""), "ar")
+            );
+
+      return {
+        ...slot,
+        blockingStudents: computedBlockingStudents,
+      };
+    }),
+  };
+
   setSelectedUnscheduledReasonModal({
     courseKey: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
     courseCode: course.courseCode || "",
     shortLabel: normalizeUnscheduledReason(course).shortLabel,
     reasonDetail: normalizeUnscheduledReason(course).detail,
-    group,
+    group: normalizedGroup,
   });
 };
 
@@ -9577,9 +9616,9 @@ const headerBtn = (danger = false) => ({
               </div>
 
             <div>
-  <div style={{ marginBottom: 8, fontWeight: 800, gap: 10 }}>
+  <div style={{ marginBottom: 8, fontWeight: 800 }}>
     
-    الحد الأقصى لاختبارات المتدرب في اليوم  
+    الحد الأقصى لاختبارات المتدرب في اليوم
     <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
   </div>
 
