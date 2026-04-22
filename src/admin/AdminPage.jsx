@@ -422,14 +422,6 @@ function formatHijri(date) {
   }).format(date);
 }
 
-function normalizeHijriDateText(value) {
-  return String(value ?? "")
-    .replace(/\s*[هـ]+\s*/g, "")
-    .replace(/‏|‎/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function formatHijriNumeric(date) {
   return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
     year: "numeric",
@@ -437,7 +429,7 @@ function formatHijriNumeric(date) {
     day: "numeric",
   })
     .format(date)
-    .replace("هـ", "")  
+    .replace(/\s*هـ\s*/g, "")
     .trim();
 }
 
@@ -610,7 +602,7 @@ function getTodayFileStamp() {
 function downloadFile(filename, content, mime) {
   const safeFilename = sanitizeDownloadFilename(filename);
   const BOM = "\uFEFF";
-  const blob = new Blob([BOM, content], {
+  const blob = new Blob([BOM + content], {
     type: `${mime || "text/csv"};charset=utf-8`,
   });
   const url = URL.createObjectURL(blob);
@@ -1349,84 +1341,45 @@ function getPrintBaseStyles() {
     }
 
     .header {
-      margin-bottom: 14px;
-      padding: 14px 18px 12px;
-      border: 1.5px solid #B8D9D7;
-      border-radius: 16px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #F6FCFC 100%);
+      margin-bottom: 12px;
+      border-bottom: 2px solid #0f766e;
+      padding-bottom: 10px;
     }
 
-    .official-header {
-      border-bottom: 4px solid #0f766e;
-    }
-
-    .header-top-row {
+    .header-grid {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      gap: 14px;
       align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
     }
 
-    .header-side {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      min-height: 78px;
-      justify-content: center;
-    }
-
-    .header-side-right {
+    .header-right {
       text-align: right;
-    }
-
-    .header-side-left {
-      text-align: left;
-      align-items: flex-start;
-    }
-
-    .government-line {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
+      line-height: 1.8;
       color: #0f172a;
-      line-height: 1.7;
-    }
-
-    .unit-line {
-      font-size: 14px;
-      font-weight: 800;
-      color: #0f766e;
-      line-height: 1.7;
     }
 
     .header-center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 8px;
+      text-align: center;
+    }
+
+    .header-left {
+      text-align: left;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .logo-wrap {
+      margin-bottom: 0;
     }
 
     .logo {
-      width: 84px;
+      width: 72px;
       height: auto;
       object-fit: contain;
-    }
-
-    .document-badge {
-      border: 1px solid #B8D9D7;
-      background: #ECFEFF;
-      color: #0f766e;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 10px;
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
-
-    .document-title-inline {
-      font-size: 13px;
-      font-weight: 700;
-      color: #334155;
-      line-height: 1.7;
     }
 
     .college-name {
@@ -1434,57 +1387,61 @@ function getPrintBaseStyles() {
       font-weight: 800;
       color: #0f766e;
       margin-bottom: 4px;
+      text-align: center;
     }
 
     .doc-title {
-      text-align: center;
-      font-size: 20px;
-      font-weight: 900;
+      font-size: 18px;
+      font-weight: 800;
       color: #111827;
-      margin-top: 10px;
-      margin-bottom: 10px;
-      letter-spacing: 0.2px;
+      margin-bottom: 8px;
+      text-align: center;
     }
 
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
       font-size: 12px;
     }
 
     .meta-box {
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 7px 9px;
+      border-radius: 8px;
+      padding: 6px 8px;
       background: #f8fafc;
       text-align: center;
     }
 
-   .period-strip {
-  background: #f8fafc;
-  border: 1px solid #0f172a;
-  border-bottom: 0;
-}
+    .period-strip {
+      display: grid;
+      grid-template-columns: 170px repeat(var(--period-count), minmax(0, 1fr));
+      border: 1px solid #0f172a;
+      border-bottom: 0;
+      margin-top: 10px;
+      background: #f8fafc;
+    }
 
-.period-strip > div {
-  border-left: 1px solid #0f172a;
-  padding: 8px 6px;
-  text-align: center;
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justifyContent: center;
-  flex-direction: column;
-  font-size: 11px;
-  font-weight: 800;
-  background: #f8fafc;
-  }
+    .period-strip > div {
+      border-left: 1px solid #0f172a;
+      padding: 8px 6px;
+      text-align: center;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 11px;
+      font-weight: 800;
+      background: #f8fafc;
+      white-space: nowrap;
+    }
 
-.period-strip > div:last-child {
-  border-left: 0;
-}
+    .period-strip > div:first-child {
+      background: #f8fafc;
+    }
+
     .period-strip > div:last-child {
       border-left: 0;
     }
@@ -1543,7 +1500,7 @@ function getPrintBaseStyles() {
     .section-note {
       margin-top: 12px;
       border: 1px solid #cbd5e1;
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 10px 12px;
       background: #fcfcfc;
       font-size: 11px;
@@ -1576,23 +1533,8 @@ function getPrintBaseStyles() {
     }
 
     .day-head {
-  line-height: 1.8;
-  background: #f8fafc;
-}
-
-.day-head div:first-child {
-  font-size: 12px;
-}
-
-.day-head div:nth-child(2) {
-  font-size: 11px;
-}
-
-.day-head div:nth-child(3) {
-  font-size: 10px;
-  color: #6b7280;
-}
-    
+      line-height: 1.8;
+    }
   `;
 }
 
@@ -1610,42 +1552,6 @@ function getDayTheme(dayName) {
     border: "#D7E7E6",
     text: "#1F2529",
   };
-}
-
-function renderOfficialPrintHeader({ collegeName, title, metaBoxes = [] }) {
-  return `
-    <div class="header">
-  <div class="header-grid">
-    
-    <!-- اليمين -->
-    <div class="header-right">
-      <div>المملكة العربية السعودية</div>
-      <div>المؤسسة العامة للتدريب التقني والمهني</div>
-      <div>${collegeName || "الكلية التقنية"}</div>
-    </div>
-
-    <!-- الوسط (الشعار) -->
-    <div class="header-center">
-      <img class="logo" src="${window.location.origin + LOGO_SRC}" />
-    </div>
-
-    <!-- اليسار (فارغ للتوازن) -->
-    <div></div>
-
-  </div>
-
-  <div class="doc-title">جدول الاختبارات النهائية</div>
-</div>
-
-      <div class="doc-title">${title}</div>
-
-      ${metaBoxes.length ? `
-        <div class="meta-grid">
-          ${metaBoxes.map((item) => `<div class="meta-box"><strong>${item.label}:</strong> ${item.value}</div>`).join("")}
-        </div>
-      ` : ""}
-    </div>
-  `;
 }
 
 function printScheduleOnlyPdf({
@@ -1799,27 +1705,7 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
             font-size: ${tableFontSize};
             padding: ${tablePadding};
           }
-.header-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  margin-bottom: 10px;
-}
 
-.header-right {
-  text-align: right;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.8;
-}
-
-.header-center {
-  text-align: center;
-}
-
-.logo {
-  width: 70px;
-}
           .college-name {
             font-size: ${compactMode ? "19px" : "22px"};
           }
@@ -1839,15 +1725,28 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
       </head>
       <body>
         <div class="page">
-          ${renderOfficialPrintHeader({
-            collegeName,
-            title: "جدول الاختبارات النهائية",
-            metaBoxes: [
-              { label: "القسم", value: departmentLabel },
-              { label: "التخصص", value: majorLabel },
-              { label: "تاريخ الطباعة", value: todayText },
-            ],
-          })}
+          <div class="header">
+            <div class="header-grid">
+              <div class="header-right">
+                <div>المملكة العربية السعودية</div>
+                <div>المؤسسة العامة للتدريب التقني والمهني</div>
+                <div>${collegeName || "الكلية التقنية"}</div>
+              </div>
+              <div class="header-center">
+                <div class="logo-wrap">
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+                </div>
+              </div>
+              <div class="header-left"></div>
+            </div>
+            <div class="doc-title">جدول الاختبارات النهائية</div>
+
+            <div class="meta-grid">
+<div class="meta-box"><strong>القسم:</strong> ${departmentLabel}</div>
+<div class="meta-box"><strong>التخصص:</strong> ${majorLabel}</div>
+              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+            </div>
+          </div>
 
           <div class="period-strip" style="--period-count:${periodIds.length}">
             <div>&nbsp;</div>
@@ -1938,12 +1837,20 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
 
   const allDays = Array.from(
     new Set(
-      invigilatorTable.flatMap((inv) => inv.items.map((item) => `${item.dateISO}|${item.dayName}|${item.gregorian}`))
+      invigilatorTable.flatMap((inv) =>
+        inv.items.map(
+          (item) =>
+            `${item.dateISO}|${item.dayName}|${item.gregorian}|${
+              item.hijriNumeric ||
+              (item.dateISO ? formatHijriNumeric(new Date(`${item.dateISO}T00:00:00`)) : "")
+            }`
+        )
+      )
     )
   )
     .map((value) => {
-      const [dateISO, dayName, gregorian] = value.split("|");
-      return { dateISO, dayName, gregorian };
+      const [dateISO, dayName, gregorian, hijriNumeric] = value.split("|");
+      return { dateISO, dayName, gregorian, hijriNumeric };
     })
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
@@ -2001,20 +1908,35 @@ const buildDayCell = (inv, day) => {
 
           .day-head {
             line-height: 1.8;
+            background: #f8fafc;
+            white-space: nowrap;
           }
         </style>
       </head>
       <body>
         <div class="page">
-          ${renderOfficialPrintHeader({
-            collegeName,
-            title: "جدول المراقبين وفترات المراقبة",
-            metaBoxes: [
-              { label: "عدد المراقبين", value: invigilatorTable.length },
-              { label: "عدد الأيام", value: allDays.length },
-              { label: "تاريخ الطباعة", value: todayText },
-            ],
-          })}
+          <div class="header">
+            <div class="header-grid">
+              <div class="header-right">
+                <div>المملكة العربية السعودية</div>
+                <div>المؤسسة العامة للتدريب التقني والمهني</div>
+                <div>${collegeName || "الكلية التقنية"}</div>
+              </div>
+              <div class="header-center">
+                <div class="logo-wrap">
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+                </div>
+              </div>
+              <div class="header-left"></div>
+            </div>
+            <div class="doc-title">جدول المراقبين وفترات المراقبة</div>
+
+            <div class="meta-grid">
+              <div class="meta-box"><strong>عدد المراقبين:</strong> ${invigilatorTable.length}</div>
+              <div class="meta-box"><strong>عدد الأيام:</strong> ${allDays.length}</div>
+              <div class="meta-box"><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+            </div>
+          </div>
 
           <table class="invigilators-table">
             <thead>
@@ -2024,9 +1946,9 @@ const buildDayCell = (inv, day) => {
                   .map(
                     (day) => `
                       <th class="day-head">
-                      <div style="font-weight:800">${day.dayName}</div>
-                      <div style="font-size:11px; margin-top:4px">${day.hijriNumeric}</div>
-                     
+                        <div style="font-weight:800">${day.dayName || ""}</div>
+                        <div style="font-size:11px; margin-top:4px">${day.hijriNumeric || ""}</div>
+                        <div style="font-size:10px; color:#6b7280">${day.gregorian || ""}</div>
                       </th>
                     `
                   )
@@ -2177,10 +2099,13 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
       </head>
       <body>
         <div class="page">
-          ${renderOfficialPrintHeader({
-            collegeName,
-            title: "جدول الاختبارات النهائي للمتدرب",
-          })}
+          <div class="header">
+            <div class="logo-wrap">
+              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+            </div>
+            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
+            <div class="doc-title">جدول الاختبارات النهائي للمتدرب</div>
+          </div>
 
           <div class="student-meta">
             <div class="student-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
@@ -8709,11 +8634,11 @@ const headerBtn = (danger = false) => ({
           {[
   { id: 1, label: "1. رفع الملف والتفضيلات" },
   { id: 2, label: "2. الخصائص العامة" },
-  { id: 3, label: "3. المراقبون" },
-  { id: 4, label: "4. المقررات" },
-  { id: 5, label: "5. الدراسات العامة" },
-  { id: 6, label: "6. التخصص" },
-  { id: 7, label: "7. بيان التعارضات" },
+  { id: 3, label: "3. المقررات" },
+  { id: 4, label: "4. المراقبون" },
+  { id: 5, label: "5. مقررات الدراسات العامة" },
+  { id: 6, label: "6. مقررات التخصص" },
+  { id: 7, label: "7. تحليل تعارض مقررين" },
   { id: 8, label: "8. التعديل اليدوي" },
   { id: 9, label: "9. تعديل المراقبين" },
   { id: 10, label: "10. المعاينة" },
@@ -9832,13 +9757,13 @@ const headerBtn = (danger = false) => ({
                 السابق
               </button>
               <button onClick={() => setCurrentStep(3)}  style={cardButtonStyle({ active: true })}>
-                التالي: المراقبون
+                التالي: تعديل المقررات
               </button>
             </div>
           </Card>
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 3 && (
           <Card>
             <SectionHeader
               title="تعديل المقررات"
@@ -10427,17 +10352,17 @@ const headerBtn = (danger = false) => ({
             ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
                 السابق
               </button>
-              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle({ active: true })}>
-                التالي: الدراسات العامة
+              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
+                التالي: المراقبون
               </button>
             </div>
           </Card>
         )}
 
- {currentStep === 3 && (
+ {currentStep === 4 && (
   <Card>
     <SectionHeader
       title="المراقبون"
@@ -11002,16 +10927,16 @@ const headerBtn = (danger = false) => ({
         ) : null}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button type="button" onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+          <button type="button" onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
             السابق
           </button>
 
           <button
             type="button"
-            onClick={() => setCurrentStep(4)}
+            onClick={() => setCurrentStep(5)}
             style={cardButtonStyle({ active: true })}
           >
-            التالي: المقررات
+            التالي: الدراسات العامة
           </button>
         </div>
       </div>
