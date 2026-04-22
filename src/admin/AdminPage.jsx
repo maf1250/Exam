@@ -1810,50 +1810,64 @@ function getPrintBaseStyles() {
       padding-bottom: 10px;
     }
 
-   .header-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  direction: rtl;
+  .header {
+  position: relative;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #0f766e;
+  padding-bottom: 10px;
+  min-height: 92px;
+}
+
+.header-grid {
+  position: relative;
+  min-height: 78px;
 }
 
 .header-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 38%;
   text-align: right;
   direction: rtl;
-  justify-self: end;
   font-size: 15px;
   font-weight: 800;
   line-height: 1.9;
   color: #0f172a;
-  margin-right: 0;
-  padding-right: 0;
-  white-space: nowrap;
 }
 
 .header-center {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
   text-align: center;
-  direction: rtl;
-  justify-self: center;
 }
 
 .header-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
   text-align: left;
   direction: rtl;
-  justify-self: start;
   font-size: 12px;
   color: #475569;
 }
-    .logo-wrap {
-      margin-bottom: 0;
-    }
 
-    .logo {
-      width: 72px;
-      height: auto;
-      object-fit: contain;
-    }
+.logo-wrap {
+  margin: 0;
+}
+
+.logo {
+  width: 72px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
 
     .college-name {
       font-size: 22px;
@@ -2557,56 +2571,62 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
           }
 
           .header {
-            margin-bottom: 10px;
-            border-bottom: 2px solid #0f766e;
-            padding-bottom: 8px;
-          }
+  position: relative;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #0f766e;
+  padding-bottom: 8px;
+  min-height: 92px;
+}
 
-          .header-grid {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 12px;
-            direction: rtl;
-            width: 100%;
-            margin-bottom: 6px;
-          }
+.header-grid {
+  position: relative;
+  min-height: 78px;
+  margin-bottom: 6px;
+}
 
-          .header-right {
-            text-align: right;
-            direction: rtl;
-            justify-self: end;
-            font-size: ${isLong ? "15px" : "16px"};
-            font-weight: 800;
-            line-height: 1.9;
-            color: #0f172a;
-          }
+.header-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 38%;
+  text-align: right;
+  direction: rtl;
+  font-size: ${isLong ? "15px" : "16px"};
+  font-weight: 800;
+  line-height: 1.9;
+  color: #0f172a;
+}
 
-          .header-center {
-            text-align: center;
-            justify-self: center;
-          }
+.header-center {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  text-align: center;
+}
 
-          .header-left {
+.header-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
   text-align: left;
   direction: rtl;
-  justify-self: end;
-  align-self: center;
-  width: 100%;
   font-size: 11px;
   color: #475569;
-          }
+}
+
+.logo {
+  width: ${isLong ? "68px" : "76px"};
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
 
           .logo-wrap {
-            margin-bottom: 0;
-          }
-
-          .logo {
-            width: ${isLong ? "68px" : "76px"};
-            height: auto;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
+            margin: 0;
           }
 
           .doc-title {
