@@ -930,7 +930,8 @@ function SectionHeader({ title, description }) {
       <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.charcoal }}>{title}</div>
       {description ? (
         <div style={{ color: COLORS.muted, marginTop: 6, lineHeight: 1.8 }}>{description}</div>
-      ) : null}
+                ) : null;
+                })()}
     </div>
   );
 }
@@ -7428,6 +7429,7 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
+          blockingStudentIds: Array.from(slotDailyLimitStudentIds),
           blockingStudents: slotDailyLimitStudents
             .slice()
             .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar") || String(a?.id || "").localeCompare(String(b?.id || ""), "ar")),
@@ -9974,7 +9976,8 @@ const headerBtn = (danger = false) => ({
                         );
                       })}
                     </div>
-                  ) : null}
+                  ) : null;
+                })()}
                   
                   {/* end*/}
                
@@ -13729,7 +13732,8 @@ const headerBtn = (danger = false) => ({
                     {" / "}
                     {selectedStudentInfoForPrint.major || "-"}
                   </div>
-                ) : null}
+                ) : null;
+                })()}
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
                   <button
@@ -14270,14 +14274,39 @@ const headerBtn = (danger = false) => ({
                 {Array.isArray(slot.availableInvigilators) && slot.availableInvigilators.length ? (
                   <div><strong>المراقبون المتاحون:</strong> {slot.availableInvigilators.join("، ")}</div>
                 ) : null}
-                {Array.isArray(slot.blockingStudents) ? (
+                {(() => {
+                  const resolvedBlockingStudents = Array.isArray(slot.blockingStudents) && slot.blockingStudents.length
+                    ? slot.blockingStudents
+                    : selectedUnscheduledReasonModal.group?.key === "dailyLimit" && Array.isArray(slot.blockingStudentIds)
+                      ? slot.blockingStudentIds
+                          .map((studentId) => {
+                            const studentInfo = preciseStudentInfoMap.get(studentId);
+                            return {
+                              ...(studentInfo || {
+                                id: studentId,
+                                name: "بدون اسم",
+                                department: "-",
+                                major: "-",
+                              }),
+                              dailyCount:
+                                Number(studentInfo?.dailyCount) ||
+                                Number(maxExamsPerStudentPerDay) ||
+                                0,
+                            };
+                          })
+                          .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar") || String(a?.id || "").localeCompare(String(b?.id || ""), "ar"))
+                      : Array.isArray(slot.blockingStudents)
+                        ? slot.blockingStudents
+                        : null;
+
+                  return Array.isArray(resolvedBlockingStudents) ? (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontWeight: 800, marginBottom: 8, color: COLORS.charcoal }}>
                       {selectedUnscheduledReasonModal.group?.key === "dailyLimit"
                         ? "المتدربون الذين بلغوا الحد اليومي"
                         : "المتدربون المتعارضون"}
                     </div>
-                    {slot.blockingStudents.length ? (
+                    {resolvedBlockingStudents.length ? (
                       <div
                         style={{
                           overflowX: "auto",
@@ -14307,7 +14336,7 @@ const headerBtn = (danger = false) => ({
                             </tr>
                           </thead>
                           <tbody>
-                            {slot.blockingStudents.map((student, studentIndex) => (
+                            {resolvedBlockingStudents.map((student, studentIndex) => (
                               <tr key={`${student?.id || student?.name || "student"}-${studentIndex}`}>
                                 <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
                                   {studentIndex + 1}
@@ -14348,7 +14377,8 @@ const headerBtn = (danger = false) => ({
                       </div>
                     )}
                   </div>
-                ) : null}
+                ) : null;
+                })()}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
                 {slot.availableInvigilatorsCount != null ? <div><strong>المراقبون المتاحون فعليًا:</strong> {slot.availableInvigilatorsCount}</div> : null}
               </div>
