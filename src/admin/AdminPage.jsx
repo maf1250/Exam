@@ -11028,7 +11028,8 @@ const headerBtn = (danger = false) => ({
           </button>
         </div>
       </div>
-    ) : (
+      </div>
+        ) : (
       <div
         style={{
           marginTop: 18,
