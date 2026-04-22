@@ -5242,70 +5242,47 @@ const getUnscheduledReasonBreakdown = (course) => {
 const openUnscheduledReasonModal = (course, group) => {
   if (!course || !group) return;
 
-  let resolvedGroup = group;
+  const normalizedGroup =
+    group?.key === "dailyLimit" && Array.isArray(group?.slots)
+      ? {
+          ...group,
+          slots: group.slots.map((slot) => {
+            if (Array.isArray(slot?.blockingStudents) && slot.blockingStudents.length) {
+              return slot;
+            }
 
-  if (group?.key === "dailyLimit" && Array.isArray(group?.slots)) {
-    const safeStudentInfoMap = typeof preciseStudentInfoMap !== "undefined" && preciseStudentInfoMap instanceof Map
-      ? preciseStudentInfoMap
-      : new Map();
-    const safeStudentDayMap = typeof studentDayMap !== "undefined" && studentDayMap instanceof Map
-      ? studentDayMap
-      : null;
-    const fallbackDailyCount = Number(maxExamsPerStudentPerDay) || 0;
+            const rebuiltBlockingStudents = (Array.isArray(course?.students) ? course.students : [])
+              .map((studentId) => {
+                const dayMap = studentDayMap.get(studentId) || new Map();
+                const sameDayCount = dayMap.get(slot?.dateISO) || 0;
+                if (sameDayCount < Math.max(1, Number(maxExamsPerStudentPerDay) || 2)) {
+                  return null;
+                }
 
-    resolvedGroup = {
-      ...group,
-      slots: group.slots.map((slot) => {
-        if (Array.isArray(slot?.blockingStudents) && slot.blockingStudents.length) {
-          return slot;
-        }
-
-        const candidateIds = Array.isArray(slot?.studentIds)
-          ? slot.studentIds
-          : Array.isArray(slot?.blockingStudentIds)
-          ? slot.blockingStudentIds
-          : [];
-
-        if (!candidateIds.length || !safeStudentDayMap) {
-          return {
-            ...slot,
-            blockingStudents: Array.isArray(slot?.blockingStudents) ? slot.blockingStudents : [],
-          };
-        }
-
-        const computedBlockingStudents = candidateIds
-          .map((studentId) => {
-            const normalizedStudentId = String(studentId || "").trim();
-            if (!normalizedStudentId) return null;
-
-            const info = safeStudentInfoMap.get(normalizedStudentId) || {
-              id: normalizedStudentId,
-              name: "بدون اسم",
-              department: "-",
-              major: "-",
-            };
-
-            const dayMap = safeStudentDayMap.get(normalizedStudentId);
-            const dailyCount = dayMap && slot?.dateISO ? (dayMap.get(slot.dateISO) || 0) : 0;
+                return {
+                  ...(preciseStudentInfoMap.get(studentId) || {
+                    id: studentId,
+                    name: "بدون اسم",
+                    department: "-",
+                    major: "-",
+                  }),
+                  dailyCount: sameDayCount,
+                };
+              })
+              .filter(Boolean)
+              .sort(
+                (a, b) =>
+                  String(a?.name || "").localeCompare(String(b?.name || ""), "ar") ||
+                  String(a?.id || "").localeCompare(String(b?.id || ""), "ar")
+              );
 
             return {
-              ...info,
-              dailyCount: dailyCount || fallbackDailyCount || "-",
+              ...slot,
+              blockingStudents: rebuiltBlockingStudents,
             };
-          })
-          .filter(Boolean)
-          .sort((a, b) =>
-            String(a?.name || "").localeCompare(String(b?.name || ""), "ar") ||
-            String(a?.id || "").localeCompare(String(b?.id || ""), "ar")
-          );
-
-        return {
-          ...slot,
-          blockingStudents: computedBlockingStudents,
-        };
-      }),
-    };
-  }
+          }),
+        }
+      : group;
 
   setSelectedUnscheduledReasonModal({
     courseKey: course.key,
@@ -5313,7 +5290,7 @@ const openUnscheduledReasonModal = (course, group) => {
     courseCode: course.courseCode || "",
     shortLabel: normalizeUnscheduledReason(course).shortLabel,
     reasonDetail: normalizeUnscheduledReason(course).detail,
-    group: resolvedGroup,
+    group: normalizedGroup,
   });
 };
 
@@ -9644,10 +9621,8 @@ const headerBtn = (danger = false) => ({
 
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
-    
-    الحد الأقصى لاختبارات المتدرب في اليوم
-    <HintIcon text="لا يجوز أن يختبر المتدرب أكثر من مقررين في اليوم إلا عند الضرورة القصوى وفقًا اللائحة."
-      style={{ marginRight: 6 }}/>
+    <HintIcon text="لا يجوز أن يختبر المتدرب أكثر من مقررين في اليوم إلا عند الضرورة القصوى وفقًا اللائحة. "
+      style={{ marginRight: 6, marginLeft: 6 }}/>
   </div>
 
   <input
