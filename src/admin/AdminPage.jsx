@@ -1811,38 +1811,28 @@ function getPrintBaseStyles() {
     }
 
     .header-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-      direction: ltr;
-    }
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  direction: rtl;
+}
 
-    .header-right {
-      text-align: right;
-      direction: rtl;
-      justify-self: start;
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1.8;
-      color: #0f172a;
-    }
+.header-right {
+  text-align: right;
+  justify-self: end;
+  direction: rtl;
+}
 
-    .header-center {
-      text-align: center;
-      direction: rtl;
-      justify-self: center;
-    }
+.header-center {
+  text-align: center;
+  justify-self: center;
+}
 
-    .header-left {
-      text-align: right;
-      direction: rtl;
-      justify-self: end;
-      font-size: 12px;
-      color: #475569;
-    }
-
+.header-left {
+  justify-self: start;
+}
     .logo-wrap {
       margin-bottom: 0;
     }
@@ -2205,7 +2195,7 @@ if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
               </div>
               <div class="header-center">
                 <div class="logo-wrap">
-                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}" />
                 </div>
               </div>
               <div class="header-left"></div>
@@ -2395,7 +2385,7 @@ const buildDayCell = (inv, day) => {
               </div>
               <div class="header-center">
                 <div class="logo-wrap">
-                  <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+                  <img class="logo" src="${window.location.origin + LOGO_SRC}"  />
                 </div>
               </div>
               <div class="header-left"></div>
@@ -2536,7 +2526,38 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
             margin-bottom: 8px;
             padding-bottom: 8px;
           }
+          .header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  direction: rtl;
+}
 
+.header-right {
+  text-align: right;
+  direction: rtl;
+  justify-self: end;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.8;
+  color: #0f172a;
+}
+
+.header-center {
+  text-align: center;
+  direction: rtl;
+  justify-self: center;
+}
+
+.header-left {
+  text-align: left;
+  direction: rtl;
+  justify-self: start;
+  font-size: 12px;
+  color: #475569;
+}
           .college-name {
             font-size: ${isLong ? "18px" : "20px"};
             margin-bottom: 2px;
@@ -2571,12 +2592,32 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
       <body>
         <div class="page">
           <div class="header">
-            <div class="logo-wrap">
-              <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
-            </div>
-            <div class="college-name">${collegeName || "الكلية التقنية"}</div>
-            <div class="doc-title">جدول الاختبارات النهائي للمتدرب</div>
-          </div>
+  <div class="header-grid">
+    <div class="header-right">
+      <div>المملكة العربية السعودية</div>
+      <div>المؤسسة العامة للتدريب التقني والمهني</div>
+      <div>${collegeName || "الكلية التقنية"}</div>
+    </div>
+
+    <div class="header-center">
+      <div class="logo-wrap">
+        <img class="logo" src="${window.location.origin + LOGO_SRC}" />
+      </div>
+    </div>
+
+    <div class="header-left">
+      <div><strong>تاريخ الطباعة:</strong> ${todayText}</div>
+    </div>
+  </div>
+
+  <div class="doc-title">الجدول النهائي للمتدرب</div>
+
+  <div class="meta-grid">
+    <div class="meta-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
+    <div class="meta-box"><strong>الرقم التدريبي:</strong> ${student.id || "-"}</div>
+    <div class="meta-box"><strong>عدد المقررات:</strong> ${items.length}</div>
+  </div>
+</div>
 
           <div class="student-meta">
             <div class="student-box"><strong>اسم المتدرب:</strong> ${student.name || "-"}</div>
@@ -8947,7 +8988,6 @@ const headerBtn = (danger = false) => ({
     >
       <img
         src={LOGO_SRC}
-        alt="TVTC Logo"
         style={{ width: 88, height: 88, objectFit: "contain" }}
       />
     </div>
