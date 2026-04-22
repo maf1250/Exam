@@ -10758,6 +10758,7 @@ const headerBtn = (danger = false) => ({
           border: `1px solid ${COLORS.border}`,
           borderRadius: 18,
           padding: 14,
+          width: "100%",
         }}
       >
         <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
