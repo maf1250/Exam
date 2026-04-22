@@ -1812,7 +1812,7 @@ function getPrintBaseStyles() {
 
     .header-grid {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto auto 1fr;
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
@@ -1821,7 +1821,7 @@ function getPrintBaseStyles() {
 
 .header-right {
   text-align: right;
-  justify-self: end;
+  justify-self: start;
   direction: rtl;
   margin-right: -6px;
 }
@@ -1832,7 +1832,7 @@ function getPrintBaseStyles() {
 }
 
 .header-left {
-  justify-self: start;
+  justify-self: end;
 }
     .logo-wrap {
       margin-bottom: 0;
@@ -2529,7 +2529,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
           }
           .header-grid {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+ grid-template-columns: auto auto 1fr;
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
@@ -2539,7 +2539,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 .header-right {
   text-align: right;
   direction: rtl;
-  justify-self: end;
+  justify-self: start;
   font-size: 13px;
     margin-right: -6px;
   font-weight: 700;
@@ -2556,7 +2556,7 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 .header-left {
   text-align: left;
   direction: rtl;
-  justify-self: start;
+  justify-self: end;
   font-size: 12px;
   color: #475569;
 }
