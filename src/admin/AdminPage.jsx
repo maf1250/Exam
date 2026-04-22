@@ -1810,9 +1810,9 @@ function getPrintBaseStyles() {
       padding-bottom: 10px;
     }
 
-    .header-grid {
+   .header-grid {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
@@ -1821,18 +1821,29 @@ function getPrintBaseStyles() {
 
 .header-right {
   text-align: right;
-  justify-self: start;
   direction: rtl;
-  margin-right: -6px;
+  justify-self: end;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.9;
+  color: #0f172a;
+  margin-right: 0;
+  padding-right: 0;
+  white-space: nowrap;
 }
 
 .header-center {
   text-align: center;
+  direction: rtl;
   justify-self: center;
 }
 
 .header-left {
-  justify-self: end;
+  text-align: left;
+  direction: rtl;
+  justify-self: start;
+  font-size: 12px;
+  color: #475569;
 }
     .logo-wrap {
       margin-bottom: 0;
