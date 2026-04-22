@@ -1346,23 +1346,28 @@ function buildDocxRuns(text, { bold = false, size = 22, color = "1F2529" } = {})
     .join("");
 }
 
-function buildDocxParagraph(text, {
-  align = "right",
-  bold = false,
-  size = 22,
-  color = "1F2529",
-  spacingAfter = 80,
-} = {}) {
+function buildDocxParagraph(
+  text,
+  {
+    align = "right",
+    bold = false,
+    size = 22,
+    color = "1F2529",
+    spacingAfter = 80,
+  } = {}
+) {
   return `
     <w:p>
       <w:pPr>
         <w:bidi/>
+        <w:textDirection w:val="rlTb"/>
         <w:jc w:val="${align}"/>
         <w:spacing w:after="${spacingAfter}"/>
       </w:pPr>
       <w:r>
         <w:rPr>
           <w:rtl/>
+          <w:lang w:bidi="ar-SA"/>
           ${bold ? "<w:b/>" : ""}
           <w:sz w:val="${size}"/>
           <w:szCs w:val="${size}"/>
@@ -1400,20 +1405,28 @@ async function loadDocxLogoImage() {
     const response = await fetch(`${window.location.origin}${LOGO_SRC}`);
     if (!response.ok) return null;
     const contentType = String(response.headers.get("content-type") || "image/png").toLowerCase();
-    const extension = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : contentType.includes("svg") ? "svg" : "png";
+    const extension =
+      contentType.includes("jpeg") || contentType.includes("jpg")
+        ? "jpg"
+        : contentType.includes("svg")
+        ? "svg"
+        : "png";
+
     const data = await response.arrayBuffer();
+
     return {
       relationshipId: "rIdLogo1",
       filename: `logo.${extension}`,
       extension,
       contentType,
       data,
-      widthEmu: 1100000,
-      heightEmu: 1100000,
+      widthEmu: 900000,
+      heightEmu: 900000,
       name: "TVTC Logo",
+      docPrId: 1,
     };
   } catch (error) {
-    console.warn("تعذر تحميل شعار الوورد", error);
+    console.warn("تعذر تحميل الشعار", error);
     return null;
   }
 }
@@ -1593,12 +1606,45 @@ ${mediaRelationshipsXml}
 
 function buildOfficialDocxHeader({ collegeName, title, metaLines = [], logoImage = null }) {
   return [
-    logoImage ? buildDocxImageParagraph(logoImage, { align: "center", spacingAfter: 70 }) : "",
-    buildDocxParagraph("المملكة العربية السعودية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
-    buildDocxParagraph("المؤسسة العامة للتدريب التقني والمهني", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
-    buildDocxParagraph(collegeName || "الكلية التقنية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 120 }),
-    buildDocxParagraph(title, { align: "center", bold: true, size: 28, color: "111827", spacingAfter: 100 }),
-    ...metaLines.map((line) => buildDocxParagraph(line, { align: "right", size: 20, color: "475569", spacingAfter: 50 })),
+    logoImage
+      ? buildDocxImageParagraph(logoImage, { align: "center", spacingAfter: 40 })
+      : "",
+    buildDocxParagraph("المملكة العربية السعودية", {
+      align: "right",
+      bold: true,
+      size: 26,
+      color: "0F5F68",
+      spacingAfter: 20,
+    }),
+    buildDocxParagraph("المؤسسة العامة للتدريب التقني والمهني", {
+      align: "right",
+      bold: true,
+      size: 26,
+      color: "0F5F68",
+      spacingAfter: 20,
+    }),
+    buildDocxParagraph(collegeName || "الكلية التقنية", {
+      align: "right",
+      bold: true,
+      size: 26,
+      color: "0F5F68",
+      spacingAfter: 80,
+    }),
+    buildDocxParagraph(title, {
+      align: "center",
+      bold: true,
+      size: 30,
+      color: "111827",
+      spacingAfter: 70,
+    }),
+    ...metaLines.map((line) =>
+      buildDocxParagraph(line, {
+        align: "right",
+        size: 20,
+        color: "475569",
+        spacingAfter: 35,
+      })
+    ),
   ].join("");
 }
 
