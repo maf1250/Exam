@@ -8547,7 +8547,7 @@ const headerBtn = (danger = false) => ({
             <div
           style={{
           display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, max-content))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, max-content))",
             flexWrap: "wrap",
           
     gap: 20,
@@ -8569,11 +8569,11 @@ const headerBtn = (danger = false) => ({
           {[
   { id: 1, label: "1. رفع الملف والتفضيلات" },
   { id: 2, label: "2. الخصائص العامة" },
-  { id: 3, label: "3. المقررات" },
-  { id: 4, label: "4. المراقبون" },
-  { id: 5, label: "5. الدراسات العامة" },
-  { id: 6, label: "6. التخصص" },
-  { id: 7, label: "7. بيان التعارضات" },
+  { id: 3, label: "3. المراقبون" },
+  { id: 4, label: "4. المقررات" },
+  { id: 5, label: "5. مقررات الدراسات العامة" },
+  { id: 6, label: "6. مقررات التخصص" },
+  { id: 7, label: "7. تحليل تعارض مقررين" },
   { id: 8, label: "8. التعديل اليدوي" },
   { id: 9, label: "9. تعديل المراقبين" },
   { id: 10, label: "10. المعاينة" },
@@ -9692,13 +9692,13 @@ const headerBtn = (danger = false) => ({
                 السابق
               </button>
               <button onClick={() => setCurrentStep(3)}  style={cardButtonStyle({ active: true })}>
-                التالي: تعديل المقررات
+                التالي: المراقبون
               </button>
             </div>
           </Card>
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <Card>
             <SectionHeader
               title="تعديل المقررات"
@@ -10287,17 +10287,17 @@ const headerBtn = (danger = false) => ({
             ) : null}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
                 السابق
               </button>
-              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
-                التالي: المراقبون
+              <button onClick={() => setCurrentStep(5)} style={cardButtonStyle({ active: true })}>
+                التالي: الدراسات العامة
               </button>
             </div>
           </Card>
         )}
 
- {currentStep === 4 && (
+ {currentStep === 3 && (
   <Card>
     <SectionHeader
       title="المراقبون"
@@ -10862,16 +10862,16 @@ const headerBtn = (danger = false) => ({
         ) : null}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button type="button" onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+          <button type="button" onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
             السابق
           </button>
 
           <button
             type="button"
-            onClick={() => setCurrentStep(5)}
+            onClick={() => setCurrentStep(4)}
             style={cardButtonStyle({ active: true })}
           >
-            التالي: الدراسات العامة
+            التالي: المقررات
           </button>
         </div>
       </div>
