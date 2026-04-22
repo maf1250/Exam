@@ -254,6 +254,13 @@ const rowsHtml = (selectedStudent?.schedule || [])
           .header, .meta, table, .instructions, .instructions li {
             break-inside: avoid;
           }
+          .header-center {
+  text-align: center;
+}
+
+.logo {
+  width: 70px;
+}
         }
       </style>
     </head>
@@ -263,10 +270,13 @@ const rowsHtml = (selectedStudent?.schedule || [])
           <div>${today}</div>
           <div>الجداول النهائية - بوابة المتدرب</div>
         </div>
-        <div class="hero">
-          <small>المؤسسة العامة للتدريب التقني والمهني</small>
-          <h1>${escapeHtml(collegeName || "جداول المتدربين النهائية")}</h1>
-          <p>عرض جدول الاختبارات النهائي الخاص بالمتدرب بشكل رسمي ومنظم.</p>
+        <div class="hero">     
+        <div class="header-center">
+     <img class="logo" src="${window.location.origin + LOGO_SRC}" alt="TVTC Logo" />
+           <div>المملكة العربية السعودية</div>
+     <div>المؤسسة العامة للتدريب التقني والمهني</div>
+          <div>${escapeHtml(collegeName || "جداول المتدربين النهائية")}</div>
+        </div>
         </div>
       </div>
 
