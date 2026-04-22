@@ -4586,7 +4586,7 @@ const extraCandidates = extraPool
 
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
-  const [compactPrintMode, setCompactPrintMode] = useState(false);
+  const [compactPrintMode, setCompactPrintMode] = useState(true);
   const [printOutputFormat, setPrintOutputFormat] = useState("pdf");
 const [courseAKey, setCourseAKey] = useState("");
 const [courseBKey, setCourseBKey] = useState("");
@@ -4740,7 +4740,7 @@ const handleUpload = (file) => {
       setPreviewPage(0);
       setPreviewTab("sortedCourses");
       setSelectedStudentIdForPrint("");
-      setCompactPrintMode(false);
+      setCompactPrintMode(true);
       setCurrentStep(1);
       setHasImportedSessionFile(false);
       pendingRestoreRef.current = null;
@@ -5628,7 +5628,7 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setSelectedStudentIdForPrint("");
   setStudentSearchText("");
   setShowStudentSuggestions(false);
-  setCompactPrintMode(saved.compactPrintMode ?? false);
+  setCompactPrintMode(saved.compactPrintMode ?? true);
   setPrintOutputFormat(saved.printOutputFormat || "pdf");
   setCourseAKey(saved.courseAKey || "");
 setCourseBKey(saved.courseBKey || "");
@@ -9551,8 +9551,9 @@ const headerBtn = (danger = false) => ({
 
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
-    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
+    
     الحد الأقصى لاختبارات المتدرب في اليوم
+    <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
   </div>
 
   <input
@@ -9572,8 +9573,9 @@ const headerBtn = (danger = false) => ({
 
                         <div style={{ marginTop: 18 }}>
               <div style={{ marginBottom: 10, fontWeight: 800 }}>
-              <HintIcon text="وفقًا للائحة، يحدد مجلس القسم المختص زمن الاختبار النهائي، على ألا يقل عن ساعة واحدة ولا يزيد على ثلاث ساعات." />
+             
                 فترات الاختبار
+              <HintIcon text="وفقًا للائحة، يحدد مجلس القسم المختص زمن الاختبار النهائي، على ألا يقل عن ساعة واحدة ولا يزيد على ثلاث ساعات." />
               </div>
               <div style={{ display: "grid", gap: 10, maxWidth: 640 }}>
                 {periodConfigs.map((periodConfig, index) => {
