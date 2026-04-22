@@ -1948,7 +1948,7 @@ const buildDayCell = (inv, day) => {
                       <th class="day-head">
                         <div style="font-weight:800">${day.dayName || ""}</div>
                         <div style="font-size:11px; margin-top:4px">${day.hijriNumeric || ""}</div>
-                        <div style="font-size:10px; color:#6b7280">${day.gregorian || ""}</div>
+                        
                       </th>
                     `
                   )
