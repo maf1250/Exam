@@ -2511,6 +2511,9 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
 
           .page {
             page-break-after: avoid !important;
+            width: 100%;
+  padding: 0;
+  margin: 0;
           }
 
           table {
@@ -2523,42 +2526,58 @@ function printSingleStudentSchedule({ collegeName, student, items, compactMode =
             white-space: nowrap;
           }
 
-          .header {
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-          }
-          .header-grid {
+  .header {
+  margin-bottom: 12px;
+  border-bottom: 2px solid #0f766e;
+  padding-bottom: 10px;
+}
+
+.header-grid {
   display: grid;
- grid-template-columns: auto auto 1fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
   direction: rtl;
+  width: 100%;
 }
 
 .header-right {
   text-align: right;
   direction: rtl;
-  justify-self: start;
-  font-size: 13px;
-    margin-right: -6px;
-  font-weight: 700;
-  line-height: 1.8;
+  justify-self: end;
+  font-size: 16px;   /* كان أصغر */
+  font-weight: 800;
+  line-height: 2;
   color: #0f172a;
 }
 
 .header-center {
   text-align: center;
-  direction: rtl;
   justify-self: center;
 }
 
 .header-left {
   text-align: left;
   direction: rtl;
-  justify-self: end;
-  font-size: 12px;
+  justify-self: start;
+  font-size: 13px;
   color: #475569;
+}
+
+.logo {
+  width: 78px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.doc-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin-top: 8px;
+  text-align: center;
 }
           .college-name {
             font-size: ${isLong ? "18px" : "20px"};
