@@ -2462,7 +2462,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
                       <th class="day-head">
                         <div style="font-weight:800">${day.dayName || ""}</div>
                         <div style="font-size:10px; margin-top:4px">${day.hijriNumeric || ""}</div>
-                        <div style="font-size:9px; color:#6b7280">${day.gregorian || ""}</div>
+                       
                       </th>
                     `
                   )
