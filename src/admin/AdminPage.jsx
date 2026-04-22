@@ -927,57 +927,90 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-function TooltipIcon({ text, width = 290 }) {
+function TooltipIcon({ text }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   return (
     <div
+      ref={rootRef}
       style={{
         position: "relative",
         display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         flex: "0 0 auto",
       }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
     >
-      <span
-        onClick={() => setOpen((prev) => !prev)}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-label="عرض التوضيح"
+        aria-expanded={open}
         style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#FFF7ED",
+          border: "1px solid #FDBA74",
+          color: "#C2410C",
+          fontWeight: 900,
+          fontSize: 13,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: COLORS.warningBg,
-          color: COLORS.warning,
-          fontWeight: 900,
-          fontSize: 13,
-          cursor: "help",
-          border: `1px solid ${COLORS.border}`,
+          cursor: "pointer",
           userSelect: "none",
+          padding: 0,
+          lineHeight: 1,
         }}
       >
         !
-      </span>
+      </button>
 
       {open ? (
         <div
+          role="note"
           style={{
             position: "absolute",
-            bottom: "110%",
-            right: 0,
-            background: "#111827",
-            color: "#fff",
+            top: "calc(100% + 8px)",
+            insetInlineEnd: 0,
+            minWidth: 220,
+            maxWidth: 280,
+            background: "#FFFFFF",
+            border: "1px solid #FED7AA",
+            color: COLORS.text,
+            borderRadius: 14,
             padding: "10px 12px",
-            borderRadius: 10,
+            boxShadow: "0 16px 35px rgba(15, 23, 42, 0.14)",
             fontSize: 13,
-            lineHeight: 1.6,
-            width,
-            maxWidth: "min(290px, calc(100vw - 40px))",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-            zIndex: 9999,
-            transition: "opacity 0.2s ease, transform 0.2s ease",
+            lineHeight: 1.8,
+            textAlign: "right",
+            zIndex: 50,
           }}
         >
           {text}
