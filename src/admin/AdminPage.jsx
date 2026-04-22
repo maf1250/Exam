@@ -14349,75 +14349,76 @@ const headerBtn = (danger = false) => ({
                       );
 
                       return displayedBlockingStudents.length ? (
-                      <div
-                        style={{
-                          overflowX: "auto",
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 12,
-                          background: "#F8FAFC",
-                        }}
-                      >
-                        <table
+                        <div
                           style={{
-                            width: "100%",
-                            borderCollapse: "collapse",
-                            tableLayout: "fixed",
-                            background: "#fff",
+                            overflowX: "auto",
+                            border: `1px solid ${COLORS.border}`,
+                            borderRadius: 12,
+                            background: "#F8FAFC",
                           }}
                         >
-                          <thead>
-                            <tr style={{ background: COLORS.primaryLight }}>
-                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 56 }}>#</th>
-                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>اسم المتدرب</th>
-                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 120 }}>الرقم</th>
-                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>القسم</th>
-                              <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>التخصص</th>
-                              {selectedUnscheduledReasonModal.group?.key === "dailyLimit" ? (
-                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 110 }}>عدد اختبارات اليوم</th>
-                              ) : null}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {displayedBlockingStudents.map((student, studentIndex) => (
-                              <tr key={`${student?.id || student?.name || "student"}-${studentIndex}`}>
-                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
-                                  {studentIndex + 1}
-                                </td>
-                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
-                                  {student?.name || "-"}
-                                </td>
-                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center" }}>
-                                  {student?.id || "-"}
-                                </td>
-                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
-                                  {student?.department || "-"}
-                                </td>
-                                <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
-                                  {student?.major || "-"}
-                                </td>
+                          <table
+                            style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              tableLayout: "fixed",
+                              background: "#fff",
+                            }}
+                          >
+                            <thead>
+                              <tr style={{ background: COLORS.primaryLight }}>
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 56 }}>#</th>
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>اسم المتدرب</th>
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 120 }}>الرقم</th>
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>القسم</th>
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>التخصص</th>
                                 {selectedUnscheduledReasonModal.group?.key === "dailyLimit" ? (
-                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
-                                    {student?.dailyCount || Number(maxExamsPerStudentPerDay) || "-"}
-                                  </td>
+                                  <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 110 }}>عدد اختبارات اليوم</th>
                                 ) : null}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          border: `1px dashed ${COLORS.border}`,
-                          borderRadius: 12,
-                          padding: 12,
-                          background: "#fff",
-                          color: COLORS.muted,
-                        }}
-                      >
-                        لا توجد أسماء متدربين محفوظة لهذا التعارض في هذه الفترة.
-                      </div>
-                    )}
+                            </thead>
+                            <tbody>
+                              {displayedBlockingStudents.map((student, studentIndex) => (
+                                <tr key={`${student?.id || student?.name || "student"}-${studentIndex}`}>
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
+                                    {studentIndex + 1}
+                                  </td>
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                    {student?.name || "-"}
+                                  </td>
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center" }}>
+                                    {student?.id || "-"}
+                                  </td>
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                    {student?.department || "-"}
+                                  </td>
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
+                                    {student?.major || "-"}
+                                  </td>
+                                  {selectedUnscheduledReasonModal.group?.key === "dailyLimit" ? (
+                                    <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
+                                      {student?.dailyCount || Number(maxExamsPerStudentPerDay) || "-"}
+                                    </td>
+                                  ) : null}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            border: `1px dashed ${COLORS.border}`,
+                            borderRadius: 12,
+                            padding: 12,
+                            background: "#fff",
+                            color: COLORS.muted,
+                          }}
+                        >
+                          لا توجد أسماء متدربين محفوظة لهذا التعارض في هذه الفترة.
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : null}
                 {slot.requiredInvigilatorsCount != null ? <div><strong>المراقبون المطلوبون:</strong> {slot.requiredInvigilatorsCount}</div> : null}
