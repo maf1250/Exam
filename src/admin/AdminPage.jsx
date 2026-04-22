@@ -9351,8 +9351,8 @@ const headerBtn = (danger = false) => ({
           {[
   { id: 1, label: "1. رفع الملف والتفضيلات" },
   { id: 2, label: "2. الخصائص العامة" },
-  { id: 3, label: "3. المقررات" },
-  { id: 4, label: "4. المراقبون" },
+  { id: 4, label: "4. المقررات" },
+  { id: 3, label: "3. المراقبون" },
   { id: 5, label: "5. الدراسات العامة" },
   { id: 6, label: "6. التخصص" },
   { id: 7, label: "7. بيان التعارضات" },
@@ -10473,14 +10473,14 @@ const headerBtn = (danger = false) => ({
               <button onClick={() => setCurrentStep(1)} style={cardButtonStyle()}>
                 السابق
               </button>
-              <button onClick={() => setCurrentStep(3)}  style={cardButtonStyle({ active: true })}>
+              <button onClick={() => setCurrentStep(4)}  style={cardButtonStyle({ active: true })}>
                 التالي: تعديل المقررات
               </button>
             </div>
           </Card>
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <Card>
             <SectionHeader
               title="تعديل المقررات"
@@ -11072,14 +11072,14 @@ const headerBtn = (danger = false) => ({
               <button onClick={() => setCurrentStep(2)} style={cardButtonStyle()}>
                 السابق
               </button>
-              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle({ active: true })}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle({ active: true })}>
                 التالي: المراقبون
               </button>
             </div>
           </Card>
         )}
 
- {currentStep === 4 && (
+ {currentStep === 3 && (
   <Card>
     <SectionHeader
       title="المراقبون"
@@ -11644,7 +11644,7 @@ const headerBtn = (danger = false) => ({
         ) : null}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <button type="button" onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
+          <button type="button" onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
             السابق
           </button>
 
@@ -11777,7 +11777,7 @@ const headerBtn = (danger = false) => ({
   </Card>
 ) : null}
 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16, marginTop: 20 }}>
-              <button onClick={() => setCurrentStep(4)} style={cardButtonStyle()}>
+              <button onClick={() => setCurrentStep(3)} style={cardButtonStyle()}>
                 السابق
               </button>
               <button onClick={generateGeneralSchedule} style={cardButtonStyle({ active: true })}>
