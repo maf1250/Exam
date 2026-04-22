@@ -10738,6 +10738,160 @@ const headerBtn = (danger = false) => ({
           </div>
         )}
 
+        <div style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
+          <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right" }}>
+            أسماء المراقبين
+          </div>
+          <textarea
+            value={manualInvigilators}
+            onChange={(e) => setManualInvigilators(e.target.value)}
+            placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
+            style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 14,
+        }}
+      >
+        <div style={{ fontWeight: 800, marginBottom: 10 }}>استبعاد مراقبين من التوزيع</div>
+        <div style={{ color: COLORS.muted, fontSize: 14, marginBottom: 10 }}>
+          يتم جلب الأسماء تلقائيًا من التقرير، ويمكنك اختيار من لا يراقب.
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {availableInvigilators.length ? (
+            availableInvigilators.map((name) => {
+              const excluded = excludedInvigilators.some(
+                (item) => normalizeArabic(item) === normalizeArabic(name)
+              );
+
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => toggleExcludedInvigilator(name)}
+                  style={{
+                    border: `1px solid ${excluded ? COLORS.danger : COLORS.border}`,
+                    background: excluded ? COLORS.dangerBg : "#fff",
+                    color: excluded ? COLORS.danger : COLORS.charcoalSoft,
+                    borderRadius: 999,
+                    padding: "8px 14px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  {excluded ? `مستبعد: ${name}` : name}
+                </button>
+              );
+            })
+          ) : (
+            <span style={{ color: "#94A3B8" }}>لا توجد أسماء مراقبين بعد</span>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(240px, 300px) minmax(320px, 460px)",
+        justifyContent: "space-between",
+        alignItems: "start",
+        gap: 14,
+      }}
+    >
+      <div style={{ display: "grid", gap: 12, width: "100%" }}>
+        <div style={{ width: "100%", textAlign: "right" }}>
+          <div style={{ marginBottom: 8, fontWeight: 800 }}>طريقة توزيع المراقبين</div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              justifyContent: "flex-start",
+              width: "100%",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setInvigilationMode("fixed")}
+              style={{
+                border: `1px solid ${
+                  invigilationMode === "fixed" ? COLORS.primaryDark : COLORS.border
+                }`,
+                background: invigilationMode === "fixed" ? COLORS.primaryDark : "#fff",
+                color: invigilationMode === "fixed" ? "#fff" : COLORS.charcoalSoft,
+                borderRadius: 999,
+                padding: "10px 14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              عدد ثابت
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvigilationMode("ratio")}
+              style={{
+                border: `1px solid ${
+                  invigilationMode === "ratio" ? COLORS.primaryDark : COLORS.border
+                }`,
+                background: invigilationMode === "ratio" ? COLORS.primaryDark : "#fff",
+                color: invigilationMode === "ratio" ? "#fff" : COLORS.charcoalSoft,
+                borderRadius: 999,
+                padding: "10px 14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              حسب عدد المتدربين
+            </button>
+          </div>
+        </div>
+
+        {invigilationMode === "fixed" ? (
+          <div style={{ width: "100%" }}>
+            <div>
+              <div style={{ marginBottom: 8, fontWeight: 800 }}>
+                عدد المراقبين لكل مقرر
+              </div>
+
+              <input
+                type="number"
+                min="2"
+                max="20"
+                value={invigilatorsPerPeriod}
+                onChange={(e) => {
+                  const value = safeNum(e.target.value, 4);
+                  setInvigilatorsPerPeriod(Math.min(20, Math.max(2, value)));
+                }}
+                style={{ ...fieldStyle(), maxWidth: 80 }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div style={{ width: "100%" }}>
+            <div style={{ marginBottom: 8, fontWeight: 800 }}>عدد المتدربين لكل مراقب</div>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={studentsPerInvigilator}
+              onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 20))}
+              style={{ ...fieldStyle(), maxWidth: 80 }}
+            />
+          </div>
+        )}
+
         <span style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
           <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right" }}>
             أسماء المراقبين
@@ -11153,7 +11307,7 @@ const headerBtn = (danger = false) => ({
                   <button
                     type="button"
                     onClick={addSamePeriodGroup}
-                    style={cardButtonStyle()}
+                    style={cardButtonStyle({ active: true })}
                   >
                     إضافة مجموعة جديدة
                   </button>
