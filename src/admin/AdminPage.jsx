@@ -7368,6 +7368,8 @@ const pickInvigilators = (course, slot) => {
       let slotAvoidedConstraint = false;
       const slotBlockingStudents = [];
       const slotBlockingStudentIds = new Set();
+      const slotDailyLimitStudents = [];
+      const slotDailyLimitStudentIds = new Set();
 
       course.students.forEach((studentId) => {
         const usedSlots = studentSlotMap.get(studentId) || new Set();
@@ -7388,7 +7390,21 @@ const pickInvigilators = (course, slot) => {
 
         const dayMap = studentDayMap.get(studentId) || new Map();
         const sameDayCount = dayMap.get(slot.dateISO) || 0;
-        if (sameDayCount >= sameDayLimit) slotDailyLimit = true;
+        if (sameDayCount >= sameDayLimit) {
+          slotDailyLimit = true;
+          if (!slotDailyLimitStudentIds.has(studentId)) {
+            slotDailyLimitStudentIds.add(studentId);
+            slotDailyLimitStudents.push({
+              ...(preciseStudentInfoMap.get(studentId) || {
+                id: studentId,
+                name: "بدون اسم",
+                department: "-",
+                major: "-",
+              }),
+              dailyCount: sameDayCount,
+            });
+          }
+        }
       });
 
       if (slotStudentConflict) {
@@ -7412,6 +7428,9 @@ const pickInvigilators = (course, slot) => {
           dayName: slot.dayName,
           period: slot.period,
           timeText: slot.timeText,
+          blockingStudents: slotDailyLimitStudents
+            .slice()
+            .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ar") || String(a?.id || "").localeCompare(String(b?.id || ""), "ar")),
         });
       }
 
@@ -9560,7 +9579,7 @@ const headerBtn = (danger = false) => ({
             <div>
   <div style={{ marginBottom: 8, fontWeight: 800 }}>
     
-    الحد الأقصى لاختبارات المتدرب في اليوم
+    الحد الأقصى لاختبارات المتدرب في اليوم  
     <HintIcon text="الحد الافتراضي مقرران في اليوم. يمكن رفعه إلى 3 فقط عند الضرورة القصوى وفق اللائحة." />
   </div>
 
@@ -14254,7 +14273,9 @@ const headerBtn = (danger = false) => ({
                 {Array.isArray(slot.blockingStudents) ? (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontWeight: 800, marginBottom: 8, color: COLORS.charcoal }}>
-                      المتدربون المتعارضون
+                      {selectedUnscheduledReasonModal.group?.key === "dailyLimit"
+                        ? "المتدربون الذين بلغوا الحد اليومي"
+                        : "المتدربون المتعارضون"}
                     </div>
                     {slot.blockingStudents.length ? (
                       <div
@@ -14280,6 +14301,9 @@ const headerBtn = (danger = false) => ({
                               <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 120 }}>الرقم</th>
                               <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>القسم</th>
                               <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px" }}>التخصص</th>
+                              {selectedUnscheduledReasonModal.group?.key === "dailyLimit" ? (
+                                <th style={{ border: `1px solid ${COLORS.border}`, padding: "10px 8px", width: 110 }}>عدد اختبارات اليوم</th>
+                              ) : null}
                             </tr>
                           </thead>
                           <tbody>
@@ -14300,6 +14324,11 @@ const headerBtn = (danger = false) => ({
                                 <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px" }}>
                                   {student?.major || "-"}
                                 </td>
+                                {selectedUnscheduledReasonModal.group?.key === "dailyLimit" ? (
+                                  <td style={{ border: `1px solid ${COLORS.border}`, padding: "8px 8px", textAlign: "center", fontWeight: 700 }}>
+                                    {student?.dailyCount || Number(maxExamsPerStudentPerDay) || "-"}
+                                  </td>
+                                ) : null}
                               </tr>
                             ))}
                           </tbody>
