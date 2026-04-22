@@ -2016,7 +2016,7 @@ const buildDayCell = (inv, day) => {
                   .map(
                     (day) => `
                       <th class="day-head">
-                     <div>${day.gregorian}</div>
+                     <div>${day.hijri}</div>
                      
                       </th>
                     `
