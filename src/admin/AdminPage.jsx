@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
+import JSZip from "jszip";
 import {
   generateTraineeLink,
   getAllLocations,
@@ -1309,6 +1310,369 @@ function openPrintWindow(title, html) {
 
   return printWindow;
 }
+
+
+function downloadBlobFile(filename, blob) {
+  const safeFilename = sanitizeDownloadFilename(filename);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = safeFilename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 250);
+}
+
+function escapeXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildDocxRuns(text, { bold = false, size = 22, color = "1F2529" } = {}) {
+  const parts = String(text ?? "").split(/\n/);
+  return parts
+    .map((part, index) => {
+      const safe = escapeXml(part || " ");
+      return `${index > 0 ? "<w:br/>" : ""}<w:t xml:space="preserve">${safe}</w:t>`;
+    })
+    .join("");
+}
+
+function buildDocxParagraph(text, {
+  align = "right",
+  bold = false,
+  size = 22,
+  color = "1F2529",
+  spacingAfter = 80,
+} = {}) {
+  return `
+    <w:p>
+      <w:pPr>
+        <w:bidi/>
+        <w:jc w:val="${align}"/>
+        <w:spacing w:after="${spacingAfter}"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rtl/>
+          ${bold ? "<w:b/>" : ""}
+          <w:sz w:val="${size}"/>
+          <w:szCs w:val="${size}"/>
+          <w:color w:val="${color}"/>
+        </w:rPr>
+        ${buildDocxRuns(text, { bold, size, color })}
+      </w:r>
+    </w:p>
+  `;
+}
+
+function buildDocxCell(paragraphs, {
+  width = 1600,
+  shading = "FFFFFF",
+  align = "center",
+  gridSpan = 1,
+  vMerge = "",
+} = {}) {
+  const content = Array.isArray(paragraphs) ? paragraphs.join("") : paragraphs;
+  return `
+    <w:tc>
+      <w:tcPr>
+        <w:tcW w:w="${width}" w:type="dxa"/>
+        ${gridSpan > 1 ? `<w:gridSpan w:val="${gridSpan}"/>` : ""}
+        ${vMerge ? (vMerge === "restart" ? '<w:vMerge w:val="restart"/>' : '<w:vMerge/>') : ""}
+        <w:shd w:val="clear" w:color="auto" w:fill="${shading}"/>
+      </w:tcPr>
+      ${content}
+    </w:tc>
+  `;
+}
+
+function buildDocxTable(rowsXml, gridCols) {
+  const grid = gridCols.map((width) => `<w:gridCol w:w="${width}"/>`).join("");
+  return `
+    <w:tbl>
+      <w:tblPr>
+        <w:bidiVisual/>
+        <w:tblW w:w="0" w:type="auto"/>
+        <w:jc w:val="center"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="8" w:space="0" w:color="0F172A"/>
+          <w:left w:val="single" w:sz="8" w:space="0" w:color="0F172A"/>
+          <w:bottom w:val="single" w:sz="8" w:space="0" w:color="0F172A"/>
+          <w:right w:val="single" w:sz="8" w:space="0" w:color="0F172A"/>
+          <w:insideH w:val="single" w:sz="6" w:space="0" w:color="0F172A"/>
+          <w:insideV w:val="single" w:sz="6" w:space="0" w:color="0F172A"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>${grid}</w:tblGrid>
+      ${rowsXml}
+    </w:tbl>
+  `;
+}
+
+async function buildDocxBlob({ bodyXml }) {
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+
+  const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+        <w:lang w:bidi="ar-SA"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:bidi/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  mc:Ignorable="w14 wp14">
+  <w:body>
+    ${bodyXml}
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="567" w:right="567" w:bottom="567" w:left="567" w:header="283" w:footer="283" w:gutter="0"/>
+      <w:bidi/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", contentTypesXml);
+  zip.folder("_rels").file(".rels", rootRelsXml);
+  const wordFolder = zip.folder("word");
+  wordFolder.file("document.xml", documentXml);
+  wordFolder.file("styles.xml", stylesXml);
+  wordFolder.folder("_rels").file("document.xml.rels", documentRelsXml);
+
+  return zip.generateAsync({
+    type: "blob",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+}
+
+function buildOfficialDocxHeader({ collegeName, title, metaLines = [] }) {
+  return [
+    buildDocxParagraph("المملكة العربية السعودية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
+    buildDocxParagraph("المؤسسة العامة للتدريب التقني والمهني", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 40 }),
+    buildDocxParagraph(collegeName || "الكلية التقنية", { align: "right", bold: true, size: 24, color: "0F5F68", spacingAfter: 140 }),
+    buildDocxParagraph(title, { align: "center", bold: true, size: 28, color: "111827", spacingAfter: 120 }),
+    ...metaLines.map((line) => buildDocxParagraph(line, { align: "center", size: 20, color: "475569", spacingAfter: 50 })),
+  ].join("");
+}
+
+async function exportScheduleDocx({
+  collegeName,
+  schedule,
+  periodLabels = [],
+  defaultExamHall,
+  selectedDepartment = "__all__",
+  selectedMajor = "__all__",
+}) {
+  if (!Array.isArray(schedule) || !schedule.length) return;
+
+  const groupedDays = groupScheduleForOfficialPrint(schedule);
+  const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
+  const resolvedPeriodLabels = periodIds.map((periodId) => {
+    const fromArg = periodLabels.find((p) => p.period === periodId);
+    if (fromArg) return fromArg;
+    const firstItem = schedule.find((s) => s.period === periodId);
+    return { period: periodId, label: `الفترة ${periodId}`, timeText: firstItem?.timeText || "" };
+  });
+
+  const extractedDepartments = Array.from(
+    new Set(
+      schedule.flatMap((item) =>
+        splitBySlash(item.department)
+          .map((dep) => String(dep || "").trim())
+          .filter((dep) => dep && normalizeArabic(dep) !== normalizeArabic("الدراسات العامة"))
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b, "ar"));
+
+  let departmentLabel = "";
+  let majorLabel = "";
+  if (selectedDepartment === "__all__" && selectedMajor === "__all__") {
+    departmentLabel = "جميع الأقسام";
+    majorLabel = "جميع التخصصات";
+  } else {
+    departmentLabel = selectedDepartment !== "__all__"
+      ? selectedDepartment
+      : extractedDepartments.length === 1
+      ? extractedDepartments[0]
+      : extractedDepartments.length
+      ? extractedDepartments.join(" / ")
+      : "جميع الأقسام";
+    majorLabel = selectedMajor !== "__all__" ? selectedMajor : "جميع التخصصات";
+  }
+
+  const widths = [2200];
+  for (let i = 0; i < periodIds.length; i += 1) widths.push(420, 2200, 1100, 1400);
+
+  const headerRowOne = `<w:tr>${buildDocxCell(buildDocxParagraph("اليوم / التاريخ", { align: "center", bold: true, size: 22, color: "0F172A" }), { width: 2200, shading: "F8FAFC" })}${resolvedPeriodLabels.map((p) => buildDocxCell([
+    buildDocxParagraph(p.label, { align: "center", bold: true, size: 22, color: "0F172A", spacingAfter: 20 }),
+    buildDocxParagraph(p.timeText || "", { align: "center", size: 18, color: "475569", spacingAfter: 20 }),
+  ], { width: 5120, shading: "F8FAFC", gridSpan: 4 })).join("")}</w:tr>`;
+
+  const headerRowTwo = `<w:tr>${buildDocxCell(buildDocxParagraph("", { align: "center" }), { width: 2200, shading: "ECFEFF" })}${periodIds.map(() => [
+    buildDocxCell(buildDocxParagraph("م", { align: "center", bold: true, size: 22 }), { width: 420, shading: "ECFEFF" }),
+    buildDocxCell(buildDocxParagraph("المقرر", { align: "center", bold: true, size: 22 }), { width: 2200, shading: "ECFEFF" }),
+    buildDocxCell(buildDocxParagraph("الرمز", { align: "center", bold: true, size: 22 }), { width: 1100, shading: "ECFEFF" }),
+    buildDocxCell(buildDocxParagraph("المقر", { align: "center", bold: true, size: 22 }), { width: 1400, shading: "ECFEFF" }),
+  ].join("")).join("")}</w:tr>`;
+
+  const bodyRows = groupedDays.map((day) => {
+    const rowsCount = Math.max(...periodIds.map((p) => (day.periods[p] ? day.periods[p].length : 0)), 1);
+    const theme = getDayTheme(day.dayName);
+    const shading = (theme.bg || "#EEF6F6").replace("#", "");
+    return Array.from({ length: rowsCount }).map((_, rowIndex) => {
+      const dayCell = rowIndex === 0
+        ? buildDocxCell([
+            buildDocxParagraph(day.dayName, { align: "center", bold: true, size: 22, color: "0F172A", spacingAfter: 20 }),
+            buildDocxParagraph(day.hijriNumeric, { align: "center", size: 18, color: "475569", spacingAfter: 20 }),
+          ], { width: 2200, shading, vMerge: rowsCount > 1 ? "restart" : "" })
+        : buildDocxCell("", { width: 2200, shading, vMerge: rowsCount > 1 ? "continue" : "" });
+
+      const periodCells = periodIds.map((periodId) => {
+        const list = day.periods[periodId] || [];
+        const item = list[rowIndex];
+        if (!item) {
+          return [
+            buildDocxCell(buildDocxParagraph(String(rowIndex + 1), { align: "center", size: 18 }), { width: 420, shading }),
+            buildDocxCell(buildDocxParagraph("", { align: "center", size: 18 }), { width: 2200, shading }),
+            buildDocxCell(buildDocxParagraph("", { align: "center", size: 18 }), { width: 1100, shading }),
+            buildDocxCell(buildDocxParagraph("", { align: "center", size: 18 }), { width: 1400, shading }),
+          ].join("");
+        }
+        return [
+          buildDocxCell(buildDocxParagraph(String(rowIndex + 1), { align: "center", size: 18 }), { width: 420, shading }),
+          buildDocxCell(buildDocxParagraph(item.courseName || "", { align: "center", size: 18 }), { width: 2200, shading }),
+          buildDocxCell(buildDocxParagraph(item.courseCode || "", { align: "center", size: 18 }), { width: 1100, shading }),
+          buildDocxCell(buildDocxParagraph(item.examHall || defaultExamHall || "غير محدد", { align: "center", size: 18 }), { width: 1400, shading }),
+        ].join("");
+      }).join("");
+      return `<w:tr>${dayCell}${periodCells}</w:tr>`;
+    }).join("");
+  }).join("");
+
+  const bodyXml = [
+    buildOfficialDocxHeader({
+      collegeName,
+      title: "جدول الاختبارات النهائية",
+      metaLines: [
+        `القسم: ${departmentLabel}`,
+        `التخصص: ${majorLabel}`,
+        `تاريخ الطباعة: ${new Intl.DateTimeFormat("ar-SA", { year: "numeric", month: "long", day: "numeric" }).format(new Date())}`,
+      ],
+    }),
+    buildDocxTable(headerRowOne + headerRowTwo + bodyRows, widths),
+  ].join("");
+
+  const blob = await buildDocxBlob({ bodyXml });
+  downloadBlobFile(`جدول الاختبارات ${getTodayFileStamp()}.docx`, blob);
+}
+
+async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
+  if (!Array.isArray(invigilatorTable) || !invigilatorTable.length) return;
+
+  const allDays = Array.from(
+    new Set(
+      invigilatorTable.flatMap((inv) =>
+        inv.items.map(
+          (item) => `${item.dateISO}|${item.dayName}|${item.gregorian}|${item.hijriNumeric || (item.dateISO ? formatHijriNumeric(new Date(`${item.dateISO}T00:00:00`)) : "")}`
+        )
+      )
+    )
+  )
+    .map((value) => {
+      const [dateISO, dayName, gregorian, hijriNumeric] = value.split("|");
+      return { dateISO, dayName, gregorian, hijriNumeric };
+    })
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+  const buildDayCellText = (inv, day) => {
+    const matches = inv.items
+      .filter((item) => item.dateISO === day.dateISO)
+      .sort((a, b) => a.period - b.period);
+    if (!matches.length) return "-";
+    return matches.map((item) => `الفترة ${item.period} - ${String(item.examHall || "").trim() || "بدون قاعة"}`).join("\n");
+  };
+
+  const widths = [2200, ...allDays.map(() => 1800)];
+  const headerRow = `<w:tr>${buildDocxCell(buildDocxParagraph("المراقب", { align: "center", bold: true, size: 22 }), { width: 2200, shading: "ECFEFF" })}${allDays.map((day) => buildDocxCell([
+    buildDocxParagraph(day.dayName || "", { align: "center", bold: true, size: 20, color: "0F172A", spacingAfter: 20 }),
+    buildDocxParagraph(day.hijriNumeric || "", { align: "center", size: 18, color: "475569", spacingAfter: 20 }),
+    buildDocxParagraph(day.gregorian || "", { align: "center", size: 16, color: "64748B", spacingAfter: 20 }),
+  ], { width: 1800, shading: "F8FAFC" })).join("")}</w:tr>`;
+
+  const rowsXml = invigilatorTable.map((inv, index) => {
+    const shading = index % 2 === 0 ? "FFFFFF" : "F8FCFC";
+    return `<w:tr>${buildDocxCell(buildDocxParagraph(inv.name || "", { align: "center", bold: true, size: 20 }), { width: 2200, shading })}${allDays.map((day) => buildDocxCell(buildDocxParagraph(buildDayCellText(inv, day), { align: "center", size: 18 }), { width: 1800, shading })).join("")}</w:tr>`;
+  }).join("");
+
+  const bodyXml = [
+    buildOfficialDocxHeader({
+      collegeName,
+      title: "جدول المراقبين وفترات المراقبة",
+      metaLines: [
+        `عدد المراقبين: ${invigilatorTable.length}`,
+        `عدد الأيام: ${allDays.length}`,
+        `تاريخ الطباعة: ${new Intl.DateTimeFormat("ar-SA", { year: "numeric", month: "long", day: "numeric" }).format(new Date())}`,
+      ],
+    }),
+    buildDocxTable(headerRow + rowsXml, widths),
+  ].join("");
+
+  const blob = await buildDocxBlob({ bodyXml });
+  downloadBlobFile(`جدول المراقبين ${getTodayFileStamp()}.docx`, blob);
+}
+
 
 function getPrintBaseStyles() {
   return `
@@ -3928,6 +4292,7 @@ const extraCandidates = extraPool
   const [previewPage, setPreviewPage] = useState(0);
   const [selectedStudentIdForPrint, setSelectedStudentIdForPrint] = useState("");
   const [compactPrintMode, setCompactPrintMode] = useState(false);
+  const [printOutputFormat, setPrintOutputFormat] = useState("pdf");
 const [courseAKey, setCourseAKey] = useState("");
 const [courseBKey, setCourseBKey] = useState("");
   const [includeInvigilators, setIncludeInvigilators] = useState(true);
@@ -4839,6 +5204,7 @@ const buildPersistedState = () => ({
   previewTab,
   previewPage,
   compactPrintMode,
+  printOutputFormat,
   courseAKey,
 courseBKey,
 });
@@ -4968,6 +5334,7 @@ setGeneralStudiesExtraInvigilators(Array.isArray(saved.generalStudiesExtraInvigi
   setStudentSearchText("");
   setShowStudentSuggestions(false);
   setCompactPrintMode(saved.compactPrintMode ?? false);
+  setPrintOutputFormat(saved.printOutputFormat || "pdf");
   setCourseAKey(saved.courseAKey || "");
 setCourseBKey(saved.courseBKey || "");
 };
@@ -13053,26 +13420,62 @@ const headerBtn = (danger = false) => ({
                 </div>
               </div>
 
-              <label
+              <div
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
+                  gap: 12,
+                  flexWrap: "wrap",
                   alignItems: "center",
-                  gap: 10,
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14,
-                  padding: "10px 12px",
-                  background: "#fff",
                   marginBottom: 12,
-                  cursor: "pointer",
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={compactPrintMode}
-                  onChange={(e) => setCompactPrintMode(e.target.checked)}
-                />
-                ضغط الطباعة في صفحة واحدة قدر الإمكان
-              </label>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={compactPrintMode}
+                    onChange={(e) => setCompactPrintMode(e.target.checked)}
+                  />
+                  ضغط الطباعة في صفحة واحدة قدر الإمكان
+                </label>
+
+                <div
+                  style={{
+                    display: "inline-flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 16,
+                    padding: 8,
+                    background: "#fff",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPrintOutputFormat("pdf")}
+                    style={cardButtonStyle({ active: printOutputFormat === "pdf" })}
+                  >
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintOutputFormat("docx")}
+                    style={cardButtonStyle({ active: printOutputFormat === "docx" })}
+                  >
+                    DOCX قابل للتعديل
+                  </button>
+                </div>
+              </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
                 <button onClick={() => setCurrentStep(10)} style={cardButtonStyle()}>
@@ -13084,8 +13487,8 @@ const headerBtn = (danger = false) => ({
                 </button>
 
                 <button
-                  onClick={() =>
-                    printScheduleOnlyPdf({
+                  onClick={async () => {
+                    const sharedArgs = {
                       collegeName: parsed.collegeName,
                       schedule: filteredScheduleForPrint,
                       periodLabels: parsedPeriods
@@ -13104,24 +13507,46 @@ const headerBtn = (danger = false) => ({
                       selectedDepartment: printDepartmentFilter,
                       selectedMajor: printMajorFilter,
                       compactMode: compactPrintMode,
-                    })
-                  }
+                    };
+
+                    try {
+                      if (printOutputFormat === "docx") {
+                        await exportScheduleDocx(sharedArgs);
+                      } else {
+                        printScheduleOnlyPdf(sharedArgs);
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      showToast("تعذر الإخراج", "حدث خطأ أثناء تجهيز ملف جدول الاختبارات.", "error");
+                    }
+                  }}
                   style={cardButtonStyle()}
                 >
-                  طباعة جدول الاختبارات
+                  {printOutputFormat === "docx" ? "تصدير جدول الاختبارات DOCX" : "طباعة جدول الاختبارات PDF"}
                 </button>
 
                 <button
-                  onClick={() =>
-                    printInvigilatorsOnlyPdf({
+                  onClick={async () => {
+                    const sharedArgs = {
                       collegeName: parsed.collegeName,
                       invigilatorTable,
                       compactMode: compactPrintMode,
-                    })
-                  }
+                    };
+
+                    try {
+                      if (printOutputFormat === "docx") {
+                        await exportInvigilatorsDocx(sharedArgs);
+                      } else {
+                        printInvigilatorsOnlyPdf(sharedArgs);
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      showToast("تعذر الإخراج", "حدث خطأ أثناء تجهيز ملف جدول المراقبين.", "error");
+                    }
+                  }}
                   style={cardButtonStyle()}
                 >
-                  طباعة جدول المراقبين
+                  {printOutputFormat === "docx" ? "تصدير جدول المراقبين DOCX" : "طباعة جدول المراقبين PDF"}
                 </button>
                  <button onClick={() => setCurrentStep(12)} style={cardButtonStyle({ active: true })}>
         التالي: التصدير وبوابة المتدربين
