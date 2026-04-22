@@ -414,7 +414,7 @@ function formatGregorian(date) {
 }
 
 function formatHijri(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -423,7 +423,7 @@ function formatHijri(date) {
 }
 
 function formatHijriNumeric(date) {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -6126,6 +6126,39 @@ const nudgeCoursePriority = (listType, courseKey, direction) => {
 const resolveScheduledSlotId = (item) => item?.id || `${item?.dateISO}-${item?.period}`;
 
 const generateScheduleForCourses = (coursesList, existingScheduled = []) => {
+  const scopedPriorityKeys = Array.isArray(coursesList)
+    ? coursesList.map((course) => String(course?.key || "").trim()).filter(Boolean)
+    : [];
+  const generalPriorityRankMap = new Map(
+    (generalPriorityOrder || []).map((key, index) => [String(key || "").trim(), index])
+  );
+  const specializedPriorityRankMap = new Map(
+    (specializedPriorityOrder || []).map((key, index) => [String(key || "").trim(), index])
+  );
+  const scopedPrioritySet = new Set(scopedPriorityKeys);
+  const scopedPriorityCount = Math.max(1, scopedPriorityKeys.length || 1);
+
+  const getCoursePriorityRank = (course) => {
+    const key = String(course?.key || "").trim();
+    if (!key) return scopedPriorityCount;
+
+    const isGeneral = isGeneralStudiesCourse(course);
+    const rankMap = isGeneral ? generalPriorityRankMap : specializedPriorityRankMap;
+    const directRank = rankMap.has(key) ? rankMap.get(key) : scopedPriorityCount;
+
+    if (scopedPrioritySet.size && !scopedPrioritySet.has(key)) {
+      return scopedPriorityCount + directRank;
+    }
+
+    return directRank;
+  };
+
+  const getCoursePriorityStrength = (course) => {
+    const rank = getCoursePriorityRank(course);
+    if (!Number.isFinite(rank)) return 0;
+    return Math.max(0, (scopedPriorityCount - rank) / scopedPriorityCount);
+  };
+
   if (!rows.length) {
     showSf01ImportFirstToast();
     return [];
@@ -6830,6 +6863,14 @@ const requiredSeats = Number(course.studentCount) || 0;
 
     let score = slotLoadPenalty + sameDayPenalty;
 
+    const priorityStrength = getCoursePriorityStrength(course);
+    const totalDatesCount = Math.max(1, orderedDateIndexMap.size || 1);
+    const dateIndex = orderedDateIndexMap.has(slot.dateISO) ? orderedDateIndexMap.get(slot.dateISO) : totalDatesCount - 1;
+    const normalizedDateFavor = Math.max(0, 1 - dateIndex / totalDatesCount);
+    const normalizedPeriodFavor = Math.max(0, 1 - ((Number(slot.period) || 1) - 1) / Math.max(1, validPeriods.length || 1));
+    const manualPriorityBoost = priorityStrength * ((normalizedDateFavor * 10) + (normalizedPeriodFavor * 6));
+    score -= manualPriorityBoost;
+
     const courseConstraint = courseConstraints[course.key] || getCourseConstraintDefaults();
 
     if (courseConstraint.preferredDays.includes(slot.dayName)) score -= 40;
@@ -6938,11 +6979,14 @@ const requiredSeats = Number(course.studentCount) || 0;
   const bGrouped = enableSamePeriodGroups && samePeriodGroupLookup.has(b.key);
   const aGroupSize = samePeriodGroupSizeLookup.get(a.key) || 0;
   const bGroupSize = samePeriodGroupSizeLookup.get(b.key) || 0;
+  const aPriorityRank = getCoursePriorityRank(a);
+  const bPriorityRank = getCoursePriorityRank(b);
 
   return (
     Number(bGrouped) - Number(aGrouped) ||
     bGroupSize - aGroupSize ||
     bNeed - aNeed ||
+    aPriorityRank - bPriorityRank ||
     b.studentCount - a.studentCount ||
     b.conflictDegree - a.conflictDegree
   );
@@ -10891,7 +10935,7 @@ const headerBtn = (danger = false) => ({
                 lineHeight: 1.8,
               }}
             >
-              يمكنك تغيير أولوية مقررات الدراسات العامة يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. يبدأ التوزيع من الأعلى إلى الأسفل مع بقاء بقية معايير النظام الذكية فعّالة.
+              يمكنك تغيير أولوية مقررات الدراسات العامة يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. ترتيب الأولوية يؤثر على التوزيع حسب الإمكان، مع مراعاة التعارضات والقيود وسعة القاعات وتوفر المراقبين.
             </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
