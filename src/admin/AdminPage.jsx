@@ -10740,7 +10740,7 @@ const headerBtn = (danger = false) => ({
           </div>
         )}
 
-       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+       <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", gridColumn: "1 / -1", }}>
   <div style={{ width: "100%", maxWidth: 600, textAlign: "right" }}>
     <div style={{ marginBottom: 8, fontWeight: 800, textAlign: "right" }}>
       أسماء المراقبين
@@ -10760,8 +10760,7 @@ const headerBtn = (danger = false) => ({
       padding: 14,
       width: "100%",
      maxWidth: "90%",
-    gridColumn: "1 / -1",
-    }}
+       }}
   >
     <div style={{ fontWeight: 800, marginBottom: 10 }}>
       استبعاد مراقبين من التوزيع
