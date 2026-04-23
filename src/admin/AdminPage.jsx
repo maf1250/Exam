@@ -14701,6 +14701,7 @@ const headerBtn = (danger = false) => ({
 
   {/* 👇 قسم الرفع */}
   <div style={{
+     ...stepNineCardStyle,
   marginTop: 10,
   padding: 12,
   borderRadius: 32,
