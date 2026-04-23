@@ -15142,7 +15142,7 @@ const headerBtn = (danger = false) => ({
         <br />
         <span style={{ color: COLORS.charcoal }}>{selectedConflicts.name}</span>
       </h4>
-
+                <p> اضغط على المقرر لعرض التفاصيل</p>
       {selectedConflicts.list.length === 0 ? (
         <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد تعارض</p>
       ) : (
@@ -15162,6 +15162,7 @@ const headerBtn = (danger = false) => ({
                 gap: 12,
               }}
             >
+    
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                 <span
                   style={{
