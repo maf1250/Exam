@@ -14686,17 +14686,24 @@ const headerBtn = (danger = false) => ({
       >
         <div style={{ fontSize: 18 }}>📩</div>
 
-        <div style={{ lineHeight: 1.9, width: "100%" }}>
-          <strong>إرسال ملف البوابة</strong>
+      <div style={{ lineHeight: 1.9, width: "100%" }}>
+  <strong>إرسال ملف البوابة</strong>
 
-          <div>
-            بعد تصدير بيانات المتدربين، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
-            المتدربين وتحديث بياناتها، نأمل إرسال الملف بعد كل عملية توزيع على
-            البريد التالي:
-            <br />
-            <span style={{ fontWeight: 700 }}>m.alfayez@tvtc.gov.sa</span>
-          </div>
-        </div>
+  <div>
+    بعد تصدير بيانات المتدربين، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
+    المتدربين وتحديث بياناتها، نأمل إرسال الملف بعد كل عملية توزيع على
+    البريد التالي:
+    <br />
+    <span style={{ fontWeight: 700 }}>
+      m.alfayez@tvtc.gov.sa
+    </span>
+  </div>
+
+  {/* 👇 قسم الرفع */}
+  <div style={{ marginTop: 16 }}>
+    <CollegeJsonUploader />
+  </div>
+</div>
       </div>
     </div>
 
