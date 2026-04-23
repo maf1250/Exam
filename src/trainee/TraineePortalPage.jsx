@@ -104,6 +104,17 @@ function isDeprivedScheduleItem(item) {
 }
 
 
+function sortTraineeScheduleItems(schedule = []) {
+  return (schedule || [])
+    .map((item, index) => ({ item, index, deprived: isDeprivedScheduleItem(item) ? 1 : 0 }))
+    .sort((a, b) => {
+      if (a.deprived !== b.deprived) return a.deprived - b.deprived;
+      return a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+
 function fieldStyle() {
   return {
     width: "100%",
@@ -123,7 +134,7 @@ function fieldStyle() {
 function openPrintWindow({ collegeName, selectedStudent }) {
   const instructions = getInstructions();
   const today = new Date().toLocaleDateString("ar-SA");
-const rowsHtml = (selectedStudent?.schedule || [])
+const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
   .map((item, index) => {
     const deprivationStatus = getDeprivationStatus(item);
     const isDeprived = Boolean(deprivationStatus);
@@ -455,6 +466,10 @@ export default function TraineePortalPage() {
       today: new Date().toLocaleDateString("ar-SA"),
     };
   }, [collegeData, selectedStudent]);
+
+  const sortedSelectedSchedule = useMemo(() => {
+    return sortTraineeScheduleItems(selectedStudent?.schedule || []);
+  }, [selectedStudent]);
 
   return (
     <div
@@ -834,7 +849,7 @@ export default function TraineePortalPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(selectedStudent.schedule || []).map((item, index) => {
+                        {sortedSelectedSchedule.map((item, index) => {
                           const deprivationStatus = getDeprivationStatus(item);
                           const isDeprived = Boolean(deprivationStatus);
 
