@@ -4250,48 +4250,74 @@ const extraCandidates = extraPool
         return values.length ? Math.min(...values) : getMinInvigilatorLoad();
       };
 
-      const pickOneFairCandidate = (candidates, allowedGap = 0) => {
+      const pickMostBalancedFromPool = (candidates, {
+        slack = hardFairnessForThisCourse ? 0 : 1,
+        allowForcedFallback = false,
+      } = {}) => {
         const remainingCandidates = (Array.isArray(candidates) ? candidates : []).filter(
           (name) => !chosen.includes(name)
         );
-        if (!remainingCandidates.length) return false;
+
+        if (!remainingCandidates.length) return null;
 
         const minLoad = getMinLoadWithinCandidates(remainingCandidates);
-        const fairCandidates = sortCandidates(
+        const balancedCandidates = sortCandidates(
           remainingCandidates.filter((name) =>
-            (invigilatorLoad.get(name) || 0) <= minLoad + allowedGap
+            (invigilatorLoad.get(name) || 0) <= minLoad + slack
           )
         );
 
-        if (!fairCandidates.length) return false;
-        chosen.push(fairCandidates[0]);
-        return true;
+        if (balancedCandidates.length) return balancedCandidates[0];
+        if (!allowForcedFallback) return null;
+
+        const forcedCandidates = sortCandidates(remainingCandidates);
+        return forcedCandidates[0] || null;
       };
 
       while (chosen.length < requiredCount) {
-        const picked = pickOneFairCandidate(
-          constrainedCandidates,
-          hardFairnessForThisCourse ? 0 : 1
-        );
-        if (!picked) break;
+        const nextName = pickMostBalancedFromPool(constrainedCandidates, {
+          slack: hardFairnessForThisCourse ? 0 : 1,
+          allowForcedFallback: false,
+        });
+
+        if (!nextName) break;
+        chosen.push(nextName);
       }
 
-      while (chosen.length < requiredCount && allowExtraSupport) {
-        const extraRemaining = extraCandidates.filter((name) => !chosen.includes(name));
-        if (!extraRemaining.length) break;
+      if (allowExtraSupport && chosen.length < requiredCount) {
+        while (chosen.length < requiredCount) {
+          const nextExtraName = pickMostBalancedFromPool(extraCandidates, {
+            slack: hardFairnessForThisCourse ? 0 : 1,
+            allowForcedFallback: false,
+          });
 
-        const strictMinLoad = getMinLoadWithinCandidates(strictCandidates);
-        const extraMinLoad = getMinLoadWithinCandidates(extraRemaining);
-        const fairnessBaseline = Math.min(strictMinLoad, extraMinLoad);
+          if (!nextExtraName) break;
+          chosen.push(nextExtraName);
+        }
+      }
 
-        const picked = pickOneFairCandidate(
-          extraRemaining.filter((name) =>
-            (invigilatorLoad.get(name) || 0) <= fairnessBaseline + 1
-          ),
-          0
-        );
+      if (chosen.length < requiredCount) {
+        while (chosen.length < requiredCount) {
+          const fallbackName = pickMostBalancedFromPool(constrainedCandidates, {
+            slack: Number.POSITIVE_INFINITY,
+            allowForcedFallback: true,
+          });
 
-        if (!picked) break;
+          if (!fallbackName) break;
+          chosen.push(fallbackName);
+        }
+      }
+
+      if (allowExtraSupport && chosen.length < requiredCount) {
+        while (chosen.length < requiredCount) {
+          const fallbackExtraName = pickMostBalancedFromPool(extraCandidates, {
+            slack: Number.POSITIVE_INFINITY,
+            allowForcedFallback: true,
+          });
+
+          if (!fallbackExtraName) break;
+          chosen.push(fallbackExtraName);
+        }
       }
       
      if (chosen.length < requiredCount) {
@@ -4597,14 +4623,20 @@ const extraCandidates = extraPool
     const sourceItem = sourceInstanceId ? schedule.find((item) => item.instanceId === sourceInstanceId) : null;
     if (!name || !targetItem) return [];
 
-    const messages = [];
+    const diagnostics = [];
+    const pushDiagnostic = (message, blocking = false) => {
+      if (!message) return;
+      diagnostics.push({ message, blocking: Boolean(blocking) });
+    };
+
     const targetSlotKey = getSlotPeriodKey(targetItem);
     const targetHasName = (targetItem.invigilators || []).includes(name);
 
     if (targetHasName && sourceInstanceId !== targetInstanceId) {
-    messages.push(
-    `المراقب ${name} مُسند أصلًا لهذا المقرر. لا يمكن إتمام النقل إلى هذا المقرر حتى لا يتم تكرار الإسناد أو إلغاء الإسناد الحالي دون قصد.`
-    );
+      pushDiagnostic(
+        `المراقب ${name} مُسند أصلًا لهذا المقرر. لا يمكن إتمام النقل إلى هذا المقرر حتى لا يتم تكرار الإسناد أو إلغاء الإسناد الحالي دون قصد.`,
+        true
+      );
     }
 
     const samePeriodAssignments = schedule.filter((item) =>
@@ -4615,25 +4647,26 @@ const extraCandidates = extraPool
     );
 
     if (samePeriodAssignments.length) {
-    messages.push(
-    `المراقب ${name} مُسند أصلًا في هذه الفترة للمقرر: ${samePeriodAssignments
-      .map((item) => item.courseName)
-      .join("، ")}. لا يمكن إسناده لأكثر من مقرر في الفترة نفسها.`
-    );
+      pushDiagnostic(
+        `المراقب ${name} مُسند أصلًا في هذه الفترة للمقرر: ${samePeriodAssignments
+          .map((item) => item.courseName)
+          .join("، ")}. لا يمكن إسناده لأكثر من مقرر في الفترة نفسها.`,
+        true
+      );
     }
 
     const currentTotalLoad = schedule.reduce((sum, item) => sum + ((item.invigilators || []).includes(name) ? 1 : 0), 0);
     const nextTotalLoad = sourceItem ? currentTotalLoad : (targetHasName ? currentTotalLoad : currentTotalLoad + 1);
     const maxCap = Number(maxInvigilationsPerInvigilator);
     if (Number.isFinite(maxCap) && maxCap > 0 && nextTotalLoad > maxCap) {
-      messages.push(`سينتقل إجمالي مراقبات ${name} إلى ${nextTotalLoad} وهو أعلى من الحد الأقصى المحدد (${maxCap}).`);
+      pushDiagnostic(`سينتقل إجمالي مراقبات ${name} إلى ${nextTotalLoad} وهو أعلى من الحد الأقصى المحدد (${maxCap}).`);
     }
 
     if (!sourceItem && !targetHasName) {
       const summaryLoads = manualInvigilatorLoadSummary.map((entry) => entry.total);
       const minLoad = summaryLoads.length ? Math.min(...summaryLoads) : 0;
       if (nextTotalLoad > minLoad + 1) {
-        messages.push(`هذا الإسناد قد يخل بعدالة التوزيع؛ لأن حمل ${name} سيصبح ${nextTotalLoad} بينما أدنى حمل حالي هو ${minLoad}.`);
+        pushDiagnostic(`هذا الإسناد قد يخل بعدالة التوزيع؛ لأن حمل ${name} سيصبح ${nextTotalLoad} بينما أدنى حمل حالي هو ${minLoad}.`);
       }
     }
 
@@ -4641,11 +4674,20 @@ const extraCandidates = extraPool
       const requiredCount = includeInvigilators ? getRequiredInvigilatorsCount(sourceItem) : 0;
       const remainingSourceCount = Math.max(0, (sourceItem.invigilators || []).filter((invigilator) => invigilator !== name).length);
       if (includeInvigilators && remainingSourceCount < requiredCount) {
-        messages.push(`نقل ${name} سيجعل المقرر السابق أقل من العدد المطلوب من المراقبين (${remainingSourceCount}/${requiredCount}).`);
+        pushDiagnostic(`نقل ${name} سيجعل المقرر السابق أقل من العدد المطلوب من المراقبين (${remainingSourceCount}/${requiredCount}).`);
       }
     }
 
-    return Array.from(new Set(messages));
+    const uniqueDiagnostics = [];
+    const seen = new Set();
+    diagnostics.forEach((entry) => {
+      const key = `${entry.blocking ? "1" : "0"}__${entry.message}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      uniqueDiagnostics.push(entry);
+    });
+
+    return uniqueDiagnostics;
   }
 
   function applyInvigilatorTransfer({ name, sourceInstanceId = "", targetInstanceId = "" }) {
@@ -4680,32 +4722,53 @@ const extraCandidates = extraPool
   }
 
   function confirmOrApplyInvigilatorTransfer(payload) {
-  const diagnostics = getInvigilatorTransferDiagnostics(payload);
+    const diagnostics = getInvigilatorTransferDiagnostics(payload);
 
-  if (diagnostics.length) {
-    showToast(
-      "تعذر إسناد المراقب",
-      diagnostics.join(" "),
-      "warning",
-      {
-        persistent: true,
-        actions: [
-          {
-            label: "إغلاق",
-            onClick: () => {
-              setDraggingInvigilatorPayload(null);
-              setActiveInvigilatorDropCourseId("");
-              setToast(null);
-            },
-          },
-        ],
-      }
-    );
-    return;
+    if (diagnostics.length) {
+      const hasBlockingDiagnostic = diagnostics.some((entry) => entry?.blocking);
+      const description = diagnostics.map((entry) => entry?.message).filter(Boolean).join(" ");
+
+      showToast(
+        hasBlockingDiagnostic ? "تعذر إسناد المراقب" : "تحذير: تم اختراق معيار",
+        description,
+        "warning",
+        {
+          persistent: true,
+          actions: hasBlockingDiagnostic
+            ? [
+                {
+                  label: "إغلاق",
+                  onClick: () => {
+                    setDraggingInvigilatorPayload(null);
+                    setActiveInvigilatorDropCourseId("");
+                    setToast(null);
+                  },
+                },
+              ]
+            : [
+                {
+                  label: "نعم، نفّذ العملية",
+                  onClick: () => {
+                    applyInvigilatorTransfer(payload);
+                    setToast(null);
+                  },
+                },
+                {
+                  label: "إلغاء",
+                  onClick: () => {
+                    setDraggingInvigilatorPayload(null);
+                    setActiveInvigilatorDropCourseId("");
+                    setToast(null);
+                  },
+                },
+              ],
+        }
+      );
+      return;
+    }
+
+    applyInvigilatorTransfer(payload);
   }
-
-  applyInvigilatorTransfer(payload);
-}
   
 
   function removeInvigilatorFromScheduledItem(itemInstanceId, name) {
@@ -7511,48 +7574,74 @@ const pickInvigilators = (course, slot) => {
     return values.length ? Math.min(...values) : getMinInvigilatorLoad();
   };
 
-  const pickOneFairCandidate = (candidates, allowedGap = 0) => {
+  const pickMostBalancedFromPool = (candidates, {
+    slack = hardFairnessForThisCourse ? 0 : 1,
+    allowForcedFallback = false,
+  } = {}) => {
     const remainingCandidates = (Array.isArray(candidates) ? candidates : []).filter(
       (name) => !chosen.includes(name)
     );
-    if (!remainingCandidates.length) return false;
+
+    if (!remainingCandidates.length) return null;
 
     const minLoad = getMinLoadWithinCandidates(remainingCandidates);
-    const fairCandidates = sortCandidates(
+    const balancedCandidates = sortCandidates(
       remainingCandidates.filter((name) =>
-        (invigilatorLoad.get(name) || 0) <= minLoad + allowedGap
+        (invigilatorLoad.get(name) || 0) <= minLoad + slack
       )
     );
 
-    if (!fairCandidates.length) return false;
-    chosen.push(fairCandidates[0]);
-    return true;
+    if (balancedCandidates.length) return balancedCandidates[0];
+    if (!allowForcedFallback) return null;
+
+    const forcedCandidates = sortCandidates(remainingCandidates);
+    return forcedCandidates[0] || null;
   };
 
   while (chosen.length < requiredCount) {
-    const picked = pickOneFairCandidate(
-      constrainedCandidates,
-      hardFairnessForThisCourse ? 0 : 1
-    );
-    if (!picked) break;
+    const nextName = pickMostBalancedFromPool(constrainedCandidates, {
+      slack: hardFairnessForThisCourse ? 0 : 1,
+      allowForcedFallback: false,
+    });
+
+    if (!nextName) break;
+    chosen.push(nextName);
   }
 
-  while (chosen.length < requiredCount && allowExtraSupport) {
-    const extraRemaining = extraCandidates.filter((name) => !chosen.includes(name));
-    if (!extraRemaining.length) break;
+  if (allowExtraSupport && chosen.length < requiredCount) {
+    while (chosen.length < requiredCount) {
+      const nextExtraName = pickMostBalancedFromPool(extraCandidates, {
+        slack: hardFairnessForThisCourse ? 0 : 1,
+        allowForcedFallback: false,
+      });
 
-    const strictMinLoad = getMinLoadWithinCandidates(strictCandidates);
-    const extraMinLoad = getMinLoadWithinCandidates(extraRemaining);
-    const fairnessBaseline = Math.min(strictMinLoad, extraMinLoad);
+      if (!nextExtraName) break;
+      chosen.push(nextExtraName);
+    }
+  }
 
-    const picked = pickOneFairCandidate(
-      extraRemaining.filter((name) =>
-        (invigilatorLoad.get(name) || 0) <= fairnessBaseline + 1
-      ),
-      0
-    );
+  if (chosen.length < requiredCount) {
+    while (chosen.length < requiredCount) {
+      const fallbackName = pickMostBalancedFromPool(constrainedCandidates, {
+        slack: Number.POSITIVE_INFINITY,
+        allowForcedFallback: true,
+      });
 
-    if (!picked) break;
+      if (!fallbackName) break;
+      chosen.push(fallbackName);
+    }
+  }
+
+  if (allowExtraSupport && chosen.length < requiredCount) {
+    while (chosen.length < requiredCount) {
+      const fallbackExtraName = pickMostBalancedFromPool(extraCandidates, {
+        slack: Number.POSITIVE_INFINITY,
+        allowForcedFallback: true,
+      });
+
+      if (!fallbackExtraName) break;
+      chosen.push(fallbackExtraName);
+    }
   }
 
   if (chosen.length < requiredCount) {
