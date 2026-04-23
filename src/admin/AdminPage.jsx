@@ -1593,6 +1593,57 @@ ${mediaRelationshipsXml}
   });
 }
 
+function buildDocxImageParagraph(image, {
+  align = "center",
+  spacingAfter = 80,
+} = {}) {
+  if (!image?.relationshipId) return "";
+
+  const widthEmu = Number(image.widthEmu) || 900000;
+  const heightEmu = Number(image.heightEmu) || 900000;
+  const imageName = escapeXml(image.name || "Image");
+  const relationshipId = escapeXml(image.relationshipId);
+
+  return `
+    <w:p>
+      <w:pPr>
+        <w:bidi/>
+        <w:jc w:val="${align}"/>
+        <w:spacing w:after="${spacingAfter}"/>
+      </w:pPr>
+      <w:r>
+        <w:drawing>
+          <wp:inline distT="0" distB="0" distL="0" distR="0">
+            <wp:extent cx="${widthEmu}" cy="${heightEmu}"/>
+            <wp:docPr id="1" name="${imageName}"/>
+            <a:graphic>
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:pic>
+                  <pic:nvPicPr>
+                    <pic:cNvPr id="0" name="${imageName}"/>
+                    <pic:cNvPicPr/>
+                  </pic:nvPicPr>
+                  <pic:blipFill>
+                    <a:blip r:embed="${relationshipId}"/>
+                    <a:stretch><a:fillRect/></a:stretch>
+                  </pic:blipFill>
+                  <pic:spPr>
+                    <a:xfrm>
+                      <a:off x="0" y="0"/>
+                      <a:ext cx="${widthEmu}" cy="${heightEmu}"/>
+                    </a:xfrm>
+                    <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                  </pic:spPr>
+                </pic:pic>
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+  `;
+}
+
 function buildOfficialDocxHeader({ collegeName, title, metaLines = [], logoImage = null }) {
   return [
     logoImage ? buildDocxImageParagraph(logoImage, { align: "center", spacingAfter: 50 }) : "",
