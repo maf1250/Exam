@@ -246,7 +246,27 @@ function getCourseStudentStatusKey(courseKey, studentId) {
 
 function isDeprivationRegistrationStatus(status) {
   const normalized = normalizeArabic(String(status || "").trim());
-  return normalized.includes("حرمان");
+  const allowedCases = [
+    "اعاده القيد",
+    "إعادة قيد",
+    "اعاده القيد بسبب الحرمان",
+    "إعادة القيد بسبب الحرمان",
+    "مقرر معاد قيده لتعديل الحرمان",
+  ];
+
+  const blockedCases = [
+    "حرمان",
+  ];
+
+  if (allowedCases.some(s => normalized.includes(s))) {
+    return false;
+  }
+
+  if (blockedCases.some(s => normalized.includes(s))) {
+    return true;
+  }
+
+  return false;
 }
 
 function getScheduleItemDeprivationStatus(item, studentId, deprivationMap) {
@@ -8636,7 +8656,7 @@ const applySpecializedScheduleGeneration = ({
   pinnedScopeItems = [],
 }) => {
   const pinnedScopeKeySet = new Set((pinnedScopeItems || []).map((item) => item?.key).filter(Boolean));
-  const nextSpecializedSchedule = sortScheduledItems([
+  const sortedPlaced = sortScheduledItems([
     ...(keptSpecializedSchedule || []),
     ...(pinnedScopeItems || []),
     ...(placed || []).filter((item) => !pinnedScopeKeySet.has(item?.key)),
@@ -8644,10 +8664,10 @@ const applySpecializedScheduleGeneration = ({
 
   const merged = sortScheduledItems([
     ...(generalSchedule || []),
-    ...nextSpecializedSchedule,
+    ...sortedPlaced,
   ]);
 
-  setSpecializedSchedule(nextSpecializedSchedule);
+  setSpecializedSchedule(sortedPlaced);
   setSchedule(merged);
   setPreviewTab("schedule");
 
