@@ -9483,7 +9483,7 @@ const headerBtn = (danger = false) => ({
       >
         حذف البيانات المحلية
       </button>
-    </div>
+    
     <div
   style={{
     display: "flex",
@@ -9546,6 +9546,7 @@ const headerBtn = (danger = false) => ({
     <EmailIcon />
   </button>
 </div>
+    </div>
   </div>
 </div>
 
