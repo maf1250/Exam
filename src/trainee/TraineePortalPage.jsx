@@ -395,8 +395,9 @@ export default function TraineePortalPage() {
       } catch (err) {
         if (!cancelled) {
           setCollegeData(null);
-          setError("لا توجد بيانات منشورة لهذه الوحدة التدريبية أو أن الرابط غير صحيح.");
-        }
+        setError(
+        "لا توجد بيانات منشورة لهذه الوحدة التدريبية أو أن الرابط غير صحيح.\n\nلتفعيل البوابة، نأمل التواصل مع:\n\nm.alfayez@tvtc.gov.sa"
+      );        }
       } finally {
         if (!cancelled) {
           setLoading(false);
