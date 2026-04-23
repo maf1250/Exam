@@ -846,6 +846,25 @@ function fieldStyle() {
   };
 }
 
+function socialIconButtonStyle(bg) {
+  return {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    border: "none",
+    background: bg,
+    color: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    textDecoration: "none",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.14)",
+    transition: "transform 0.18s ease, box-shadow 0.18s ease",
+    padding: 0,
+  };
+}
+
 function toggleDay(list, day) {
   return list.includes(day) ? list.filter((d) => d !== day) : [...list, day];
 }
@@ -3212,7 +3231,85 @@ const periodOverlapWarning = useMemo(() => {
   return overlaps.length ? overlaps.join('، ') : '';
 }, [periodConfigs]);
 
+function handleSupportEmailClick() {
+  try {
+    exportCollegeDataFile({
+      slug: effectiveCollegeSlug,
+      collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
+      schedule: schedule.map((item) => ({
+        ...item,
+        deprivedStudents: Array.from(
+          (Array.isArray(item.students) ? item.students : Array.from(item.students || []))
+            .filter((studentId) =>
+              Boolean(
+                getScheduleItemDeprivationStatus(
+                  item,
+                  studentId,
+                  deprivedCourseStudentStatusMap
+                )
+              )
+            )
+        ),
+      })),
+      parsed,
+      studentInfoMap: preciseStudentInfoMap,
+      selectedDepartment: printDepartmentFilter,
+      selectedMajor: printMajorFilter,
+    });
 
+    const subject = encodeURIComponent("بيانات الكلية التقنية");
+    const body = encodeURIComponent(
+      "السلام عليكم،\n\n" +
+      "تم تجهيز ملف التصدير.\n" +
+      "يرجى إرفاق الملف الذي تم تنزيله وإرساله.\n\n" +
+      "شكراً."
+    );
+
+    window.location.href =
+      `mailto:m.alfayez@tvtc.gov.sa?subject=${subject}&body=${body}`;
+
+    showToast("تم تجهيز البريد", "تم فتح البريد وإعداد الملف.", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("خطأ", "تعذر تجهيز البريد.", "error");
+  }
+}
+
+  function YouTubeIcon({ size = 18 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.7 31.7 0 0 0 0 12a31.7 31.7 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.7 31.7 0 0 0 24 12a31.7 31.7 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.4 3.7-6.4 3.7Z" />
+    </svg>
+  );
+}
+
+function TelegramIcon({ size = 18 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M21.9 4.6c.3-1.3-.5-1.8-1.6-1.4L2.7 9.9c-1.2.5-1.2 1.2-.2 1.5l4.5 1.4 10.4-6.6c.5-.3.9-.1.5.2l-8.4 7.6-.3 4.6c.5 0 .8-.2 1.1-.5l2.2-2.1 4.6 3.4c.8.4 1.4.2 1.6-.8l3.2-15Z" />
+    </svg>
+  );
+}
+
+function EmailIcon({ size = 18 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
+      <path
+        d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="m3.5 8 8.5 6 8.5-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+  
   function addExamHall() {
     setExamHalls((prev) => [
       ...prev,
@@ -9387,6 +9484,68 @@ const headerBtn = (danger = false) => ({
         حذف البيانات المحلية
       </button>
     </div>
+    <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    flexWrap: "wrap",
+  }}
+>
+  <a
+    href="https://example.com"
+    target="_blank"
+    rel="noreferrer"
+    title="يوتيوب"
+    style={socialIconButtonStyle("#FF0000")}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 12px 22px rgba(0,0,0,0.18)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "0 8px 18px rgba(0,0,0,0.14)";
+    }}
+  >
+    <YouTubeIcon />
+  </a>
+
+  <a
+    href="https://t.me/+VhXVvHVsniHAc733"
+    target="_blank"
+    rel="noreferrer"
+    title="تلجرام"
+    style={socialIconButtonStyle("#229ED9")}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 12px 22px rgba(0,0,0,0.18)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "0 8px 18px rgba(0,0,0,0.14)";
+    }}
+  >
+    <TelegramIcon />
+  </a>
+
+  <button
+    type="button"
+    title="البريد الإلكتروني"
+    onClick={handleSupportEmailClick}
+    style={socialIconButtonStyle("#16A34A")}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 12px 22px rgba(0,0,0,0.18)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "0 8px 18px rgba(0,0,0,0.14)";
+    }}
+  >
+    <EmailIcon />
+  </button>
+</div>
   </div>
 </div>
 
