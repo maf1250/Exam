@@ -9490,6 +9490,7 @@ const headerBtn = (danger = false) => ({
     alignItems: "center",
     gap: 10,
     marginTop: 12,
+    justifyContent: "center",
     flexWrap: "wrap",
   }}
 >
@@ -9497,7 +9498,7 @@ const headerBtn = (danger = false) => ({
     href="https://example.com"
     target="_blank"
     rel="noreferrer"
-    title="يوتيوب"
+    title="لمشاهدة الشرح"
     style={socialIconButtonStyle("#FF0000")}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = "translateY(-2px)";
@@ -9515,7 +9516,7 @@ const headerBtn = (danger = false) => ({
     href="https://t.me/+VhXVvHVsniHAc733"
     target="_blank"
     rel="noreferrer"
-    title="تلجرام"
+    title="قناة النقاشات على التلجرام"
     style={socialIconButtonStyle("#229ED9")}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = "translateY(-2px)";
@@ -9531,9 +9532,10 @@ const headerBtn = (danger = false) => ({
 
   <button
     type="button"
-    title="البريد الإلكتروني"
+    target="_blank"
+    title="لإرسال ملف تفعيل بوابة المتدرين عبر البريد الإلكتروني (بعد الانتهاء من الجدولة)"
     onClick={handleSupportEmailClick}
-    style={socialIconButtonStyle("#16A34A")}
+    style={socialIconButtonStyle("#02599c")}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = "translateY(-2px)";
       e.currentTarget.style.boxShadow = "0 12px 22px rgba(0,0,0,0.18)";
