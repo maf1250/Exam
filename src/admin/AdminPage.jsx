@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+=import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import JSZip from "jszip";
 import CollegeJsonUploader from "../components/CollegeJsonUploader";
@@ -14701,11 +14701,10 @@ const headerBtn = (danger = false) => ({
 
   {/* 👇 قسم الرفع */}
   <div style={{
-  marginTop: 16,
+  marginTop: 10,
   padding: 12,
-  borderRadius: 12,
-  background: "#f8fafc",
-  border: "1px solid #e5e7eb"
+  borderRadius: 32,
+  border: "1px solid #FACC15"
 }}>
   <CollegeJsonUploader />
 </div>
