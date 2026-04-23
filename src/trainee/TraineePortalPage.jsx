@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 const COLORS = {
   primary: "#1FA7A8",
@@ -401,33 +402,45 @@ export default function TraineePortalPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError("");
-        setSelectedStudent(null);
+async function loadData() {
+  try {
+    setLoading(true);
+    setError("");
+    setSelectedStudent(null);
 
-        const res = await fetch(`/colleges/${normalizedSlug}.json`);
-        if (!res.ok) {
-          throw new Error("تعذر تحميل بيانات الوحدة التدريبية");
-        }
+    const { data: publicUrlData } = supabase
+      .storage
+      .from("colleges")
+      .getPublicUrl(`${normalizedSlug}.json`);
 
-        const data = await res.json();
-        if (!cancelled) {
-          setCollegeData(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setCollegeData(null);
-               setError(
-        "لا توجد بيانات منشورة لهذه الوحدة التدريبية أو أن الرابط غير صحيح.\n\nلتفعيل البوابة، نأمل التواصل مع:\n\nm.alfayez@tvtc.gov.sa"
-      );        }
-              } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+    let res = await fetch(publicUrlData.publicUrl, { cache: "no-store" });
+
+    if (!res.ok) {
+      res = await fetch(`/colleges/${normalizedSlug}.json`, { cache: "no-store" });
     }
+
+    if (!res.ok) {
+      throw new Error("تعذر تحميل بيانات الوحدة التدريبية");
+    }
+
+    const data = await res.json();
+
+    if (!cancelled) {
+      setCollegeData(data);
+    }
+  } catch (err) {
+    if (!cancelled) {
+      setCollegeData(null);
+      setError(
+        "لا توجد بيانات منشورة لهذه الوحدة التدريبية أو أن الرابط غير صحيح.\n\nلتفعيل البوابة، نأمل التواصل مع:\n\nm.alfayez@tvtc.gov.sa"
+      );
+    }
+  } finally {
+    if (!cancelled) {
+      setLoading(false);
+    }
+  }
+}
 
     loadData();
 
