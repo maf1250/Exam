@@ -14691,7 +14691,7 @@ const headerBtn = (danger = false) => ({
 
   <div>
     بعد تصدير بيانات المتدربين، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
-    المتدربين وتحديث بياناتها، نأمل إرسال الملف بعد كل عملية توزيع على
+    المتدربين وتحديث بياناتها، يجب رفع الملف من قبلكم، وفي حال عدم التمكن من الرفع، نأمل إرسال الملف بعد كل عملية توزيع على
     البريد التالي:
     <br />
     <span style={{ fontWeight: 700 }}>
@@ -14700,9 +14700,15 @@ const headerBtn = (danger = false) => ({
   </div>
 
   {/* 👇 قسم الرفع */}
-  <div style={{ marginTop: 16 }}>
-    <CollegeJsonUploader />
-  </div>
+  <div style={{
+  marginTop: 16,
+  padding: 12,
+  borderRadius: 12,
+  background: "#f8fafc",
+  border: "1px solid #e5e7eb"
+}}>
+  <CollegeJsonUploader />
+</div>
 </div>
       </div>
     </div>
