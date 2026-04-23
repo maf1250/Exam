@@ -4250,47 +4250,73 @@ const extraCandidates = extraPool
         return values.length ? Math.min(...values) : getMinInvigilatorLoad();
       };
 
-      while (chosen.length < requiredCount) {
-        const remainingCandidates = constrainedCandidates.filter(
+      const pickMostBalancedFromPool = (candidates, {
+        slack = hardFairnessForThisCourse ? 0 : 1,
+        allowForcedFallback = false,
+      } = {}) => {
+        const remainingCandidates = (Array.isArray(candidates) ? candidates : []).filter(
           (name) => !chosen.includes(name)
         );
-        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
-        const fairCandidates = sortCandidates(
+        if (!remainingCandidates.length) return null;
+
+        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
+        const balancedCandidates = sortCandidates(
           remainingCandidates.filter((name) =>
-            (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+            (invigilatorLoad.get(name) || 0) <= minLoad + slack
           )
         );
 
-        if (!fairCandidates.length) break;
-        chosen.push(fairCandidates[0]);
+        if (balancedCandidates.length) return balancedCandidates[0];
+        if (!allowForcedFallback) return null;
+
+        const forcedCandidates = sortCandidates(remainingCandidates);
+        return forcedCandidates[0] || null;
+      };
+
+      while (chosen.length < requiredCount) {
+        const nextName = pickMostBalancedFromPool(constrainedCandidates, {
+          slack: hardFairnessForThisCourse ? 0 : 1,
+          allowForcedFallback: false,
+        });
+
+        if (!nextName) break;
+        chosen.push(nextName);
+      }
+
+      if (allowExtraSupport && chosen.length < requiredCount) {
+        while (chosen.length < requiredCount) {
+          const nextExtraName = pickMostBalancedFromPool(extraCandidates, {
+            slack: hardFairnessForThisCourse ? 0 : 1,
+            allowForcedFallback: false,
+          });
+
+          if (!nextExtraName) break;
+          chosen.push(nextExtraName);
+        }
       }
 
       if (chosen.length < requiredCount) {
-        const remainingCandidates = constrainedCandidates.filter(
-          (name) => !chosen.includes(name)
-        );
-        const minLoad = getMinLoadWithinCandidates(remainingCandidates);
-        const nearFairCandidates = sortCandidates(
-          remainingCandidates.filter((name) =>
-            (invigilatorLoad.get(name) || 0) <= minLoad + 1
-          )
-        );
+        while (chosen.length < requiredCount) {
+          const fallbackName = pickMostBalancedFromPool(constrainedCandidates, {
+            slack: Number.POSITIVE_INFINITY,
+            allowForcedFallback: true,
+          });
 
-        for (const name of nearFairCandidates) {
-          if (chosen.length >= requiredCount) break;
-          chosen.push(name);
+          if (!fallbackName) break;
+          chosen.push(fallbackName);
         }
       }
 
       if (allowExtraSupport && chosen.length < requiredCount) {
-        const extraFairCandidates = sortCandidates(
-          extraCandidates.filter((name) => !chosen.includes(name))
-        );
+        while (chosen.length < requiredCount) {
+          const fallbackExtraName = pickMostBalancedFromPool(extraCandidates, {
+            slack: Number.POSITIVE_INFINITY,
+            allowForcedFallback: true,
+          });
 
-        for (const name of extraFairCandidates) {
-          if (chosen.length >= requiredCount) break;
-          chosen.push(name);
+          if (!fallbackExtraName) break;
+          chosen.push(fallbackExtraName);
         }
       }
       
@@ -7548,47 +7574,73 @@ const pickInvigilators = (course, slot) => {
     return values.length ? Math.min(...values) : getMinInvigilatorLoad();
   };
 
-  while (chosen.length < requiredCount) {
-    const remainingCandidates = constrainedCandidates.filter(
+  const pickMostBalancedFromPool = (candidates, {
+    slack = hardFairnessForThisCourse ? 0 : 1,
+    allowForcedFallback = false,
+  } = {}) => {
+    const remainingCandidates = (Array.isArray(candidates) ? candidates : []).filter(
       (name) => !chosen.includes(name)
     );
-    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
 
-    const fairCandidates = sortCandidates(
+    if (!remainingCandidates.length) return null;
+
+    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
+    const balancedCandidates = sortCandidates(
       remainingCandidates.filter((name) =>
-        (invigilatorLoad.get(name) || 0) <= minLoad + (hardFairnessForThisCourse ? 0 : 1)
+        (invigilatorLoad.get(name) || 0) <= minLoad + slack
       )
     );
 
-    if (!fairCandidates.length) break;
-    chosen.push(fairCandidates[0]);
+    if (balancedCandidates.length) return balancedCandidates[0];
+    if (!allowForcedFallback) return null;
+
+    const forcedCandidates = sortCandidates(remainingCandidates);
+    return forcedCandidates[0] || null;
+  };
+
+  while (chosen.length < requiredCount) {
+    const nextName = pickMostBalancedFromPool(constrainedCandidates, {
+      slack: hardFairnessForThisCourse ? 0 : 1,
+      allowForcedFallback: false,
+    });
+
+    if (!nextName) break;
+    chosen.push(nextName);
+  }
+
+  if (allowExtraSupport && chosen.length < requiredCount) {
+    while (chosen.length < requiredCount) {
+      const nextExtraName = pickMostBalancedFromPool(extraCandidates, {
+        slack: hardFairnessForThisCourse ? 0 : 1,
+        allowForcedFallback: false,
+      });
+
+      if (!nextExtraName) break;
+      chosen.push(nextExtraName);
+    }
   }
 
   if (chosen.length < requiredCount) {
-    const remainingCandidates = constrainedCandidates.filter(
-      (name) => !chosen.includes(name)
-    );
-    const minLoad = getMinLoadWithinCandidates(remainingCandidates);
-    const nearFairCandidates = sortCandidates(
-      remainingCandidates.filter((name) =>
-        (invigilatorLoad.get(name) || 0) <= minLoad + 1
-      )
-    );
+    while (chosen.length < requiredCount) {
+      const fallbackName = pickMostBalancedFromPool(constrainedCandidates, {
+        slack: Number.POSITIVE_INFINITY,
+        allowForcedFallback: true,
+      });
 
-    for (const name of nearFairCandidates) {
-      if (chosen.length >= requiredCount) break;
-      chosen.push(name);
+      if (!fallbackName) break;
+      chosen.push(fallbackName);
     }
   }
 
   if (allowExtraSupport && chosen.length < requiredCount) {
-    const extraFairCandidates = sortCandidates(
-      extraCandidates.filter((name) => !chosen.includes(name))
-    );
+    while (chosen.length < requiredCount) {
+      const fallbackExtraName = pickMostBalancedFromPool(extraCandidates, {
+        slack: Number.POSITIVE_INFINITY,
+        allowForcedFallback: true,
+      });
 
-    for (const name of extraFairCandidates) {
-      if (chosen.length >= requiredCount) break;
-      chosen.push(name);
+      if (!fallbackExtraName) break;
+      chosen.push(fallbackExtraName);
     }
   }
 
