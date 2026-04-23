@@ -18,7 +18,7 @@ export default function CollegeJsonUploader() {
       setStatus("");
 
       if (!/\.json$/i.test(file.name)) {
-        throw new Error(" يجب أن يكون الملف بصيغة JSON.");
+        throw new Error("يجب أن يكون الملف بصيغة صحيحة؛ نأمل التأكد من تحميل تصدير بيانات المتدربين بعد الانتهاء من الجدولة.");
       }
 
       const text = await file.text();
@@ -53,7 +53,7 @@ export default function CollegeJsonUploader() {
 
       if (error) throw error;
 
-      setStatus(`تم رفع الملف بنجاح: ${finalSlug}`);
+      setStatus(`تم رفع بيانات المتدربين بنجاح: ${finalSlug}`);
       event.target.value = "";
     } catch (err) {
       setStatus(err.message || "حدث خطأ أثناء الرفع.");
@@ -64,7 +64,7 @@ export default function CollegeJsonUploader() {
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontWeight: 800 }}>رفع الملف إلى الخادم</div>
+      <div style={{ fontWeight: 800 }}>  رفع بيانات المتدربين إلى البوابة</div>
       <input
         type="file"
         accept=".json,application/json"
