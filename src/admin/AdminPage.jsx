@@ -4483,7 +4483,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-    setHallWarnings((prev) => prev.filter((item) => String(item?.courseKey || item?.key || "").trim() !== String(course.key || "").trim()));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== course.key));
     setDraggingUnscheduledCourseKey("");
     setActiveDropSlotId("");
     showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
@@ -4616,7 +4616,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== courseKey));
-    setHallWarnings((prev) => prev.filter((item) => String(item?.courseKey || item?.key || "").trim() !== String(courseKey || "").trim()));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== courseKey));
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
@@ -8633,11 +8633,11 @@ const applySpecializedScheduleGeneration = ({
   setPreviewTab("schedule");
 
   setHallWarnings((prev) => {
-    const remaining = (prev || []).filter((item) => !currentScopeKeySet.has(item?.courseKey || item?.key));
+    const remaining = (prev || []).filter((item) => !currentScopeKeySet.has(item?.key));
     const combined = [...remaining, ...(nextHallWarnings || [])];
     const map = new Map();
     combined.forEach((item) => {
-      const key = `${item?.courseKey || item?.key || ""}__${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      const key = `${item?.key || ""}__${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
       if (!map.has(key)) {
         map.set(key, item);
       }
@@ -8886,23 +8886,17 @@ const matchesPreviewFilters = (item) => {
   const selectedMajorNormalized =
     printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
 
-  const itemKey = String(item.courseKey || item.key || "").trim();
-  const courseRef =
-    (parsed?.courses || []).find((course) => String(course?.key || "").trim() === itemKey) || null;
-
-  const departmentRoots = Array.isArray(item.departmentRoots) && item.departmentRoots.length
+  const departmentRoots = Array.isArray(item.departmentRoots)
     ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
-    : Array.isArray(courseRef?.departmentRoots)
-    ? courseRef.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
     : [];
   const departmentValues = [
-    ...splitBySlash(item.department || courseRef?.department || ""),
-    ...splitBySlash(item.sectionName || courseRef?.sectionName || ""),
+    ...splitBySlash(item.department),
+    ...splitBySlash(item.sectionName),
   ]
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
-  const majorValues = splitBySlash(item.major || courseRef?.major || "")
+  const majorValues = splitBySlash(item.major)
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
@@ -9028,12 +9022,80 @@ const studentOptionsForPrint = useMemo(() => {
 
 
 const filteredHallWarningsForPreview = useMemo(() => {
+  const buildCourseIdentity = (item) => {
+    const courseCode = normalizeArabic(String(item?.courseCode || "").trim());
+    const courseName = normalizeArabic(String(item?.courseName || "").trim());
+    return courseCode || courseName ? `${courseCode}|${courseName}` : "";
+  };
+
+  const scheduledKeys = new Set(
+    (schedule || [])
+      .map((s) => String(s?.courseKey || s?.key || "").trim())
+      .filter(Boolean)
+  );
+
+  const scheduledIdentities = new Set(
+    (schedule || [])
+      .map((s) => buildCourseIdentity(s))
+      .filter(Boolean)
+  );
+
+  const coursesByKey = new Map(
+    (parsed?.courses || [])
+      .map((course) => [String(course?.key || course?.courseKey || "").trim(), course])
+      .filter(([key]) => Boolean(key))
+  );
+
+  const coursesByIdentity = new Map();
+  (parsed?.courses || []).forEach((course) => {
+    const identity = buildCourseIdentity(course);
+    if (identity && !coursesByIdentity.has(identity)) {
+      coursesByIdentity.set(identity, course);
+    }
+  });
+
   return (hallWarnings || []).filter((item) => {
     const key = String(item?.courseKey || item?.key || "").trim();
-    if (key && scheduledCourseKeySet.has(key)) return false;
-    return matchesPreviewFilters(item);
+    const identity = buildCourseIdentity(item);
+    const originalCourse =
+      (key ? coursesByKey.get(key) : null) ||
+      (identity ? coursesByIdentity.get(identity) : null) ||
+      null;
+
+    const effectiveItem = {
+      ...originalCourse,
+      ...item,
+      department:
+        String(item?.department || item?.sectionName || "").trim() ||
+        String(originalCourse?.department || originalCourse?.sectionName || "").trim(),
+      major:
+        String(item?.major || "").trim() || String(originalCourse?.major || "").trim(),
+      departmentRoots:
+        Array.isArray(item?.departmentRoots) && item.departmentRoots.length
+          ? item.departmentRoots
+          : Array.isArray(originalCourse?.departmentRoots)
+          ? originalCourse.departmentRoots
+          : getCourseDepartmentRoots(originalCourse || item || {}),
+      courseCode: String(item?.courseCode || "").trim() || String(originalCourse?.courseCode || "").trim(),
+      courseName: String(item?.courseName || "").trim() || String(originalCourse?.courseName || "").trim(),
+    };
+
+    const effectiveKey = String(effectiveItem?.courseKey || effectiveItem?.key || key).trim();
+    const effectiveIdentity = buildCourseIdentity(effectiveItem);
+
+    if ((effectiveKey && scheduledKeys.has(effectiveKey)) || (effectiveIdentity && scheduledIdentities.has(effectiveIdentity))) {
+      return false;
+    }
+
+    return matchesPreviewFilters(effectiveItem);
   });
-}, [hallWarnings, scheduledCourseKeySet, printDepartmentFilter, printMajorFilter, parsed.courses]);
+}, [
+  hallWarnings,
+  schedule,
+  parsed?.courses,
+  printDepartmentFilter,
+  printMajorFilter,
+]);
   
 
 const selectedStudentScheduleForPrint = useMemo(() => {
