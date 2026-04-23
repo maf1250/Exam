@@ -3233,6 +3233,15 @@ const periodOverlapWarning = useMemo(() => {
 
 function handleSupportEmailClick() {
   try {
+    if (!effectiveCollegeSlug) {
+      showToast(
+        "تعذر تجهيز الملف",
+        "لم يتم العثور على slug الخاص بالكلية.",
+        "error"
+      );
+      return;
+    }
+
     exportCollegeDataFile({
       slug: effectiveCollegeSlug,
       collegeName: parsed.collegeName || collegeNameInput || "الكلية التقنية",
@@ -3257,21 +3266,49 @@ function handleSupportEmailClick() {
       selectedMajor: printMajorFilter,
     });
 
-    const subject = encodeURIComponent("بيانات الكلية التقنية");
-    const body = encodeURIComponent(
-      "السلام عليكم،\n\n" +
-      "تم تجهيز ملف التصدير.\n" +
-      "يرجى إرفاق الملف الذي تم تنزيله وإرساله.\n\n" +
-      "شكراً."
+    const subject = encodeURIComponent("ملف تفعيل بوابة المتدربين");
+const body = encodeURIComponent(
+  "السلام عليكم ورحمة الله وبركاته،\n\n" +
+  "تم تجهيز ملف تفعيل بوابة المتدربين وتنزيله على الجهاز.\n" +
+  "وسيتم إرفاق الملف الذي تم تنزيله ثم إرسال الرسالة.\n\n" +
+  `Slug: ${effectiveCollegeSlug}\n\n` +
+  "مع الشكر."
+);
+
+const email = "m.alfayez@tvtc.gov.sa";
+
+const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
+const gmailLink = `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`;
+const outlookLink = `https://outlook.live.com/mail/0/deeplink/compose?to=${email}&subject=${subject}&body=${body}`;
+
+// 1) محاولة فتح التطبيق
+const win = window.open(mailtoLink, "_blank");
+
+// 2) fallback إلى Gmail
+setTimeout(() => {
+  if (!win || win.closed || typeof win.closed === "undefined") {
+    const gmailWin = window.open(gmailLink, "_blank");
+
+    // 3) fallback إلى Outlook
+    setTimeout(() => {
+      if (!gmailWin || gmailWin.closed || typeof gmailWin.closed === "undefined") {
+        window.open(outlookLink, "_blank");
+      }
+    }, 700);
+  }
+}, 800);
+    showToast(
+      "تم تجهيز الملف والبريد",
+      "تم تنزيل ملف التفعيل وفتح رسالة البريد. الرجاء إرفاق الملف يدويًا قبل الإرسال.",
+      "success"
     );
-
-    window.location.href =
-      `mailto:m.alfayez@tvtc.gov.sa?subject=${subject}&body=${body}`;
-
-    showToast("تم تجهيز البريد", "تم فتح البريد وإعداد الملف.", "success");
-  } catch (err) {
-    console.error(err);
-    showToast("خطأ", "تعذر تجهيز البريد.", "error");
+  } catch (error) {
+    console.error(error);
+    showToast(
+      "تعذر تجهيز البريد",
+      "حدث خطأ أثناء إنشاء ملف التفعيل أو فتح رسالة البريد.",
+      "error"
+    );
   }
 }
 
