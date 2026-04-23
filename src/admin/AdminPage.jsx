@@ -8920,48 +8920,7 @@ const scheduledCourseKeySet = useMemo(() => {
   return new Set((schedule || []).map((item) => String(item?.key || "").trim()).filter(Boolean));
 }, [schedule]);
 
-const filteredHallWarningsForPreview = useMemo(() => {
-  const scheduledKeys = new Set(
-    (schedule || []).map((s) => String(s.courseKey || s.key || "").trim())
-  );
 
-  return (hallWarnings || []).filter((item) => {
-    const key = String(item.courseKey || item.key || "").trim();
-
-    //  لا تعرض إذا صار مجدول
-    if (scheduledKeys.has(key)) return false;
-
-    const department =
-      item.department ||
-      item.sectionName ||
-      "";
-
-    const major =
-      item.major || "";
-
-    // فلترة القسم
-    if (selectedDepartment !== "__all__") {
-      const roots = getCourseDepartmentRoots({
-        department,
-        major,
-        sectionName: department,
-      });
-
-      if (!roots.includes(normalizeArabic(selectedDepartment))) {
-        return false;
-      }
-    }
-
-    // فلترة التخصص
-    if (selectedMajor !== "__all__") {
-      if (normalizeArabic(major) !== normalizeArabic(selectedMajor)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-}, [hallWarnings, schedule, selectedDepartment, selectedMajor]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -9048,6 +9007,7 @@ const studentOptionsForPrint = useMemo(() => {
   printMajorFilter,
 ]);
 
+  
 
   useEffect(() => {
     setSelectedStudentIdForPrint("");
@@ -9061,7 +9021,46 @@ const studentOptionsForPrint = useMemo(() => {
   );
 
 
+const filteredHallWarningsForPreview = useMemo(() => {
+  const scheduledKeys = new Set(
+    (schedule || []).map((s) => String(s.courseKey || s.key || "").trim())
+  );
 
+  return (hallWarnings || []).filter((item) => {
+    const key = String(item.courseKey || item.key || "").trim();
+
+    if (scheduledKeys.has(key)) return false;
+
+    const department = item.department || item.sectionName || "";
+    const major = item.major || "";
+
+    if (selectedDepartmentForPreview !== "__all__") {
+      const roots = getCourseDepartmentRoots({
+        department,
+        major,
+        sectionName: department,
+      });
+
+      if (!roots.includes(normalizeArabic(selectedDepartmentForPreview))) {
+        return false;
+      }
+    }
+
+    if (selectedMajorForPreview !== "__all__") {
+      if (normalizeArabic(major) !== normalizeArabic(selectedMajorForPreview)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}, [
+  hallWarnings,
+  schedule,
+  selectedDepartmentForPreview,
+  selectedMajorForPreview,
+]);
+  
 
 const selectedStudentScheduleForPrint = useMemo(() => {
   if (!selectedStudentIdForPrint) return [];
