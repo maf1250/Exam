@@ -1642,7 +1642,7 @@ async function exportScheduleDocx({
   if (!Array.isArray(schedule) || !schedule.length) return;
 
   const groupedDays = groupScheduleForOfficialPrint(schedule);
-const logoImage = null;
+  const logoImage = await loadDocxLogoImage();
   const periodIds = Array.from(new Set(schedule.map((item) => item.period))).sort((a, b) => a - b);
   const resolvedPeriodLabels = periodIds.map((periodId) => {
     const fromArg = periodLabels.find((p) => p.period === periodId);
@@ -1747,7 +1747,7 @@ const logoImage = null;
 async function exportInvigilatorsDocx({ collegeName, invigilatorTable }) {
   if (!Array.isArray(invigilatorTable) || !invigilatorTable.length) return;
 
-const logoImage = null;
+  const logoImage = await loadDocxLogoImage();
   
   const allDays = Array.from(
     new Set(
@@ -4104,25 +4104,6 @@ const extraCandidates = extraPool
   .filter((name) => !hasReachedInvigilationMax(name))
   .filter((name) => !strictCandidates.includes(name));
 
-  if (
-  restrictSpecializedInvigilationToVisibleDepartmentTrainers &&
-  !includeAllDepartmentsAndMajors
-) {
-  console.warn("INVIGILATOR_SCOPE_DEBUG", {
-    courseName: course?.courseName,
-    courseCode: course?.courseCode,
-    department: course?.department,
-    major: course?.major,
-    strictPoolCount: strictPool.length,
-    strictCandidatesCount: strictCandidates.length,
-    extraPoolCount: extraPool.length,
-    extraCandidatesCount: extraCandidates.length,
-    strictPool,
-    strictCandidates,
-    extraPool,
-    extraCandidates,
-  });
-}
 
       const normalizedManualSet = new Set(
         (constraint.invigilatorNames || []).map((name) => normalizeArabic(name))
