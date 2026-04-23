@@ -434,6 +434,25 @@ function formatHijriNumeric(date) {
     .trim();
 }
 
+function parseISODateLocal(value) {
+  const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function formatDateISOFromLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function safeNum(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -544,7 +563,7 @@ function buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }) {
 
   const allowed = new Set(selectedDays);
   const slots = [];
-  const cursor = new Date(startDate);
+  const cursor = parseISODateLocal(startDate) || new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
 
   let countedDays = 0;
@@ -555,9 +574,10 @@ function buildSlots({ startDate, numberOfDays, selectedDays, parsedPeriods }) {
 
     if (allowed.has(dayName)) {
       validPeriods.forEach((period, idx) => {
+        const localDateISO = formatDateISOFromLocalDate(cursor);
         slots.push({
-          id: `${cursor.toISOString().slice(0, 10)}-${idx + 1}`,
-          dateISO: cursor.toISOString().slice(0, 10),
+          id: `${localDateISO}-${idx + 1}`,
+          dateISO: localDateISO,
           dayName,
           period: idx + 1,
           gregorian: formatGregorian(cursor),
@@ -1714,7 +1734,7 @@ const logoImage = null;
     new Set(
       invigilatorTable.flatMap((inv) =>
         inv.items.map(
-          (item) => `${item.dateISO}|${item.dayName}|${item.gregorian}|${item.hijriNumeric || (item.dateISO ? formatHijriNumeric(new Date(`${item.dateISO}T00:00:00`)) : "")}`
+          (item) => `${item.dateISO}|${item.dayName}|${item.gregorian}|${item.hijriNumeric || (item.dateISO ? formatHijriNumeric(parseISODateLocal(item.dateISO)) : "")}`
         )
       )
     )
@@ -2319,7 +2339,7 @@ function printInvigilatorsOnlyPdf({ collegeName, invigilatorTable, compactMode =
           (item) =>
             `${item.dateISO}|${item.dayName}|${item.gregorian}|${
               item.hijriNumeric ||
-              (item.dateISO ? formatHijriNumeric(new Date(`${item.dateISO}T00:00:00`)) : "")
+              (item.dateISO ? formatHijriNumeric(parseISODateLocal(item.dateISO)) : "")
             }`
         )
       )
@@ -3062,7 +3082,7 @@ const pendingRestoreRef = useRef(null);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
+    return formatDateISOFromLocalDate(d);
   });
   const [numberOfDays, setNumberOfDays] = useState(8);
   const [selectedDays, setSelectedDays] = useState(["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]);
