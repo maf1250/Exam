@@ -831,7 +831,7 @@ function getScheduledItemHallAssignments(item) {
   return [{ hallName: fallbackHall, seats: fallbackSeats }];
 }
 
-function fieldStyle() {
+function fieldStyle(overrides = {}) {
   return {
     width: "100%",
     boxSizing: "border-box",
@@ -843,6 +843,7 @@ function fieldStyle() {
     fontFamily: "inherit",
     fontSize: 15,
     color: COLORS.text,
+    ...overrides,
   };
 }
 
@@ -869,7 +870,7 @@ function toggleDay(list, day) {
   return list.includes(day) ? list.filter((d) => d !== day) : [...list, day];
 }
 
-function cardButtonStyle({ active = false, disabled = false, danger = false } = {}) {
+function cardButtonStyle({ active = false, disabled = false, danger = false, overrides = {} } = {}) {
   let background = "#fff";
   let color = COLORS.charcoal;
   let border = `1px solid ${COLORS.border}`;
@@ -901,6 +902,7 @@ function cardButtonStyle({ active = false, disabled = false, danger = false } = 
     padding: "12px 20px",
     fontWeight: 800,
     cursor,
+    ...overrides,
   };
 }
 
@@ -947,15 +949,17 @@ function StepButton({ active, done, children, onClick }) {
 }
 
 function Card({ children, style }) {
+  const mergedStyle = style || {};
+
   return (
     <div
       style={{
-        background: COLORS.card,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 30,
-        padding: 22,
-        boxShadow: "0 16px 36px rgba(20, 123, 131, 0.08)",
-        ...style,
+        background: mergedStyle.background ?? COLORS.card,
+        border: mergedStyle.border ?? `1px solid ${COLORS.border}`,
+        borderRadius: mergedStyle.borderRadius ?? 30,
+        padding: mergedStyle.padding ?? 22,
+        boxShadow: mergedStyle.boxShadow ?? "0 16px 36px rgba(20, 123, 131, 0.08)",
+        ...mergedStyle,
       }}
     >
       {children}
@@ -9934,7 +9938,7 @@ const headerBtn = (danger = false) => ({
                           value={periodConfig.start}
                           disabled={periodConfig.enabled === false}
                           onChange={(e) => updatePeriodConfig(index, { start: e.target.value })}
-                          style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
+                          style={fieldStyle({ padding: "10px 12px", borderRadius: 12, fontSize: 14 })}
                         >
                           {PERIOD_TIME_OPTIONS.map((timeValue) => (
                             <option key={timeValue} value={timeValue}>
@@ -9950,7 +9954,7 @@ const headerBtn = (danger = false) => ({
                           value={periodConfig.duration}
                           disabled={periodConfig.enabled === false}
                           onChange={(e) => updatePeriodConfig(index, { duration: Number(e.target.value) })}
-                          style={{ ...fieldStyle(), padding: "10px 12px", borderRadius: 12, fontSize: 14 }}
+                          style={fieldStyle({ padding: "10px 12px", borderRadius: 12, fontSize: 14 })}
                         >
                           {PERIOD_DURATION_OPTIONS.map((durationValue) => (
                             <option key={durationValue} value={durationValue}>
@@ -9963,8 +9967,7 @@ const headerBtn = (danger = false) => ({
                       <div>
                         <div style={{ marginBottom: 6, fontWeight: 700, fontSize: 13 }}>النهاية</div>
                         <div
-                          style={{
-                            ...fieldStyle(),
+                          style={fieldStyle({
                             padding: "10px 12px",
                             borderRadius: 12,
                             background: COLORS.bg2,
@@ -9972,7 +9975,7 @@ const headerBtn = (danger = false) => ({
                             color: COLORS.primaryDark,
                             fontSize: 14,
                             textAlign: "center",
-                          }}
+                          })}
                         >
                           {endText}
                         </div>
@@ -10050,10 +10053,11 @@ const headerBtn = (danger = false) => ({
             value={hall.name}
             onChange={(e) => updateExamHall(hall.id, { name: e.target.value })}
             placeholder="اسم القاعة"
-                      style={{
-            ...fieldStyle(),
+                      style={fieldStyle({
             width: "100%",
-            fontWeight: 600,maxWidth: 310,}}
+            fontWeight: 600,
+            maxWidth: 310,
+          })}
           />
 
           <input
@@ -10064,13 +10068,12 @@ const headerBtn = (danger = false) => ({
               updateExamHall(hall.id, { capacity: e.target.value })
             }
             placeholder="السعة"
-             style={{
-            ...fieldStyle(),
+             style={fieldStyle({
             width: "100%",
             textAlign: "center",
             fontWeight: 800,
-              maxWidth: 110,
-          }}
+            maxWidth: 110,
+          })}
           />
         </div>
 
@@ -10078,10 +10081,12 @@ const headerBtn = (danger = false) => ({
           <button
             type="button"
             onClick={() => removeExamHall(hall.id)}
-            style={{
-              ...cardButtonStyle({ danger: true }),
-              marginInlineStart: 0,
-            }}
+            style={cardButtonStyle({
+              danger: true,
+              overrides: {
+                marginInlineStart: 0,
+              },
+            })}
           >
             حذف القاعة
           </button>
@@ -10161,7 +10166,7 @@ const headerBtn = (danger = false) => ({
                         <select
                           value={hallConstraintOptions.some((course) => course.key === selectedHallConstraintCourseKey) ? selectedHallConstraintCourseKey : ""}
                           onChange={(e) => setSelectedHallConstraintCourseKey(e.target.value)}
-                          style={{ ...fieldStyle(), maxWidth: 340 }}
+                          style={fieldStyle({ maxWidth: 340 })}
                         >
                           <option value="">اختر المقرر</option>
                           {hallConstraintOptions.map((course) => (
@@ -10433,7 +10438,7 @@ const headerBtn = (danger = false) => ({
                         <select
                           value={selectedHallConstraintDepartmentKey}
                           onChange={(e) => setSelectedHallConstraintDepartmentKey(e.target.value)}
-                          style={{ ...fieldStyle(), maxWidth: 340 }}
+                          style={fieldStyle({ maxWidth: 340 })}
                         >
                           <option value="">اختر القسم/التخصص</option>
                           {hallConstraintDepartmentOptions.map((department) => (
@@ -10904,7 +10909,7 @@ const headerBtn = (danger = false) => ({
                   Math.max(0, safeNum(e.target.value, 0))
                 )
               }
-              style={{ ...fieldStyle(), width: 120, padding: "10px 12px" }}
+              style={fieldStyle({ width: 120, padding: "10px 12px" })}
             />
           </label>
 
@@ -10930,7 +10935,7 @@ const headerBtn = (danger = false) => ({
               value={maxInvigilationsPerInvigilator}
               onChange={(e) => setMaxInvigilationsPerInvigilator(e.target.value)}
               placeholder="بدون حد"
-              style={{ ...fieldStyle(), width: 140, padding: "10px 12px", marginRight: 47 }}
+              style={fieldStyle({ width: 140, padding: "10px 12px", marginRight: 47 })}
             />
           </label>
         </div>
@@ -11024,7 +11029,7 @@ const headerBtn = (danger = false) => ({
                   max="20"
                   value={invigilatorsPerPeriod}
                   onChange={(e) => setInvigilatorsPerPeriod(safeNum(e.target.value, 4))}
-                  style={{ ...fieldStyle(), maxWidth: 80 }}
+                  style={fieldStyle({ maxWidth: 80 })}
                 />
               </div>
             ) : (
@@ -11036,7 +11041,7 @@ const headerBtn = (danger = false) => ({
                   max="50"
                   value={studentsPerInvigilator}
                   onChange={(e) => setStudentsPerInvigilator(safeNum(e.target.value, 20))}
-                  style={{ ...fieldStyle(), maxWidth: 80 }}
+                  style={fieldStyle({ maxWidth: 80 })}
                 />
               </div>
             )}
@@ -11048,7 +11053,7 @@ const headerBtn = (danger = false) => ({
               value={manualInvigilators}
               onChange={(e) => setManualInvigilators(e.target.value)}
               placeholder="اتركه فارغًا لسحب الأسماء تلقائيًا من عمود المدرب في التقرير، أو اكتب كل اسم في سطر مستقل"
-              style={{ ...fieldStyle(), minHeight: 96, resize: "vertical" }}
+              style={fieldStyle({ minHeight: 96, resize: "vertical" })}
             />  </span>
           </div>
       </div>
@@ -11558,7 +11563,7 @@ const headerBtn = (danger = false) => ({
                               value={group.title}
                               onChange={(e) => updateSamePeriodGroupTitle(group.id, e.target.value)}
                               placeholder={`مجموعة ${index + 1}`}
-                              style={{ ...fieldStyle(), maxWidth: 180, padding: "10px 12px" }}
+                              style={fieldStyle({ maxWidth: 180, padding: "10px 12px" })}
                             />
 
                             <button
@@ -12393,12 +12398,12 @@ const headerBtn = (danger = false) => ({
     <select
       value={courseAKey}
       onChange={(e) => setCourseAKey(e.target.value)}
-      style={{
-        ...fieldStyle(),
-        width: "100%", maxWidth: 310,
+      style={fieldStyle({
+        width: "100%",
+        maxWidth: 310,
         position: "relative",
         zIndex: 2,
-      }}
+      })}
     >
       <option value="">اختر المقرر الأول</option>
       {parsed.courses.map((course) => (
@@ -12414,12 +12419,12 @@ const headerBtn = (danger = false) => ({
     <select
       value={courseBKey}
       onChange={(e) => setCourseBKey(e.target.value)}
-      style={{
-        ...fieldStyle(),
-        width: "100%", maxWidth: 310,
+      style={fieldStyle({
+        width: "100%",
+        maxWidth: 310,
         position: "relative",
         zIndex: 2,
-      }}
+      })}
     >
       <option value="">اختر المقرر الثاني</option>
       {parsed.courses.map((course) => (
@@ -12943,10 +12948,10 @@ const headerBtn = (danger = false) => ({
                                 {!canEditManualCourse(item) ? (
                                   <span style={{ fontSize: 12, fontWeight: 800, color: COLORS.warning }}>مقرر دراسات عامة مقفل</span>
                                 ) : null}
-                                <button type="button" onClick={() => togglePinScheduledCourse(item.instanceId)} disabled={!canEditManualCourse(item)} style={{ ...cardButtonStyle({ active: !!item.isPinned, disabled: !canEditManualCourse(item) }), padding: "8px 12px", borderRadius: 12 }}>
+                                <button type="button" onClick={() => togglePinScheduledCourse(item.instanceId)} disabled={!canEditManualCourse(item)} style={cardButtonStyle({ active: !!item.isPinned, disabled: !canEditManualCourse(item), overrides: { padding: "8px 12px", borderRadius: 12 } })}>
                                   {item.isPinned ? "إلغاء التثبيت" : "تثبيت"}
                                 </button>
-                                <button type="button" onClick={() => unscheduleCourseManually(item.instanceId)} style={{ ...cardButtonStyle({ danger: true, disabled: manualScheduleLocked || !canEditManualCourse(item) }), padding: "8px 12px", borderRadius: 12 }} disabled={manualScheduleLocked || !canEditManualCourse(item)}>
+                                <button type="button" onClick={() => unscheduleCourseManually(item.instanceId)} style={cardButtonStyle({ danger: true, disabled: manualScheduleLocked || !canEditManualCourse(item), overrides: { padding: "8px 12px", borderRadius: 12 } })} disabled={manualScheduleLocked || !canEditManualCourse(item)}>
                                   نقل إلى غير المجدول
                                 </button>
                               </div>
@@ -13234,7 +13239,7 @@ const headerBtn = (danger = false) => ({
                       setPrintMajorFilter("__all__");
                       setPreviewPage(0);
                     }}
-                    style={{ ...fieldStyle(), maxWidth: 420 }}
+                    style={fieldStyle({ maxWidth: 420 })}
                   >
                     <option value="__all__">جميع الأقسام</option>
                     {availableDepartmentsForPrint.map((department) => (
@@ -13252,7 +13257,7 @@ const headerBtn = (danger = false) => ({
       setPrintMajorFilter(e.target.value);
       setPreviewPage(0);
     }}
-    style={{ ...fieldStyle(), maxWidth: 420 }}
+    style={fieldStyle({ maxWidth: 420 })}
   >
     <option value="__all__">جميع التخصصات</option>
     {availableMajorsForPrint.map((major) => (
@@ -13471,7 +13476,7 @@ const headerBtn = (danger = false) => ({
                         <button
                           type="button"
                           onClick={() => setCurrentStep(8)}
-                          style={{ ...cardButtonStyle(), padding: "8px 14px", borderRadius: 12 }}
+                          style={cardButtonStyle({ overrides: { padding: "8px 14px", borderRadius: 12 } })}
                         >
                           فتح صفحة المعالجة اليدوية
                         </button>
@@ -13844,7 +13849,7 @@ const headerBtn = (danger = false) => ({
                     setPrintMajorFilter("__all__");
                     setPreviewPage(0);
                   }}
-                  style={{ ...fieldStyle(), maxWidth: 420 }}
+                  style={fieldStyle({ maxWidth: 420 })}
                 >
                   <option value="__all__">جميع الأقسام</option>
                   {availableDepartmentsForPrint.map((department) => (
@@ -13863,7 +13868,7 @@ const headerBtn = (danger = false) => ({
                     setPrintMajorFilter(e.target.value);
                     setPreviewPage(0);
                   }}
-                  style={{ ...fieldStyle(), maxWidth: 420 }}
+                  style={fieldStyle({ maxWidth: 420 })}
                 >
                   <option value="__all__">جميع التخصصات</option>
                   {availableMajorsForPrint.map((major) => (
@@ -14261,7 +14266,7 @@ const headerBtn = (danger = false) => ({
             <select
               value={manualCollegeLocation || autoDetectedCollegeLocation || ""}
               onChange={(e) => setManualCollegeLocation(e.target.value)}
-              style={{ ...fieldStyle(), maxWidth: 220 }}
+              style={fieldStyle({ maxWidth: 220 })}
             >
               <option value="">اختر المدينة</option>
               {allCollegeLocations.map((location) => (
@@ -14392,7 +14397,7 @@ const headerBtn = (danger = false) => ({
             <select
               value={manualCollegeLocation}
               onChange={(e) => setManualCollegeLocation(e.target.value)}
-              style={{ ...fieldStyle(), maxWidth: 220 }}
+              style={fieldStyle({ maxWidth: 220 })}
             >
               <option value="">اختر المدينة</option>
               {allCollegeLocations.map((location) => (
@@ -15188,7 +15193,7 @@ const headerBtn = (danger = false) => ({
                         students: conflict.students,
                       })
                     }
-                    style={{ ...cardButtonStyle({ active: true }), padding: "8px 14px" }}
+                    style={cardButtonStyle({ active: true, overrides: { padding: "8px 14px" } })}
                   >
                     عرض البيانات
                   </button>
