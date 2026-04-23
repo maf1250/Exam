@@ -4483,7 +4483,9 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-    setHallWarnings((prev) => prev.filter((item) => item?.key !== course.key));
+    setHallWarnings((prev) =>
+      prev.filter((item) => String(item?.courseKey || item?.key || "").trim() !== String(course.key || "").trim())
+    );
     setDraggingUnscheduledCourseKey("");
     setActiveDropSlotId("");
     showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
@@ -8886,17 +8888,23 @@ const matchesPreviewFilters = (item) => {
   const selectedMajorNormalized =
     printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
 
-  const departmentRoots = Array.isArray(item.departmentRoots)
+  const itemKey = String(item.courseKey || item.key || "").trim();
+  const courseRef =
+    (parsed?.courses || []).find((course) => String(course?.key || "").trim() === itemKey) || null;
+
+  const departmentRoots = Array.isArray(item.departmentRoots) && item.departmentRoots.length
     ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
+    : Array.isArray(courseRef?.departmentRoots)
+    ? courseRef.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
     : [];
   const departmentValues = [
-    ...splitBySlash(item.department),
-    ...splitBySlash(item.sectionName),
+    ...splitBySlash(item.department || courseRef?.department || ""),
+    ...splitBySlash(item.sectionName || courseRef?.sectionName || ""),
   ]
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
-  const majorValues = splitBySlash(item.major)
+  const majorValues = splitBySlash(item.major || courseRef?.major || "")
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
@@ -9022,44 +9030,12 @@ const studentOptionsForPrint = useMemo(() => {
 
 
 const filteredHallWarningsForPreview = useMemo(() => {
-  const scheduledKeys = new Set(
-    (schedule || []).map((s) => String(s.courseKey || s.key || "").trim())
-  );
-
   return (hallWarnings || []).filter((item) => {
-    const key = String(item.courseKey || item.key || "").trim();
-
-    if (scheduledKeys.has(key)) return false;
-
-    const department = item.department || item.sectionName || "";
-    const major = item.major || "";
-
-    if (selectedDepartmentForPreview !== "__all__") {
-      const roots = getCourseDepartmentRoots({
-        department,
-        major,
-        sectionName: department,
-      });
-
-      if (!roots.includes(normalizeArabic(selectedDepartmentForPreview))) {
-        return false;
-      }
-    }
-
-    if (selectedMajorForPreview !== "__all__") {
-      if (normalizeArabic(major) !== normalizeArabic(selectedMajorForPreview)) {
-        return false;
-      }
-    }
-
-    return true;
+    const key = String(item?.courseKey || item?.key || "").trim();
+    if (key && scheduledCourseKeySet.has(key)) return false;
+    return matchesPreviewFilters(item);
   });
-}, [
-  hallWarnings,
-  schedule,
-  selectedDepartmentForPreview,
-  selectedMajorForPreview,
-]);
+}, [hallWarnings, scheduledCourseKeySet, printDepartmentFilter, printMajorFilter, parsed.courses]);
   
 
 const selectedStudentScheduleForPrint = useMemo(() => {
