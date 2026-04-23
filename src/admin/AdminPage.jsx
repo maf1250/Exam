@@ -4483,7 +4483,12 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-    setHallWarnings((prev) => prev.filter((item) => item?.key !== course.key));
+    setHallWarnings((prev) =>
+      prev.filter((item) => {
+        const warningKey = String(item?.courseKey || item?.key || "").trim();
+        return warningKey !== String(course.key || "").trim();
+      })
+    );
     setDraggingUnscheduledCourseKey("");
     setActiveDropSlotId("");
     showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
@@ -4616,7 +4621,12 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== courseKey));
-    setHallWarnings((prev) => prev.filter((item) => item?.key !== courseKey));
+    setHallWarnings((prev) =>
+      prev.filter((item) => {
+        const warningKey = String(item?.courseKey || item?.key || "").trim();
+        return warningKey !== String(courseKey || "").trim();
+      })
+    );
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
@@ -8226,7 +8236,14 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   if ((Number(course.studentCount) || 0) > 0) {
     hallWarningItems.push({
+      courseKey: course.key,
+      key: course.key,
       courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
+      courseCode: course.courseCode || "",
+      department: course.department || "",
+      sectionName: course.sectionName || "",
+      major: course.major || "",
+      departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
       required: Number(course.studentCount) || 0,
       maxAvailable: Number.isFinite(Number(maxRemainingAcrossSlots)) ? Number(maxRemainingAcrossSlots) : 0,
     });
@@ -8325,9 +8342,11 @@ sortedCoursesForInvigilation.forEach((course) => {
 
   hallWarningItems.push({
     courseKey: course.key,
+    key: course.key,
     courseName: course.courseName || course.courseCode || "مقرر بدون اسم",
     courseCode: course.courseCode || "",
     department: course.department || "",
+    sectionName: course.sectionName || "",
     major: course.major || "",
     departmentRoots: Array.isArray(course.departmentRoots) ? [...course.departmentRoots] : [],
     required: Number(course.studentCount) || 0,
@@ -8633,11 +8652,15 @@ const applySpecializedScheduleGeneration = ({
   setPreviewTab("schedule");
 
   setHallWarnings((prev) => {
-    const remaining = (prev || []).filter((item) => !currentScopeKeySet.has(item?.key));
+    const remaining = (prev || []).filter((item) => {
+      const warningKey = String(item?.courseKey || item?.key || "").trim();
+      return !currentScopeKeySet.has(warningKey);
+    });
     const combined = [...remaining, ...(nextHallWarnings || [])];
     const map = new Map();
     combined.forEach((item) => {
-      const key = `${item?.key || ""}__${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
+      const warningKey = String(item?.courseKey || item?.key || "").trim();
+      const key = `${warningKey}__${item?.courseName || ""}__${item?.required || 0}__${item?.maxAvailable || 0}`;
       if (!map.has(key)) {
         map.set(key, item);
       }
@@ -8886,17 +8909,28 @@ const matchesPreviewFilters = (item) => {
   const selectedMajorNormalized =
     printMajorFilter === "__all__" ? "" : normalizeArabic(printMajorFilter);
 
-  const departmentRoots = Array.isArray(item.departmentRoots)
-    ? item.departmentRoots.map((root) => normalizeArabic(root)).filter(Boolean)
-    : [];
+  const itemKey = String(item?.courseKey || item?.key || "").trim();
+  const courseRef =
+    parsed.courses.find((course) => String(course?.key || "").trim() === itemKey) || null;
+
+  const departmentRoots = (
+    Array.isArray(item.departmentRoots) && item.departmentRoots.length
+      ? item.departmentRoots
+      : Array.isArray(courseRef?.departmentRoots)
+      ? courseRef.departmentRoots
+      : []
+  )
+    .map((root) => normalizeArabic(root))
+    .filter(Boolean);
+
   const departmentValues = [
-    ...splitBySlash(item.department),
-    ...splitBySlash(item.sectionName),
+    ...splitBySlash(item.department || courseRef?.department || ""),
+    ...splitBySlash(item.sectionName || courseRef?.sectionName || ""),
   ]
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
-  const majorValues = splitBySlash(item.major)
+  const majorValues = splitBySlash(item.major || courseRef?.major || "")
     .map((value) => normalizeArabic(value))
     .filter(Boolean);
 
@@ -8914,10 +8948,14 @@ const matchesPreviewFilters = (item) => {
 
 const filteredUnscheduledForPreview = useMemo(() => {
   return unscheduled.filter((item) => matchesPreviewFilters(item));
-}, [unscheduled, printDepartmentFilter, printMajorFilter]);
+}, [unscheduled, printDepartmentFilter, printMajorFilter, parsed.courses]);
 
 const scheduledCourseKeySet = useMemo(() => {
-  return new Set((schedule || []).map((item) => String(item?.key || "").trim()).filter(Boolean));
+  return new Set(
+    (schedule || [])
+      .map((item) => String(item?.courseKey || item?.key || "").trim())
+      .filter(Boolean)
+  );
 }, [schedule]);
 
 
@@ -9022,44 +9060,15 @@ const studentOptionsForPrint = useMemo(() => {
 
 
 const filteredHallWarningsForPreview = useMemo(() => {
-  const scheduledKeys = new Set(
-    (schedule || []).map((s) => String(s.courseKey || s.key || "").trim())
-  );
-
   return (hallWarnings || []).filter((item) => {
-    const key = String(item.courseKey || item.key || "").trim();
-
-    if (scheduledKeys.has(key)) return false;
-
-    const department = item.department || item.sectionName || "";
-    const major = item.major || "";
-
-    if (selectedDepartmentForPreview !== "__all__") {
-      const roots = getCourseDepartmentRoots({
-        department,
-        major,
-        sectionName: department,
-      });
-
-      if (!roots.includes(normalizeArabic(selectedDepartmentForPreview))) {
-        return false;
-      }
+    const warningKey = String(item?.courseKey || item?.key || "").trim();
+    if (warningKey && scheduledCourseKeySet.has(warningKey)) {
+      return false;
     }
 
-    if (selectedMajorForPreview !== "__all__") {
-      if (normalizeArabic(major) !== normalizeArabic(selectedMajorForPreview)) {
-        return false;
-      }
-    }
-
-    return true;
+    return matchesPreviewFilters(item);
   });
-}, [
-  hallWarnings,
-  schedule,
-  selectedDepartmentForPreview,
-  selectedMajorForPreview,
-]);
+}, [hallWarnings, scheduledCourseKeySet, printDepartmentFilter, printMajorFilter, parsed.courses]);
   
 
 const selectedStudentScheduleForPrint = useMemo(() => {
