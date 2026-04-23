@@ -4483,6 +4483,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== course.key));
     setDraggingUnscheduledCourseKey("");
     setActiveDropSlotId("");
     showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
@@ -4615,6 +4616,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== courseKey));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== courseKey));
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
@@ -8914,9 +8916,17 @@ const filteredUnscheduledForPreview = useMemo(() => {
   return unscheduled.filter((item) => matchesPreviewFilters(item));
 }, [unscheduled, printDepartmentFilter, printMajorFilter]);
 
+const scheduledCourseKeySet = useMemo(() => {
+  return new Set((schedule || []).map((item) => String(item?.key || "").trim()).filter(Boolean));
+}, [schedule]);
+
 const filteredHallWarningsForPreview = useMemo(() => {
-  return hallWarnings.filter((item) => matchesPreviewFilters(item));
-}, [hallWarnings, printDepartmentFilter, printMajorFilter]);
+  return hallWarnings.filter((item) => {
+    const key = String(item?.key || "").trim();
+    if (key && scheduledCourseKeySet.has(key)) return false;
+    return matchesPreviewFilters(item);
+  });
+}, [hallWarnings, scheduledCourseKeySet, printDepartmentFilter, printMajorFilter]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -15141,8 +15151,9 @@ const headerBtn = (danger = false) => ({
         المقررات المتعارضة مع:
         <br />
         <span style={{ color: COLORS.charcoal }}>{selectedConflicts.name}</span>
+                  <small>اضغط على المقرر لعرض التفاصيل</small>
       </h4>
-                <p> اضغط على المقرر لعرض التفاصيل</p>
+
       {selectedConflicts.list.length === 0 ? (
         <p style={{ color: COLORS.muted, margin: 0 }}>لا يوجد تعارض</p>
       ) : (
@@ -15162,7 +15173,6 @@ const headerBtn = (danger = false) => ({
                 gap: 12,
               }}
             >
-    
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                 <span
                   style={{
