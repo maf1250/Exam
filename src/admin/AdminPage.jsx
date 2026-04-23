@@ -4624,7 +4624,8 @@ const extraCandidates = extraPool
       pushDiagnostic(
         `المراقب ${name} مُسند أصلًا في هذه الفترة للمقرر: ${samePeriodAssignments
           .map((item) => item.courseName)
-          .join("، ")}. لا يمكن إسناده لأكثر من مقرر في الفترة نفسها.`
+          .join("، ")}. لا يمكن إسناده لأكثر من مقرر في الفترة نفسها.`,
+        true
       );
     }
 
