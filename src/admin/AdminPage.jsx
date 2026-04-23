@@ -8921,12 +8921,53 @@ const scheduledCourseKeySet = useMemo(() => {
 }, [schedule]);
 
 const filteredHallWarningsForPreview = useMemo(() => {
-  return hallWarnings.filter((item) => {
-    const key = String(item?.key || "").trim();
-    if (key && scheduledCourseKeySet.has(key)) return false;
-    return matchesPreviewFilters(item);
+  const scheduledKeys = new Set(
+    (schedule || []).map((s) => String(s.courseKey || s.key || "").trim())
+  );
+
+  return (hallWarnings || []).filter((item) => {
+    const key = String(item.courseKey || item.key || "").trim();
+
+    //  لا تعرض إذا صار مجدول
+    if (scheduledKeys.has(key)) return false;
+
+    //  نجيب بيانات المقرر من المصدر
+    const course = courses.find((c) => String(c.key).trim() === key);
+
+    const department =
+      item.department ||
+      course?.department ||
+      course?.sectionName ||
+      "";
+
+    const major =
+      item.major ||
+      course?.major ||
+      "";
+
+    // فلترة القسم
+    if (selectedDepartment !== "__all__") {
+      const roots = getCourseDepartmentRoots({
+        department,
+        major,
+        sectionName: department,
+      });
+
+      if (!roots.includes(normalizeArabic(selectedDepartment))) {
+        return false;
+      }
+    }
+
+    // فلترة التخصص
+    if (selectedMajor !== "__all__") {
+      if (normalizeArabic(major) !== normalizeArabic(selectedMajor)) {
+        return false;
+      }
+    }
+
+    return true;
   });
-}, [hallWarnings, scheduledCourseKeySet, printDepartmentFilter, printMajorFilter]);
+}, [hallWarnings, schedule, courses, selectedDepartment, selectedMajor]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
@@ -15151,7 +15192,7 @@ const headerBtn = (danger = false) => ({
         المقررات المتعارضة مع:
         <br />
         <span style={{ color: COLORS.charcoal }}>{selectedConflicts.name}</span>
-                  <small>اضغط على المقرر لعرض التفاصيل</small>
+                  <p><small> اضغط على المقرر لعرض التفاصيل</small></p>
       </h4>
 
       {selectedConflicts.list.length === 0 ? (
