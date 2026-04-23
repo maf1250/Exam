@@ -29,7 +29,26 @@ function sortStudentSchedule(schedule = []) {
 
 function isDeprivationRegistrationStatus(status) {
   const normalized = normalizeArabic(String(status || "").trim());
-  return normalized.includes("حرمان");
+
+  const allowedCases = [
+    "اعاده القيد",
+    "اعاده القيد بسبب الحرمان",
+    "مقرر معاد قيده لتعديل الحرمان",
+  ];
+
+  const blockedCases = [
+    "حرمان",
+  ];
+
+  if (allowedCases.some((s) => normalized.includes(normalizeArabic(s)))) {
+    return false;
+  }
+
+  if (blockedCases.some((s) => normalized.includes(normalizeArabic(s)))) {
+    return true;
+  }
+
+  return false;
 }
 
 function getCourseStudentStatusKey(courseKey, studentId) {
