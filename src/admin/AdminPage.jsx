@@ -4483,7 +4483,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== course.key));
-    setHallWarnings((prev) => prev.filter((item) => String(item?.courseKey || item?.key || "").trim() !== String(course?.key || "").trim()));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== course.key));
     setDraggingUnscheduledCourseKey("");
     setActiveDropSlotId("");
     showToast("تمت الإضافة", "تمت إضافة المقرر إلى الفترة المحددة بنجاح.", "success");
@@ -4616,7 +4616,7 @@ const extraCandidates = extraPool
       )
     );
     setUnscheduled((prev) => prev.filter((item) => item.key !== courseKey));
-    setHallWarnings((prev) => prev.filter((item) => String(item?.courseKey || item?.key || "").trim() !== String(courseKey || "").trim()));
+    setHallWarnings((prev) => prev.filter((item) => item?.key !== courseKey));
     showToast("تمت الإعادة", "تمت إعادة جدولة المقرر بنجاح.", "success");
   }
 
@@ -8836,8 +8836,12 @@ const generateSpecializedSchedule = () => {
   });
 };
 
+const previewScheduleSource = useMemo(() => (
+  schedule.length ? schedule : [...generalSchedule, ...specializedSchedule]
+), [schedule, generalSchedule, specializedSchedule]);
+
 const filteredScheduleForPrint = useMemo(() => {
-  return schedule.filter((item) => {
+  return previewScheduleSource.filter((item) => {
     const departmentOk =
       printDepartmentFilter === "__all__" ||
       (() => {
@@ -8861,7 +8865,7 @@ const filteredScheduleForPrint = useMemo(() => {
 
     return departmentOk && majorOk;
   });
-}, [schedule, printDepartmentFilter, printMajorFilter]);
+}, [previewScheduleSource, printDepartmentFilter, printMajorFilter]);
 const filteredSortedCourses = useMemo(() => {
   return parsed.courses.filter((item) => {
     const departmentOk =
@@ -8917,8 +8921,8 @@ const filteredUnscheduledForPreview = useMemo(() => {
 }, [unscheduled, printDepartmentFilter, printMajorFilter]);
 
 const scheduledCourseKeySet = useMemo(() => {
-  return new Set((schedule || []).map((item) => String(item?.key || "").trim()).filter(Boolean));
-}, [schedule]);
+  return new Set((previewScheduleSource || []).map((item) => String(item?.courseKey || item?.key || "").trim()).filter(Boolean));
+}, [previewScheduleSource]);
 
 
 
@@ -9022,55 +9026,80 @@ const studentOptionsForPrint = useMemo(() => {
 
 
 const filteredHallWarningsForPreview = useMemo(() => {
+  const buildCourseIdentity = (item) => {
+    const courseCode = normalizeArabic(String(item?.courseCode || "").trim());
+    const courseName = normalizeArabic(String(item?.courseName || "").trim());
+    return courseCode || courseName ? `${courseCode}|${courseName}` : "";
+  };
+
   const scheduledKeys = new Set(
-    (schedule || []).map((item) => String(item?.courseKey || item?.key || "").trim()).filter(Boolean)
+    (previewScheduleSource || [])
+      .map((s) => String(s?.courseKey || s?.key || "").trim())
+      .filter(Boolean)
   );
 
-  return (hallWarnings || []).filter((item) => {
-    const itemKey = String(item?.courseKey || item?.key || "").trim();
-    if (itemKey && scheduledKeys.has(itemKey)) return false;
+  const scheduledIdentities = new Set(
+    (previewScheduleSource || [])
+      .map((s) => buildCourseIdentity(s))
+      .filter(Boolean)
+  );
 
-    const courseRef = parsed.courses.find(
-      (course) => String(course?.key || "").trim() === itemKey
-    );
+  const coursesByKey = new Map(
+    (parsed?.courses || [])
+      .map((course) => [String(course?.key || course?.courseKey || "").trim(), course])
+      .filter(([key]) => Boolean(key))
+  );
 
-    const departmentRoots = (
-      Array.isArray(item?.departmentRoots) && item.departmentRoots.length
-        ? item.departmentRoots
-        : Array.isArray(courseRef?.departmentRoots)
-        ? courseRef.departmentRoots
-        : getCourseDepartmentRoots({
-            department: item?.department || courseRef?.department || "",
-            sectionName: item?.sectionName || courseRef?.sectionName || "",
-            major: item?.major || courseRef?.major || "",
-          })
-    )
-      .map((root) => normalizeArabic(root))
-      .filter(Boolean);
-
-    const departmentValues = [
-      ...splitBySlash(item?.department || courseRef?.department || ""),
-      ...splitBySlash(item?.sectionName || courseRef?.sectionName || ""),
-    ]
-      .map((value) => normalizeArabic(value))
-      .filter(Boolean);
-
-    const majorValues = splitBySlash(item?.major || courseRef?.major || "")
-      .map((value) => normalizeArabic(value))
-      .filter(Boolean);
-
-    const departmentOk =
-      printDepartmentFilter === "__all__" ||
-      departmentRoots.includes(normalizeArabic(printDepartmentFilter)) ||
-      departmentValues.includes(normalizeArabic(printDepartmentFilter));
-
-    const majorOk =
-      printMajorFilter === "__all__" ||
-      majorValues.includes(normalizeArabic(printMajorFilter));
-
-    return departmentOk && majorOk;
+  const coursesByIdentity = new Map();
+  (parsed?.courses || []).forEach((course) => {
+    const identity = buildCourseIdentity(course);
+    if (identity && !coursesByIdentity.has(identity)) {
+      coursesByIdentity.set(identity, course);
+    }
   });
-}, [hallWarnings, schedule, parsed.courses, printDepartmentFilter, printMajorFilter]);
+
+  return (hallWarnings || []).filter((item) => {
+    const key = String(item?.courseKey || item?.key || "").trim();
+    const identity = buildCourseIdentity(item);
+    const originalCourse =
+      (key ? coursesByKey.get(key) : null) ||
+      (identity ? coursesByIdentity.get(identity) : null) ||
+      null;
+
+    const effectiveItem = {
+      ...originalCourse,
+      ...item,
+      department:
+        String(item?.department || item?.sectionName || "").trim() ||
+        String(originalCourse?.department || originalCourse?.sectionName || "").trim(),
+      major:
+        String(item?.major || "").trim() || String(originalCourse?.major || "").trim(),
+      departmentRoots:
+        Array.isArray(item?.departmentRoots) && item.departmentRoots.length
+          ? item.departmentRoots
+          : Array.isArray(originalCourse?.departmentRoots)
+          ? originalCourse.departmentRoots
+          : getCourseDepartmentRoots(originalCourse || item || {}),
+      courseCode: String(item?.courseCode || "").trim() || String(originalCourse?.courseCode || "").trim(),
+      courseName: String(item?.courseName || "").trim() || String(originalCourse?.courseName || "").trim(),
+    };
+
+    const effectiveKey = String(effectiveItem?.courseKey || effectiveItem?.key || key).trim();
+    const effectiveIdentity = buildCourseIdentity(effectiveItem);
+
+    if ((effectiveKey && scheduledKeys.has(effectiveKey)) || (effectiveIdentity && scheduledIdentities.has(effectiveIdentity))) {
+      return false;
+    }
+
+    return matchesPreviewFilters(effectiveItem);
+  });
+}, [
+  hallWarnings,
+  previewScheduleSource,
+  parsed?.courses,
+  printDepartmentFilter,
+  printMajorFilter,
+]);
   
 
 const selectedStudentScheduleForPrint = useMemo(() => {
