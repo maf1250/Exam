@@ -61,7 +61,29 @@ function getDeprivationStatus(item) {
   if (!raw) return "";
 
   const normalized = normalizeArabic(raw);
-  if (normalized.includes("حرمان")) return raw;
+
+  const nonDeprivationPhrases = [
+    "اعاده القيد",
+    "اعاده القيد بسبب الحرمان",
+    "معاد قيده",
+    "معاد قيده بسبب الحرمان",
+    "معاد قيده لتعديل الحرمان",
+    "تعديل الحرمان",
+  ];
+
+  if (nonDeprivationPhrases.some((text) => normalized.includes(text))) {
+    return "";
+  }
+
+  const deprivationPhrases = [
+    "حرمان",
+    "محروم",
+    "حرم",
+  ];
+
+  if (deprivationPhrases.some((text) => normalized.includes(text))) {
+    return raw;
+  }
 
   return "";
 }
@@ -69,7 +91,6 @@ function getDeprivationStatus(item) {
 function isDeprivedScheduleItem(item) {
   return Boolean(getDeprivationStatus(item));
 }
-
 
 function fieldStyle() {
   return {
@@ -90,52 +111,51 @@ function fieldStyle() {
 function openPrintWindow({ collegeName, selectedStudent }) {
   const instructions = getInstructions();
   const today = new Date().toLocaleDateString("ar-SA");
-const rowsHtml = (selectedStudent?.schedule || [])
-  .map((item, index) => {
-    const deprivationStatus = getDeprivationStatus(item);
-    const isDeprived = Boolean(deprivationStatus);
 
-    const cellStyle = isDeprived
-      ? 'background:#FEE4E2;color:#B42318;font-weight:700;'
-      : '';
+  const rowsHtml = (selectedStudent?.schedule || [])
+    .map((item, index) => {
+      const deprivationStatus = getDeprivationStatus(item);
+      const isDeprived = Boolean(deprivationStatus);
 
-    return `
-      <tr>
-        <td style="${cellStyle}">${index + 1}</td>
-        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
-        
-        <td style="${cellStyle}; text-align:right;">
-          <div>${escapeHtml(item.courseName || "-")}</div>
+      const cellStyle = isDeprived
+        ? "background:#FEE4E2;color:#B42318;font-weight:700;"
+        : "";
 
-          ${
-            isDeprived
-              ? `
-                <div style="
-                  margin-top:6px;
-                  display:inline-flex;
-                  align-items:center;
-                  gap:6px;
-                  font-size:11px;
-                  font-weight:900;
-                  color:#B42318;
-                ">
-                  <span>🚫</span>
-                  <span>(محروم)</span>
-                </div>
-              `
-              : ""
-          }
-        </td>
+      return `
+        <tr>
+          <td style="${cellStyle}">${index + 1}</td>
+          <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
+          <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
+          <td style="${cellStyle}; text-align:right;">
+            <div>${escapeHtml(item.courseName || "-")}</div>
+            ${
+              isDeprived
+                ? `
+                  <div style="
+                    margin-top:6px;
+                    display:inline-flex;
+                    align-items:center;
+                    gap:6px;
+                    font-size:11px;
+                    font-weight:900;
+                    color:#B42318;
+                  ">
+                    <span>🚫</span>
+                    <span>(محروم)</span>
+                  </div>
+                `
+                : ""
+            }
+          </td>
+          <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
+          <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
+          <td style="${cellStyle}">${escapeHtml(item.timeText || "-")}</td>
+          <td style="${cellStyle}">${escapeHtml(item.examHall || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
 
-        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.timeText || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.examHall || "-")}</td>
-      </tr>
-    `;
-  })
-  .join("");
   const html = `
   <!doctype html>
   <html lang="ar" dir="rtl">
@@ -177,16 +197,16 @@ const rowsHtml = (selectedStudent?.schedule || [])
         .hero {
           background: linear-gradient(135deg, #0f5f68 0%, #1fa7a8 50%, #63cfc4 100%);
           color: white;
-           padding: 6px 10px 4px;
+          padding: 6px 10px 4px;
           position: relative;
-          min-height: 85px; 
+          min-height: 85px;
         }
         .hero small { opacity: 0.92; font-size: 10px; }
         .hero h1 { margin: 4px 0 3px; font-size: 18px; line-height: 1.2; }
         .hero p { margin: 0; font-size: 10px; opacity: 0.95; line-height: 1.45; }
         .header-center {
-            position: relative;
-            min-height: 70px;
+          position: relative;
+          min-height: 70px;
         }
         .logo {
           width: 70px;
@@ -324,7 +344,7 @@ const rowsHtml = (selectedStudent?.schedule || [])
           </tr>
         </thead>
         <tbody>
-          ${rowsHtml || '<tr><td colspan="9">لا توجد بيانات متاحة</td></tr>'}
+          ${rowsHtml || '<tr><td colspan="8">لا توجد بيانات متاحة</td></tr>'}
         </tbody>
       </table>
 
@@ -508,7 +528,14 @@ export default function TraineePortalPage() {
               />
             </div>
 
-            <div style={{  minWidth: 260, position: "relative", zIndex: 1, justifyContent: "center", }}>
+            <div
+              style={{
+                minWidth: 260,
+                position: "relative",
+                zIndex: 1,
+                justifyContent: "center",
+              }}
+            >
               <div
                 style={{
                   display: "inline-flex",
@@ -523,7 +550,6 @@ export default function TraineePortalPage() {
                   marginBottom: 12,
                   border: "1px solid rgba(255,255,255,0.16)",
                   textAlign: "center",
-                  // width: "100%",
                 }}
               >
                 <span>الجداول النهائية</span>
@@ -551,13 +577,13 @@ export default function TraineePortalPage() {
                   lineHeight: 1.9,
                   maxWidth: 760,
                   display: "flex",
-    justifyContent: "center", // توسيط أفقي
-    alignItems: "center",     // توسيط عمودي
-    textAlign: "center",      // توسيط النص نفسه
-    flexDirection: "column", 
-    width: "100%",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center",
+                  flexDirection: "column",
+                  width: "100%",
                 }}
-                           >
+              >
                 منصة لعرض جدول الاختبارات النهائي للمتدرب بطريقة واضحة ومنظمة، مع
                 البحث السريع والطباعة بتنسيق احترافي.
               </p>
@@ -576,7 +602,11 @@ export default function TraineePortalPage() {
           <StatCard label="عدد المتدربين المنشور" value={quickStats.students} icon="👥" />
           <StatCard label="اختبارات المتدرب المحدد" value={quickStats.exams} icon="🗓️" />
           <StatCard label="رمز البوابة" value={normalizedSlug || "-"} icon="🔗" />
-          <StatCard label="حالة البيانات" value={loading ? "جاري التحميل" : error ? "غير متاحة" : "منشورة"} icon="📌" />
+          <StatCard
+            label="حالة البيانات"
+            value={loading ? "جاري التحميل" : error ? "غير متاحة" : "منشورة"}
+            icon="📌"
+          />
         </div>
 
         {loading ? (
@@ -614,7 +644,6 @@ export default function TraineePortalPage() {
                     وعرض جدوله النهائي.
                   </div>
                 </div>
-               
               </div>
 
               <div style={{ position: "relative" }}>
@@ -655,7 +684,9 @@ export default function TraineePortalPage() {
                           width: "100%",
                           border: "none",
                           borderBottom:
-                            index === suggestions.length - 1 ? "none" : `1px solid ${COLORS.border}`,
+                            index === suggestions.length - 1
+                              ? "none"
+                              : `1px solid ${COLORS.border}`,
                           background: "#fff",
                           textAlign: "right",
                           padding: "14px 16px",
@@ -997,14 +1028,16 @@ function InfoBox({ label, value }) {
   );
 }
 
-function Cell({ children }) {
+function Cell({ children, isDeprived = false }) {
   return (
     <td
       style={{
         padding: 13,
         borderBottom: `1px solid ${COLORS.border}`,
         textAlign: "center",
-        background: "#fff",
+        background: isDeprived ? "#FEE4E2" : "#fff",
+        color: isDeprived ? COLORS.danger : COLORS.text,
+        fontWeight: isDeprived ? 800 : 500,
         fontSize: 14,
       }}
     >
