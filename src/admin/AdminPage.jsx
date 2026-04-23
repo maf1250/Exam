@@ -8931,19 +8931,13 @@ const filteredHallWarningsForPreview = useMemo(() => {
     //  لا تعرض إذا صار مجدول
     if (scheduledKeys.has(key)) return false;
 
-    //  نجيب بيانات المقرر من المصدر
-    const course = courses.find((c) => String(c.key).trim() === key);
-
     const department =
       item.department ||
-      course?.department ||
-      course?.sectionName ||
+      item.sectionName ||
       "";
 
     const major =
-      item.major ||
-      course?.major ||
-      "";
+      item.major || "";
 
     // فلترة القسم
     if (selectedDepartment !== "__all__") {
@@ -8967,7 +8961,7 @@ const filteredHallWarningsForPreview = useMemo(() => {
 
     return true;
   });
-}, [hallWarnings, schedule, courses, selectedDepartment, selectedMajor]);
+}, [hallWarnings, schedule, selectedDepartment, selectedMajor]);
 
   const groupedSchedule = useMemo(() => {
     return filteredScheduleForPrint.reduce((acc, item) => {
