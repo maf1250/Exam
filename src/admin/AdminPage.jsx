@@ -9533,9 +9533,9 @@ const headerBtn = (danger = false) => ({
   <button
     type="button"
     target="_blank"
-    title="لإرسال ملف تفعيل بوابة المتدرين عبر البريد الإلكتروني (بعد الانتهاء من الجدولة)"
+    title="اضغط لإرسال ملف تفعيل بوابة المتدرين عبر البريد الإلكتروني (بعد الانتهاء من الجدولة)"
     onClick={handleSupportEmailClick}
-    style={socialIconButtonStyle("#02599c")}
+    style={socialIconButtonStyle("#0072C6")}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = "translateY(-2px)";
       e.currentTarget.style.boxShadow = "0 12px 22px rgba(0,0,0,0.18)";
