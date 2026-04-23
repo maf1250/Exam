@@ -3236,7 +3236,7 @@ function handleSupportEmailClick() {
     if (!effectiveCollegeSlug) {
       showToast(
         "تعذر تجهيز الملف",
-        "لم يتم العثور على slug الخاص بالكلية.",
+        "يبدو أنه لم يتم كتابة اسم الوحدة بشكلصحيح، نأمل كتابته بدقة أو اختيار المدينة في صفحة الاستيراد وبوابة المتدربين.",
         "error"
       );
       return;
@@ -3271,7 +3271,7 @@ const body = encodeURIComponent(
   "السلام عليكم ورحمة الله وبركاته،\n\n" +
   "تم تجهيز ملف تفعيل بوابة المتدربين وتنزيله على الجهاز.\n" +
   "وسيتم إرفاق الملف الذي تم تنزيله ثم إرسال الرسالة.\n\n" +
-  `Slug: ${effectiveCollegeSlug}\n\n` +
+  `رمز الوحدة: ${effectiveCollegeSlug}\n\n` + 
   "مع الشكر."
 );
 
@@ -9569,7 +9569,6 @@ const headerBtn = (danger = false) => ({
 
   <button
     type="button"
-    target="_blank"
     title="اضغط لإرسال ملف تفعيل بوابة المتدرين عبر البريد الإلكتروني (بعد الانتهاء من الجدولة)"
     onClick={handleSupportEmailClick}
     style={socialIconButtonStyle("#0072C6")}
