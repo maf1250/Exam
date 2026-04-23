@@ -4956,89 +4956,130 @@ const [selectedUnscheduledReasonModal, setSelectedUnscheduledReasonModal] = useS
 const handleUpload = (file) => {
   if (!file) return;
 
-  setFileName(file.name);
-  setStudentSearchText("");
-  setShowStudentSuggestions(false);
+  const hasExistingData =
+    rows.length > 0 ||
+    (schedule || []).length > 0 ||
+    (generalSchedule || []).length > 0 ||
+    (specializedSchedule || []).length > 0 ||
+    (unscheduled || []).length > 0 ||
+    Boolean(localStorage.getItem(STORAGE_KEY)) ||
+    Boolean(localStorage.getItem(STORAGE_MODE_KEY)) ||
+    Boolean(localStorage.getItem(LARGE_STORAGE_KEY));
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    encoding: "UTF-8",
-    complete: (result) => {
-      const cleanRows = (result.data || []).filter((row) =>
-        Object.values(row).some((v) => String(v ?? "").trim() !== "")
-      );
+  const continueUpload = () => {
+    setFileName(file.name);
+    setStudentSearchText("");
+    setShowStudentSuggestions(false);
 
-      const extractedCollegeName = String(cleanRows[0]?.["الوحدة"] || "").trim();
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: "UTF-8",
+      complete: (result) => {
+        const cleanRows = (result.data || []).filter((row) =>
+          Object.values(row).some((v) => String(v ?? "").trim() !== "")
+        );
 
-      setRows(cleanRows);
-      setCollegeNameInput((prev) => {
-        const manualName = String(prev || "").trim();
-        const fileNameFromRow = extractedCollegeName;
+        const extractedCollegeName = String(cleanRows[0]?.["الوحدة"] || "").trim();
 
-        if (!fileNameFromRow) return prev;
-        if (!manualName) return fileNameFromRow;
+        setRows(cleanRows);
+        setCollegeNameInput((prev) => {
+          const manualName = String(prev || "").trim();
+          const fileNameFromRow = extractedCollegeName;
 
-        return areCollegeNamesClose(manualName, fileNameFromRow) ? prev : fileNameFromRow;
-      });
+          if (!fileNameFromRow) return prev;
+          if (!manualName) return fileNameFromRow;
 
-      setSchedule([]);
-      setGeneralSchedule([]);
-      setSpecializedSchedule([]);
-      setUnscheduled([]);
-      setExpandedUnscheduledCourseKeys([]);
-      setSelectedUnscheduledReasonModal(null);
-      setHallWarnings([]);
-      setShowAdvancedManagementOptions(false);
-      setShowHallConstraintPreferences(false);
-      setShowCourseExclusionsPreference(true);
-      setShowGeneralSpecializedSeparationPreference(false);
-      setShowSamePeriodPreference(false);
-      setShowCourseTimePreference(false);
-      setShowAvoidSameLevelSameDayPreference(false);
-      setShowInvigilatorConstraintPreference(false);
-      setEnableSamePeriodGroups(false);
-      setSamePeriodGroups([]);
-      setDraggingSamePeriodCourseKey("");
-      setMaxExamsPerStudentPerDay(2);
-      setCourseConstraints({});
-      setSelectedConstraintCourseKey("");
-      setSelectedConstraintCourseKeys([]);
-      setCourseHallConstraints({});
-      setDepartmentHallConstraints({});
-      setSelectedHallConstraintCourseKey("");
-      setSelectedHallConstraintCourseKeys([]);
-      setSelectedHallConstraintDepartmentKey("");
-      setSelectedHallConstraintDepartmentKeys([]);
-      setManualScheduleLocked(false);
-      setGeneralSpecializedDaySeparationMode("off");
-      setDraggingScheduleItemId("");
-      setDraggingUnscheduledCourseKey("");
-      setActiveDropSlotId("");
-      setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
-      setIncludeAllDepartmentsAndMajors(true);
-      setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(false);
-      setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers(false);
-      setExcludedDepartmentMajors([]);
-      setLockGeneralStudiesStep(false);
-      setCourseLevels({});
-      setPreviewPage(0);
-      setPreviewTab("sortedCourses");
-      setSelectedStudentIdForPrint("");
-      setCompactPrintMode(true);
-      setCurrentStep(1);
-      setHasImportedSessionFile(false);
-      pendingRestoreRef.current = null;
-      setPendingRestore(null);
-      setDidRestore(true);
-      setToast(null);
+          return areCollegeNamesClose(manualName, fileNameFromRow) ? prev : fileNameFromRow;
+        });
 
-      showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
-    },
-    error: (err) => {
-      showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
-    },
-  });
+        setSchedule([]);
+        setGeneralSchedule([]);
+        setSpecializedSchedule([]);
+        setUnscheduled([]);
+        setExpandedUnscheduledCourseKeys([]);
+        setSelectedUnscheduledReasonModal(null);
+        setHallWarnings([]);
+        setShowAdvancedManagementOptions(false);
+        setShowHallConstraintPreferences(false);
+        setShowCourseExclusionsPreference(true);
+        setShowGeneralSpecializedSeparationPreference(false);
+        setShowSamePeriodPreference(false);
+        setShowCourseTimePreference(false);
+        setShowAvoidSameLevelSameDayPreference(false);
+        setShowInvigilatorConstraintPreference(false);
+        setEnableSamePeriodGroups(false);
+        setSamePeriodGroups([]);
+        setDraggingSamePeriodCourseKey("");
+        setMaxExamsPerStudentPerDay(2);
+        setCourseConstraints({});
+        setSelectedConstraintCourseKey("");
+        setSelectedConstraintCourseKeys([]);
+        setCourseHallConstraints({});
+        setDepartmentHallConstraints({});
+        setSelectedHallConstraintCourseKey("");
+        setSelectedHallConstraintCourseKeys([]);
+        setSelectedHallConstraintDepartmentKey("");
+        setSelectedHallConstraintDepartmentKeys([]);
+        setManualScheduleLocked(false);
+        setGeneralSpecializedDaySeparationMode("off");
+        setDraggingScheduleItemId("");
+        setDraggingUnscheduledCourseKey("");
+        setActiveDropSlotId("");
+        setExcludedCourses(getDefaultExcludedPracticalCourseKeys(cleanRows));
+        setIncludeAllDepartmentsAndMajors(true);
+        setRestrictSpecializedInvigilationToVisibleDepartmentTrainers(false);
+        setRestrictGeneralStudiesInvigilationToGeneralStudiesTrainers(false);
+        setExcludedDepartmentMajors([]);
+        setLockGeneralStudiesStep(false);
+        setCourseLevels({});
+        setPreviewPage(0);
+        setPreviewTab("sortedCourses");
+        setSelectedStudentIdForPrint("");
+        setCompactPrintMode(true);
+        setCurrentStep(1);
+        setHasImportedSessionFile(false);
+        pendingRestoreRef.current = null;
+        setPendingRestore(null);
+        setDidRestore(true);
+        setToast(null);
+
+        showToast("تم رفع الملف", `تم تحليل الملف ${file.name} بنجاح.`, "success");
+      },
+      error: (err) => {
+        showToast("تعذر قراءة الملف", err.message || "تحقق من صحة ملف CSV.", "error");
+      },
+    });
+  };
+
+  if (hasExistingData) {
+    showToast(
+      "تنبيه قبل رفع تقرير جديد",
+      "يوجد تقرير تم رفعه مسبقًا. رفع تقرير جديد قد يستبدل البيانات الحالية وقد يتطلب الأمر إعادة التوزيع أو تحديث الجداول من جديد.",
+      "warning",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "متابعة الرفع",
+            onClick: () => {
+              setToast(null);
+              continueUpload();
+            },
+          },
+          {
+            label: "إلغاء",
+            onClick: () => {
+              setToast(null);
+            },
+          },
+        ],
+      }
+    );
+    return;
+  }
+
+  continueUpload();
 };
 
 const showToast = (title, description, type = "success", options = {}) => {
