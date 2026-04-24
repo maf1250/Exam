@@ -14696,7 +14696,7 @@ const headerBtn = (danger = false) => ({
             </div>
          
           )}
-
+{/*
           {!detectedCollegeLocation && (
             <select
               value={manualCollegeLocation}
@@ -14711,7 +14711,7 @@ const headerBtn = (danger = false) => ({
               ))}
             </select>
           )}
-
+*/}
           {detectedCollegeLocation && (
             <div style={{ marginTop: 10 }}>
               <button
