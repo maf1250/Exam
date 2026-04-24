@@ -133,8 +133,18 @@ export const TRACK_CODES = {
   CT: "CT", // الكلية التقنية
   TT: "TT", // الكلية التطبيقية
   TO: "TO", // السياحة والفندقة
-  IT: "IT", // الاتصالات والمعلومات والإلكترونيات
+  CE: "CE", // المعلومات والإلكترونيات
   FE: "FE", // علوم الغذاء والبيئة
+  RL: "RL", // الملكي
+  PN: "PN", // السجن
+  AR: "AR", // التشييد
+  CI: "CI", // الاتصالات والمعلومات 
+  MI: "MI", // العسكري
+  HI: "HI", // الثانوي الصناعي
+  IN: "IN", // الكليات العالمية
+  DG: "DG", // الرقمية 
+
+
 };
 
 // =======================
@@ -148,15 +158,32 @@ export const LOCATION_SLUGS = Object.fromEntries(
         CT: `${code}CTM`,
         TT: `${code}TTM`,
         TO: `${code}TOM`,
-        IT: `${code}ITM`,
+        RL: `${code}RLM`,
         FE: `${code}FEM`,
+        PN: `${code}PNM`,
+        AR: `${code}ARM`,
+        MI: `${code}MIM`,
+        HI: `${code}HIM`,
+        IN: `${code}INM`,
+        DG: `${code}DGM`,
+        CI: `${code}CIM`,
+        CE: `${code}CEM`,
+
       },
       female: {
         CT: `${code}CTF`,
         TT: `${code}TTF`,
         TO: `${code}TOF`,
-        IT: `${code}ITF`,
+        RL: `${code}RLF`,
         FE: `${code}FEF`,
+        PN: `${code}PNF`,
+        AR: `${code}ARF`,
+        MI: `${code}MIF`,
+        HI: `${code}HIF`,
+        IN: `${code}INF`,
+        DG: `${code}DGF`,
+        CI: `${code}CIF`,
+        CE: `${code}CEF`,
       },
     },
   ])
@@ -323,13 +350,19 @@ export function detectCollegeTrackFromText(text = "") {
 
 if (
     normalized.includes("المعلومات") ||
-    normalized.includes("معلومات") ||
+    normalized.includes("معلومات") 
+
+  ) {
+    return "CI";
+  }
+  if (
+
     normalized.includes("الرقمية") ||
     normalized.includes("الرقميه") ||
     normalized.includes("رقمية") ||
     normalized.includes("رقميه")
   ) {
-    return "CI";
+    return "DG";
   }
   if (
     normalized.includes("الغذاء") ||
@@ -350,7 +383,14 @@ if (
   ) {
     return "CT";
   }
-
+if (
+    normalized.includes("العالمية") ||
+    normalized.includes("عالميه") ||
+    normalized.includes("العالميه") ||
+    normalized.includes("عالمية")
+  ) {
+    return "IN";
+  }
 if (
     normalized.includes("صناعية") ||
     normalized.includes("صناعي") ||
@@ -375,7 +415,7 @@ if (
   
   if (
     normalized.includes("عمارة") ||
-    normalized.includes("عمار") ||
+    normalized.includes("عماره") ||
     normalized.includes("تشييد") ||
     normalized.includes("التشييد")
   ) {
@@ -386,10 +426,21 @@ if (
     normalized.includes("السجون") ||
     normalized.includes("السجن") ||
     normalized.includes("سجون") ||
+    normalized.includes("إصلاحية") ||
+    normalized.includes("اصلاحية") ||
     normalized.includes("سجن")
   ) {
-    return "PS";
+    return "PN";
   }
+  
+  if (
+    normalized.includes("الملكي") ||
+    normalized.includes("ملكي") 
+
+  ) {
+    return "RL";
+  }
+  
   return "";
 }
 
