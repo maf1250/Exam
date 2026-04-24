@@ -18,7 +18,7 @@ export default function CollegeJsonUploader() {
       setStatus("");
 
       if (!/\.json$/i.test(file.name)) {
-        throw new Error("يجب أن يكون الملف بصيغة صحيحة؛ نأمل التأكد من تحميل تصدير بيانات المتدربين بعد الانتهاء من الجدولة.");
+        throw new Error("يجب أن يكون الملف بصيغة صحيحة؛ نأمل التأكد من تصدير بيانات المتدربين بعد الانتهاء من الجدولة.");
       }
 
       const text = await file.text();
@@ -27,7 +27,7 @@ export default function CollegeJsonUploader() {
       try {
         parsed = JSON.parse(text);
       } catch {
-        throw new Error("ملف غير صالح.");
+        throw new Error("الملف غير صالح.");
       }
 
       const slugFromData = String(parsed?.slug || "").trim().toUpperCase();
@@ -64,8 +64,7 @@ export default function CollegeJsonUploader() {
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontWeight: 800 }}>  رفع بيانات المتدربين إلى البوابة</div>
-      <input
+           <input
         type="file"
         accept=".json,application/json"
         onChange={handleFileChange}
