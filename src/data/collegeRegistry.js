@@ -310,22 +310,27 @@ export function detectCollegeTrackFromText(text = "") {
   }
 
   if (
-    normalized.includes("الاتصالات") ||
-    normalized.includes("اتصالات") ||
-    normalized.includes("المعلومات") ||
-    normalized.includes("معلومات") ||
+    normalized.includes("إلكترون") ||
+    normalized.includes("الكترون") ||
     normalized.includes("الإلكترونيات") ||
     normalized.includes("الالكترونيات") ||
     normalized.includes("إلكترونيات") ||
-    normalized.includes("الكترونيات") ||
+    normalized.includes("الكترونيات") 
+
+  ) {
+    return "CE";
+  }
+
+if (
+    normalized.includes("المعلومات") ||
+    normalized.includes("معلومات") ||
     normalized.includes("الرقمية") ||
     normalized.includes("الرقميه") ||
     normalized.includes("رقمية") ||
     normalized.includes("رقميه")
   ) {
-    return "IT";
+    return "CI";
   }
-
   if (
     normalized.includes("الغذاء") ||
     normalized.includes("غذاء") ||
@@ -346,6 +351,45 @@ export function detectCollegeTrackFromText(text = "") {
     return "CT";
   }
 
+if (
+    normalized.includes("صناعية") ||
+    normalized.includes("صناعي") ||
+    normalized.includes("ثانوية") ||
+    normalized.includes("الصناعي") ||
+    normalized.includes("الثانوي") ||
+    normalized.includes("ثانوي")
+  ) {
+    return "HI";
+  }
+  
+  if (
+    normalized.includes("عسكري") ||
+    normalized.includes("عسكرية") ||
+    normalized.includes("مهني") ||
+    normalized.includes("العسكري") ||
+    normalized.includes("المهني") ||
+    normalized.includes("مهنية")
+  ) {
+    return "MI";
+  }
+  
+  if (
+    normalized.includes("عمارة") ||
+    normalized.includes("عمار") ||
+    normalized.includes("تشييد") ||
+    normalized.includes("التشييد")
+  ) {
+    return "AR";
+  }
+  
+  if (
+    normalized.includes("السجون") ||
+    normalized.includes("السجن") ||
+    normalized.includes("سجون") ||
+    normalized.includes("سجن")
+  ) {
+    return "PS";
+  }
   return "";
 }
 
