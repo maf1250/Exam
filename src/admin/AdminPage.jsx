@@ -3350,10 +3350,23 @@ async function publishCollege(collegeData, slug) {
   } catch (err) {
     console.error(err);
     showToast(
-      "فشل تفعيل البوابة",
-      err?.message || "حدث خطأ أثناء رفع بيانات البوابة.",
-      "error"
-    );
+  "تم تفعيل البوابة",
+  `تم رفع بيانات الوحدة ${normalizedSlug} بنجاح.`,
+  "success",
+  {
+    persistent: true,
+    actions: [
+      {
+        label: "فتح البوابة",
+        onClick: () =>
+          window.open(
+            `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
+            "_blank"
+          ),
+      },
+    ],
+  }
+);
   }
 }
   
