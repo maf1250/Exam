@@ -3315,7 +3315,12 @@ async function publishCollege(collegeData, slug) {
     if (!normalizedSlug) {
       throw new Error("البيانات غير كاملة.");
     }
-
+ showToast(
+      "جار الرفع",
+      "يتم الآن رفع بيانات البوابة، نأمل الانتظار...",
+      "warning",
+      { persistent: true }
+    );
     const jsonData = JSON.stringify(
       {
         ...collegeData,
