@@ -14696,7 +14696,7 @@ const headerBtn = (danger = false) => ({
             </div>
          
           )}
-{/*
+
           {!detectedCollegeLocation && (
             <select
               value={manualCollegeLocation}
@@ -14725,7 +14725,7 @@ const headerBtn = (danger = false) => ({
           )}
 
         </div>
-*/}
+
       </div>
         {/* تفعيل بوابة المتدربين */}
       <div
