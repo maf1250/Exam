@@ -375,6 +375,18 @@ if (
     return "FE";
   }
 
+if (
+    normalized.includes("العالمية") ||
+    normalized.includes("عالميه") ||
+    normalized.includes("العالميه") ||
+    normalized.includes("التقنية العالمية") ||
+    normalized.includes("تقنيه عالميه") ||
+    normalized.includes("التقنيه العالميه") ||
+    normalized.includes("عالمية")
+  ) {
+    return "IN";
+  }
+
   if (
     normalized.includes("التقنية") ||
     normalized.includes("التقنيه") ||
@@ -383,14 +395,7 @@ if (
   ) {
     return "CT";
   }
-if (
-    normalized.includes("العالمية") ||
-    normalized.includes("عالميه") ||
-    normalized.includes("العالميه") ||
-    normalized.includes("عالمية")
-  ) {
-    return "IN";
-  }
+
 if (
     normalized.includes("صناعية") ||
     normalized.includes("صناعي") ||
