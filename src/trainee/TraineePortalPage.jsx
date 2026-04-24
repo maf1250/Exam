@@ -149,7 +149,7 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
         <td style="${cellStyle}">${index + 1}</td>
         <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
-        <td style="${cellStyle}; text-align:right;">${escapeHtml(item.courseName || "-")}
+        <td style="${cellStyle}; text-align:right;"><div>${escapeHtml(item.courseName || "-")}</div>
          ${
             isDeprived
               ? `
