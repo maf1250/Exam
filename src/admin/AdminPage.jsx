@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import JSZip from "jszip";
 import CollegeJsonUploader from "../components/CollegeJsonUploader";
+import { supabase } from "../lib/supabaseClient";
 import {
   generateTraineeLink,
   getAllLocations,
