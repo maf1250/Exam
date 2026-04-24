@@ -3339,19 +3339,6 @@ const { error } = await supabase.storage
     }
   );
 
-    const { error } = await supabase.storage
-      .from("colleges")
-      .upload(
-        `${normalizedSlug}.json`,
-        new Blob([jsonData], {
-          type: "application/json",
-        }),
-        {
-          upsert: true,
-          contentType: "application/json",
-        }
-      );
-
     if (error) throw error;
 
     showToast(
