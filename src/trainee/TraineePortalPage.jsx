@@ -146,7 +146,11 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
 
     return `
       <tr>
-        <td style="${cellStyle}">${index + 1}   
+        <td style="${cellStyle}">${index + 1}</td>
+        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
+        <td style="${cellStyle}; text-align:right;">${escapeHtml(item.courseName || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}
         ${
             isDeprived
               ? `
@@ -164,14 +168,8 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
                 </div>
               `
               : ""
-          }</td>
-        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
-        
-        <td style="${cellStyle}; text-align:right;">
-          <div>${escapeHtml(item.courseName || "-")}</div>     </td>
-
-        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
+          }
+          </td>
         <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.timeText || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.examHall || "-")}</td>
