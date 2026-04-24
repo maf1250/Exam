@@ -11223,7 +11223,13 @@ const headerBtn = (danger = false) => ({
             <input
               type="checkbox"
               checked={preferCourseTrainerInvigilation}
-              onChange={(e) => setPreferCourseTrainerInvigilation(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setPreferCourseTrainerInvigilation(checked);
+                if (checked) {
+                  setPreventCourseTrainerInvigilationSamePeriod(false);
+                }
+              }}
             />
 
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -11257,7 +11263,13 @@ const headerBtn = (danger = false) => ({
             <input
               type="checkbox"
               checked={preventCourseTrainerInvigilationSamePeriod}
-              onChange={(e) => setPreventCourseTrainerInvigilationSamePeriod(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setPreventCourseTrainerInvigilationSamePeriod(checked);
+                if (checked) {
+                  setPreferCourseTrainerInvigilation(false);
+                }
+              }}
             />
 
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
