@@ -3344,7 +3344,7 @@ async function publishCollege(collegeData, slug) {
     showToast(
       "تم تفعيل البوابة",
       `تم رفع بيانات الوحدة ${normalizedSlug} بنجاح.\n\nويمكن الوصول إلى البوابة عبر الرابط:\nhttps://exam-tvtc.onrender.com/#/${normalizedSlug}`,
-        "success"
+        "success",
         { persistent: true }
     );
   } catch (err) {
