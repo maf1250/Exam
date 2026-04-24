@@ -146,14 +146,8 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
 
     return `
       <tr>
-        <td style="${cellStyle}">${index + 1}</td>
-        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
-        
-        <td style="${cellStyle}; text-align:right;">
-          <div>${escapeHtml(item.courseName || "-")}</div>
-
-          ${
+        <td style="${cellStyle}">${index + 1}   
+        ${
             isDeprived
               ? `
                 <div style="
@@ -166,12 +160,16 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
                   color:#B42318;
                 ">
                   <span>🚫</span>
-                  <span>(محروم)</span>
+                  <span>محروم</span>
                 </div>
               `
               : ""
-          }
-        </td>
+          }</td>
+        <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
+        <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
+        
+        <td style="${cellStyle}; text-align:right;">
+          <div>${escapeHtml(item.courseName || "-")}</div>     </td>
 
         <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
