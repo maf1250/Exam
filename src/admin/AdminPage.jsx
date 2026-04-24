@@ -3247,7 +3247,25 @@ useEffect(() => {
   window.addEventListener("scroll", handleScroll);
   return () => window.removeEventListener("scroll", handleScroll);
 }, []);
-  
+
+  const scrollBtnStyle = {
+  position: "fixed",
+  bottom: 20,
+  left: 20,
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  border: "none",
+  background: "rgba(0,102,153,0.5)",
+  color: "#fff",
+  fontSize: 16,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backdropFilter: "blur(4px)",
+  zIndex: 9999,
+};
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
@@ -15703,24 +15721,7 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 )}
-      const scrollBtnStyle = {
-  position: "fixed",
-  bottom: 20,
-  left: 20,
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  border: "none",
-  background: "rgba(0,0,0,0.25)",
-  color: "#fff",
-  fontSize: 16,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backdropFilter: "blur(4px)",
-  zIndex: 9999,
-};
+      
    {showScroll && (
   <button
     id="scrollTopBtn"
