@@ -15819,6 +15819,8 @@ const headerBtn = (danger = false) => ({
       </button>
     </div>
   </div>
+  )}
+    </div>
   {showScroll && (
   <button
     id="scrollTopBtn"
@@ -15828,7 +15830,6 @@ const headerBtn = (danger = false) => ({
     ↑
   </button>
 )}
-)}
-    </div>
+
   );
 }
