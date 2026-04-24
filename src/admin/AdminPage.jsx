@@ -15694,7 +15694,16 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 )}
-
+   {showScroll && (
+  <button
+    id="scrollTopBtn"
+    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+    style={scrollBtnStyle}
+  >
+    ↑
+  </button>
+ 
+  )}
 {selectedConflictStudents && (
   <div
     style={{
