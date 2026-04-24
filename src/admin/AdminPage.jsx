@@ -3308,65 +3308,148 @@ const periodOverlapWarning = useMemo(() => {
   return overlaps.length ? overlaps.join('، ') : '';
 }, [periodConfigs]);
 
-async function publishCollege(collegeData, slug) {
-  try {
-    const normalizedSlug = String(slug || "").trim().toUpperCase();
+function buildCollegePortalJson(collegeData, normalizedSlug) {
+  const studentsMap = new Map();
+  const schedule = Array.isArray(collegeData?.schedule) ? collegeData.schedule : [];
+  const studentInfoMap = collegeData?.studentInfoMap instanceof Map ? collegeData.studentInfoMap : new Map();
 
+  studentInfoMap.forEach((info, id) => {
+    const studentId = String(id || info?.id || "").trim();
+    if (!studentId) return;
+
+    studentsMap.set(studentId, {
+      id: studentId,
+      name: String(info?.name || "بدون اسم").trim() || "بدون اسم",
+      department: String(info?.department || "-").trim() || "-",
+      major: String(info?.major || "-").trim() || "-",
+      schedule: [],
+    });
+  });
+
+  schedule.forEach((item) => {
+    getScheduleStudentIds(item).forEach((studentIdValue) => {
+      const studentId = String(studentIdValue || "").trim();
+      if (!studentId) return;
+
+      if (!studentsMap.has(studentId)) {
+        const info = studentInfoMap.get(studentId) || {};
+        studentsMap.set(studentId, {
+          id: studentId,
+          name: String(info?.name || "بدون اسم").trim() || "بدون اسم",
+          department: String(info?.department || item?.department || "-").trim() || "-",
+          major: String(info?.major || item?.major || "-").trim() || "-",
+          schedule: [],
+        });
+      }
+
+      const deprivationStatus = String(
+        item?.deprivationStatus ||
+          item?.registrationStatus ||
+          item?.traineeRegistrationStatus ||
+          ""
+      ).trim();
+      const deprivedStudents = Array.isArray(item?.deprivedStudents)
+        ? item.deprivedStudents.map((value) => String(value).trim())
+        : [];
+      const isDeprived = Boolean(deprivationStatus) || deprivedStudents.includes(studentId);
+
+      studentsMap.get(studentId).schedule.push({
+        courseName: item?.courseName || "",
+        courseCode: item?.courseCode || "",
+        dayName: item?.dayName || "",
+        dateISO: item?.dateISO || "",
+        gregorian: item?.gregorian || "",
+        hijri: item?.hijri || "",
+        hijriNumeric: item?.hijriNumeric || "",
+        period: item?.period || "",
+        timeText: item?.timeText || "",
+        examHall: item?.examHall || "",
+        department: item?.department || "",
+        major: item?.major || "",
+        deprivationStatus: isDeprived ? (deprivationStatus || "حرمان") : "",
+        isDeprived,
+      });
+    });
+  });
+
+  const students = Array.from(studentsMap.values())
+    .map((student) => ({
+      ...student,
+      schedule: [...student.schedule].sort(compareStudentScheduleEntries),
+    }))
+    .filter((student) => student.schedule.length)
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ar"));
+
+  return JSON.stringify(
+    {
+      slug: normalizedSlug,
+      collegeName: collegeData?.collegeName || "الكلية التقنية",
+      students,
+      selectedDepartment: collegeData?.selectedDepartment || "__all__",
+      selectedMajor: collegeData?.selectedMajor || "__all__",
+      publishedAt: new Date().toISOString(),
+    },
+    null,
+    2
+  );
+}
+
+async function publishCollege(collegeData, slug) {
+  const normalizedSlug = String(slug || "").trim().toUpperCase();
+
+  try {
     if (!normalizedSlug) {
       throw new Error("البيانات غير كاملة.");
     }
- showToast(
+
+    showToast(
       "جار الرفع",
       "يتم الآن رفع بيانات البوابة، نأمل الانتظار...",
       "warning",
       { persistent: true }
     );
-const blob = exportCollegeDataFile({
-  ...collegeData,
-  slug: normalizedSlug,
-});
 
-const text = await blob.text();
+    const text = buildCollegePortalJson(collegeData, normalizedSlug);
 
-const { error } = await supabase.storage
-  .from("colleges")
-  .upload(
-    `${normalizedSlug}.json`,
-    new Blob([text], { type: "application/json" }),
-    {
-      upsert: true,
-      contentType: "application/json",
-    }
-  );
+    const { error } = await supabase.storage
+      .from("colleges")
+      .upload(
+        `${normalizedSlug}.json`,
+        new Blob([text], { type: "application/json;charset=utf-8" }),
+        {
+          upsert: true,
+          contentType: "application/json",
+        }
+      );
 
     if (error) throw error;
 
     showToast(
       "تم تفعيل البوابة",
       `تم رفع بيانات الوحدة ${normalizedSlug} بنجاح.\n\nويمكن الوصول إلى البوابة عبر الرابط:\nhttps://exam-tvtc.onrender.com/#/${normalizedSlug}`,
-        "success",
-        { persistent: true }
+      "success",
+      {
+        persistent: true,
+        actions: [
+          {
+            label: "فتح البوابة",
+            onClick: () =>
+              window.open(
+                `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
+                "_blank"
+              ),
+          },
+        ],
+      }
     );
   } catch (err) {
     console.error(err);
     showToast(
-  "تم تفعيل البوابة",
-  `تم رفع بيانات الوحدة ${normalizedSlug} بنجاح.`,
-  "success",
-  {
-    persistent: true,
-    actions: [
-      {
-        label: "فتح البوابة",
-        onClick: () =>
-          window.open(
-            `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
-            "_blank"
-          ),
-      },
-    ],
-  }
-);
+      "تعذر تفعيل البوابة",
+      err?.message || "حدث خطأ أثناء رفع بيانات البوابة.",
+      "error",
+      { persistent: true }
+    );
   }
 }
   
