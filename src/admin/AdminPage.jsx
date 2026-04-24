@@ -3237,7 +3237,16 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
+const [showScroll, setShowScroll] = useState(false);
 
+useEffect(() => {
+  const handleScroll = () => {
+    setShowScroll(window.scrollY > 300);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
   
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
@@ -15694,6 +15703,24 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 )}
+      const scrollBtnStyle = {
+  position: "fixed",
+  bottom: 20,
+  left: 20,
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  border: "none",
+  background: "rgba(0,0,0,0.25)",
+  color: "#fff",
+  fontSize: 16,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backdropFilter: "blur(4px)",
+  zIndex: 9999,
+};
    {showScroll && (
   <button
     id="scrollTopBtn"
