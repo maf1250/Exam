@@ -1158,6 +1158,63 @@ function StatBox({ label, value }) {
   );
 }
 
+function ScrollToTopButton() {
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  if (!showScrollTop) return null;
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          #scrollTopBtn {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <button
+        id="scrollTopBtn"
+        type="button"
+        aria-label="العودة للأعلى"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          left: 20,
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          border: "none",
+          background: "rgba(0,102,153,0.5)",
+          color: "#fff",
+          fontSize: 16,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backdropFilter: "blur(4px)",
+          zIndex: 9999,
+        }}
+      >
+        ↑
+      </button>
+    </>
+  );
+}
+
 function Toast({ item, onClose, onRestore }) {
   if (!item) return null;
 
@@ -3237,36 +3294,6 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-const [showScroll, setShowScroll] = useState(false);
-
-useEffect(() => {
-  const handleScroll = () => {
-    setShowScroll(window.scrollY > 300);
-  };
-
-  window.addEventListener("scroll", handleScroll);
-  return () => window.removeEventListener("scroll", handleScroll);
-}, []);
-
-  const scrollBtnStyle = {
-  position: "fixed",
-  bottom: 20,
-  left: 20,
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  border: "none",
-  background: "rgba(0,102,153,0.5)",
-  color: "#fff",
-  fontSize: 16,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backdropFilter: "blur(4px)",
-  zIndex: 9999,
-};
-  
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
 const updatePeriodConfig = (index, patch) => {
@@ -15721,17 +15748,7 @@ const headerBtn = (danger = false) => ({
     </div>
   </div>
 )}
-      
-   {showScroll && (
-  <button
-    id="scrollTopBtn"
-    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-    style={scrollBtnStyle}
-  >
-    ↑
-  </button>
- 
-  )}
+      <ScrollToTopButton />
 {selectedConflictStudents && (
   <div
     style={{
