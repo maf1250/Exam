@@ -14690,10 +14690,12 @@ const headerBtn = (danger = false) => ({
                 marginBottom: 8,
               }}
             >
-              تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
+              تعذر التعرف على الوحدة تلقائيًا.
             </div>
+            <div> تأكد من كتابة الاسم بشكل صحيح، أو تواصل مع المطور 
+             </div>
           )}
-
+{/*
           {!detectedCollegeLocation && (
             <select
               value={manualCollegeLocation}
@@ -14720,6 +14722,7 @@ const headerBtn = (danger = false) => ({
               </button>
             </div>
           )}
+*/}
         </div>
       </div>
         {/* تفعيل بوابة المتدربين */}
@@ -14808,7 +14811,7 @@ const headerBtn = (danger = false) => ({
                 if (!effectiveCollegeLocation || !effectiveCollegeSlug) {
                   showToast(
                     "تعذر التصدير",
-                    "اختر المدينة أولًا أو تأكد من اسم الوحدة.",
+                    "تأكد من اسم الوحدة أو تواصل مع المطور.",
                     "error"
                   );
                   return;
