@@ -3307,6 +3307,54 @@ const periodOverlapWarning = useMemo(() => {
   return overlaps.length ? overlaps.join('، ') : '';
 }, [periodConfigs]);
 
+async function publishCollege(collegeData, slug) {
+  try {
+    const normalizedSlug = String(slug || "").trim().toUpperCase();
+
+    if (!normalizedSlug) {
+      throw new Error("البيانات غير كاملة.");
+    }
+
+    const jsonData = JSON.stringify(
+      {
+        ...collegeData,
+        slug: normalizedSlug,
+        publishedAt: new Date().toISOString(),
+      },
+      null,
+      2
+    );
+
+    const { error } = await supabase.storage
+      .from("colleges")
+      .upload(
+        `${normalizedSlug}.json`,
+        new Blob([jsonData], {
+          type: "application/json",
+        }),
+        {
+          upsert: true,
+          contentType: "application/json",
+        }
+      );
+
+    if (error) throw error;
+
+    showToast(
+      "تم تفعيل البوابة",
+      `تم رفع بيانات الوحدة ${normalizedSlug} بنجاح.\n\nويمكن الوصول إلى البوابة عبر الرابط:\nhttps://exam-tvtc.onrender.com/#/${normalizedSlug}`,
+        "success"
+    );
+  } catch (err) {
+    console.error(err);
+    showToast(
+      "فشل تفعيل البوابة",
+      err?.message || "حدث خطأ أثناء رفع بيانات البوابة.",
+      "error"
+    );
+  }
+}
+  
 function handleSupportEmailClick() {
   try {
     if (!effectiveCollegeSlug) {
@@ -14604,6 +14652,42 @@ const headerBtn = (danger = false) => ({
               marginTop: 12,
             }}
           >
+             <button
+    type="button"
+    onClick={() =>
+      publishCollege(
+        {
+          slug: effectiveCollegeSlug,
+          collegeName:
+            parsed.collegeName || collegeNameInput || "الكلية التقنية",
+          schedule: schedule.map((item) => ({
+            ...item,
+            deprivedStudents: Array.from(
+              (Array.isArray(item.students)
+                ? item.students
+                : Array.from(item.students || [])
+              ).filter((studentId) =>
+                Boolean(
+                  getScheduleItemDeprivationStatus(
+                    item,
+                    studentId,
+                    deprivedCourseStudentStatusMap
+                  )
+                )
+              )
+            ),
+          })),
+          parsed,
+          studentInfoMap: preciseStudentInfoMap,
+          selectedDepartment: printDepartmentFilter,
+          selectedMajor: printMajorFilter,
+        },
+        effectiveCollegeSlug
+      )
+    }
+  >
+    نشر مباشر للبوابة
+  </button>
             <button
               type="button"
               onClick={() => {
@@ -14671,6 +14755,7 @@ const headerBtn = (danger = false) => ({
 >
   نسخ رابط بوابة المتدربين
 </button>
+            
            
           </div>
         </div>
