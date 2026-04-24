@@ -14705,6 +14705,7 @@ const headerBtn = (danger = false) => ({
         effectiveCollegeSlug
       )
     }
+               style={cardButtonStyle()}
   >
     نشر مباشر للبوابة
   </button>
