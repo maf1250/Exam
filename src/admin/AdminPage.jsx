@@ -14690,10 +14690,11 @@ const headerBtn = (danger = false) => ({
                 marginBottom: 8,
               }}
             >
-              تعذر التعرف على الوحدة تلقائيًا.
+              تعذر التعرف على الوحدة تلقائيًا. 
+              <br> نأمل التأكد من كتابة اسم الوحدة بشكل صحيح >br>
+                 وفي حال التأكد من ذلك، نأمل التواصل مع المطور
             </div>
-            <div> تأكد من كتابة الاسم بشكل صحيح، أو تواصل مع المطور 
-             </div>
+         
           )}
 {/*
           {!detectedCollegeLocation && (
@@ -14856,7 +14857,7 @@ const headerBtn = (danger = false) => ({
   type="button"
   onClick={() => {
     if (!effectiveCollegeLocation) {
-      showToast("تعذر تحديد الوحدة", "اختر المدينة أولًا أو عدّل اسم الوحدة.", "error");
+      showToast("تعذر تحديد الوحدة", " يجب التأكد من كتابة اسم الوحدة أو التواصل مع المطور.", "error");
       return;
     }
 
