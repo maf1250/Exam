@@ -282,4 +282,5 @@ studentMap.get(studentId).schedule.push({
   setTimeout(() => {
     URL.revokeObjectURL(url);
   }, 1000);
+  return blob;
 }
