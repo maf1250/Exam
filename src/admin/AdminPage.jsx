@@ -3433,12 +3433,13 @@ async function publishCollege(collegeData, slug) {
         actions: [
           {
             label: "فتح البوابة",
-            onClick: () =>
-              setToast(null);
-              window.open(
-                `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
-                "_blank"
-              ),
+onClick: () => {
+  window.open(
+    `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
+    "_blank"
+  );
+  setToast(null); 
+}
           },
         ],
       }
