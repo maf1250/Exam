@@ -15818,10 +15818,7 @@ const headerBtn = (danger = false) => ({
         إغلاق
       </button>
     </div>
-  </div>
-  )}
-    </div>
-  {showScroll && (
+     {showScroll && (
   <button
     id="scrollTopBtn"
     onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -15829,6 +15826,10 @@ const headerBtn = (danger = false) => ({
   >
     ↑
   </button>
+  </div>
+  )}
+    </div>
+ 
 )}
 
   );
