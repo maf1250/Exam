@@ -3434,6 +3434,7 @@ async function publishCollege(collegeData, slug) {
           {
             label: "فتح البوابة",
             onClick: () =>
+              setToast(null);
               window.open(
                 `https://exam-tvtc.onrender.com/#/${normalizedSlug}`,
                 "_blank"
