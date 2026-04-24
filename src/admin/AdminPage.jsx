@@ -14498,7 +14498,71 @@ const headerBtn = (danger = false) => ({
       </div>
 
       
-      {/* تفعيل بوابة المتدربين */}
+    {/* تحديد الوحدة */}
+      <div
+        style={{
+          ...stepNineCardStyle,
+          border: `1px solid ${COLORS.border}`,
+          background: COLORS.bg2,
+        }}
+      >
+        <div style={{ fontSize: 18 }}>🏫</div>
+
+        <div style={{ width: "100%",  display: "flex", flexDirection: "column", gap: 6}}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الوحدة</div>
+
+          {effectiveCollegeLocation ? (
+            <div
+              style={{
+                color: COLORS.success,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تم التعرف على الوحدة: {effectiveCollegeLocation}
+              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
+            </div>
+          ) : (
+            <div
+              style={{
+                color: COLORS.warning,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
+            </div>
+          )}
+
+          {!detectedCollegeLocation && (
+            <select
+              value={manualCollegeLocation}
+              onChange={(e) => setManualCollegeLocation(e.target.value)}
+              style={fieldStyle({ maxWidth: 220 })}
+            >
+              <option value="">اختر المدينة</option>
+              {allCollegeLocations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {detectedCollegeLocation && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setManualCollegeLocation("")}
+                style={cardButtonStyle()}
+              >
+                استخدام التعرف التلقائي
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+        {/* تفعيل بوابة المتدربين */}
       <div
         style={{
           ...stepNineCardStyle,
@@ -14612,70 +14676,7 @@ const headerBtn = (danger = false) => ({
         </div>
       </div>
 
-{/* تحديد الوحدة */}
-      <div
-        style={{
-          ...stepNineCardStyle,
-          border: `1px solid ${COLORS.border}`,
-          background: COLORS.bg2,
-        }}
-      >
-        <div style={{ fontSize: 18 }}>🏫</div>
 
-        <div style={{ width: "100%",  display: "flex", flexDirection: "column", gap: 6}}>
-          <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الوحدة</div>
-
-          {effectiveCollegeLocation ? (
-            <div
-              style={{
-                color: COLORS.success,
-                fontWeight: 700,
-                marginBottom: 8,
-              }}
-            >
-              تم التعرف على الوحدة: {effectiveCollegeLocation}
-              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-            </div>
-          ) : (
-            <div
-              style={{
-                color: COLORS.warning,
-                fontWeight: 700,
-                marginBottom: 8,
-              }}
-            >
-              تعذر التعرف على الوحدة تلقائيًا. اختر المدينة يدويًا.
-            </div>
-          )}
-
-          {!detectedCollegeLocation && (
-            <select
-              value={manualCollegeLocation}
-              onChange={(e) => setManualCollegeLocation(e.target.value)}
-              style={fieldStyle({ maxWidth: 220 })}
-            >
-              <option value="">اختر المدينة</option>
-              {allCollegeLocations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {detectedCollegeLocation && (
-            <div style={{ marginTop: 10 }}>
-              <button
-                type="button"
-                onClick={() => setManualCollegeLocation("")}
-                style={cardButtonStyle()}
-              >
-                استخدام التعرف التلقائي
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
       {/* إرسال الملف */}
       <div
         style={{
@@ -14699,7 +14700,7 @@ const headerBtn = (danger = false) => ({
     </span>
   </div>
 
-  {/* 👇 قسم الرفع */}
+  {/*  قسم الرفع */}
   <div style={{
      ...stepNineCardStyle,
   marginTop: 10,
