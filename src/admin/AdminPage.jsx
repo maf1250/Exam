@@ -14832,7 +14832,7 @@ const headerBtn = (danger = false) => ({
               }}
               style={cardButtonStyle()}
             >
-              تصدير بيانات المتدربين
+              تصدير بيانات المتدربين محليًا
             </button>
 <button
   type="button"
@@ -14854,9 +14854,20 @@ const headerBtn = (danger = false) => ({
 >
   نسخ رابط بوابة المتدربين
 </button>
-            
-           
+                         <br />
           </div>
+           في حال عدم نجاح عملية النشر الآلية، يمكن للزميل نشر البوابة بالضغط على تصدير بينات المتدربين محليًا ثم رفع الملف يدويًا 
+           {/*  قسم الرفع */}
+  <div style={{
+     ...stepNineCardStyle,
+  marginTop: 10,
+  padding: 12,
+  borderRadius: 32,
+  maxWidth: 300,
+  
+}}>
+  <CollegeJsonUploader />
+</div>
         </div>
       </div>
 
@@ -14875,26 +14886,14 @@ const headerBtn = (danger = false) => ({
   <strong>إرسال ملف البوابة</strong>
 
   <div>
-    بعد تصدير بيانات المتدربين، سيتم تحميل ملف خاص بالوحدة. لتفعيل بوابة
-    المتدربين وتحديث بياناتها، يجب رفع الملف من قبلكم، وفي حال عدم التمكن من الرفع، نأمل إرسال الملف بعد كل عملية توزيع على
-    البريد التالي:
+    في حال عدم التمكن من الرفع، نأمل إرسال الملف بعد كل عملية توزيع على البريد التالي:
     <br />
     <span style={{ fontWeight: 700 }}>
       m.alfayez@tvtc.gov.sa
     </span>
   </div>
 
-  {/*  قسم الرفع */}
-  <div style={{
-     ...stepNineCardStyle,
-  marginTop: 10,
-  padding: 12,
-  borderRadius: 32,
-  maxWidth: 300,
-  border: "1px solid #FACC15"
-}}>
-  <CollegeJsonUploader />
-</div>
+ 
 </div>
       </div>
     </div>
