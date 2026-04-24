@@ -1163,7 +1163,7 @@ function ScrollToTopButton() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
+      setShowScrollTop(window.scrollY > 1800);
     };
 
     handleScroll();
@@ -14795,8 +14795,7 @@ const headerBtn = (danger = false) => ({
           <strong>تفعيل بوابة المتدربين</strong>
 
           <div>
-            يجب التأكد من أن الوحدة الخاصة بك موجودة في مربع التعرف على
-            الوحدة تلقائيًا في مربع تحديد الوحدة.
+            يجب التأكد من أن الوحدة الخاصة بك تم التعرف عليها تلقائيًا في مربع تحديد الوحدة.
           </div>
           <div> بعد الانتهاء من الجدولة، يمكن للزميل نشر البيانات مباشرة لبوابة المتدربين عبر زر النشر الآلي، حيث تتم العملية بشكل فوري. 
            </div>
