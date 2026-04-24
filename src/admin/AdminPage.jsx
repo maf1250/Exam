@@ -13256,10 +13256,10 @@ const headerBtn = (danger = false) => ({
                 <div
                   style={{
                     border: `1px solid ${COLORS.border}`,
+                     background: COLORS.dangerBg,
                   borderRadius: 22,
                   padding: 16,
-                  background: "#fff",
-                }}
+                  }}
               >
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
                 <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
@@ -14737,17 +14737,17 @@ const headerBtn = (danger = false) => ({
               {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
             </div>
           ) : (
-            <div
-              style={{
-                color: COLORS.warning,
-                fontWeight: 700,
-                marginBottom: 8,
-              }}
-            >
-              تعذر التعرف على الوحدة تلقائيًا. 
-              نأمل التأكد من كتابة اسم الوحدة بشكل صحيح،<br> 
-                 وفي حال التأكد من ذلك، نأمل التواصل مع المطور
-            </div>
+           <div
+  style={{
+    color: COLORS.warning,
+    fontWeight: 700,
+    marginBottom: 8,
+  }}
+>
+  تعذر التعرف على الوحدة تلقائيًا. نأمل التأكد من كتابة اسم الوحدة بشكل صحيح،
+  <br />
+  وفي حال التأكد من ذلك، نأمل التواصل مع المطور.
+</div>
          
           )}
 {/*
