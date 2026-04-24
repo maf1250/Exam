@@ -149,9 +149,8 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
         <td style="${cellStyle}">${index + 1}</td>
         <td style="${cellStyle}">${escapeHtml(item.gregorian || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.hijriNumeric || "-")}</td>
-        <td style="${cellStyle}; text-align:right;">${escapeHtml(item.courseName || "-")}</td>
-        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}
-        ${
+        <td style="${cellStyle}; text-align:right;">${escapeHtml(item.courseName || "-")}
+         ${
             isDeprived
               ? `
                 <div style="
@@ -170,6 +169,7 @@ const rowsHtml = sortTraineeScheduleItems(selectedStudent?.schedule || [])
               : ""
           }
           </td>
+        <td style="${cellStyle}">${escapeHtml(item.courseCode || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.period || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.timeText || "-")}</td>
         <td style="${cellStyle}">${escapeHtml(item.examHall || "-")}</td>
