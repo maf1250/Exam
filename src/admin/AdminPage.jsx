@@ -14854,20 +14854,7 @@ const headerBtn = (danger = false) => ({
 >
   نسخ رابط بوابة المتدربين
 </button>
-                         <br />
           </div>
-           في حال عدم نجاح عملية النشر الآلية، يمكن للزميل نشر البوابة بالضغط على تصدير بينات المتدربين محليًا ثم رفع الملف يدويًا 
-           {/*  قسم الرفع */}
-  <div style={{
-     ...stepNineCardStyle,
-  marginTop: 10,
-  padding: 12,
-  borderRadius: 32,
-  maxWidth: 300,
-  
-}}>
-  <CollegeJsonUploader />
-</div>
         </div>
       </div>
 
@@ -14883,17 +14870,27 @@ const headerBtn = (danger = false) => ({
         <div style={{ fontSize: 18 }}>📩</div>
 
       <div style={{ lineHeight: 1.9, width: "100%" }}>
-  <strong>إرسال ملف البوابة</strong>
+  <strong>التفعيل اليدوي البوابة</strong>
 
   <div>
-    في حال عدم التمكن من الرفع، نأمل إرسال الملف بعد كل عملية توزيع على البريد التالي:
+               في حال عدم نجاح عملية النشر الآلية، يمكن للزميل نشر البوابة بالضغط على تصدير بيانات المتدربين محليًا ثم رفع الملف هنا 
+           {/*  قسم الرفع */}
+  <div style={{
+     ...stepNineCardStyle,
+  marginTop: 10,
+  padding: 12,
+  borderRadius: 32,
+  maxWidth: 300,
+  
+}}>
+  <CollegeJsonUploader />
+</div>
+    وفي حال عدم التمكن من ذلك، نأمل إرسال الملف المصدر بعد كل عملية توزيع على البريد التالي:
     <br />
     <span style={{ fontWeight: 700 }}>
       m.alfayez@tvtc.gov.sa
     </span>
   </div>
-
- 
 </div>
       </div>
     </div>
