@@ -3321,15 +3321,23 @@ async function publishCollege(collegeData, slug) {
       "warning",
       { persistent: true }
     );
-    const jsonData = JSON.stringify(
-      {
-        ...collegeData,
-        slug: normalizedSlug,
-        publishedAt: new Date().toISOString(),
-      },
-      null,
-      2
-    );
+const blob = exportCollegeDataFile({
+  ...collegeData,
+  slug: normalizedSlug,
+});
+
+const text = await blob.text();
+
+const { error } = await supabase.storage
+  .from("colleges")
+  .upload(
+    `${normalizedSlug}.json`,
+    new Blob([text], { type: "application/json" }),
+    {
+      upsert: true,
+      contentType: "application/json",
+    }
+  );
 
     const { error } = await supabase.storage
       .from("colleges")
