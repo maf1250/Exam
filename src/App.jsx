@@ -12,6 +12,7 @@ export default function App() {
         <Route path="/trainee/:slug" element={<TraineePortalPage />} />
         <Route path="/:slug" element={<TraineePortalPage />} />
         <Route path="*" element={<TraineePortalPage />} /> {/* <Navigate to="/admin" replace /> */}
+         <Route path="*/:slug" element={<TraineePortalPage />} />
       </Routes>
     </HashRouter>
   );
