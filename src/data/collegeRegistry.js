@@ -297,7 +297,17 @@ function normalizeTrackInput(track = "") {
   if (TRACK_CODES[value]) return value;
   return "";
 }
+function detectCollegeIndex(text = "") {
+  const normalized = normalizeArabic(text);
 
+  if (normalized.includes("الاول") || normalized.includes("الأول")) return "1";
+  if (normalized.includes("الثاني") || normalized.includes("الثانيه")) return "2";
+  if (normalized.includes("الثالث") || normalized.includes("الثالثه")) return "3";
+  if (normalized.includes("الرابع") || normalized.includes("الرابعة")) return "4";
+  if (normalized.includes("الخامس") || normalized.includes("الخامسة")) return "5";
+
+  return "";
+}
 // =======================
 // GENDER DETECTION
 // =======================
