@@ -6954,7 +6954,7 @@ const selectedCollegeTrack = useMemo(() => {
 const selectedCollegeTrackLabel = useMemo(() => {
   return (
     TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
-    "غير محدد"
+    "غير محدد؛ نأمل التواصل مع المطور"
   );
 }, [selectedCollegeTrack]);
 
@@ -14756,9 +14756,23 @@ const headerBtn = (danger = false) => ({
     marginBottom: 8,
   }}
 >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <span>تم التعرف على الوييحدة: {effectiveCollegeSlug}</span>
+    <span>نوع الكبيلية: {selectedCollegeTrackLabel}</span>
+  </div>
+
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <span>الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}</span>
+    <span>المدينة: {effectiveCollegeLocation || "غير محددة"}</span>
+  </div>
+</div>
   {/* الصف الأول */}
   <div style={{ display: "flex", gap: 20 }}>
-    <div>تم التعرف على الوحدة: {effectiveCollegeSlug}</div>
+    <div>تم التعرف على الوحدة</div>
+    </div>
+             <div style={{ display: "flex", gap: 20 }}>
+    <div>رمز الوحدة: {effectiveCollegeSlug}</div>
     <div>
       نوع الكلية: {selectedCollegeTrackLabel}
     </div>
