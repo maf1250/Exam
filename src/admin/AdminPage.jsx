@@ -6937,6 +6937,10 @@ const collegeSourceForSlug = useMemo(() => {
   );
 }, [parsed?.collegeName, collegeNameInput, effectiveCollegeLocation]);
 
+  const detectedCollegeTrack = useMemo(() => {
+  return detectCollegeTrackFromText(collegeSourceForSlug);
+}, [collegeSourceForSlug]);
+  
 const effectiveCollegeSlug = useMemo(() => {
   return resolveLocationSlug(
     collegeSourceForSlug,
