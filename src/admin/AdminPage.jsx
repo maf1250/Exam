@@ -10255,7 +10255,7 @@ const headerBtn = (danger = false) => ({
                   },
                   {
                     key: "time",
-                    title: "تفضيل/تجنب يوم أو فترة للمقرر (حسب الإمكان)",
+                    title: "تفضيل/تجنب يوم أو فترة للمقرر",
                     tooltip: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
                     checked: showCourseTimePreference,
                     onChange: setShowCourseTimePreference,
