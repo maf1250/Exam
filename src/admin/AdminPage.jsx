@@ -3295,14 +3295,13 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-const [selectedCollegeTrack, setSelectedCollegeTrack] = useState("IN");
 
-  const selectedCollegeTrackLabel = useMemo(() => {
-  return (
-    TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
-    "غير محدد"
-  );
-}, [selectedCollegeTrack]);
+  const selectedCollegeTrack =
+  String(effectiveCollegeSlug || "").slice(2, -1);
+
+const selectedCollegeTrackLabel =
+  TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
+  "غير محدد؛ نأمل التواصل مع المطور";
   
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
@@ -14737,27 +14736,34 @@ const headerBtn = (danger = false) => ({
           <div style={{ fontWeight: 800, marginBottom: 8 }}>تحديد الوحدة</div>
 
           {effectiveCollegeLocation ? (
-            <div
-              style={{
-                color: COLORS.success,
-                fontWeight: 700,
-                lineHeight: 1.9,
-                marginBottom: 8,
-              }}
-            >
-             
-  تم التعرف على الوحدة: {effectiveCollegeSlug}
-  <br />
-  نوع الكلية: {
-  TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
-  "غير محدد"
-}
-          <br />
-    نوع الكلية: {selectedCollegeTrack}
-  <br />
-  الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
-  <br />
-  المدينة: {effectiveCollegeLocation || "غير محددة"}
+          <div
+  style={{
+    color: COLORS.success,
+    fontWeight: 700,
+    lineHeight: 2,
+    marginBottom: 8,
+  }}
+>
+  {/* الصف الأول */}
+  <div style={{ display: "flex", gap: 20 }}>
+    <div>تم التعرف على الوحدة: {effectiveCollegeSlug}</div>
+    <div>
+      نوع الكلية: {
+        TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
+        "غير محدد"
+      }
+    </div>
+  </div>
+
+  {/* الصف الثاني */}
+  <div style={{ display: "flex", gap: 20 }}>
+    <div>
+      الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
+    </div>
+    <div>
+      المدينة: {effectiveCollegeLocation || "غير محددة"}
+    </div>
+  </div>
 </div>
           ) : (
            <div
