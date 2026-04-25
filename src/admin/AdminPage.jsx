@@ -3296,12 +3296,7 @@ const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreferen
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
 
-  const selectedCollegeTrack =
-  String(effectiveCollegeSlug || "").slice(2, -1);
 
-const selectedCollegeTrackLabel =
-  TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
-  "غير محدد؛ نأمل التواصل مع المطور";
   
   
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
