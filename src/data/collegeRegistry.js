@@ -146,7 +146,21 @@ export const TRACK_CODES = {
 
 
 };
-
+export const TRACK_OPTIONS = [
+  { value: "CT", label: "كلية تقنية" },
+  { value: "TT", label: "كلية تطبيقية" },
+  { value: "TO", label: "سياحة وفندقة" },
+  { value: "CE", label: "اتصالات وإلكترونيات" },
+  { value: "CI", label: "اتصالات ومعلومات" },
+  { value: "FE", label: "علوم الغذاء والبيئة" },
+  { value: "DG", label: "كلية رقمية" },
+  { value: "IN", label: "كليات عالمية" },
+   { value: "RL", label: "معهد ملكي" },
+  { value: "PN", label: "معهد سجن" },
+  { value: "AR", label: "معهد عمارة وتشييد" },
+  { value: "MI", label: "معهد عسكري" },
+  { value: "HI", label: "معهد ثانوي صناعي" },
+];
 // =======================
 // LOCATION SLUGS
 // =======================
