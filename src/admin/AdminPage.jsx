@@ -6941,6 +6941,23 @@ const effectiveCollegeSlug = useMemo(() => {
   return resolveLocationSlug(collegeSourceForSlug, detectedGender);
 }, [collegeSourceForSlug, detectedGender]);
 
+const selectedCollegeTrack = useMemo(() => {
+  const slug = String(effectiveCollegeSlug || "").trim().toUpperCase();
+  const slugWithoutGender = slug.replace(/[MF]$/, "");
+  const matchedTrack = TRACK_OPTIONS.find((item) =>
+    slugWithoutGender.endsWith(String(item?.value || "").toUpperCase())
+  );
+
+  return matchedTrack?.value || "";
+}, [effectiveCollegeSlug]);
+
+const selectedCollegeTrackLabel = useMemo(() => {
+  return (
+    TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
+    "غير محدد"
+  );
+}, [selectedCollegeTrack]);
+
 const baseLink = useMemo(() => {
   return generateTraineeLink(collegeSourceForSlug, detectedGender);
 }, [collegeSourceForSlug, detectedGender]);
@@ -14743,10 +14760,7 @@ const headerBtn = (danger = false) => ({
   <div style={{ display: "flex", gap: 20 }}>
     <div>تم التعرف على الوحدة: {effectiveCollegeSlug}</div>
     <div>
-      نوع الكلية: {
-        TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
-        "غير محدد"
-      }
+      نوع الكلية: {selectedCollegeTrackLabel}
     </div>
   </div>
 
