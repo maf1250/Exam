@@ -165,7 +165,7 @@ export const TRACK_OPTIONS = [
   { value: "FE", label: "علوم الغذاء والبيئة" },
   { value: "DG", label: "كلية رقمية" },
   { value: "IN", label: "كليات عالمية" },
-   { value: "RL", label: "معهد ملكي" },
+  { value: "RL", label: "معهد ملكي" },
   { value: "PN", label: "معهد سجن" },
   { value: "AR", label: "معهد عمارة وتشييد" },
   { value: "MI", label: "معهد عسكري" },
@@ -321,6 +321,9 @@ export function detectGenderFromText(text = "") {
   const normalized = normalizeArabic(text);
 
   if (normalized.includes("للبنات") || normalized.includes("بنات")) {
+    return "female";
+  }
+   if (normalized.includes("النسوي") || normalized.includes("نسوي")) {
     return "female";
   }
 
