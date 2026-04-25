@@ -10269,7 +10269,7 @@ const headerBtn = (danger = false) => ({
                   },
                   {
                     key: "inv",
-                    title: "تفضيل / منع / قصر مراقبين لمقرر معيّن",
+                    title: "آلية إسناد المراقبين لمقرر معين (تفضيل / منع / قصر)",
                     tooltip: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
                     checked: showInvigilatorConstraintPreference,
                     onChange: setShowInvigilatorConstraintPreference,
@@ -11620,7 +11620,7 @@ const headerBtn = (danger = false) => ({
             background: "#F8FEFE",
           }}
         >
-          <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل / منع / قصر مراقبين لمقرر معيّن</div>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>آلية إسناد المراقبين لمقرر معين (تفضيل / منع / قصر)</div>
           <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
             هذه الخيارات خاصة بكل مقرر، وسيحاول النظام مراعاتها أثناء التوزيع الآلي. عند اختيار "قصر"، لن يختار النظام إلا من الأسماء المحددة لهذا المقرر.
           </div>
