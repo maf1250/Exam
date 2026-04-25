@@ -8,7 +8,7 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/" element={<TraineePortalPage />} /> {/* <Navigate to="/admin" replace /> */}
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/sportal" element={<AdminPage />} />
         <Route path="/trainee/:slug" element={<TraineePortalPage />} />
         <Route path="/:slug" element={<TraineePortalPage />} />
         <Route path="*" element={<TraineePortalPage />} /> {/* <Navigate to="/admin" replace /> */}
