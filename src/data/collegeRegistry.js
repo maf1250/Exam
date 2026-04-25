@@ -582,11 +582,49 @@ export function resolveLocationSlug(locationOrCollegeName = "", gender = "", tra
 
   const resolvedTrack = resolveTrackCode(locationOrCollegeName, track);
 
-  return (
+  const baseSlug =
     slugEntry?.[resolvedGender]?.[resolvedTrack] ||
     slugEntry?.male?.CT ||
-    ""
-  );
+    "";
+
+  const normalized = normalizeArabic(locationOrCollegeName);
+
+let index = "";
+
+if (
+  normalized.includes("الاول") ||
+  normalized.includes("اولي") ||
+  normalized.includes("الاولى") ||
+  normalized.includes("الاولي")
+) {
+  index = "1";
+} else if (
+  normalized.includes("الثاني") ||
+  normalized.includes("الثانيه") ||
+  normalized.includes("الثانية")
+) {
+  index = "2";
+} else if (
+  normalized.includes("الثالث") ||
+  normalized.includes("الثالثه") ||
+  normalized.includes("الثالثة")
+) {
+  index = "3";
+} else if (
+  normalized.includes("الرابع") ||
+  normalized.includes("الرابعة") ||
+  normalized.includes("الرابعه")
+) {
+  index = "4";
+} else if (
+  normalized.includes("الخامس") ||
+  normalized.includes("الخامسة") ||
+  normalized.includes("الخامسه")
+) {
+  index = "5";
+}
+
+return baseSlug + index;
 }
 
 // =======================
