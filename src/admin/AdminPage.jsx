@@ -14768,10 +14768,10 @@ const headerBtn = (danger = false) => ({
   </div>
 </div>
   {/* الصف الأول */}
-  <div style={{ display: "flex", gap: 20 }}>
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>تم التعرف على الوحدة</div>
     </div>
-             <div style={{ display: "flex", gap: 20 }}>
+             <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>رمز الوحدة: {effectiveCollegeSlug}</div>
     <div>
       نوع الكلية: {selectedCollegeTrackLabel}
@@ -14779,7 +14779,7 @@ const headerBtn = (danger = false) => ({
   </div>
 
   {/* الصف الثاني */}
-  <div style={{ display: "flex", gap: 20 }}>
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>
       الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
     </div>
