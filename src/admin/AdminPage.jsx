@@ -10,6 +10,7 @@ import {
   resolveLocationSlug,
   detectGenderFromText,
   detectGenderFromRows,
+  TRACK_OPTIONS,
 } from "../data/collegeRegistry";
 import { exportCollegeDataFile } from "../data/exportCollegeData";
 const STORAGE_KEY = "exam_scheduler_saved_state_v1";
@@ -3294,6 +3295,16 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
+const [selectedCollegeTrack, setSelectedCollegeTrack] = useState("");
+
+  const selectedCollegeTrackLabel = useMemo(() => {
+  return (
+    TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
+    "غير محدد"
+  );
+}, [selectedCollegeTrack]);
+  
+  
   const periodsText = useMemo(() => serializePeriodConfigsToText(periodConfigs), [periodConfigs]);
 
 const updatePeriodConfig = (index, patch) => {
@@ -14730,12 +14741,19 @@ const headerBtn = (danger = false) => ({
               style={{
                 color: COLORS.success,
                 fontWeight: 700,
+                lineHeight: 1.9,
                 marginBottom: 8,
               }}
             >
-              تم التعرف على الوحدة: 
-              {effectiveCollegeSlug ? ` (${effectiveCollegeSlug})` : ""}
-            </div>
+             
+  تم التعرف على الوحدة: {parsed?.collegeName || collegeNameInput || "غير محدد"}
+  <br />
+  نوع الكلية: {selectedCollegeTrackLabel}
+  <br />
+  الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
+  <br />
+  المدينة: {effectiveCollegeLocation || "غير محددة"}
+</div>
           ) : (
            <div
   style={{
@@ -14765,7 +14783,7 @@ const headerBtn = (danger = false) => ({
               ))}
             </select>
           )}
-*/}
+
           {detectedCollegeLocation && (
             <div style={{ marginTop: 10 }}>
               <button
@@ -14777,7 +14795,7 @@ const headerBtn = (danger = false) => ({
               </button>
             </div>
           )}
-
+*/}
         </div>
 
       </div>
