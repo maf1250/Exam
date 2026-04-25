@@ -3295,7 +3295,7 @@ const [showAvoidSameLevelSameDayPreference, setShowAvoidSameLevelSameDayPreferen
 const [showInvigilatorConstraintPreference, setShowInvigilatorConstraintPreference] = useState(false);
 const [specializedExtraInvigilators, setSpecializedExtraInvigilators] = useState([]);
 const [generalStudiesExtraInvigilators, setGeneralStudiesExtraInvigilators] = useState([]);
-const [selectedCollegeTrack, setSelectedCollegeTrack] = useState("");
+const [selectedCollegeTrack, setSelectedCollegeTrack] = useState("test");
 
   const selectedCollegeTrackLabel = useMemo(() => {
   return (
@@ -14746,7 +14746,7 @@ const headerBtn = (danger = false) => ({
               }}
             >
              
-  تم التعرف على الوحدة: {parsed?.collegeName || collegeNameInput || "غير محدد"}
+  تم التعرف على الوحدة: {effectiveCollegeSlug}
   <br />
   نوع الكلية: {selectedCollegeTrackLabel}
   <br />
