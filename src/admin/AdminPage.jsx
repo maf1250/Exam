@@ -6938,8 +6938,12 @@ const collegeSourceForSlug = useMemo(() => {
 }, [parsed?.collegeName, collegeNameInput, effectiveCollegeLocation]);
 
 const effectiveCollegeSlug = useMemo(() => {
-  return resolveLocationSlug(collegeSourceForSlug, detectedGender);
-}, [collegeSourceForSlug, detectedGender]);
+  return resolveLocationSlug(
+    collegeSourceForSlug,
+    detectedGender,
+    detectedCollegeTrack
+  );
+}, [collegeSourceForSlug, detectedGender, detectedCollegeTrack]);
 
 const selectedCollegeTrack = useMemo(() => {
   const slug = String(effectiveCollegeSlug || "").trim().toUpperCase();
@@ -6959,8 +6963,12 @@ const selectedCollegeTrackLabel = useMemo(() => {
 }, [selectedCollegeTrack]);
 
 const baseLink = useMemo(() => {
-  return generateTraineeLink(collegeSourceForSlug, detectedGender);
-}, [collegeSourceForSlug, detectedGender]);
+  return generateTraineeLink(
+    collegeSourceForSlug,
+    detectedGender,
+    detectedCollegeTrack
+  );
+}, [collegeSourceForSlug, detectedGender, detectedCollegeTrack]);
 
 
   const allCollegeLocations = useMemo(() => getAllLocations(), []);
