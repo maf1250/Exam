@@ -14771,17 +14771,7 @@ const headerBtn = (danger = false) => ({
     marginBottom: 8,
   }}
 >
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-  <div style={{ display: "flex", justifyContent: "space-between" }}>
-    <span>تم التعرف على الوييحدة: {effectiveCollegeSlug}</span>
-    <span>نوع الكبيلية: {selectedCollegeTrackLabel}</span>
-  </div>
 
-  <div style={{ display: "flex", justifyContent: "space-between" }}>
-    <span>الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}</span>
-    <span>المدينة: {effectiveCollegeLocation || "غير محددة"}</span>
-  </div>
-</div>
   {/* الصف الأول */}
   <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>تم التعرف على الوحدة</div>
