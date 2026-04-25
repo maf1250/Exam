@@ -14777,22 +14777,16 @@ const headerBtn = (danger = false) => ({
   <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>تم التعرف على الوحدة</div>
     </div>
-             <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
     <div>رمز الوحدة: {effectiveCollegeSlug}</div>
-    <div>
-      نوع الكلية: {selectedCollegeTrackLabel}
-    </div>
+   <div>المدينة: {effectiveCollegeLocation || "غير محددة"}</div>
   </div>
 
   {/* الصف الثاني */}
   <div style={{ display: "flex", justifyContent: "space-between" }}>
-    <div>
-      الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
-    </div>
-    <div>
-      المدينة: {effectiveCollegeLocation || "غير محددة"}
-    </div>
-  </div>
+ <div>نوع الكلية: {selectedCollegeTrackLabel}</div>
+    <div>الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}</div>
+     </div>
 </div>
           ) : (
            <div
