@@ -14748,7 +14748,12 @@ const headerBtn = (danger = false) => ({
              
   تم التعرف على الوحدة: {effectiveCollegeSlug}
   <br />
-  نوع الكلية: {selectedCollegeTrackLabel}
+  نوع الكلية: {
+  TRACK_OPTIONS.find((item) => item.value === selectedCollegeTrack)?.label ||
+  "غير محدد"
+}
+          <br />
+    نوع الكلية: {selectedCollegeTrack}
   <br />
   الجنس: {detectedGender === "female" ? "بنات" : detectedGender === "male" ? "بنين" : "غير محدد"}
   <br />
