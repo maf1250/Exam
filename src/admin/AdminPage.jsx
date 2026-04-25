@@ -4068,7 +4068,7 @@ function EmailIcon({ size = 18 }) {
       hallNames,
       label:
         constraint.mode === "only"
-          ? `قصر على القاعات: ${hallNames.join("، ") || "-"}`
+          ? `حصر على القاعات: ${hallNames.join("، ") || "-"}`
           : constraint.mode === "prefer"
           ? `تفضيل القاعات: ${hallNames.join("، ") || "-"}`
           : "بدون قيد قاعات خاص",
@@ -10227,7 +10227,7 @@ const headerBtn = (danger = false) => ({
                 {[
                   {
                     key: "hall",
-                    title: "تفضيل أو قصر القاعات لمقرر أو قسم معيّن / تفعيل أو إلغاء تقسيم المقرر بين أكثر من قاعة",
+                    title: "تفضيل أو حصر القاعات لمقرر أو قسم معيّن / تفعيل أو إلغاء تقسيم المقرر بين أكثر من قاعة",
                     tooltip: "يُظهر إعدادات تخصيص القاعات على مستوى المقرر أو القسم، وكذلك خيار تقسيم المقرر بين أكثر من قاعة عند الحاجة.",
                     checked: showHallConstraintPreferences,
                     onChange: setShowHallConstraintPreferences,
@@ -10235,7 +10235,7 @@ const headerBtn = (danger = false) => ({
                   {
                     key: "exclude",
                     title: "استبعاد مقررات من الجدول",
-                    tooltip: "يُظهر بطاقة استبعاد المقررات من الجدول. المقررات العملية والمشاريع والتدريب التعاوني مستبعدة افتراضيًا.",
+                    tooltip: "يُظهر خيار استبعاد المقررات من الجدول. المقررات العملية والمشاريع والتدريب التعاوني مستبعدة افتراضيًا.",
                     checked: showCourseExclusionsPreference,
                     onChange: setShowCourseExclusionsPreference,
                   },
@@ -10249,14 +10249,14 @@ const headerBtn = (danger = false) => ({
                   {
                     key: "same",
                     title: "محاولة إدراج مقررات محددة في نفس الفترة",
-                    tooltip: "يُظهر بطاقة ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
+                    tooltip: "يُظهر خيار ربط بعض المقررات في نفس الفترة حسب الإمكان مع مراعاة التعارضات والقيود الأخرى.",
                     checked: showSamePeriodPreference,
                     onChange: setShowSamePeriodPreference,
                   },
                   {
                     key: "time",
                     title: "تفضيل/تجنب يوم أو فترة للمقرر",
-                    tooltip: "يُظهر بطاقة تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
+                    tooltip: "يُظهر خيار تحديد الأيام أو الفترات المفضلة أو غير المفضلة لبعض المقررات، ويطبقها النظام بمرونة قدر الإمكان.",
                     checked: showCourseTimePreference,
                     onChange: setShowCourseTimePreference,
                   },
@@ -10269,8 +10269,8 @@ const headerBtn = (danger = false) => ({
                   },
                   {
                     key: "inv",
-                    title: "آلية إسناد المراقبين لمقرر معين (تفضيل / منع / قصر)",
-                    tooltip: "يُظهر بطاقة تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو القصر على أسماء محددة.",
+                    title: "آلية إسناد المراقبين لمقرر معين (تفضيل / منع / حصر)",
+                    tooltip: "يُظهر خيار تخصيص المراقبين على مستوى المقرر، سواء بالتفضيل أو المنع أو الحصر على أسماء محددة.",
                     checked: showInvigilatorConstraintPreference,
                     onChange: setShowInvigilatorConstraintPreference,
                   },
@@ -10642,9 +10642,9 @@ const headerBtn = (danger = false) => ({
             {showHallConstraintPreferences ? (
             <div style={{ marginTop: 18, maxWidth: 640 }}>
               <Card>
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو قصر القاعات لمقرر أو قسم معيّن</div>
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>تفضيل أو حصر القاعات لمقرر أو قسم معيّن</div>
                 <div style={{ color: COLORS.muted, lineHeight: 1.9, marginBottom: 14 }}>
-                  يمكنك هنا تحديد قاعات مفضلة لمقرر أو قسم معيّن، أو قصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر أو القسم.
+                  يمكنك هنا تحديد قاعات مفضلة لمقرر أو قسم معيّن، أو حصره على قاعات محددة فقط. هذا الخيار اختياري ويطبّق أثناء اختيار القاعة للمقرر أو القسم.
                 </div>
 
                 <div style={{ display: "grid", gap: 16, marginBottom: 14 }}>
@@ -10695,7 +10695,7 @@ const headerBtn = (danger = false) => ({
                     marginBottom: 14,
                   }}
                 >
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى المقرر</div>
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>خيار تخصيص على مستوى المقرر</div>
 
                   {selectedHallConstraintCourseKeys.length ? (
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -10780,7 +10780,7 @@ const headerBtn = (danger = false) => ({
                         {[
                           { value: "off", label: "بدون تخصيص" },
                           { value: "prefer", label: "تفضيل قاعات محددة" },
-                          { value: "only", label: "قصر على قاعات محددة" },
+                          { value: "only", label: "حصر على قاعات محددة" },
                         ].map((option) => {
                           const active = selectedCourseHallConstraint.mode === option.value;
                           return (
@@ -10927,7 +10927,7 @@ const headerBtn = (danger = false) => ({
                   >
                     <div style={{ fontWeight: 800, marginBottom: 8 }}>إضافة تخصيص على مستوى القسم أو التخصص</div>
                     <div style={{ color: COLORS.muted, lineHeight: 1.8, marginBottom: 10 }}>
-                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/قصر القاعات على جميع مقررات القسم أو التخصص.
+                      بدلًا من تحديد كل مقرر على حدة، يمكنك تطبيق نفس تفضيل/حصر القاعات على جميع مقررات القسم أو التخصص.
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <div style={{ flex: "0 1 340px", minWidth: 200 }}>
@@ -10969,7 +10969,7 @@ const headerBtn = (danger = false) => ({
                     marginBottom: 14,
                   }}
                 >
-                  <div style={{ fontWeight: 800, marginBottom: 10 }}>بطاقة تخصيص على مستوى القسم/التخصص</div>
+                  <div style={{ fontWeight: 800, marginBottom: 10 }}>خيار تخصيص على مستوى القسم/التخصص</div>
 
                   {selectedHallConstraintDepartmentKeys.length ? (
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -11055,7 +11055,7 @@ const headerBtn = (danger = false) => ({
                         {[
                           { value: "off", label: "بدون تخصيص" },
                           { value: "prefer", label: "تفضيل قاعات محددة" },
-                          { value: "only", label: "قصر على قاعات محددة" },
+                          { value: "only", label: "حصر على قاعات محددة" },
                         ].map((option) => {
                           const active = selectedDepartmentHallConstraint.mode === option.value;
                           return (
@@ -11620,9 +11620,9 @@ const headerBtn = (danger = false) => ({
             background: "#F8FEFE",
           }}
         >
-          <div style={{ fontWeight: 900, marginBottom: 8 }}>آلية إسناد المراقبين لمقرر معين (تفضيل / منع / قصر)</div>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>آلية إسناد المراقبين لمقرر معين (تفضيل / منع / حصر)</div>
           <div style={{ color: COLORS.muted, marginBottom: 14, lineHeight: 1.8 }}>
-            هذه الخيارات خاصة بكل مقرر، وسيحاول النظام مراعاتها أثناء التوزيع الآلي. عند اختيار "قصر"، لن يختار النظام إلا من الأسماء المحددة لهذا المقرر.
+            هذه الخيارات خاصة بكل مقرر، وسيحاول النظام مراعاتها أثناء التوزيع الآلي. عند اختيار "حصر"، لن يختار النظام إلا من الأسماء المحددة لهذا المقرر.
           </div>
 
           <div style={{ maxWidth: 700, marginBottom: 14 }}>
@@ -11729,9 +11729,9 @@ const headerBtn = (danger = false) => ({
                   { value: "off", label: "بدون تخصيص" },
                   { value: "prefer", label: "تفضيل مراقبين محددين" },
                   { value: "avoid", label: "منع مراقبين محددين" },
-                  { value: "only", label: "قصر على مراقبين محددين" },
+                  { value: "only", label: "حصر على مراقبين محددين" },
                   { value: "avoid_department_trainers", label: "منع مدربي القسم" },
-                  { value: "only_department_trainers", label: "قصر على مدربي القسم" },
+                  { value: "only_department_trainers", label: "حصر على مدربي القسم" },
                 ].map((option) => {
                   const active = selectedCourseInvigilatorConstraint.mode === option.value;
                   return (
@@ -11758,7 +11758,7 @@ const headerBtn = (danger = false) => ({
                 <>
                   <div style={{ color: COLORS.muted, marginBottom: 12, lineHeight: 1.8 }}>
                     {selectedCourseInvigilatorConstraint.mode === "only_department_trainers"
-                      ? "سيتم قصر المراقبة تلقائيًا على مدربي القسم لهذا المقرر. وإذا كان المقرر من الدراسات العامة فسيقتصر على جميع من أسند له أحد مقررات الدراسات العامة، حتى ولو كان المدرب يتبع قسمًا آخر."
+                      ? "سيتم حصر المراقبة تلقائيًا على مدربي القسم لهذا المقرر. وإذا كان المقرر من الدراسات العامة فسيقتصر على جميع من أسند له أحد مقررات الدراسات العامة، حتى ولو كان المدرب يتبع قسمًا آخر."
                       : "سيتم منع مدربي القسم لهذا المقرر من المراقبة. وإذا كان المقرر من الدراسات العامة فسيتم منع على جميع من أسند له أحد مقررات الدراسات العامة، حتى ولو كان المدرب يتبع قسمًا آخر."}
                   </div>
 
@@ -12510,7 +12510,7 @@ const headerBtn = (danger = false) => ({
   <Card style={{ marginTop: 14 }}>
     <SectionHeader
       title="مراقبون إضافيون مسموح بهم عند الحاجة"
-      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي مقررات الدراسات العامة بعد تطبيق الحصر."
+      description="جميع الأسماء غير مفعلة افتراضيًا. لن تتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي مقررات الدراسات العامة بعد تطبيق الحصر."
     />
 
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
@@ -12575,7 +12575,7 @@ const headerBtn = (danger = false) => ({
                 lineHeight: 1.8,
               }}
             >
-              يمكنك تغيير أولوية مقررات الدراسات العامة يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. ترتيب الأولوية يؤثر على التوزيع حسب الإمكان، مع مراعاة التعارضات والقيود وسعة القاعات وتوفر المراقبين.
+              يمكنك تغيير أولوية مقررات الدراسات العامة يدويًا عبر السحب والإفلات أو باستخدام أسهم التحريك. ترتيب الأولوية يؤثر على التوزيع حسب الإمكان، مع مراعاة التعارضات والقيود وسعة القاعات وتوفر المراقبين.
             </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -12682,7 +12682,7 @@ const headerBtn = (danger = false) => ({
                     fontSize: 14,
                   }}
                 >
-                  لن تظهر الدراسات العامة ضمن هذه القائمة لأنها مستقلة عن الأقسام والتخصصات.
+                  لن تظهر مقررات الدراسات العامة ضمن هذه القائمة لأنها مستقلة عن الأقسام والتخصصات.
                   وعند توزيع قسم محدد سيتم قفل صفحة الدراسات العامة حتى لا يتم تعديلها.
                 </div>
 
@@ -12704,7 +12704,7 @@ const headerBtn = (danger = false) => ({
                         عند التفعيل سيتم أولًا تحديد مقررات التخصص الداخلة في التوزيع بعد الاستبعاد، ثم حصر المراقبة على مدربي هذه المقررات فقط دون إدخال أي مدرب من خارجها.
                       </div>
                       <div style={{ marginTop: 8, color: COLORS.warning, fontSize: 13, lineHeight: 1.8, fontWeight: 700 }}>
-                        ملاحظة: عند تفعيل هذا الخيار، إذا لم يكفِ عدد مدربي هذا النطاق في فترة معيّنة فلن تتم جدولة المقرر في تلك الفترة، ولن يتم الاستعانة بمدربين من خارج هذا النطاق.
+                        ملاحظة: عند تفعيل هذا الخيار، إذا لم يكفِ عدد مدربي هذا النطاق في فترة معيّنة فلن تتم جدولة المقرر في تلك الفترة، ولن تتم الاستعانة بمدربين من خارج هذا النطاق.
                       </div>
                     </div>
                     <Switch
@@ -12751,7 +12751,7 @@ const headerBtn = (danger = false) => ({
   <Card style={{ marginTop: 14 }}>
     <SectionHeader
       title="مراقبون إضافيون مسموح بهم عند الحاجة"
-      description="جميع الأسماء غير مفعلة افتراضيًا. لن يتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي القسم/التخصص بعد تطبيق الحصر."
+      description="جميع الأسماء غير مفعلة افتراضيًا. لن تتم الاستعانة بهذه الأسماء إلا إذا لم يكفِ عدد مراقبي القسم/التخصص بعد تطبيق الحصر."
     />
 
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
@@ -12817,7 +12817,7 @@ const headerBtn = (danger = false) => ({
                 lineHeight: 1.8,
               }}
             >
-              يمكنك تغيير أولوية مقررات التخصص يدويًا عبر السحب والإفلات أو باستخدام سهام التحريك. يبدأ التوزيع من الأعلى إلى الأسفل داخل النطاق الحالي مع بقاء بقية معايير النظام الذكية فعّالة.
+              يمكنك تغيير أولوية مقررات التخصص يدويًا عبر السحب والإفلات أو باستخدام أسهم التحريك. يبدأ التوزيع من الأعلى إلى الأسفل داخل النطاق الحالي مع بقاء بقية معايير النظام الذكية فعّالة.
             </div>
             <div style={{ overflowX: "auto", marginBottom: 18 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -13301,7 +13301,7 @@ const headerBtn = (danger = false) => ({
                   }}
               >
                 <div style={{ fontWeight: 900, marginBottom: 10 }}>مقررات غير مجدولة</div>
-                <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر.</div>
+                <div style={{ color: COLORS.muted, marginBottom: 12 }}>يمكنك سحب المقرر غير المجدول وإفلاته فوق أي فترة. ستتلوّن الفترات المناسبة بالأخضر وغير المناسبة بالأحمر، علمًا بأنه عند الإفلات في فترة غير مناسبة، سيتم عرض بيانات المتدربين المتعارضين.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {filteredUnscheduledForPreview.length ? (
                     filteredUnscheduledForPreview.map((course, index) => (
@@ -13539,7 +13539,7 @@ const headerBtn = (danger = false) => ({
                     >
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>ملخص المراقبين</div>
                       <div style={{ color: COLORS.muted, marginBottom: 12, lineHeight: 1.8 }}>
-                        اسحب اسم المراقب من هذه القائمة إلى أي مقرر لإسناده مباشرة. يظهر بجانب كل اسم عدد المراقبات الحالية.
+                        يمكن سحب اسم المراقب من هذه القائمة إلى أي مقرر لإسناده مباشرة. يظهر بجانب كل اسم عدد المراقبات الحالية.
                       </div>
                       <div style={{ display: "grid", gap: 8, maxHeight: "70vh", overflowY: "auto", paddingInlineEnd: 4 }}>
                         {manualInvigilatorLoadSummary.map((entry) => (
