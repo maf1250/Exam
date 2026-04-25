@@ -1201,7 +1201,6 @@ function ScrollToTopButton() {
           borderRadius: "50%",
           border: "none",
           background: "rgba(31, 167, 168, 0.55)",
-          ":hover": {  background: "rgba(31, 167, 168, 0.8)",}   
           color: "#fff",
           fontSize: 16,
           cursor: "pointer",
