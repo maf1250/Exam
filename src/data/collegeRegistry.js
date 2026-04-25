@@ -423,15 +423,20 @@ if (
     return "FE";
   }
 
-
-  if (
-    normalized.includes("التقنية") ||
-    normalized.includes("التقنيه") ||
-    normalized.includes("تقنية") ||
-    normalized.includes("تقنيه")
+    if (
+    normalized.includes("السجون") ||
+    normalized.includes("السجن") ||
+    normalized.includes("سجون") ||
+    normalized.includes("اصلاحية") ||
+    normalized.includes("إصلاحية") ||
+    normalized.includes("اصلاحيه") ||
+    normalized.includes("الإصلاحية") ||
+    normalized.includes("الاصلاحية") ||
+    normalized.includes("سجن")
   ) {
-    return "CT";
+    return "PN";
   }
+  
  if (
     normalized.includes("عمارة") ||
     normalized.includes("عماره") ||
@@ -440,7 +445,6 @@ if (
   ) {
     return "AR";
   }
-
   
   if (
     normalized.includes("عسكري") ||
@@ -452,19 +456,7 @@ if (
   ) {
     return "MI";
   }
-  
-   
-  if (
-    normalized.includes("السجون") ||
-    normalized.includes("السجن") ||
-    normalized.includes("سجون") ||
-    normalized.includes("إصلاحية") ||
-    normalized.includes("اصلاحية") ||
-    normalized.includes("سجن")
-  ) {
-    return "PN";
-  }
-  
+ 
   if (
     normalized.includes("الملكي") ||
     normalized.includes("ملكي") 
@@ -481,6 +473,14 @@ if (
     normalized.includes("ثانوي")
   ) {
     return "HI";
+  }
+    if (
+    normalized.includes("التقنية") ||
+    normalized.includes("التقنيه") ||
+    normalized.includes("تقنية") ||
+    normalized.includes("تقنيه")
+  ) {
+    return "CT";
   }
   return "";
 }
