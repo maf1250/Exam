@@ -10,6 +10,7 @@ import {
   resolveLocationSlug,
   detectGenderFromText,
   detectGenderFromRows,
+  detectCollegeTrackFromText,
   TRACK_OPTIONS,
 } from "../data/collegeRegistry";
 import { exportCollegeDataFile } from "../data/exportCollegeData";
