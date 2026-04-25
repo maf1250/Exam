@@ -14992,7 +14992,7 @@ const headerBtn = (danger = false) => ({
           background: "#FFFBEB",
         }}
       >
-        <div style={{ fontSize: 18 }}>📩</div>
+        <div style={{ fontSize: 18 }}>🗃️</div>
 
       <div style={{ lineHeight: 1.9, width: "100%" }}>
   <strong>التفعيل اليدوي البوابة</strong>
