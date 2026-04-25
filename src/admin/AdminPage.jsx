@@ -12878,7 +12878,7 @@ const headerBtn = (danger = false) => ({
 {currentStep === 7 && (
   <Card>
     <SectionHeader
-      title="تحليل تعارض مقررين محددين"
+      title="بيان تعارض مقررين محددين"
       description="اختر مقررين لعرض عدد المتدربين المشتركين بينهما مع تفاصيلهم."
     />
 
