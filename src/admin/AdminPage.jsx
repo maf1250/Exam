@@ -6952,7 +6952,9 @@ const effectiveCollegeSlug = useMemo(() => {
 
 const selectedCollegeTrack = useMemo(() => {
   const slug = String(effectiveCollegeSlug || "").trim().toUpperCase();
-  const slugWithoutGender = slug.replace(/[MF]$/, "");
+  const slugWithoutGender = slug
+  .replace(/[MF]$/, "")   
+  .replace(/[0-9]+$/, ""); 
   const matchedTrack = TRACK_OPTIONS.find((item) =>
     slugWithoutGender.endsWith(String(item?.value || "").toUpperCase())
   );
