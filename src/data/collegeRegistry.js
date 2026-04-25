@@ -424,17 +424,15 @@ if (
   ) {
     return "CT";
   }
-
-if (
-    normalized.includes("صناعية") ||
-    normalized.includes("صناعي") ||
-    normalized.includes("ثانوية") ||
-    normalized.includes("الصناعي") ||
-    normalized.includes("الثانوي") ||
-    normalized.includes("ثانوي")
+ if (
+    normalized.includes("عمارة") ||
+    normalized.includes("عماره") ||
+    normalized.includes("تشييد") ||
+    normalized.includes("التشييد")
   ) {
-    return "HI";
+    return "AR";
   }
+
   
   if (
     normalized.includes("عسكري") ||
@@ -447,15 +445,7 @@ if (
     return "MI";
   }
   
-  if (
-    normalized.includes("عمارة") ||
-    normalized.includes("عماره") ||
-    normalized.includes("تشييد") ||
-    normalized.includes("التشييد")
-  ) {
-    return "AR";
-  }
-  
+   
   if (
     normalized.includes("السجون") ||
     normalized.includes("السجن") ||
@@ -474,7 +464,16 @@ if (
   ) {
     return "RL";
   }
-  
+  if (
+    normalized.includes("صناعية") ||
+    normalized.includes("صناعي") ||
+    normalized.includes("ثانوية") ||
+    normalized.includes("الصناعي") ||
+    normalized.includes("الثانوي") ||
+    normalized.includes("ثانوي")
+  ) {
+    return "HI";
+  }
   return "";
 }
 
