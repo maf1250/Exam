@@ -47,6 +47,8 @@ export const LOCATION_CODES = {
   "الدمام": "DM",
   "القطيف": "QT",
   "حفر الباطن": "HF",
+  "الجعيمة": "JH",
+
 
   // القصيم
   "بريدة": "BR",
@@ -170,7 +172,7 @@ export const LOCATION_SLUGS = Object.fromEntries(
     name,
     {
       male: {
-        CT: `${code}CTM`,
+        IN: `${code}INM`,
         TT: `${code}TTM`,
         TO: `${code}TOM`,
         RL: `${code}RLM`,
@@ -179,14 +181,17 @@ export const LOCATION_SLUGS = Object.fromEntries(
         AR: `${code}ARM`,
         MI: `${code}MIM`,
         HI: `${code}HIM`,
-        IN: `${code}INM`,
         DG: `${code}DGM`,
         CI: `${code}CIM`,
         CE: `${code}CEM`,
+        CT: `${code}CTM`,
 
       },
       female: {
-        CT: `${code}CTF`,
+        IN: `${code}INF`,
+        DG: `${code}DGF`,
+        CI: `${code}CIF`,
+        CE: `${code}CEF`,
         TT: `${code}TTF`,
         TO: `${code}TOF`,
         RL: `${code}RLF`,
@@ -195,10 +200,7 @@ export const LOCATION_SLUGS = Object.fromEntries(
         AR: `${code}ARF`,
         MI: `${code}MIF`,
         HI: `${code}HIF`,
-        IN: `${code}INF`,
-        DG: `${code}DGF`,
-        CI: `${code}CIF`,
-        CE: `${code}CEF`,
+        CT: `${code}CTF`,
       },
     },
   ])
@@ -334,6 +336,17 @@ export function detectCollegeTrackFromText(text = "") {
   const normalized = normalizeArabic(text);
 
   if (
+    normalized.includes("العالمية") ||
+    normalized.includes("عالميه") ||
+    normalized.includes("العالميه") ||
+    normalized.includes("التقنية العالمية") ||
+    normalized.includes("تقنيه عالميه") ||
+    normalized.includes("التقنيه العالميه") ||
+    normalized.includes("عالمية")
+  ) {
+    return "IN";
+  }
+  if (
     normalized.includes("التطبيقية") ||
     normalized.includes("التطبيقيه") ||
     normalized.includes("تطبيقية") ||
@@ -390,17 +403,6 @@ if (
     return "FE";
   }
 
-if (
-    normalized.includes("العالمية") ||
-    normalized.includes("عالميه") ||
-    normalized.includes("العالميه") ||
-    normalized.includes("التقنية العالمية") ||
-    normalized.includes("تقنيه عالميه") ||
-    normalized.includes("التقنيه العالميه") ||
-    normalized.includes("عالمية")
-  ) {
-    return "IN";
-  }
 
   if (
     normalized.includes("التقنية") ||
