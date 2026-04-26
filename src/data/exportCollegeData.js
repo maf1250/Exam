@@ -155,6 +155,33 @@ function getStudentDisplayInfo(studentId, row, studentInfoMap) {
     major: String(info?.major || fallback.major).trim(),
   };
 }
+function dedupeStudentSchedule(schedule = []) {
+  const map = new Map();
+
+  schedule.forEach((item) => {
+    const key = [
+      normalizeArabic(item.courseCode),
+      normalizeArabic(item.courseName),
+      String(item.dateISO || ""),
+      String(item.period || ""),
+      String(item.timeText || ""),
+      normalizeArabic(item.examHall),
+    ].join("__");
+
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, item);
+      return;
+    }
+
+    if (!existing.isDeprived && item.isDeprived) {
+      map.set(key, item);
+    }
+  });
+
+  return Array.from(map.values());
+}
 
 export function exportCollegeDataFile({
   slug,
@@ -250,8 +277,9 @@ studentMap.get(studentId).schedule.push({
   const students = Array.from(studentMap.values())
     .map((student) => ({
       ...student,
-      schedule: sortStudentSchedule(student.schedule || []),
-    }))
+schedule: sortStudentSchedule(
+  dedupeStudentSchedule(student.schedule || [])
+),    }))
     .filter((student) => Array.isArray(student.schedule) && student.schedule.length > 0);
 
   const output = {
