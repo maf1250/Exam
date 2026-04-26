@@ -10013,7 +10013,7 @@ const headerBtn = (danger = false) => ({
   }}
 >
   <a
-    href="https://example.com"
+    href="https://youtu.be/_eg_L7kIURs"
     target="_blank"
     rel="noreferrer"
     title="لمشاهدة الشرح"
