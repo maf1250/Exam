@@ -5175,7 +5175,191 @@ const handleUpload = (file) => {
     Boolean(localStorage.getItem(STORAGE_MODE_KEY)) ||
     Boolean(localStorage.getItem(LARGE_STORAGE_KEY));
 
-  const continueUpload = () => {
+  const buildCourseLookupFromRows = (sourceRows) => {
+    const courseMap = new Map();
+
+    (Array.isArray(sourceRows) ? sourceRows : []).forEach((row) => {
+      if (excludeInactive) {
+        const regStatus = normalizeArabic(row["حالة تسجيل"]);
+        const traineeStatus = normalizeArabic(row["حالة المتدرب"]);
+        const badReg = EXCLUDED_REGISTRATION.some((item) => regStatus.includes(normalizeArabic(item)));
+        const badTrainee = EXCLUDED_TRAINEE.some((item) => traineeStatus.includes(normalizeArabic(item)));
+        if (badReg || badTrainee) return;
+      }
+
+      const courseCode = String(row["المقرر"] ?? "").trim();
+      const courseName = String(row["اسم المقرر"] ?? "").trim();
+      const trainer = String(row["المدرب"] ?? "").trim();
+      const studentId = String(row["رقم المتدرب"] ?? "").trim();
+      const department = String(row["القسم"] ?? "").trim();
+      const major = String(row["التخصص"] ?? "").trim();
+      const scheduleType = String(row["نوع الجدولة"] ?? "").trim();
+      const sectionName = `${department || "-"} / ${major || "-"}`;
+      const key = [normalizeArabic(courseCode), normalizeArabic(courseName)].join("|");
+
+      if (!courseCode && !courseName) return;
+
+      if (!courseMap.has(key)) {
+        courseMap.set(key, {
+          key,
+          courseCode,
+          courseName,
+          trainers: new Set(),
+          departments: new Set(),
+          majors: new Set(),
+          sectionNames: new Set(),
+          scheduleTypes: new Set(),
+          students: new Set(),
+          departmentRoots: new Set(),
+        });
+      }
+
+      const course = courseMap.get(key);
+      if (trainer) course.trainers.add(trainer);
+      if (studentId) course.students.add(studentId);
+      if (department) course.departments.add(department);
+      if (major) course.majors.add(major);
+      if (sectionName !== "- / -") course.sectionNames.add(sectionName);
+      if (scheduleType) course.scheduleTypes.add(scheduleType);
+
+      splitBySlash(department).forEach((value) => {
+        const clean = normalizeArabic(value);
+        if (clean) course.departmentRoots.add(clean);
+      });
+      splitBySlash(major).forEach((value) => {
+        const clean = normalizeArabic(value);
+        if (clean) course.departmentRoots.add(clean);
+      });
+      splitBySlash(sectionName).forEach((value) => {
+        const clean = normalizeArabic(value);
+        if (clean && clean !== normalizeArabic("-")) course.departmentRoots.add(clean);
+      });
+    });
+
+    return new Map(
+      Array.from(courseMap.entries()).map(([key, course]) => [
+        key,
+        {
+          ...course,
+          department: Array.from(course.departments).join(" / "),
+          major: Array.from(course.majors).join(" / "),
+          scheduleType: Array.from(course.scheduleTypes).join(" / "),
+          trainerText: Array.from(course.trainers).join(" / "),
+          studentCount: course.students.size,
+          sectionName: Array.from(course.sectionNames).join(" / ") || "-",
+          students: course.students,
+          trainers: course.trainers,
+          departments: course.departments,
+          majors: course.majors,
+          sectionNames: course.sectionNames,
+          scheduleTypes: course.scheduleTypes,
+          departmentRoots: Array.from(course.departmentRoots),
+        },
+      ])
+    );
+  };
+
+  const syncScheduleWithNewRows = (cleanRows) => {
+    const lookup = buildCourseLookupFromRows(cleanRows);
+    const movedToUnscheduled = [];
+    const remainingSchedule = [];
+    const slotStudentMap = new Map();
+
+    const updatedSchedule = (schedule || []).map((item) => {
+      const latestCourse = lookup.get(String(item?.key || "").trim());
+      if (!latestCourse) return item;
+
+      return {
+        ...item,
+        courseCode: latestCourse.courseCode || item.courseCode,
+        courseName: latestCourse.courseName || item.courseName,
+        students: Array.from(latestCourse.students || []),
+        studentCount: latestCourse.studentCount,
+        trainers: Array.from(latestCourse.trainers || []),
+        departments: Array.from(latestCourse.departments || []),
+        majors: Array.from(latestCourse.majors || []),
+        sectionNames: Array.from(latestCourse.sectionNames || []),
+        scheduleTypes: Array.from(latestCourse.scheduleTypes || []),
+        department: latestCourse.department || item.department,
+        major: latestCourse.major || item.major,
+        sectionName: latestCourse.sectionName || item.sectionName,
+        scheduleType: latestCourse.scheduleType || item.scheduleType,
+        trainerText: latestCourse.trainerText || item.trainerText,
+        departmentRoots: Array.from(latestCourse.departmentRoots || []),
+      };
+    });
+
+    const pickMovedItem = (currentItem, existingItem) => {
+      if (currentItem?.isPinned && !existingItem?.isPinned) return existingItem;
+      if (!currentItem?.isPinned && existingItem?.isPinned) return currentItem;
+      if (currentItem?.manualEdited && !existingItem?.manualEdited) return existingItem;
+      if (!currentItem?.manualEdited && existingItem?.manualEdited) return currentItem;
+      return (Number(currentItem?.studentCount) || 0) <= (Number(existingItem?.studentCount) || 0)
+        ? currentItem
+        : existingItem;
+    };
+
+    updatedSchedule.forEach((item) => {
+      const slotKey = getSlotPeriodKey(item);
+      const studentsInSlot = slotStudentMap.get(slotKey) || new Map();
+      const currentStudents = Array.from(item?.students || []).map((value) => String(value).trim()).filter(Boolean);
+      const conflictingStudentId = currentStudents.find((studentId) => studentsInSlot.has(studentId));
+
+      if (!conflictingStudentId) {
+        remainingSchedule.push(item);
+        currentStudents.forEach((studentId) => studentsInSlot.set(studentId, item));
+        slotStudentMap.set(slotKey, studentsInSlot);
+        return;
+      }
+
+      const existingItem = studentsInSlot.get(conflictingStudentId);
+      const itemToMove = pickMovedItem(item, existingItem);
+
+      if (itemToMove?.instanceId === existingItem?.instanceId) {
+        const existingIndex = remainingSchedule.findIndex((scheduledItem) => scheduledItem.instanceId === existingItem.instanceId);
+        if (existingIndex >= 0) remainingSchedule.splice(existingIndex, 1);
+
+        Array.from(existingItem?.students || []).forEach((studentId) => {
+          const cleanStudentId = String(studentId).trim();
+          if (studentsInSlot.get(cleanStudentId)?.instanceId === existingItem.instanceId) {
+            studentsInSlot.delete(cleanStudentId);
+          }
+        });
+
+        remainingSchedule.push(item);
+        currentStudents.forEach((studentId) => studentsInSlot.set(studentId, item));
+      }
+
+      movedToUnscheduled.push({
+        ...itemToMove,
+        unscheduledReason: "تم نقله إلى غير المجدول بعد رفع تقرير جديد مع حفظ الحالة الحالية؛ لوجود تعارض متدربين في الفترة نفسها حسب بيانات التقرير الجديد.",
+        unscheduledShortLabel: "تعارض بعد رفع تقرير جديد",
+      });
+
+      slotStudentMap.set(slotKey, studentsInSlot);
+    });
+
+    if (movedToUnscheduled.length) {
+      const movedIds = new Set(movedToUnscheduled.map((item) => String(item?.instanceId || "").trim()).filter(Boolean));
+      setSchedule(sortScheduledItems(remainingSchedule.filter((item) => !movedIds.has(String(item?.instanceId || "").trim()))));
+      setUnscheduled((prev) => {
+        const existingIds = new Set((prev || []).map((item) => String(item?.instanceId || "").trim()).filter(Boolean));
+        const existingKeys = new Set((prev || []).map((item) => String(item?.key || "").trim()).filter(Boolean));
+        const additions = movedToUnscheduled.filter((item) => {
+          const instanceId = String(item?.instanceId || "").trim();
+          const key = String(item?.key || "").trim();
+          return (instanceId && !existingIds.has(instanceId)) || (!instanceId && key && !existingKeys.has(key));
+        });
+        return [...(prev || []), ...additions];
+      });
+    } else {
+      setSchedule(sortScheduledItems(updatedSchedule));
+    }
+
+    return movedToUnscheduled.length;
+  };
+
+  const continueUpload = ({ preserveCurrentState = false } = {}) => {
     setFileName(file.name);
     setStudentSearchText("");
     setShowStudentSuggestions(false);
@@ -5201,6 +5385,25 @@ const handleUpload = (file) => {
 
           return areCollegeNamesClose(manualName, fileNameFromRow) ? prev : fileNameFromRow;
         });
+
+        if (preserveCurrentState) {
+          const movedCount = syncScheduleWithNewRows(cleanRows);
+          setHasImportedSessionFile(false);
+          pendingRestoreRef.current = null;
+          setPendingRestore(null);
+          setDidRestore(true);
+          setToast(null);
+
+          showToast(
+            "تم رفع الملف مع حفظ الحالة",
+            movedCount
+              ? `تم تحليل الملف ${file.name} مع الإبقاء على الجدول والإعدادات الحالية. تم نقل ${formatCourseCountLabel(movedCount)} إلى غير المجدول بسبب تعارض متدربين بعد تحديث التقرير.`
+              : `تم تحليل الملف ${file.name} مع الإبقاء على الجدول والإعدادات الحالية دون رصد تعارضات جديدة.`,
+            movedCount ? "warning" : "success",
+            movedCount ? { persistent: true } : {}
+          );
+          return;
+        }
 
         setSchedule([]);
         setGeneralSchedule([]);
@@ -5264,16 +5467,23 @@ const handleUpload = (file) => {
   if (hasExistingData) {
     showToast(
       "تنبيه قبل رفع تقرير جديد",
-      "يوجد تقرير تم رفعه مسبقًا. رفع تقرير جديد قد يستبدل البيانات الحالية وقد يتطلب الأمر إعادة التوزيع أو تحديث الجداول من جديد.",
+      "يوجد تقرير تم رفعه مسبقًا. رفع تقرير جديد قد يستبدل البيانات الحالية وقد يتطلب الأمر إعادة التوزيع أو تحديث الجداول من جديد. يمكنك بدلًا من ذلك رفع التقرير مع الإبقاء على الحالة الحالية لأغراض التتبع؛ وفي حال ظهور تعارض في فترة أحد المقررات سيتم نقل أحد المقررات المتعارضة إلى غير المجدول.",
       "warning",
       {
         persistent: true,
         actions: [
           {
-            label: "متابعة الرفع",
+            label: "رفع مع حفظ الحالة",
             onClick: () => {
               setToast(null);
-              continueUpload();
+              continueUpload({ preserveCurrentState: true });
+            },
+          },
+          {
+            label: "استبدال الحالة الحالية",
+            onClick: () => {
+              setToast(null);
+              continueUpload({ preserveCurrentState: false });
             },
           },
           {
@@ -5288,7 +5498,7 @@ const handleUpload = (file) => {
     return;
   }
 
-  continueUpload();
+  continueUpload({ preserveCurrentState: false });
 };
 
 const showToast = (title, description, type = "success", options = {}) => {
