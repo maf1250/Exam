@@ -47,7 +47,7 @@ export default function CollegeJsonUploader() {
       setStatus("");
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw new Error("حجم الملف كبير جدًا.");
+        throw new Error("حجم الملف كبير جدًا؛ نأمل التواصل مع المطور.");
       }
 
       if (!/\.json$/i.test(file.name)) {
