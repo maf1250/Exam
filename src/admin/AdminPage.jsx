@@ -13637,7 +13637,7 @@ const headerBtn = (danger = false) => ({
                                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                                     <div>
                                       <div style={{ fontWeight: 900, color: COLORS.charcoal }}>{item.courseName}</div>
-                                      <div style={{ marginTop: 4, color: COLORS.muted, fontSize: 13 }}>{item.courseCode} — {item.examHall || "بدون قاعة"}</div>
+                                      <div style={{ marginTop: 4, color: COLORS.muted, fontSize: 13 }}>{item.courseCode} — {item.examHall || "بدون قاعة"} — {formatTraineeCountLabel(Number(item.studentCount) || 0)}</div>
                                     </div>
                                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                                       <span style={{ background: assignedCount >= requiredInvigilators ? COLORS.successBg : COLORS.warningBg, color: assignedCount >= requiredInvigilators ? COLORS.success : COLORS.warning, borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 900 }}>
