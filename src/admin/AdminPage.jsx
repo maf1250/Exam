@@ -15009,7 +15009,7 @@ const headerBtn = (danger = false) => ({
   marginTop: 10,
   padding: 12,
   borderRadius: 32,
-  maxWidth: 300,
+  
   
 }}>
   <CollegeJsonUploader />
