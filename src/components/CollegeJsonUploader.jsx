@@ -53,7 +53,7 @@ export default function CollegeJsonUploader() {
 
       if (error) throw error;
 
-      setStatus(`تم رفع بيانات المتدربين بنجاح: ${finalSlug}`);
+      setStatus(`تم رفع بيانات المتدربين بنجاح: https://exam-tvtc.onrender.com/${finalSlug}`);
       event.target.value = "";
     } catch (err) {
       setStatus(err.message || "حدث خطأ أثناء الرفع.");
