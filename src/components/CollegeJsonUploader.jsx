@@ -66,7 +66,6 @@ export default function CollegeJsonUploader() {
     <div style={{ display: "grid", gap: 12 }}>
            <input
         type="file"
-        accept=".json,application/json"
         onChange={handleFileChange}
         disabled={uploading}
       />
