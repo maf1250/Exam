@@ -331,9 +331,32 @@ function compareStudentScheduleEntries(a, b) {
   return String(a?.courseName || "").localeCompare(String(b?.courseName || ""), "ar");
 }
 
-function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, deprivationMap }) {
+function compareStudentScheduleEntriesWithDeprivedLast(a, b) {
+  const deprivedA = Boolean(a?.isDeprived || a?.deprivationStatus);
+  const deprivedB = Boolean(b?.isDeprived || b?.deprivationStatus);
+
+  if (deprivedA !== deprivedB) return deprivedA ? 1 : -1;
+
+  return compareStudentScheduleEntries(a, b);
+}
+
+function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, deprivationMap, excludedCourseKeys = [] }) {
   const cleanStudentId = String(studentId || "").trim();
   if (!cleanStudentId) return [];
+
+  const excludedSet = new Set(
+    (Array.isArray(excludedCourseKeys) ? excludedCourseKeys : [])
+      .map((key) => String(key || "").trim())
+      .filter(Boolean)
+  );
+  const isExcludedCourse = (courseCode, courseName, fallbackKey = "") => {
+    const normalizedFallbackKey = String(fallbackKey || "").trim();
+    const rowKey = getStudentCourseRowKey(courseCode, courseName);
+    return Boolean(
+      (normalizedFallbackKey && excludedSet.has(normalizedFallbackKey)) ||
+        (rowKey && excludedSet.has(rowKey))
+    );
+  };
 
   const scheduleLookup = new Map();
 
@@ -345,6 +368,7 @@ function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, depriv
     const enrichedItem = enrichScheduleItemForStudent(item, cleanStudentId, deprivationMap);
     const rowKey = getStudentCourseRowKey(item?.courseCode || "", item?.courseName || "");
     if (!rowKey) return;
+    if (isExcludedCourse(item?.courseCode || "", item?.courseName || "", item?.key || item?.courseKey || "")) return;
 
     const existing = scheduleLookup.get(rowKey);
     if (!existing) {
@@ -372,6 +396,7 @@ function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, depriv
 
     const registrationStatus = String(row?.["حالة تسجيل"] ?? "").trim();
     const rowKey = getStudentCourseRowKey(courseCode, courseName);
+    if (isExcludedCourse(courseCode, courseName)) return;
     const scheduledItem = scheduleLookup.get(rowKey);
     const deprivationStatus = isDeprivationRegistrationStatus(registrationStatus)
       ? registrationStatus
@@ -425,7 +450,7 @@ function buildStudentScheduleEntries({ rows, combinedSchedule, studentId, depriv
     }
   });
 
-  return Array.from(resultMap.values()).sort(compareStudentScheduleEntries);
+  return Array.from(resultMap.values()).sort(compareStudentScheduleEntriesWithDeprivedLast);
 }
 
 
@@ -9596,6 +9621,7 @@ const selectedStudentScheduleForPrint = useMemo(() => {
     combinedSchedule,
     studentId: selectedStudentIdForPrint,
     deprivationMap: deprivedCourseStudentStatusMap,
+    excludedCourseKeys: excludedCourses,
   });
 }, [
   schedule,
@@ -9604,6 +9630,7 @@ const selectedStudentScheduleForPrint = useMemo(() => {
   parsed.filteredRows,
   selectedStudentIdForPrint,
   deprivedCourseStudentStatusMap,
+  excludedCourses,
 ]);
 
   const combinedScheduleForStudents = useMemo(() => (
@@ -9659,8 +9686,9 @@ const selectedStudentScheduleForPrint = useMemo(() => {
       combinedSchedule: combinedScheduleForStudents,
       studentId: selectedStudentIdForPrint,
       deprivationMap: deprivedCourseStudentStatusMap,
+      excludedCourseKeys: excludedCourses,
     });
-  }, [combinedScheduleForStudents, parsed.filteredRows, selectedStudentIdForPrint, deprivedCourseStudentStatusMap]);
+  }, [combinedScheduleForStudents, parsed.filteredRows, selectedStudentIdForPrint, deprivedCourseStudentStatusMap, excludedCourses]);
 
 const invigilatorTable = useMemo(() => {
   const table = new Map();
