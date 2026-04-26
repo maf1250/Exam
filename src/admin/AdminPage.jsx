@@ -5467,20 +5467,20 @@ const handleUpload = (file) => {
   if (hasExistingData) {
     showToast(
       "تنبيه قبل رفع تقرير جديد",
-      "يوجد تقرير تم رفعه مسبقًا. رفع تقرير جديد قد يستبدل البيانات الحالية وقد يتطلب الأمر إعادة التوزيع أو تحديث الجداول من جديد. يمكنك بدلًا من ذلك رفع التقرير مع الإبقاء على الحالة الحالية لأغراض التتبع؛ وفي حال ظهور تعارض في فترة أحد المقررات سيتم نقل أحد المقررات المتعارضة إلى غير المجدول.",
+      "يوجد تقرير تم رفعه مسبقًا. رفع تقرير جديد قد يستبدل البيانات الحالية وقد يتطلب الأمر إعادة التوزيع أو تحديث الجداول من جديد. يمكنك بدلًا من ذلك رفع التقرير مع الإبقاء على الحالة الحالية لأغراض التتبع والمقارنة؛ وفي حال ظهور تعارض في فترة أحد المقررات سيتم نقل أحد المقررات المتعارضة إلى غير المجدول.",
       "warning",
       {
         persistent: true,
         actions: [
           {
-            label: "رفع مع حفظ الحالة",
+            label: "الإبقاء على البيانات",
             onClick: () => {
               setToast(null);
               continueUpload({ preserveCurrentState: true });
             },
           },
           {
-            label: "استبدال الحالة الحالية",
+            label: "استبدال البيانات",
             onClick: () => {
               setToast(null);
               continueUpload({ preserveCurrentState: false });
@@ -5512,7 +5512,7 @@ const showToast = (title, description, type = "success", options = {}) => {
       ? 7000
       : type === "warning"
       ? 6000
-      : 4000;
+      : 5000;
 
   if (toastTimerRef.current) {
     window.clearTimeout(toastTimerRef.current);
